@@ -1,20 +1,31 @@
 namespace BetrayalAtKrondor;
 
+using BetrayalAtKrondor.Overrides.Libraries;
+
+using Serilog.Events;
+
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.ReverseEngineer;
 using Spice86.Core.Emulator.VM;
 using Spice86.Logging;
 using Spice86.Shared.Emulator.Memory;
+using Spice86.Shared.Interfaces;
 
 public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
-    private readonly GlobalSettings _globalSettings;
+    private readonly IGlobalSettings _globalSettings;
+    private readonly StdIO _stdIo;
 
-    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ushort entrySegment = 0x1000)
-        : base(functionsInformation, machine, new LoggerService(new LoggerPropertyBag())) {
+    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService)
+        : base(functionsInformation, machine, loggerService) {
         _globalSettings = new GlobalSettings(machine.Memory);
         _gameEngine = new GameEngine(machine.MouseDriver);
         _gameEngine.DataPath = machine.Dos.FileManager.ToHostCaseSensitiveFileName(string.Empty, false) ?? Directory.GetCurrentDirectory();
+        _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug));
+        DefineFunctions();
+    }
+
+    private void DefineFunctions() {
         DefineFunction(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
         DefineFunction(0x1834, 0x48EC, SetMouseCursorRange, true, nameof(SetMouseCursorRange));
     }

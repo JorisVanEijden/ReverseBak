@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="BetrayalAtKrondor" type="DotNetProject" factoryName=".NET Project">
+  <configuration default="false" name="no-overrides" type="DotNetProject" factoryName=".NET Project">
     <option name="EXE_PATH" value="$PROJECT_DIR$/BetrayalAtKrondor/bin/Release/net7.0/BetrayalAtKrondor.exe" />
-    <option name="PROGRAM_PARAMETERS" value="--UseCodeOverride=true --Ems --Exe &quot;C:\Games\Betrayal at Krondor\KRONDOR.EXE&quot; --FailOnUnhandledPort=true  --DumpDataOnExit=true " />
+    <option name="PROGRAM_PARAMETERS" value="--Ems --Exe &quot;C:\Games\Betrayal at Krondor\KRONDOR.EXE&quot; --FailOnUnhandledPort=true  --DumpDataOnExit=true  --UseCodeOverride=false" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/BetrayalAtKrondor/bin/Release/net7.0" />
     <option name="PASS_PARENT_ENVS" value="1" />
     <option name="USE_EXTERNAL_CONSOLE" value="0" />

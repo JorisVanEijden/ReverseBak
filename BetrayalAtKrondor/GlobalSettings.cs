@@ -2,7 +2,7 @@ namespace BetrayalAtKrondor;
 
 using Spice86.Core.Emulator.Memory;
 
-internal class GlobalSettings {
+internal class GlobalSettings : IGlobalSettings {
     private readonly Memory _memory;
 
     public GlobalSettings(Memory memory) {
