@@ -8,9 +8,9 @@ using System.Text.RegularExpressions;
 
 public partial class CFunctions {
     private static readonly Regex FormatRegex = PrintFRegex();
-    private readonly State _state;
-    private readonly Stack _stack;
     private readonly Memory _memory;
+    private readonly Stack _stack;
+    private readonly State _state;
 
     public CFunctions(Cpu cpu, Memory memory) {
         _state = cpu.State;
@@ -33,48 +33,38 @@ public partial class CFunctions {
                 segments.Add(item);
             }
 
-            var specification = new FormatSpecification(match);
+            var formatSpecification = new FormatSpecification(match);
             object arg;
-            switch (specification.Length) {
-                case LengthType.Long:
+            // Use the information from the format specification to read the argument from the stack
+            switch (formatSpecification.SizePrefix) {
+                case SizePrefix.Long:
                     arg = _stack.Peek32(stackPos);
                     stackPos += 4;
                     break;
-                case LengthType.Far:
+                case SizePrefix.Far:
                     ushort offset = _stack.Peek16(stackPos);
                     ushort segment = _stack.Peek16(stackPos + 2);
                     arg = MemoryUtils.ToPhysicalAddress(segment, offset);
                     stackPos += 4;
                     break;
-                case LengthType.Short:
-                case LengthType.Near:
+                case SizePrefix.Short:
+                case SizePrefix.Near:
                     arg = _stack.Peek16(stackPos);
                     stackPos += 2;
                     break;
-                case LengthType.None:
+                case SizePrefix.None:
                 default:
                     arg = _stack.Peek16(stackPos);
                     stackPos += 2;
                     break;
             }
 
-            if (specification.Specifier == SpecifierType.String) {
-                uint address = specification.Length == LengthType.Far
-                    ? (uint)arg
-                    : MemoryUtils.ToPhysicalAddress(_state.DS, (ushort)arg);
-                arg = _memory.GetZeroTerminatedString(address, int.MaxValue);
+            // Convert pointer to string
+            if (formatSpecification.Formatter == FormatterType.String) {
+                arg = GetString(formatSpecification, arg);
             }
 
-            // if (!specification.Width.HasValue) {
-            //     specification.Width = _stack.Peek16(stackPos);
-            //     stackPos += 2;
-            // }
-            // if (!specification.Precision.HasValue) {
-            //     specification.Precision = _stack.Peek16(stackPos);
-            //     stackPos += 2;
-            // }
-
-            segments.Add(specification.Format(arg));
+            segments.Add(formatSpecification.Format(arg));
 
             lastEnd = match.Index + match.Value.Length;
         }
@@ -86,7 +76,17 @@ public partial class CFunctions {
         return string.Join(null, segments);
     }
 
-    [GeneratedRegex(@"\%(\d*\$)?([\#\-\+0 ]*)(\d*|\*)(?:\.(\d+|\*))?([hlFN])?(\[(.+)\])?([dioxXucseEfgGp%])", RegexOptions.Compiled)]
+    private object GetString(FormatSpecification specification, object arg) {
+        uint address;
+        if (specification.SizePrefix == SizePrefix.Far) {
+            address = (uint)arg;
+        } else {
+            address = MemoryUtils.ToPhysicalAddress(_state.DS, (ushort)arg);
+        }
+        return _memory.GetZeroTerminatedString(address, int.MaxValue);
+    }
+
+    [GeneratedRegex(@"\%([\#\-\+0 ]*)(\d*|\*)(?:\.(\d+|\*))?([hlFN])?([dioxXucseEfgGp%])", RegexOptions.Compiled)]
     private static partial Regex PrintFRegex();
 
     [Flags]
@@ -99,14 +99,13 @@ public partial class CFunctions {
         Alternate = 16 // #
     }
 
-    private enum SpecifierType {
+    private enum FormatterType {
         SignedInt, // d, i
         UnsignedInt, // u  
         UnsignedOct, // o
-        UnsignedHex, // h    
-        UnsignedHexUpper, // H  
+        UnsignedHex, // x    
+        UnsignedHexUpper, // X  
         Float, // f  
-        FloatUpper, // F
         Scientific, // e
         ScientificUpper, // E
         General, // g
@@ -117,7 +116,7 @@ public partial class CFunctions {
         Pointer // p
     }
 
-    private enum LengthType {
+    private enum SizePrefix {
         None,
         Short, // 16 bit number
         Long, // 32 bit number
@@ -133,57 +132,52 @@ public partial class CFunctions {
         public Flags Flags { get; set; }
         public int? Width { get; set; }
         public int? Precision { get; set; }
-        public LengthType Length { get; set; }
+        public SizePrefix SizePrefix { get; set; }
         public string? FormattingString { get; set; }
-        public SpecifierType Specifier { get; set; }
+        public FormatterType Formatter { get; set; }
 
         public void Parse(Match match) {
-            string flagsParameter = match.Groups[2].Value;
-            string widthParameter = match.Groups[3].Value;
-            string precisionParameter = match.Groups[4].Value;
-            string lengthParameter = match.Groups[5].Value;
-            string unknownParameter = match.Groups[6].Value;
-            string formattingString = match.Groups[7].Value;
-            string specifierParameter = match.Groups[8].Value;
+            string flagsParameter = match.Groups[1].Value;
+            string widthParameter = match.Groups[2].Value;
+            string precisionParameter = match.Groups[3].Value;
+            string prefixParameter = match.Groups[4].Value;
+            string typeParameter = match.Groups[5].Value;
 
             Flags = ParseFlags(flagsParameter);
             Width = ParseWidth(widthParameter);
             Precision = ParsePrecision(precisionParameter);
-            Length = ParseLength(lengthParameter);
-
-            FormattingString = formattingString;
-            Specifier = ParseSpecifier(specifierParameter);
+            SizePrefix = ParseSizePrefix(prefixParameter);
+            Formatter = ParseType(typeParameter);
         }
 
-        private static SpecifierType ParseSpecifier(string specifierParameter) {
-            return specifierParameter[0] switch {
-                'd' => SpecifierType.SignedInt,
-                'i' => SpecifierType.SignedInt,
-                'u' => SpecifierType.UnsignedInt,
-                'o' => SpecifierType.UnsignedOct,
-                'x' => SpecifierType.UnsignedHex,
-                'X' => SpecifierType.UnsignedHexUpper,
-                'f' => SpecifierType.Float,
-                'F' => SpecifierType.FloatUpper,
-                'e' => SpecifierType.Scientific,
-                'E' => SpecifierType.ScientificUpper,
-                'g' => SpecifierType.General,
-                'G' => SpecifierType.GeneralUpper,
-                'c' => SpecifierType.Char,
-                's' => SpecifierType.String,
-                'p' => SpecifierType.Pointer,
-                '%' => SpecifierType.Percent,
-                _ => throw new ArgumentOutOfRangeException(nameof(specifierParameter), specifierParameter, "invalid specifier")
+        private static FormatterType ParseType(string typeParameter) {
+            return typeParameter[0] switch {
+                'd' => FormatterType.SignedInt,
+                'i' => FormatterType.SignedInt,
+                'u' => FormatterType.UnsignedInt,
+                'o' => FormatterType.UnsignedOct,
+                'x' => FormatterType.UnsignedHex,
+                'X' => FormatterType.UnsignedHexUpper,
+                'f' => FormatterType.Float,
+                'e' => FormatterType.Scientific,
+                'E' => FormatterType.ScientificUpper,
+                'g' => FormatterType.General,
+                'G' => FormatterType.GeneralUpper,
+                'c' => FormatterType.Char,
+                's' => FormatterType.String,
+                'p' => FormatterType.Pointer,
+                '%' => FormatterType.Percent,
+                _ => throw new ArgumentOutOfRangeException(nameof(typeParameter), typeParameter, "invalid type parameter")
             };
         }
 
-        private static LengthType ParseLength(string lengthParameter) {
-            return lengthParameter switch {
-                "h" => LengthType.Short,
-                "l" => LengthType.Long,
-                "F" => LengthType.Far,
-                "N" => LengthType.Near,
-                _ => LengthType.None
+        private static SizePrefix ParseSizePrefix(string sizePrefixParameter) {
+            return sizePrefixParameter switch {
+                "h" => SizePrefix.Short,
+                "l" => SizePrefix.Long,
+                "F" => SizePrefix.Far,
+                "N" => SizePrefix.Near,
+                _ => SizePrefix.None
             };
         }
 
@@ -220,34 +214,34 @@ public partial class CFunctions {
         }
 
         public string Format(object obj) {
-            return Specifier switch {
-                SpecifierType.SignedInt => FormatNumber("d", obj),
-                SpecifierType.UnsignedInt => FormatNumber("d", obj),
-                SpecifierType.UnsignedOct => FormatString(Convert.ToString((long)obj, 8)),
-                SpecifierType.UnsignedHex => FormatNumber("x", obj),
-                SpecifierType.UnsignedHexUpper => FormatNumber("X", obj),
-                SpecifierType.Float => FormatNumber("f", obj),
-                SpecifierType.FloatUpper => FormatNumber("F", obj),
-                SpecifierType.Scientific => FormatNumber("e", obj),
-                SpecifierType.ScientificUpper => FormatNumber("E", obj),
-                SpecifierType.General => FormatNumber("g", obj),
-                SpecifierType.GeneralUpper => FormatNumber("G", obj),
-                SpecifierType.Char => obj is int c ? FormatString(((char)c).ToString()) : FormatString(obj.ToString() ?? string.Empty),
-                SpecifierType.String => FormatString(obj.ToString() ?? string.Empty),
-                SpecifierType.Pointer => FormatString("0x" + Convert.ToString((int)obj, 16)),
-                SpecifierType.Percent => "%",
-                _ => throw new ArgumentOutOfRangeException(nameof(Specifier), Specifier, "Invalid format specifier")
+            return Formatter switch {
+                FormatterType.SignedInt => FormatNumber("d", obj),
+                FormatterType.UnsignedInt => FormatNumber("d", obj),
+                FormatterType.UnsignedOct => FormatString(Convert.ToString((long)obj, 8)),
+                FormatterType.UnsignedHex => FormatNumber("x", obj),
+                FormatterType.UnsignedHexUpper => FormatNumber("X", obj),
+                FormatterType.Float => FormatNumber("f", obj),
+                FormatterType.Scientific => FormatNumber("e", obj),
+                FormatterType.ScientificUpper => FormatNumber("E", obj),
+                FormatterType.General => FormatNumber("g", obj),
+                FormatterType.GeneralUpper => FormatNumber("G", obj),
+                FormatterType.Char => FormatString(((char)obj).ToString()),
+                FormatterType.String => FormatString(obj.ToString() ?? string.Empty),
+                FormatterType.Pointer => FormatString("0x" + Convert.ToString((int)obj, 16)),
+                FormatterType.Percent => "%",
+                _ => throw new ArgumentOutOfRangeException(nameof(Formatter), Formatter, "Invalid format specifier")
             };
         }
 
         private string FormatNumber(string specifier, object value) {
-            string str = "{0:" + specifier + (Precision.HasValue ? Precision.ToString() : string.Empty) + "}";
+            string precision = (Precision.HasValue ? Precision.ToString() : string.Empty) ?? string.Empty;
+            string str = $"{{0:{specifier}{precision}}}";
             str = string.Format(str, value);
 
             if (Flags.HasFlag(Flags.ForceSign)
                 && str[0] != '-'
-                && Specifier != SpecifierType.UnsignedHex
-                && Specifier != SpecifierType.UnsignedHexUpper) {
+                && Formatter != FormatterType.UnsignedHex
+                && Formatter != FormatterType.UnsignedHexUpper) {
                 str = "+" + str;
             }
 
@@ -264,9 +258,7 @@ public partial class CFunctions {
 
         private string FormatString(string value) {
             if (Width.HasValue && Width.Value > value.Length) {
-                return Flags.HasFlag(Flags.LeftAligned)
-                    ? value.PadRight(Width.Value)
-                    : value.PadLeft(Width.Value);
+                return Flags.HasFlag(Flags.LeftAligned) ? value.PadRight(Width.Value) : value.PadLeft(Width.Value);
             }
             return value;
         }
