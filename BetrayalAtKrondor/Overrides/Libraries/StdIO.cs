@@ -10,6 +10,7 @@ using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 using Spice86.Shared.Utils;
 
+using System.Collections;
 using System.Diagnostics;
 using System.Text;
 
@@ -19,11 +20,16 @@ public class StdIO : CSharpOverrideHelper {
     private readonly List<Stream> _openStreams = new();
     private readonly Dictionary<int, string> _openFiles = new();
     private readonly string _mountPoint;
+    private readonly ArgumentFetcher _args;
+    private readonly List<IEnumerator> _fileSearchLists = new();
+    private readonly CFunctions _cFunctions;
     private string CurrentDir { get; set; }
 
     public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService)
         : base(functionsInformation, machine, loggerService) {
+        _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
         _mountPoint = Directory.GetParent(Machine.Configuration.Exe).FullName;
+        _cFunctions = new CFunctions(machine.Cpu, machine.Memory);
         CurrentDir = "";
         DefineFunctions();
         Initialize();
@@ -35,12 +41,15 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private void DefineFunctions() {
+        DefineFunction(0x1000, 0x04F6, ReadFile, true, nameof(ReadFile));
+        DefineFunction(0x1000, 0x04FD, WriteFile, true, nameof(WriteFile));
         DefineFunction(0x1000, 0x14CD, ChDir, true, nameof(ChDir));
         DefineFunction(0x1000, 0x1A10, MkDir, true, nameof(MkDir));
         DefineFunction(0x1000, 0x1B0D, Unlink, true, nameof(Unlink));
         DefineFunction(0x1000, 0x3487, Close, true, nameof(Close));
         DefineFunction(0x1000, 0x3544, FClose, true, nameof(FClose));
         DefineFunction(0x1000, 0x3646, FindFirst, true, nameof(FindFirst));
+        DefineFunction(0x1000, 0x3679, FindNext, true, nameof(FindNext));
         DefineFunction(0x1000, 0x3861, FOpen, true, nameof(FOpen));
         DefineFunction(0x1000, 0x3957, FRead, true, nameof(FRead));
         DefineFunction(0x1000, 0x3A1C, FSeek, true, nameof(FSeek));
@@ -51,38 +60,196 @@ public class StdIO : CSharpOverrideHelper {
         DefineFunction(0x1000, 0x3FD0, FPutC, true, nameof(FPutC));
         DefineFunction(0x1000, 0x42C0, Read, true, nameof(Read));
         DefineFunction(0x1000, 0x4391, Rewind, true, nameof(Rewind));
+        DefineFunction(0x1000, 0x44B3, SprintF, true, nameof(SprintF));
+        DefineFunction(0x1000, 0x47F2, Write, true, nameof(Write));
+    }
+
+    private Action SprintF(int _) {
+        _args.Get(out ushort bufferPointer, out string format);
+        string formatted = _cFunctions._sprintf(format);
+        int result = formatted.Length;
+
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:sprintf(str: {BufferPointer:X4}, format: '{Format}', ...) => 0x{Result:X4} ['{Formatted}']",
+                nameof(StdIO), bufferPointer, format, result, formatted);
+        }
+
+        uint address = MemoryUtils.ToPhysicalAddress(DS, bufferPointer);
+        Memory.SetZeroTerminatedString(address, formatted, int.MaxValue);
+
+        SetResult(result);
+        return FarRet();
+    }
+
+    private Action Write(int _) {
+        _args.Get(out ushort fileHandle, out ushort bufferPointer, out ushort count);
+        short result;
+
+        if (fileHandle < 1 || fileHandle > _openStreams.Count) {
+            result = -1;
+            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
+                _loggerService.Error("{Library}:write(fd: {FileDescriptor}, buf: {BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+                    nameof(StdIO), fileHandle, bufferPointer, count, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        Stream stream = _openStreams[fileHandle - 1];
+        uint address = MemoryUtils.ToPhysicalAddress(DS, bufferPointer);
+        byte[] buffer = Memory.GetData(address, count);
+        try {
+            stream.Write(buffer);
+        } catch (Exception e) {
+            result = -1;
+            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
+                _loggerService.Error(e, "{Library}:write(fd: {FileDescriptor}, buf: {BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+                    nameof(StdIO), fileHandle, bufferPointer, count, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        result = (short)count;
+        SetResult(result);
+        return FarRet();
+    }
+
+    private Action WriteFile(int _) {
+        throw new NotImplementedException();
+    }
+
+    private Action ReadFile(int _) {
+        _args.Get(out uint bufferPointer, out uint count, out ushort fileHandle);
+        uint result;
+
+        uint bufferAddress = bufferPointer; // >> 16 | bufferPointer << 16;
+
+        if (fileHandle < 1 || fileHandle > _openStreams.Count) {
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
+                _loggerService.Warning("{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferAddress, count, fileHandle, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        Stream stream = _openStreams[fileHandle];
+        byte[] buffer = new byte[count];
+        try {
+            result = (uint)stream.Read(buffer);
+            Memory.LoadData(bufferAddress, buffer);
+        } catch (Exception e) {
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
+                _loggerService.Error(e, "{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+                    nameof(StdIO), bufferAddress, count, fileHandle, _openFiles[fileHandle], result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+                nameof(StdIO), bufferAddress, count, fileHandle, _openFiles[fileHandle], result);
+        }
+
+        SetResult(result);
+        return FarRet();
     }
 
     private Action FindFirst(int _) {
-        GetArguments(out string searchPath, out ushort ffblkPointerOffset, out short attrib);
+        _args.Get(out string searchPath, out ushort ffblkPointerOffset, out short attrib);
+        short result;
+
+        uint ffblkPointer = MemoryUtils.ToPhysicalAddress(DS, ffblkPointerOffset);
+        var searchAttributes = (FileAttributes)attrib;
+
+        string currentHostDirectory = Path.Combine(_mountPoint, CurrentDir);
+        EnumerationOptions searchOptions = GetSearchOptions(searchAttributes);
+
+        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
+            _loggerService.Verbose("{Library}:findfirst() Searching for '{SearchPath}' in '{CurrentHostDirectory}' with options '{@SearchOptions}'",
+                nameof(StdIO), searchPath, currentHostDirectory, searchOptions);
+        }
+        IEnumerator matchingPaths = Directory.GetFiles(currentHostDirectory, searchPath, searchOptions).GetEnumerator();
+        if (matchingPaths.MoveNext() && matchingPaths.Current is string firstFile) {
+            _fileSearchLists.Add(matchingPaths);
+            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
+            ffblk.ResultId = (ushort)(_fileSearchLists.Count - 1);
+            ffblk.FileName = Path.GetFileName(firstFile);
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+                _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4} [filename: {FileName}]",
+                    nameof(StdIO), searchPath, ffblkPointer, searchAttributes, result, firstFile);
+            }
+        } else {
+            result = -1;
+            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+                _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4}",
+                    nameof(StdIO), searchPath, ffblkPointer, searchAttributes, result);
+            }
+        }
+
+        SetResult(result);
+        return FarRet();
+    }
+
+    private static EnumerationOptions GetSearchOptions(FileAttributes searchAttributes) {
+        FileAttributes attributesToSkip = 0;
+        if (!searchAttributes.HasFlag(FileAttributes.Directory)) {
+            attributesToSkip |= FileAttributes.Directory;
+        }
+        if (!searchAttributes.HasFlag(FileAttributes.Archive)) {
+            attributesToSkip |= FileAttributes.Archive;
+        }
+        if (!searchAttributes.HasFlag(FileAttributes.Hidden)) {
+            attributesToSkip |= FileAttributes.Hidden;
+        }
+        if (!searchAttributes.HasFlag(FileAttributes.System)) {
+            attributesToSkip |= FileAttributes.System;
+        }
+
+        EnumerationOptions searchOptions = new() {
+            AttributesToSkip = attributesToSkip,
+            IgnoreInaccessible = true,
+            RecurseSubdirectories = false,
+            MatchCasing = MatchCasing.CaseInsensitive,
+            MatchType = MatchType.Win32
+        };
+        return searchOptions;
+    }
+
+    private Action FindNext(int _) {
+        _args.Get(out ushort ffblkPointerOffset);
         short result;
 
         var ffblkPointer = MemoryUtils.ToPhysicalAddress(DS, ffblkPointerOffset);
         var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
-        var searchAttributes = (FileAttributes)attrib;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib})",
-                nameof(StdIO), searchPath, ffblkPointer, searchAttributes);
+        IEnumerator matchingPaths = _fileSearchLists[ffblk.ResultId];
+        if (matchingPaths.MoveNext() && matchingPaths.Current is string currentFile) {
+            ffblk.FileName = Path.GetFileName(currentFile);
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+                _loggerService.Debug("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4} [filename: {FileName}]",
+                    nameof(StdIO), ffblkPointer, result, currentFile);
+            }
+        } else {
+            result = -1;
+            if (_loggerService.IsEnabled(LogEventLevel.Information)) {
+                _loggerService.Information("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4}",
+                    nameof(StdIO), ffblkPointer, result);
+            }
         }
 
-        result = 0;
-        var currentHostDirectory = Path.Combine(_mountPoint, CurrentDir);
-        EnumerationOptions searchOptions = new() {
-            AttributesToSkip = ~searchAttributes,
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = false
-        };
-
-        var matchingPaths = Directory.GetFiles(currentHostDirectory, searchPath, searchOptions);
-        
-        
         SetResult(result);
         return FarRet();
     }
 
     private Action ChDir(int _) {
-        GetArguments(out string dosPath);
+        _args.Get(out string dosPath);
         short result;
 
         CurrentDir = dosPath;
@@ -98,7 +265,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action MkDir(int _) {
-        GetArguments(out string dosPath);
+        _args.Get(out string dosPath);
         short result;
 
         string hostPath = Path.Combine(_mountPoint, CurrentDir, dosPath);
@@ -123,7 +290,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action Unlink(int arg) {
-        GetArguments(out string dosPath);
+        _args.Get(out string dosPath);
         short result;
 
         string hostPath = Path.Combine(_mountPoint, CurrentDir, dosPath);
@@ -160,7 +327,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action Close(int arg) {
-        GetArguments(out ushort fileDescriptor);
+        _args.Get(out ushort fileDescriptor);
         short result;
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
@@ -177,8 +344,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.RemoveAt(fileDescriptor);
         result = 0;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:close(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:close(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         _openFiles.Remove(fileDescriptor);
@@ -191,7 +358,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FGetC(int arg) {
-        GetArguments(out ushort fileDescriptor);
+        _args.Get(out ushort fileDescriptor);
         short result;
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
@@ -225,7 +392,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FRead(int _) {
-        GetArguments(out ushort bufferOffset, out ushort elementSize, out ushort count, out ushort fileDescriptor);
+        _args.Get(out ushort bufferOffset, out ushort elementSize, out ushort count, out ushort fileDescriptor);
         int result;
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
@@ -274,7 +441,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FTell(int _) {
-        GetArguments(out ushort fileDescriptor);
+        _args.Get(out ushort fileDescriptor);
         int result;
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
@@ -299,7 +466,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FClose(int _) {
-        GetArguments(out ushort fileDescriptor);
+        _args.Get(out ushort fileDescriptor);
         short result;
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
@@ -317,8 +484,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.RemoveAt(fileDescriptor);
         result = 0;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:fclose(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:fclose(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         _openFiles.Remove(fileDescriptor);
@@ -327,7 +494,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FOpen(int _) {
-        GetArguments(out string dosPath, out string mode);
+        _args.Get(out string dosPath, out string mode);
         short result;
 
         string? path = Machine.Dos.FileManager.ToHostCaseSensitiveFileName(dosPath, false);
@@ -356,7 +523,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action Open(int _) {
-        GetArguments(out string dosPath, out short flags, out ushort mode);
+        _args.Get(out string dosPath, out short flags, out ushort mode);
         short result;
 
         string hostPath = Path.Combine(_mountPoint, CurrentDir, dosPath);
@@ -445,7 +612,7 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FSeek(int _) {
-        GetArguments(out ushort fileDescriptor, out int offset, out ushort whence);
+        _args.Get(out ushort fileDescriptor, out int offset, out ushort whence);
         short result;
 
         SeekOrigin origin = whence switch {
