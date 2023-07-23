@@ -16,5 +16,5 @@ public class GameEngine : IGameEngine {
         _mouseDriver.CurrentMaxY = maxY;
     }
 
-    public string DataPath { get; set; }
+    public string? DataPath { get; set; }
 }

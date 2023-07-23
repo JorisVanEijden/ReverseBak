@@ -21,7 +21,7 @@ public class StdIO : CSharpOverrideHelper {
     private readonly Dictionary<int, string> _openFiles = new();
     private readonly string _mountPoint;
     private readonly ArgumentFetcher _args;
-    private readonly List<IEnumerator> _fileSearchLists = new();
+    private readonly Dictionary<uint, IEnumerator> _fileSearchLists = new();
     private readonly CFunctions _cFunctions;
     private string CurrentDir { get; set; }
 
@@ -211,16 +211,21 @@ public class StdIO : CSharpOverrideHelper {
         string currentHostDirectory = Path.Combine(_mountPoint, CurrentDir);
         EnumerationOptions searchOptions = GetSearchOptions(searchAttributes);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:findfirst() Searching for '{SearchPath}' in '{CurrentHostDirectory}' with options '{@SearchOptions}'",
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:findfirst() Searching for '{Pattern}' in '{Directory}' with options '{@SearchOptions}'",
                 nameof(StdIO), searchPath, currentHostDirectory, searchOptions);
         }
-        IEnumerator matchingPaths = Directory.GetFiles(currentHostDirectory, searchPath, searchOptions).GetEnumerator();
+
+        IEnumerator matchingPaths = Directory.EnumerateFileSystemEntries(currentHostDirectory, searchPath, searchOptions).GetEnumerator();
         if (matchingPaths.MoveNext() && matchingPaths.Current is string firstFile) {
-            _fileSearchLists.Add(matchingPaths);
-            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
-            ffblk.ResultId = (ushort)(_fileSearchLists.Count - 1);
-            ffblk.FileName = Path.GetFileName(firstFile);
+            _fileSearchLists.Add(ffblkPointer, matchingPaths);
+            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer) {
+                Attribute = 0, // TODO: fill
+                FileDate = 0, // TODO: fill
+                FileName = Path.GetFileName(firstFile),
+                FileSize = 0, // TODO: fill
+                FileTime = 0 // TODO: fill
+            };
             result = 0;
             if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
                 _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4} [filename: {FileName}]",
@@ -243,9 +248,6 @@ public class StdIO : CSharpOverrideHelper {
         if (!searchAttributes.HasFlag(FileAttributes.Directory)) {
             attributesToSkip |= FileAttributes.Directory;
         }
-        if (!searchAttributes.HasFlag(FileAttributes.Archive)) {
-            attributesToSkip |= FileAttributes.Archive;
-        }
         if (!searchAttributes.HasFlag(FileAttributes.Hidden)) {
             attributesToSkip |= FileAttributes.Hidden;
         }
@@ -258,7 +260,7 @@ public class StdIO : CSharpOverrideHelper {
             IgnoreInaccessible = true,
             RecurseSubdirectories = false,
             MatchCasing = MatchCasing.CaseInsensitive,
-            MatchType = MatchType.Win32
+            MatchType = MatchType.Simple
         };
         return searchOptions;
     }
@@ -270,7 +272,7 @@ public class StdIO : CSharpOverrideHelper {
         var ffblkPointer = MemoryUtils.ToPhysicalAddress(DS, ffblkPointerOffset);
         var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
 
-        IEnumerator matchingPaths = _fileSearchLists[ffblk.ResultId];
+        IEnumerator matchingPaths = _fileSearchLists[ffblkPointer];
         if (matchingPaths.MoveNext() && matchingPaths.Current is string currentFile) {
             ffblk.FileName = Path.GetFileName(currentFile);
             result = 0;
