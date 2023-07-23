@@ -213,9 +213,17 @@ public partial class CFunctions {
             throw new ArgumentException("invalid width parameter, should be * or integer", nameof(widthParameter));
         }
 
+        private static int ToSigned(uint value) {
+            return value <= int.MaxValue ? (int)value : -(int)(uint.MaxValue - value + 1);
+        }
+
+        private static int ToSigned(ushort value) {
+            return value <= short.MaxValue ? (short)value : -(short)(ushort.MaxValue - value + 1);
+        }
+
         public string Format(object obj) {
             return Formatter switch {
-                FormatterType.SignedInt => FormatNumber("d", obj),
+                FormatterType.SignedInt => FormatNumber("d", SizePrefix == SizePrefix.Long ? ToSigned((uint)obj) : ToSigned((ushort)obj)),
                 FormatterType.UnsignedInt => FormatNumber("d", obj),
                 FormatterType.UnsignedOct => FormatString(Convert.ToString((long)obj, 8)),
                 FormatterType.UnsignedHex => FormatNumber("x", obj),

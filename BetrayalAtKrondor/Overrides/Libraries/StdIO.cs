@@ -28,7 +28,9 @@ public class StdIO : CSharpOverrideHelper {
     public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService)
         : base(functionsInformation, machine, loggerService) {
         _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
-        _mountPoint = Directory.GetParent(Machine.Configuration.Exe).FullName;
+        string configurationExe = Machine.Configuration.Exe ?? throw new InvalidOperationException("Missing configuration exe");
+        DirectoryInfo parent = Directory.GetParent(configurationExe) ?? throw new InvalidOperationException("Could not determine parent directory");
+        _mountPoint = parent.FullName;
         _cFunctions = new CFunctions(machine.Cpu, machine.Memory);
         CurrentDir = "";
         DefineFunctions();
@@ -88,14 +90,14 @@ public class StdIO : CSharpOverrideHelper {
         if (fileHandle < 1 || fileHandle > _openStreams.Count) {
             result = -1;
             if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:write(fd: {FileDescriptor}, buf: {BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+                _loggerService.Error("{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
             return FarRet();
         }
 
-        Stream stream = _openStreams[fileHandle - 1];
+        Stream stream = _openStreams[fileHandle];
         uint address = MemoryUtils.ToPhysicalAddress(DS, bufferPointer);
         byte[] buffer = Memory.GetData(address, count);
         try {
@@ -103,7 +105,7 @@ public class StdIO : CSharpOverrideHelper {
         } catch (Exception e) {
             result = -1;
             if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:write(fd: {FileDescriptor}, buf: {BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+                _loggerService.Error(e, "{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
@@ -116,20 +118,59 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action WriteFile(int _) {
-        throw new NotImplementedException();
+        _args.Get(out uint bufferPointer, out uint count, out ushort fileHandle);
+        uint result;
+
+        ushort bufferSegment = (ushort)(bufferPointer >> 16);
+        ushort bufferOffset = (ushort)bufferPointer;
+
+        if (fileHandle < 1 || fileHandle > _openStreams.Count) {
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
+                _loggerService.Warning("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        Stream stream = _openStreams[fileHandle];
+        try {
+            uint bufferAddress = MemoryUtils.ToPhysicalAddress(bufferSegment, bufferOffset);
+            byte[] buffer = Memory.GetData(bufferAddress, count);
+            stream.Write(buffer);
+            result = count;
+        } catch (Exception e) {
+            result = 0;
+            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
+                _loggerService.Error(e, "{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+                nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, _openFiles[fileHandle], result);
+        }
+
+        SetResult(result);
+        return FarRet();
     }
 
     private Action ReadFile(int _) {
         _args.Get(out uint bufferPointer, out uint count, out ushort fileHandle);
         uint result;
 
-        uint bufferAddress = bufferPointer; // >> 16 | bufferPointer << 16;
+        ushort bufferSegment = (ushort)(bufferPointer >> 16);
+        ushort bufferOffset = (ushort)bufferPointer;
 
         if (fileHandle < 1 || fileHandle > _openStreams.Count) {
             result = 0;
             if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning("{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
-                    nameof(StdIO), bufferAddress, count, fileHandle, result);
+                _loggerService.Warning("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
             return FarRet();
@@ -139,20 +180,21 @@ public class StdIO : CSharpOverrideHelper {
         byte[] buffer = new byte[count];
         try {
             result = (uint)stream.Read(buffer);
+            uint bufferAddress = MemoryUtils.ToPhysicalAddress(bufferSegment, bufferOffset);
             Memory.LoadData(bufferAddress, buffer);
         } catch (Exception e) {
             result = 0;
             if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
-                    nameof(StdIO), bufferAddress, count, fileHandle, _openFiles[fileHandle], result);
+                _loggerService.Error(e, "{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
             return FarRet();
         }
 
         if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:readFile(buf: 0x{BufferPointer:X8}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
-                nameof(StdIO), bufferAddress, count, fileHandle, _openFiles[fileHandle], result);
+            _loggerService.Debug("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+                nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, _openFiles[fileHandle], result);
         }
 
         SetResult(result);
@@ -354,7 +396,52 @@ public class StdIO : CSharpOverrideHelper {
     }
 
     private Action FWrite(int arg) {
-        throw new NotImplementedException("FWrite");
+        _args.Get(out ushort bufferOffset, out ushort elementSize, out ushort count, out ushort fileDescriptor);
+        int result;
+
+        if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
+            result = Constants.EOF;
+            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
+                _loggerService.Error("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor}) => 0x{Result:X8}",
+                    nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
+
+        Stream stream = _openStreams[fileDescriptor];
+        uint address = MemoryUtils.ToPhysicalAddress(DS, bufferOffset);
+        uint size = (uint)(elementSize * count);
+        byte[] buffer = Memory.GetData(address, size);
+        stream.Write(buffer, 0, buffer.Length);
+        result = count;
+
+        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
+            // Log byte, word and int data writes
+            string dataWritten = string.Empty;
+            if (count == 1) {
+                if (elementSize == 1) {
+                    dataWritten = $" (0x{buffer[0]:X2}";
+                    if (buffer[0] >= 0x20 && buffer[0] <= 0x7E) {
+                        dataWritten += $" '{(char)buffer[0]}'";
+                    }
+                    dataWritten += ")";
+                } else if (elementSize == 2) {
+                    int data = buffer[1] << 8 | buffer[0];
+                    dataWritten = $" (0x{data:X4})";
+                } else if (elementSize == 4) {
+                    int data = buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0];
+                    dataWritten = $" (0x{data:X8})";
+                } else if (elementSize == 13) {
+                    // filenames
+                    dataWritten = $" ({Encoding.ASCII.GetString(buffer)})";
+                }
+            }
+            _loggerService.Verbose("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}{DataWritten}",
+                nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, _openFiles[fileDescriptor], result, dataWritten);
+        }
+        SetResult(result);
+        return FarRet();
     }
 
     private Action FGetC(int arg) {
