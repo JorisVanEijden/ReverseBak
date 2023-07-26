@@ -21,7 +21,7 @@ public class StdIO : CSharpOverrideHelper {
     private readonly Dictionary<int, string> _openFiles = new();
     private readonly string _mountPoint;
     private readonly ArgumentFetcher _args;
-    private readonly Dictionary<uint, IEnumerator> _fileSearchLists = new();
+    private readonly List<IEnumerator> _fileSearchLists = new();
     private readonly CFunctions _cFunctions;
     private string CurrentDir { get; set; }
 
@@ -218,14 +218,10 @@ public class StdIO : CSharpOverrideHelper {
 
         IEnumerator matchingPaths = Directory.EnumerateFileSystemEntries(currentHostDirectory, searchPath, searchOptions).GetEnumerator();
         if (matchingPaths.MoveNext() && matchingPaths.Current is string firstFile) {
-            _fileSearchLists.Add(ffblkPointer, matchingPaths);
-            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer) {
-                Attribute = 0, // TODO: fill
-                FileDate = 0, // TODO: fill
-                FileName = Path.GetFileName(firstFile),
-                FileSize = 0, // TODO: fill
-                FileTime = 0 // TODO: fill
-            };
+            _fileSearchLists.Add(matchingPaths);
+            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
+            ffblk.ResultId = (ushort)(_fileSearchLists.Count - 1);
+            ffblk.FileName = Path.GetFileName(firstFile);
             result = 0;
             if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
                 _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4} [filename: {FileName}]",
@@ -272,7 +268,7 @@ public class StdIO : CSharpOverrideHelper {
         var ffblkPointer = MemoryUtils.ToPhysicalAddress(DS, ffblkPointerOffset);
         var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
 
-        IEnumerator matchingPaths = _fileSearchLists[ffblkPointer];
+        IEnumerator matchingPaths = _fileSearchLists[ffblk.ResultId];
         if (matchingPaths.MoveNext() && matchingPaths.Current is string currentFile) {
             ffblk.FileName = Path.GetFileName(currentFile);
             result = 0;
