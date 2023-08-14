@@ -1,17 +1,21 @@
 namespace ResourceExtractor.Compression;
 
-public class Lzw : IDecompress {
+public class LzwCompression : ICompression {
     private int _bitBuffer;
-    private int _dataIndex;
     private int _bitsProcessed;
     private readonly Dictionary<int, List<byte>> _dictionary = new();
     private int _bitLength = 9;
 
-    public byte[] Decompress(byte[] compressedData) {
-        var decompressedBytes = new List<byte>();
+    public Stream Compress(Stream inputStream) {
+        throw new NotImplementedException();
+    }
+
+    public Stream Decompress(Stream inputStream) {
+        var outputStream = new MemoryStream();
+        var inputReader = new BinaryReader(inputStream);
+        var outputWriter = new BinaryWriter(outputStream);
 
         _bitBuffer = 0;
-        _dataIndex = 0;
         _bitsProcessed = 0;
         _bitLength = 9;
 
@@ -22,30 +26,28 @@ public class Lzw : IDecompress {
         int bitPosition = 0;
 
         // Read the first code
-        int oldCode = ReadNextCode(_bitLength, compressedData);
-        byte character = (byte)oldCode;
-        decompressedBytes.Add(character);
+        int currentCode = ReadNextCode(inputReader);
+        byte character = (byte)currentCode;
+        outputWriter.Write(character);
 
         var previousEntry = new List<byte> {
             character
         };
 
-        while (oldCode >= 0) {
-            int newCode = ReadNextCode(_bitLength, compressedData);
-            if (newCode < 0) {
+        while (currentCode >= 0) {
+            currentCode = ReadNextCode(inputReader);
+            if (currentCode < 0) {
                 break;
             }
             bitPosition += _bitLength;
 
-            if (newCode == resetCode) {
+            if (currentCode == resetCode) {
                 // Krondor uses a 9-12 byte bitBuffer (to reduce I/O?) and it discards the whole buffer when it encounters a reset code.
-                // Calculate the number of bytes to skip
-                int byteLength = _bitLength * 8;
-                int skip = bitPosition - 1 + (byteLength - (bitPosition - 1 + byteLength) % byteLength) - bitPosition >> 3;
-                if (_bitsProcessed < _bitLength && _bitsProcessed > 0) {
-                    skip += 1;
-                }
-                _dataIndex += skip;
+                int krondorBufferLength = _bitLength;
+                int bytesRead = (bitPosition + 7) / 8;
+                int bytePositionInBuffer = bytesRead % krondorBufferLength;
+                int skip = krondorBufferLength - bytePositionInBuffer;
+                inputStream.Seek(skip, SeekOrigin.Current);
                 Reset();
                 dictionaryIndex = 256;
                 bitPosition = 0;
@@ -53,21 +55,23 @@ public class Lzw : IDecompress {
             }
 
             // Get or create the value based on the code.
-            if (!_dictionary.TryGetValue(newCode, out List<byte>? value)) {
+            if (!_dictionary.TryGetValue(currentCode, out List<byte>? value)) {
                 value = new List<byte>(previousEntry) {
                     character
                 };
             }
 
             // Add the value to the output
-            decompressedBytes.AddRange(value);
+            outputWriter.Write(value.ToArray());
+
+            // Create a new dictionary entry
             character = value[0];
             var entry = new List<byte>(previousEntry) {
                 character
             };
             _dictionary.Add(dictionaryIndex++, entry);
+
             previousEntry = value;
-            oldCode = newCode;
 
             if (dictionaryIndex == 1 << _bitLength && _bitLength < 12) {
                 _bitLength++;
@@ -75,7 +79,7 @@ public class Lzw : IDecompress {
             }
         }
 
-        return decompressedBytes.ToArray();
+        return outputStream;
     }
 
     private void Reset() {
@@ -90,19 +94,18 @@ public class Lzw : IDecompress {
         }
     }
 
-    private int ReadNextCode(int bitLength, IReadOnlyList<byte> compressedData) {
-        while (_bitsProcessed < bitLength) {
-            if (_dataIndex >= compressedData.Count) {
-                return -1;
-            }
-            _bitBuffer |= compressedData[_dataIndex] << _bitsProcessed;
+    private int ReadNextCode(BinaryReader compressedData) {
+        if (compressedData.BaseStream.Position == compressedData.BaseStream.Length) {
+            return -1;
+        }
+        while (_bitsProcessed < _bitLength) {
+            _bitBuffer |= compressedData.ReadByte() << _bitsProcessed;
             _bitsProcessed += 8;
-            _dataIndex++;
         }
 
-        int currentCode = _bitBuffer & (1 << bitLength) - 1;
-        _bitBuffer >>= bitLength;
-        _bitsProcessed -= bitLength;
+        int currentCode = _bitBuffer & (1 << _bitLength) - 1;
+        _bitBuffer >>= _bitLength;
+        _bitsProcessed -= _bitLength;
         return currentCode;
     }
 }
