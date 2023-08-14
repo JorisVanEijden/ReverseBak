@@ -20,7 +20,9 @@ public class BakOverrides : CSharpOverrideHelper {
         : base(functionsInformation, machine, loggerService) {
         _globalSettings = new GlobalSettings(machine.Memory);
         _gameEngine = new GameEngine(machine.MouseDriver);
-        _gameEngine.DataPath = machine.Dos.FileManager.ToHostCaseSensitiveFileName(string.Empty, false) ?? Directory.GetCurrentDirectory();
+        _gameEngine.DataPath = machine.Configuration.Exe is null
+            ? Directory.GetCurrentDirectory()
+            : Path.GetDirectoryName(machine.Configuration.Exe);
         _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug));
         DefineFunctions();
     }

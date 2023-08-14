@@ -63,7 +63,74 @@ public class StdIO : CSharpOverrideHelper {
         DefineFunction(0x1000, 0x42C0, Read, true, nameof(Read));
         DefineFunction(0x1000, 0x4391, Rewind, true, nameof(Rewind));
         DefineFunction(0x1000, 0x44B3, SprintF, true, nameof(SprintF));
+        DefineFunction(0x1000, 0x44EC, StrCat, true, nameof(StrCat));
+        DefineFunction(0x1000, 0x455B, StrCmp, true, nameof(StrCmp));
+        DefineFunction(0x1000, 0x458A, StrCpy, true, nameof(StrCpy));
+        DefineFunction(0x1000, 0x45AC, StriCmp, true, nameof(StriCmp));
         DefineFunction(0x1000, 0x47F2, Write, true, nameof(Write));
+    }
+
+    private Action StrCat(int arg) {
+        _args.Get(out ushort string1Pointer, out ushort string2Pointer);
+
+        uint address1 = MemoryUtils.ToPhysicalAddress(DS, string1Pointer);
+        string string1 = Memory.GetZeroTerminatedString(address1, int.MaxValue);
+        uint address2 = MemoryUtils.ToPhysicalAddress(DS, string2Pointer);
+        string string2 = Memory.GetZeroTerminatedString(address2, int.MaxValue);
+
+        uint destinationAddress = MemoryUtils.ToPhysicalAddress(DS, string1Pointer);
+        string resultString = string1 + string2;
+        Memory.SetZeroTerminatedString(destinationAddress, resultString, int.MaxValue);
+
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:strcat(s1: '{String1}', s2: '{String2}') => {DestinationSegment:X4}:{Result:X4} ['{ResultString}']",
+                nameof(StdIO), string1, string2, DS, string1Pointer, resultString);
+        }
+        ES = DS;
+        SetResult(string1Pointer);
+        return FarRet();
+    }
+
+    private Action StrCmp(int arg) {
+        _args.Get(out string s1, out string s2);
+        int result = string.Compare(s1, s2, StringComparison.Ordinal);
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:strcmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
+                nameof(StdIO), s1, s2, result);
+        }
+        ES = DS;
+        SetResult(result);
+        return FarRet();
+    }
+
+    private Action StrCpy(int _) {
+        _args.Get(out ushort destination, out ushort source);
+
+        uint sourceAddress = MemoryUtils.ToPhysicalAddress(ES, source);
+        string sourceString = Memory.GetZeroTerminatedString(sourceAddress, int.MaxValue);
+
+        uint destinationAddress = MemoryUtils.ToPhysicalAddress(DS, destination);
+        Memory.SetZeroTerminatedString(destinationAddress, sourceString, int.MaxValue);
+
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:strcpy(dest: {DestinationSegment:X4}:{Destination:X4}, src: {SourceSegment:X4}:{Source:X4}) => 0x{Result:X4} ['{SourceString}']",
+                nameof(StdIO), DS, destination, DS, source, destination, sourceString);
+        }
+        ES = DS;
+        SetResult(destination);
+        return FarRet();
+    }
+
+    private Action StriCmp(int _) {
+        _args.Get(out string s1, out string s2);
+        int result = string.Compare(s1, s2, StringComparison.OrdinalIgnoreCase);
+        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
+            _loggerService.Debug("{Library}:stricmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
+                nameof(StdIO), s1, s2, result);
+        }
+        ES = DS;
+        SetResult(result);
+        return FarRet();
     }
 
     private Action SprintF(int _) {
@@ -582,8 +649,8 @@ public class StdIO : CSharpOverrideHelper {
         _args.Get(out string dosPath, out string mode);
         short result;
 
-        string? path = Machine.Dos.FileManager.ToHostCaseSensitiveFileName(dosPath, false);
-        if (path == null) {
+        string path = Path.Combine(_mountPoint, dosPath);
+        if (!File.Exists(path)) {
             result = 0;
             if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
                 _loggerService.Warning("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
@@ -718,8 +785,18 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         Stream stream = _openStreams[fileDescriptor];
-        stream.Seek(offset, origin);
-        result = 0;
+        try {
+            stream.Seek(offset, origin);
+            result = 0;
+        } catch (IOException ioException) {
+            result = -1;
+            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
+                _loggerService.Warning(ioException, "{Library}:fseek(fd: {FileDescriptor}, offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",
+                    nameof(StdIO), fileDescriptor, offset, origin, result);
+            }
+            SetResult(result);
+            return FarRet();
+        }
 
         if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
             _loggerService.Verbose("{Library}:fseek(fd: {FileDescriptor} [{FileName}], offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",

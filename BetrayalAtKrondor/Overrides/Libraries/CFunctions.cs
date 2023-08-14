@@ -8,11 +8,11 @@ using System.Text.RegularExpressions;
 
 public partial class CFunctions {
     private static readonly Regex FormatRegex = PrintFRegex();
-    private readonly Memory _memory;
+    private readonly IMemory _memory;
     private readonly Stack _stack;
     private readonly State _state;
 
-    public CFunctions(Cpu cpu, Memory memory) {
+    public CFunctions(Cpu cpu, IMemory memory) {
         _state = cpu.State;
         _stack = cpu.Stack;
         _memory = memory;
@@ -270,5 +270,9 @@ public partial class CFunctions {
             }
             return value;
         }
+    }
+    
+    public int _stricmp(string s1, string s2) {
+        return string.Compare(s1, s2, StringComparison.OrdinalIgnoreCase);
     }
 }
