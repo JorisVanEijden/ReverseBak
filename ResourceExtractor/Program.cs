@@ -19,23 +19,24 @@ internal static class Program {
 
         // ExtractResourceArchive(filePath);
         // ExtractFont(Path.Combine(filePath, "book.fnt"));
-        IEnumerable<byte> screen = ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
-        File.WriteAllBytes("test.scx", screen.ToArray());
-        
+        Screen screen = ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
+        // File.WriteAllBytes("test.scx", screen.BitMapData);
     }
 
-    private static IEnumerable<byte> ExtractScreen(string filePath) {
+    private static Screen ExtractScreen(string filePath) {
+        var screen = new Screen(filePath);
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         ushort signature = resourceReader.ReadUInt16();
         if (signature != 0x27B6) {
             throw new InvalidOperationException($"Invalid SCX signature '{signature}'");
         }
-        
-        return Decompress(resourceReader);
+        screen.BitMapData = DecompressToByteArray(resourceReader);
+
+        return screen;
     }
 
-    private static IEnumerable<byte> Decompress(BinaryReader resourceReader) {
+    private static byte[] DecompressToByteArray(BinaryReader resourceReader) {
         byte compressionType = resourceReader.ReadByte();
         int decompressedSize = (int)resourceReader.ReadUInt32();
 
@@ -43,7 +44,6 @@ internal static class Program {
         Stream decompressedStream = compression.Decompress(resourceReader.BaseStream);
 
         byte[] decompressedDataBuffer = new byte[decompressedSize];
-        decompressedStream.Seek(0, SeekOrigin.Begin);
         decompressedStream.ReadExactly(decompressedDataBuffer);
 
         return decompressedDataBuffer;
@@ -51,7 +51,6 @@ internal static class Program {
 
     private static void ExtractFont(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
-        long resourceFileLength = resourceFile.Length;
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         string tag = new(resourceReader.ReadChars(TagLength));
         if (!tag.Equals("FNT:")) {
@@ -60,32 +59,16 @@ internal static class Program {
         uint fileSize = resourceReader.ReadUInt32();
         var unknown1 = resourceReader.ReadByte();
         var unknown2 = resourceReader.ReadByte();
-        var fontHeight = resourceReader.ReadByte();
+        byte fontHeight = resourceReader.ReadByte();
         var unknown3 = resourceReader.ReadByte();
         var firstCharacter = resourceReader.ReadByte();
-        var nrOfChars = resourceReader.ReadByte();
+        byte nrOfChars = resourceReader.ReadByte();
         var dataLength = resourceReader.ReadUInt16();
-        var compression = resourceReader.ReadByte();
-        var resultLength = resourceReader.ReadUInt32();
-        var resultBuffer = new byte[resultLength];
-        using var resultStream = new MemoryStream(resultBuffer);
-
-        while (resourceFile.Position < resourceFileLength) {
-            var marker = resourceReader.ReadByte();
-            if (marker > 128) {
-                var data = resourceReader.ReadByte();
-                for (int i = 0; i < marker - 128; i++) {
-                    resultStream.WriteByte(data);
-                }
-            } else {
-                for (int i = 0; i < marker; i++) {
-                    var data = resourceReader.ReadByte();
-                    resultStream.WriteByte(data);
-                }
-            }
-        }
-        resultStream.Seek(0, SeekOrigin.Begin);
-        using var resultReader = new BinaryReader(resultStream);
+        byte compressionType = resourceReader.ReadByte();
+        uint decompressedSize = resourceReader.ReadUInt32();
+        ICompression compression = CompressionFactory.Create(compressionType);
+        Stream decompressedStream = compression.Decompress(resourceReader.BaseStream);
+        using var resultReader = new BinaryReader(decompressedStream);
         // offsets
         var offsets = new int[nrOfChars];
         for (int i = 0; i < nrOfChars; i++) {
@@ -117,8 +100,6 @@ internal static class Program {
         }
 
         Console.WriteLine("Done.");
-
-        File.WriteAllBytes("dmp.fnt", resultBuffer);
     }
 
     private static void ExtractResourceArchive(string filePath) {
@@ -140,28 +121,6 @@ internal static class Program {
             File.WriteAllBytes(path, buffer);
         }
         Console.WriteLine("Done.");
-    }
-}
-
-internal static class CompressionFactory {
-    public static ICompression Create(byte compressionType) {
-        return compressionType switch {
-            0 => new NoCompression(),
-            // 1 => new RleCompression(),
-            2 => new LzwCompression(),
-            // 3 => new LzhCompression(),
-            _ => throw new InvalidOperationException($"Invalid compression type '{compressionType}'")
-        };
-    }
-}
-
-internal class NoCompression : ICompression {
-    public Stream Compress(Stream inputStream) {
-        return inputStream;
-    }
-
-    public Stream Decompress(Stream inputStream) {
-        return inputStream;
     }
 }
 

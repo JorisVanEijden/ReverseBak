@@ -79,6 +79,7 @@ public class LzwCompression : ICompression {
             }
         }
 
+        outputStream.Seek(0, SeekOrigin.Begin);
         return outputStream;
     }
 
