@@ -5,7 +5,7 @@ internal class NoCompression : ICompression {
         return inputStream;
     }
 
-    public Stream Decompress(Stream inputStream) {
+    public Stream Decompress(Stream inputStream, long length = 0) {
         return inputStream;
     }
 }

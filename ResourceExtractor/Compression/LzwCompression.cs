@@ -5,19 +5,23 @@ public class LzwCompression : ICompression {
     private int _bitsProcessed;
     private readonly Dictionary<int, List<byte>> _dictionary = new();
     private int _bitLength = 9;
+    private long _endPosition;
 
     public Stream Compress(Stream inputStream) {
         throw new NotImplementedException();
     }
 
-    public Stream Decompress(Stream inputStream) {
+    public Stream Decompress(Stream inputStream, long endPosition = 0) {
         var outputStream = new MemoryStream();
         var inputReader = new BinaryReader(inputStream);
         var outputWriter = new BinaryWriter(outputStream);
-
+        
+        _endPosition = endPosition == 0 ? inputStream.Length : endPosition;
         _bitBuffer = 0;
         _bitsProcessed = 0;
         _bitLength = 9;
+        
+        // Console.WriteLine($"Performing LZW decompression from 0x{inputStream.Position:X4} to 0x{endPosition:X4} = {endPosition - inputStream.Position} bytes");
 
         // Initialize the dictionary with single bytes
         Reset();
@@ -96,7 +100,7 @@ public class LzwCompression : ICompression {
     }
 
     private int ReadNextCode(BinaryReader compressedData) {
-        if (compressedData.BaseStream.Position == compressedData.BaseStream.Length) {
+        if (compressedData.BaseStream.Position >= _endPosition) {
             return -1;
         }
         while (_bitsProcessed < _bitLength) {
