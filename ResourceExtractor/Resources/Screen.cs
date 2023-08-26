@@ -1,6 +1,6 @@
-namespace ResourceExtractor;
+namespace ResourceExtractor.Resources;
 
-internal class Screen {
+public class Screen {
     public Screen(string filePath) {
         FilePath = filePath;
     }
