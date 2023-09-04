@@ -1,6 +1,8 @@
 namespace ResourceExtractor.Resources;
 
-public class Screen {
+using ResourceExtractor.Extractors;
+
+public class Screen : IResource {
     public Screen(string filePath) {
         FilePath = filePath;
     }
@@ -10,4 +12,8 @@ public class Screen {
     public int Height { get; set; }
 
     public byte[]? BitMapData { get; set; }
+
+    public ResourceType Type {
+        get => ResourceType.SCX;
+    }
 }

@@ -1,8 +1,10 @@
-﻿using System.Text;
+﻿namespace ResourceExtractor;
 
-namespace ResourceExtractor;
-
+using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
+using ResourceExtractor.Resources;
+
+using System.Text;
 
 internal static class Program {
     private const int DosCodePage = 437;
@@ -26,6 +28,28 @@ internal static class Program {
         // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
         // MenuExtractor.ExtractToFile(Path.Combine(filePath, "REQ_SAVE.DAT"));
-        AnimationExtractor.Extract(Path.Combine(filePath, "CHAPTER1.ADS"));
+        foreach (string adsFile in GetFiles(filePath, "*.ads")) {
+            AnimationResource anim = AnimationExtractor.Extract(adsFile);
+            WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
+        }
+        foreach (string ttmFile in GetFiles(filePath, "*.ttm")) {
+            // string ttmFile = Path.Combine(filePath, "C21.TTM");    
+            var ttm = TtmExtractor.Extract(ttmFile);
+            WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
+        }
+    }
+
+    private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
+        return Directory.GetFileSystemEntries(filePath, searchPattern, new EnumerationOptions {
+            MatchCasing = MatchCasing.CaseInsensitive
+        });
+    }
+
+    private static void WriteToJsonFile(string fileName, ResourceType resourceType, string json) {
+        string resourceDirectory = resourceType.ToString();
+        if (!Directory.Exists(resourceDirectory)) {
+            Directory.CreateDirectory(resourceDirectory);
+        }
+        File.WriteAllText(Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(fileName) + ".json"), json);
     }
 }

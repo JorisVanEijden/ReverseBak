@@ -1,29 +1,30 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Extensions;
+using ResourceExtractor.Resources;
 
 using System.Text;
 
 internal class AnimationExtractor : ExtractorBase {
-    public static void Extract(string filePath) {
+    public static AnimationResource Extract(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
-        
+
         var animation = new AnimationResource();
         string tag = ReadTag(resourceReader);
         if (tag != "VER") {
             throw new InvalidDataException($"Expected VER tag, got {tag}");
         }
-        int size = resourceReader.ReadUInt16();
+        int verSize = resourceReader.ReadUInt16();
         if (resourceReader.ReadUInt16() != 0x0000) {
             throw new InterestingDataException("UInt16 after size is not 0x0000 in VER tag");
         }
-        animation.Version = new string(resourceReader.ReadChars(size));
+        animation.Version = resourceReader.ReadZeroTerminatedString();
         tag = ReadTag(resourceReader);
         if (tag != "ADS") {
             throw new InvalidDataException($"Expected ADS tag, got {tag}");
         }
-        size = resourceReader.ReadUInt16();
+        int adsSize = resourceReader.ReadUInt16();
         if (resourceReader.ReadUInt16() != 0x8000) {
             throw new InterestingDataException("UInt16 after size is not 0x8000 in ADS tag");
         }
@@ -31,15 +32,25 @@ internal class AnimationExtractor : ExtractorBase {
         if (tag != "RES") {
             throw new InvalidDataException($"Expected RES tag, got {tag}");
         }
-        size = resourceReader.ReadUInt16();
+        ushort resSize = resourceReader.ReadUInt16();
         if (resourceReader.ReadUInt16() != 0x0000) {
             throw new InterestingDataException("UInt16 after size is not 0x0000 in RES tag");
         }
-        var numberOfEntries = resourceReader.ReadUInt16();
-        for (int i = 0; i < numberOfEntries; i++) {
-            var id = resourceReader.ReadUInt16();
-            var name = resourceReader.ReadZeroTerminatedString();
+        animation.Unknown0 = resourceReader.ReadUInt16();
+        animation.Unknown1 = resourceReader.ReadUInt16();
+        animation.ResourceFileName = resourceReader.ReadZeroTerminatedString();
+
+        tag = ReadTag(resourceReader);
+        if (tag != "SCR") {
+            throw new InvalidDataException($"Expected SCR tag, got {tag}");
         }
+        ushort scrSize = resourceReader.ReadUInt16();
+        if (resourceReader.ReadUInt16() != 0x0000) {
+            throw new InterestingDataException("UInt16 after size is not 0x0000 in SCR tag");
+        }
+        animation.ScriptBytes = DecompressToByteArray(resourceReader, scrSize);
+
+        return animation;
     }
 }
 
@@ -47,8 +58,4 @@ internal class InterestingDataException : Exception {
     public InterestingDataException(string message) {
         throw new Exception(message);
     }
-}
-
-internal class AnimationResource {
-    public string Version { get; set; }
 }

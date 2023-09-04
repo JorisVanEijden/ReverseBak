@@ -7,9 +7,9 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Text;
 
-public class ExtractorBase {
+public abstract class ExtractorBase {
     internal const int FileNameLength = 13;
-    internal const int TagLength = 4;
+    private const int TagLength = 4;
     internal const int DosCodePage = 437;
     internal const bool Debug = false;
 

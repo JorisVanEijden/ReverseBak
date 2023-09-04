@@ -6,7 +6,7 @@ internal static class CompressionFactory {
             CompressionType.None => new NoCompression(),
             CompressionType.Rle => new RleCompression(),
             CompressionType.Lzw => new LzwCompression(),
-            CompressionType.Lzss => new LzssCompression(), 
+            CompressionType.Lzss => new LzssCompression(),
             _ => throw new InvalidOperationException($"Invalid compression type '{compressionType}'")
         };
     }

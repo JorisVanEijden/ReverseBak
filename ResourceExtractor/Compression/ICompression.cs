@@ -1,4 +1,4 @@
-namespace ResourceExtractor.Compression; 
+namespace ResourceExtractor.Compression;
 
 public interface ICompression {
     Stream Compress(Stream inputStream);

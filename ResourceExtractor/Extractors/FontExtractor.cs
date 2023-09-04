@@ -13,43 +13,43 @@ public class FontExtractor : ExtractorBase {
             throw new InvalidOperationException($"Invalid tag '{tag}'");
         }
         uint fileSize = resourceReader.ReadUInt32();
-        var unknown1 = resourceReader.ReadByte();
-        var unknown2 = resourceReader.ReadByte();
+        byte unknown1 = resourceReader.ReadByte();
+        byte unknown2 = resourceReader.ReadByte();
         byte fontHeight = resourceReader.ReadByte();
-        var unknown3 = resourceReader.ReadByte();
-        var firstCharacter = resourceReader.ReadByte();
+        byte unknown3 = resourceReader.ReadByte();
+        byte firstCharacter = resourceReader.ReadByte();
         byte nrOfChars = resourceReader.ReadByte();
-        var dataLength = resourceReader.ReadUInt16();
-        CompressionType compressionType = (CompressionType)resourceReader.ReadByte();
+        ushort dataLength = resourceReader.ReadUInt16();
+        var compressionType = (CompressionType)resourceReader.ReadByte();
         uint decompressedSize = resourceReader.ReadUInt32();
         ICompression compression = CompressionFactory.Create(compressionType);
         Stream decompressedStream = compression.Decompress(resourceReader.BaseStream);
         using var resultReader = new BinaryReader(decompressedStream);
         // offsets
-        var offsets = new int[nrOfChars];
+        int[] offsets = new int[nrOfChars];
         for (int i = 0; i < nrOfChars; i++) {
-            var characterOffset = resultReader.ReadUInt16();
+            ushort characterOffset = resultReader.ReadUInt16();
             offsets[i] = characterOffset;
             Console.WriteLine($"{i}: {characterOffset}");
         }
         // widths
-        var widths = new int[nrOfChars];
+        int[] widths = new int[nrOfChars];
         for (int i = 0; i < nrOfChars; i++) {
-            var characterWidth = resultReader.ReadByte();
+            byte characterWidth = resultReader.ReadByte();
             widths[i] = characterWidth;
             Console.WriteLine($"{i}: {characterWidth}");
         }
         // data
         for (int i = 0; i < nrOfChars; i++) {
-            var characterWidth = widths[i];
+            int characterWidth = widths[i];
             Console.WriteLine($"{i}: ");
             for (int j = 0; j < fontHeight; j++) {
-                var data = resultReader.ReadByte() << 8;
+                int data = resultReader.ReadByte() << 8;
                 if (characterWidth > 8) {
                     data |= resultReader.ReadByte();
                 }
                 for (int k = 0; k < characterWidth; k++) {
-                    Console.Write((data & 1 << (16 - k)) != 0 ? "##" : "  ");
+                    Console.Write((data & 1 << 16 - k) != 0 ? "##" : "  ");
                 }
                 Console.Write("\n");
             }

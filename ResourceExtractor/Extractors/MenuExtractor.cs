@@ -3,14 +3,13 @@ namespace ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
 
 using System.Text;
-using System.Text.Json;
 
 public class MenuExtractor : ExtractorBase {
     public static MenuData Extract(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         var menuData = new MenuData();
-        menuData.Type = (MenuType)resourceReader.ReadUInt16();
+        menuData.MenuType = (MenuType)resourceReader.ReadUInt16();
         menuData.Modal = resourceReader.ReadUInt16() != 0;
         menuData.Unknown0 = resourceReader.ReadUInt16();
         menuData.XPosition = resourceReader.ReadUInt16();
@@ -67,16 +66,25 @@ public class MenuExtractor : ExtractorBase {
         }
         return label.ToString();
     }
+}
 
-    public static void ExtractToFile(string filePath) {
-        const string resourceDirectory = "REQ";
-        if (!Directory.Exists(resourceDirectory)) {
-            Directory.CreateDirectory(resourceDirectory);
-        }
-        MenuData menu = Extract(filePath);
-        string json = JsonSerializer.Serialize(menu, new JsonSerializerOptions {
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(filePath) + ".json"), json);
-    }
+public interface IResource {
+    ResourceType Type { get; }
+}
+
+public enum ResourceType {
+    ADS,
+    BMX,
+    BOK,
+    DAT,
+    DDX,
+    FNT,
+    OVL,
+    PAL,
+    REQ,
+    RMP,
+    SCX,
+    TBL,
+    TTM,
+    WLD
 }
