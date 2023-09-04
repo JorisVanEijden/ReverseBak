@@ -4,10 +4,10 @@ using BetrayalAtKrondor.Overrides.Libraries;
 
 using Serilog.Events;
 
+using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.ReverseEngineer;
 using Spice86.Core.Emulator.VM;
-using Spice86.Logging;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 
@@ -16,14 +16,14 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly IGlobalSettings _globalSettings;
     private readonly StdIO _stdIo;
 
-    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService)
-        : base(functionsInformation, machine, loggerService) {
+    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
+        : base(functionsInformation, machine, loggerService, configuration) {
         _globalSettings = new GlobalSettings(machine.Memory);
         _gameEngine = new GameEngine(machine.MouseDriver);
-        _gameEngine.DataPath = machine.Configuration.Exe is null
+        _gameEngine.DataPath = configuration.Exe is null
             ? Directory.GetCurrentDirectory()
-            : Path.GetDirectoryName(machine.Configuration.Exe);
-        _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug));
+            : Path.GetDirectoryName(configuration.Exe);
+        _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration);
         DefineFunctions();
     }
 
@@ -33,11 +33,11 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private Action LoadConfig(int _) {
-        string resourceConfigFilePath = _gameEngine.DataPath + "resource.cfg";
+        string resourceConfigFilePath = _gameEngine.DataPath + "/resource.cfg";
         if (File.Exists(resourceConfigFilePath)) {
             LoadResourceConfig(resourceConfigFilePath);
-        }
-        string driveConfigFilePath = _gameEngine.DataPath + "drive.cfg";
+        } 
+        string driveConfigFilePath = _gameEngine.DataPath + "/drive.cfg";
         if (File.Exists(driveConfigFilePath)) {
             LoadDriveConfig(driveConfigFilePath);
         }

@@ -2,6 +2,7 @@ namespace BetrayalAtKrondor.Overrides.Libraries;
 
 using Serilog.Events;
 
+using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.OperatingSystem.Structures;
 using Spice86.Core.Emulator.ReverseEngineer;
@@ -25,10 +26,10 @@ public class StdIO : CSharpOverrideHelper {
     private readonly CFunctions _cFunctions;
     private string CurrentDir { get; set; }
 
-    public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService)
-        : base(functionsInformation, machine, loggerService) {
+    public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
+        : base(functionsInformation, machine, loggerService, configuration) {
         _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
-        string configurationExe = Machine.Configuration.Exe ?? throw new InvalidOperationException("Missing configuration exe");
+        string configurationExe = configuration.Exe ?? throw new InvalidOperationException("Missing configuration exe");
         DirectoryInfo parent = Directory.GetParent(configurationExe) ?? throw new InvalidOperationException("Could not determine parent directory");
         _mountPoint = parent.FullName;
         _cFunctions = new CFunctions(machine.Cpu, machine.Memory);
@@ -106,6 +107,8 @@ public class StdIO : CSharpOverrideHelper {
     private Action StrCpy(int _) {
         _args.Get(out ushort destination, out ushort source);
 
+        ES = DS;
+
         uint sourceAddress = MemoryUtils.ToPhysicalAddress(ES, source);
         string sourceString = Memory.GetZeroTerminatedString(sourceAddress, int.MaxValue);
 
@@ -116,7 +119,6 @@ public class StdIO : CSharpOverrideHelper {
             _loggerService.Debug("{Library}:strcpy(dest: {DestinationSegment:X4}:{Destination:X4}, src: {SourceSegment:X4}:{Source:X4}) => 0x{Result:X4} ['{SourceString}']",
                 nameof(StdIO), DS, destination, DS, source, destination, sourceString);
         }
-        ES = DS;
         SetResult(destination);
         return FarRet();
     }
@@ -791,17 +793,17 @@ public class StdIO : CSharpOverrideHelper {
         } catch (IOException ioException) {
             result = -1;
             if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning(ioException, "{Library}:fseek(fd: {FileDescriptor}, offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",
+                _loggerService.Warning(ioException, "{Library}:fseek(fd: {FileDescriptor}, offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, offset, origin, result);
             }
             SetResult(result);
             return FarRet();
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:fseek(fd: {FileDescriptor} [{FileName}], offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",
-                nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], offset, origin, result);
-        }
+        // if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
+        _loggerService.Debug("{Library}:fseek(fd: {FileDescriptor} [{FileName}], offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
+            nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], offset, origin, result);
+        // }
         SetResult(result);
 
         return FarRet();
