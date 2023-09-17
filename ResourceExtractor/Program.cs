@@ -4,6 +4,7 @@ using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
 
+using System.Net.NetworkInformation;
 using System.Text;
 
 internal static class Program {
@@ -28,15 +29,25 @@ internal static class Program {
         // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
         // MenuExtractor.ExtractToFile(Path.Combine(filePath, "REQ_SAVE.DAT"));
-        foreach (string adsFile in GetFiles(filePath, "*.ads")) {
-            AnimationResource anim = AnimationExtractor.Extract(adsFile);
-            WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
+        // foreach (string adsFile in GetFiles(filePath, "*.ads")) {
+        //     AnimationResource anim = AnimationExtractor.Extract(adsFile);
+        //     WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
+        // }
+        // foreach (string ttmFile in GetFiles(filePath, "*.ttm")) {
+        //     // string ttmFile = Path.Combine(filePath, "C21.TTM");    
+        //     var ttm = TtmExtractor.Extract(ttmFile);
+        //     WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
+        // }
+        DdxStatistics statistics = new();
+        var ddxExtractor = new DdxExtractor();
+        foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
+            // string ddxFile = Path.Combine(filePath, "DIAL_Z19.DDX");    
+            var ddx = ddxExtractor.Extract(ddxFile);
+            WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
+            statistics.Add(ddx);
         }
-        foreach (string ttmFile in GetFiles(filePath, "*.ttm")) {
-            // string ttmFile = Path.Combine(filePath, "C21.TTM");    
-            var ttm = TtmExtractor.Extract(ttmFile);
-            WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
-        }
+        Console.WriteLine(statistics.Dump());
+        
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
@@ -51,5 +62,17 @@ internal static class Program {
             Directory.CreateDirectory(resourceDirectory);
         }
         File.WriteAllText(Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(fileName) + ".json"), json);
+    }
+}
+
+internal class DdxStatistics {
+    public void Add(Dialog ddx) {
+        foreach (var entry in ddx.Entries) {
+            // entry.
+        }
+    }
+
+    public string? Dump() {
+        throw new NotImplementedException();
     }
 }

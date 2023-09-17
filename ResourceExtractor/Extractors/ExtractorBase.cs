@@ -8,10 +8,11 @@ using System.Drawing.Imaging;
 using System.Text;
 
 public abstract class ExtractorBase {
+    protected static string _indent = string.Empty;
     internal const int FileNameLength = 13;
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
-    internal const bool Debug = false;
+    internal const bool Debug = true;
 
     protected static string ReadTag(BinaryReader resourceReader) {
         string tagString = new(resourceReader.ReadChars(TagLength));
@@ -20,7 +21,7 @@ public abstract class ExtractorBase {
 
     protected static void Log(string message) {
         if (Debug)
-            Console.WriteLine(message);
+            Console.WriteLine(_indent + message);
     }
 
     protected static byte[] DecompressToByteArray(BinaryReader resourceReader, long length = 0) {
