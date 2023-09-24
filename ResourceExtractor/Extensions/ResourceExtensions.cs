@@ -25,8 +25,6 @@ public static class ResourceExtensions {
     }
     public static string ToJson(this Dialog resource) {
         return JsonSerializer.Serialize(resource, new JsonSerializerOptions {
-            ReferenceHandler = ReferenceHandler.Preserve,
-            MaxDepth = 256,
             WriteIndented = true,
             Converters = {
                 new JsonStringEnumConverter()
