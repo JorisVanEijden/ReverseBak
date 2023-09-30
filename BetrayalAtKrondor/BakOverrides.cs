@@ -5,11 +5,14 @@ using BetrayalAtKrondor.Overrides.Libraries;
 using Serilog.Events;
 
 using Spice86.Core.CLI;
+using Spice86.Core.Emulator;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.ReverseEngineer;
 using Spice86.Core.Emulator.VM;
+using Spice86.Core.Emulator.VM.Breakpoint;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
+using Spice86.Shared.Utils;
 
 public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
@@ -25,6 +28,40 @@ public class BakOverrides : CSharpOverrideHelper {
             : Path.GetDirectoryName(configuration.Exe);
         _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration);
         DefineFunctions();
+        DefineBreakpoints();
+    }
+
+    private void DefineBreakpoint(ushort segment, ushort offset, Action action) {
+        long address = MemoryUtils.ToPhysicalAddress(segment, offset);
+        var breakpoint = new AddressBreakPoint(BreakPointType.EXECUTION, address, _ => action.Invoke(), false);
+        Machine.MachineBreakpoints.ToggleBreakPoint(breakpoint, true);
+    }
+
+    private void LogDialogBuildCall() {
+        _loggerService.Information("dialog_Build?Show? called: dialogIdOrOffset: {Arg0}, arg_4: {Arg4}",
+            Stack.Peek32(4), Stack.Peek16(8));
+    }
+
+    private void DefineBreakpoints() {
+        DoOnTopOfInstruction(0x387F, 0x0020, () => Machine.MachineBreakpoints.PauseHandler.RequestPauseAndWait());
+        // DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
+    }
+
+    private void LogField1KeyWordCall() {
+        _loggerService.Information("getKeyWordTableOffsetForDialogField1 called: value: {Arg0}",
+            Stack.Peek16(4));
+        Machine.MachineBreakpoints.PauseHandler.RequestPauseAndWait();
+    }
+
+    private void DoOnTopOfInstruction(string address, Action action) {
+        var parts = address.Split(':');
+        ushort segment = (ushort)ParseHex(parts[0]);
+        ushort offset = (ushort)ParseHex(parts[1]);
+        DoOnTopOfInstruction(segment, offset, action);
+    }
+
+    private static int ParseHex(string hex) {
+        return int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
     }
 
     private void DefineFunctions() {
@@ -36,7 +73,7 @@ public class BakOverrides : CSharpOverrideHelper {
         string resourceConfigFilePath = _gameEngine.DataPath + "/resource.cfg";
         if (File.Exists(resourceConfigFilePath)) {
             LoadResourceConfig(resourceConfigFilePath);
-        } 
+        }
         string driveConfigFilePath = _gameEngine.DataPath + "/drive.cfg";
         if (File.Exists(driveConfigFilePath)) {
             LoadDriveConfig(driveConfigFilePath);

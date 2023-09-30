@@ -1,5 +1,7 @@
 namespace BetrayalAtKrondor.Tests;
 
+using Avalonia.Input;
+
 using BetrayalAtKrondor.Overrides.Libraries;
 
 using Moq;
@@ -7,9 +9,12 @@ using Moq;
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator;
 using Spice86.Core.Emulator.CPU;
+using Spice86.Core.Emulator.ReverseEngineer.DataStructure.Array;
 using Spice86.Core.Emulator.VM;
 using Spice86.Logging;
 using Spice86.Shared.Interfaces;
+
+using System.Diagnostics;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -27,12 +32,10 @@ public class SprintFTests {
         };
 
         ILoggerService loggerService = new Mock<LoggerService>(new LoggerPropertyBag()).Object;
-        var programExecutor = new ProgramExecutor(loggerService, null, configuration);
+        var programExecutor = new ProgramExecutor(configuration, loggerService, null);
         Machine machine = programExecutor.Machine;
         _cpu = machine.Cpu;
         _cFunctions = new CFunctions(_cpu, machine.Memory);
-
-        
     }
 
     [Fact]
@@ -44,8 +47,48 @@ public class SprintFTests {
 
         // Act
         string result = _cFunctions._sprintf("%d");
-        
+
         // Assert
         Assert.Equal("-5", result);
     }
+
+    [Fact]
+    public void TestPerf() {
+        var sw = new Stopwatch();
+        const int iterations = int.MaxValue;
+
+        var fastest = new Tester();
+        ISlowThingsDown slow = fastest;
+        var fast = slow as MyAbstractBaseClass;
+
+        sw.Start();
+        for (int i = 0; i < iterations; i++) {
+            fastest.Property = i;
+        }
+        Console.WriteLine(sw.ElapsedMilliseconds.ToString());
+        sw.Restart();
+        for (int i = 0; i < iterations; i++) {
+            fast!.Property = i;
+        }
+        Console.WriteLine(sw.ElapsedMilliseconds.ToString());
+        sw.Restart();
+        for (int i = 0; i < iterations; i++) {
+            slow.Property = i;
+        }
+        Console.WriteLine(sw.ElapsedMilliseconds.ToString());
+        sw.Stop();
+    }
+}
+
+public interface IAmBaseInterface {
+    public long Property { set; }
+}
+public interface ISlowThingsDown : IAmBaseInterface {
+}
+
+public class Tester : MyAbstractBaseClass, ISlowThingsDown {
+}
+
+public abstract class MyAbstractBaseClass : IAmBaseInterface {
+    public long Property { get; set; }
 }

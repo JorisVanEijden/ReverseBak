@@ -3,8 +3,8 @@
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Label;
 
-using System.Net.NetworkInformation;
 using System.Text;
 
 internal static class Program {
@@ -28,7 +28,7 @@ internal static class Program {
         // var screen = ExtractScreen(Path.Combine(filePath, "PUZZLE.SCX"));
         // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
-        // MenuExtractor.ExtractToFile(Path.Combine(filePath, "REQ_SAVE.DAT"));
+        // MenuExtractor.Extract(Path.Combine(filePath, "REQ_SAVE.DAT"));
         // foreach (string adsFile in GetFiles(filePath, "*.ads")) {
         //     AnimationResource anim = AnimationExtractor.Extract(adsFile);
         //     WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
@@ -38,16 +38,21 @@ internal static class Program {
         //     var ttm = TtmExtractor.Extract(ttmFile);
         //     WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         // }
-        DdxStatistics statistics = new();
-        var ddxExtractor = new DdxExtractor();
-        foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
-            // string ddxFile = Path.Combine(filePath, "DIAL_Z19.DDX");    
-            var ddx = ddxExtractor.Extract(ddxFile);
-            WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
-            statistics.Add(ddx);
+        // DdxStatistics statistics = new();
+        // var ddxExtractor = new DdxExtractor();
+        // foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
+        //     // string ddxFile = Path.Combine(filePath, "DIAL_Z19.DDX");    
+        //     var ddx = ddxExtractor.Extract(ddxFile);
+        //     WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
+        //     statistics.Add(ddx);
+        // }
+        // Console.WriteLine(statistics.Dump());
+
+        var labelExtractor = new LabelExtractor();
+        foreach (string labelFile in GetFiles(filePath, "lbl_*.dat")) {
+            LabelSet labelSet = labelExtractor.Extract(labelFile);
+            WriteToJsonFile(labelFile, labelSet.Type, labelSet.ToJson());
         }
-        Console.WriteLine(statistics.Dump());
-        
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
@@ -66,10 +71,10 @@ internal static class Program {
 }
 
 internal class DdxStatistics {
-    private List<DialogDataItem> _dataItems = new();
+    private readonly List<DialogDataItem> _dataItems = new();
 
     public void Add(Dialog ddx) {
-        foreach (var entry in ddx.Entries.Values) {
+        foreach (DialogEntry entry in ddx.Entries.Values) {
             if (entry.DialogEntry_Field3 != 16) continue;
             foreach (DialogDataItem dataItem in entry.DataItems) {
                 dataItem.FileName = ddx.Name;
@@ -79,11 +84,11 @@ internal class DdxStatistics {
     }
 
     public string? Dump() {
-        StringBuilder sb = new StringBuilder();
-        foreach (var dataItem in _dataItems) {
+        var sb = new StringBuilder();
+        foreach (DialogDataItem dataItem in _dataItems) {
             sb.AppendLine($"type{dataItem.DataItem_Field0:D2},{dataItem.DataItem_Field2:D5},{dataItem.DataItem_Field4:D5},{dataItem.DataItem_Field6:D5},{dataItem.DataItem_Field8:D5},{dataItem.FileName}");
         }
-        var dump = sb.ToString();
+        string dump = sb.ToString();
         File.WriteAllText("dataitemdump.csv", dump);
         return dump;
     }

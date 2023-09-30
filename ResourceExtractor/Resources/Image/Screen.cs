@@ -1,6 +1,4 @@
-namespace ResourceExtractor.Resources;
-
-using ResourceExtractor.Extractors;
+namespace ResourceExtractor.Resources.Image;
 
 public class Screen : IResource {
     public Screen(string filePath) {

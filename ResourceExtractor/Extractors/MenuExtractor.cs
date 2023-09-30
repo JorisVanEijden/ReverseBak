@@ -1,6 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Menu;
 
 using System.Text;
 
@@ -66,25 +67,4 @@ public class MenuExtractor : ExtractorBase {
         }
         return label.ToString();
     }
-}
-
-public interface IResource {
-    ResourceType Type { get; }
-}
-
-public enum ResourceType {
-    ADS,
-    BMX,
-    BOK,
-    DAT,
-    DDX,
-    FNT,
-    OVL,
-    PAL,
-    REQ,
-    RMP,
-    SCX,
-    TBL,
-    TTM,
-    WLD
 }

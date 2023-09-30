@@ -1,6 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Image;
 
 using System.Text;
 

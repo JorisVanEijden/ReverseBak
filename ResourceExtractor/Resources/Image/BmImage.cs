@@ -1,6 +1,4 @@
-namespace ResourceExtractor.Resources;
-
-using ResourceExtractor.Extractors;
+namespace ResourceExtractor.Resources.Image;
 
 public class BmImage : IResource {
     public ushort Size { get; set; }

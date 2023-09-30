@@ -1,11 +1,13 @@
 namespace ResourceExtractor.Extractors;
 
+using ResourceExtractor.Resources;
+
 using System.Text;
 
 internal class DdxExtractor : ExtractorBase {
     public Dialog Extract(string filePath) {
         Log($"Extracting {filePath}");
-        _indent = string.Empty;
+        Indent = string.Empty;
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
 
@@ -14,49 +16,49 @@ internal class DdxExtractor : ExtractorBase {
         };
 
         var offsetsIds = new Dictionary<int, uint>();
-        var numberOfEntries = resourceReader.ReadUInt16();
+        ushort numberOfEntries = resourceReader.ReadUInt16();
         for (int i = 0; i < numberOfEntries; i++) {
-            var id = resourceReader.ReadUInt32();
-            var offset = resourceReader.ReadInt32();
+            uint id = resourceReader.ReadUInt32();
+            int offset = resourceReader.ReadInt32();
             offsetsIds.Add(offset, id);
         }
 
         while (resourceReader.BaseStream.Position < resourceReader.BaseStream.Length) {
             int offset = (int)resourceReader.BaseStream.Position;
             var dialogEntry = new DialogEntry {
-                Offset = offset,
+                Offset = offset
             };
             if (offsetsIds.TryGetValue(offset, out uint id)) {
                 dialogEntry.Id = id;
             }
 
-            var dialogEntryField0 = resourceReader.ReadByte();
+            byte dialogEntryField0 = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField0)}: {dialogEntryField0:X2}");
             dialogEntry.DialogEntry_Field0 = dialogEntryField0;
-            var dialogEntryField1 = resourceReader.ReadUInt16();
+            ushort dialogEntryField1 = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField1)}: {dialogEntryField1:X4}");
             dialogEntry.DialogEntry_Field1 = dialogEntryField1;
-            var dialogEntryField3 = resourceReader.ReadUInt16();
+            ushort dialogEntryField3 = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField3)}: {dialogEntryField3:X4}");
             dialogEntry.DialogEntry_Field3 = dialogEntryField3;
 
-            var variantCount = resourceReader.ReadByte();
+            byte variantCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] VariantCount: {variantCount}");
 
-            var dataItemCount = resourceReader.ReadByte();
+            byte dataItemCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] DataItemCount: {dataItemCount}");
 
-            var stringLength = resourceReader.ReadUInt16();
+            ushort stringLength = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] StringLength: {stringLength}");
             for (int i = 0; i < variantCount; i++) {
                 Log($"[{resourceReader.BaseStream.Position:X8}] Variant {i}:");
-                var unknown2 = resourceReader.ReadUInt16();
+                ushort unknown2 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown2: {unknown2:X4}");
-                var unknown3 = resourceReader.ReadUInt16();
+                ushort unknown3 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown3: {unknown3:X4}");
-                var unknown4 = resourceReader.ReadUInt16();
+                ushort unknown4 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown4: {unknown4:X4}");
-                var variantOffset = resourceReader.ReadInt32();
+                int variantOffset = resourceReader.ReadInt32();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Offset: {variantOffset:X8}");
                 var variant = new DialogEntryVariant {
                     Unknown2 = unknown2,
@@ -133,7 +135,7 @@ public class DialogEntry {
 }
 
 public class Dialog : IResource {
-    public ResourceType Type { get => ResourceType.DDX; }
     public string Name { get; set; }
     public Dictionary<int, DialogEntry> Entries { get; set; } = new();
+    public ResourceType Type { get => ResourceType.DDX; }
 }

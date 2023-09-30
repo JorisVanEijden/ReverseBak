@@ -1,4 +1,4 @@
-namespace ResourceExtractor.Resources;
+namespace ResourceExtractor.Resources.Menu;
 
 using System.Text.Json.Serialization;
 

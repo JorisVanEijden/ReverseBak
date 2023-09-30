@@ -1,6 +1,4 @@
-namespace ResourceExtractor.Resources;
-
-using ResourceExtractor.Extractors;
+namespace ResourceExtractor.Resources.Animation;
 
 public class AnimationResource : IResource {
     public string Version { get; set; }

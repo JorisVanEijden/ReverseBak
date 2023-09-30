@@ -2,6 +2,7 @@ namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Compression;
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Image;
 
 using System.Text;
 

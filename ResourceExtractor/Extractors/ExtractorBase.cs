@@ -2,17 +2,18 @@ namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Compression;
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Image;
 
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Text;
 
 public abstract class ExtractorBase {
-    protected static string _indent = string.Empty;
     internal const int FileNameLength = 13;
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
-    internal const bool Debug = true;
+    internal const bool Debug = false; // true;
+    protected static string Indent = string.Empty;
 
     protected static string ReadTag(BinaryReader resourceReader) {
         string tagString = new(resourceReader.ReadChars(TagLength));
@@ -21,7 +22,7 @@ public abstract class ExtractorBase {
 
     protected static void Log(string message) {
         if (Debug)
-            Console.WriteLine(_indent + message);
+            Console.WriteLine(Indent + message);
     }
 
     protected static byte[] DecompressToByteArray(BinaryReader resourceReader, long length = 0) {
@@ -39,7 +40,7 @@ public abstract class ExtractorBase {
     }
 
     protected static void SaveAsBitmap(BmImage image, string imageFileName, Color[]? palette = null) {
-        if ((image.Flags & 0x20) != 0) {
+        if ((image.Flags & 0x20) != 0 && image.Data != null) {
             var bitmap = new Bitmap(image.Width, image.Height);
             int index = 0;
             for (int x = 0; x < image.Width; x++) {

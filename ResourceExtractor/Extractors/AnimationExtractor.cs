@@ -1,7 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Extensions;
-using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Animation;
 
 using System.Text;
 
