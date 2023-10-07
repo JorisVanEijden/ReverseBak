@@ -233,7 +233,7 @@ public partial class CFunctions {
                 FormatterType.ScientificUpper => FormatNumber("E", obj),
                 FormatterType.General => FormatNumber("g", obj),
                 FormatterType.GeneralUpper => FormatNumber("G", obj),
-                FormatterType.Char => FormatString(((char)obj).ToString()),
+                FormatterType.Char => FormatString(Convert.ToChar(obj).ToString()),
                 FormatterType.String => FormatString(obj.ToString() ?? string.Empty),
                 FormatterType.Pointer => FormatString("0x" + Convert.ToString((int)obj, 16)),
                 FormatterType.Percent => "%",
