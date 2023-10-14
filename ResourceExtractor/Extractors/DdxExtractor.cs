@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors;
 
-using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Dialog;
 
 using System.Text;
 
@@ -104,38 +104,4 @@ internal class DdxExtractor : ExtractorBase {
 
         return dialog;
     }
-}
-
-public class DialogDataItem {
-    public int DataItem_Field0 { get; set; }
-    public int DataItem_Field2 { get; set; }
-    public int DataItem_Field4 { get; set; }
-    public int DataItem_Field6 { get; set; }
-    public int DataItem_Field8 { get; set; }
-    public string FileName { get; set; }
-}
-
-public class DialogEntryVariant {
-    public int Unknown2 { get; set; }
-    public int Unknown3 { get; set; }
-    public int Unknown4 { get; set; }
-    public int Offset { get; set; }
-}
-
-public class DialogEntry {
-    public int Offset { get; set; }
-    public uint Id { get; set; }
-    public string Text { get; set; }
-    public int DialogEntry_Field0 { get; set; }
-    public int DialogEntry_Field1 { get; set; }
-    public int DialogEntry_Field3 { get; set; }
-    public List<DialogDataItem> DataItems { get; set; } = new();
-    public List<DialogEntryVariant> Variants { get; set; } = new();
-    public int Referer { get; set; }
-}
-
-public class Dialog : IResource {
-    public string Name { get; set; }
-    public Dictionary<int, DialogEntry> Entries { get; set; } = new();
-    public ResourceType Type { get => ResourceType.DDX; }
 }

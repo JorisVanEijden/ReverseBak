@@ -24,30 +24,28 @@ internal class AnimationExtractor : ExtractorBase {
         if (tag != "ADS") {
             throw new InvalidDataException($"Expected ADS tag, got {tag}");
         }
-        int adsSize = resourceReader.ReadUInt16();
-        if (resourceReader.ReadUInt16() != 0x8000) {
-            throw new InterestingDataException("UInt16 after size is not 0x8000 in ADS tag");
+        uint adsSize = resourceReader.ReadUInt32();
+        if ((adsSize | 0x8000) == 0) {
+            throw new InterestingDataException("Ads size does not have 0x8000 in ADS tag");
         }
         tag = ReadTag(resourceReader);
         if (tag != "RES") {
             throw new InvalidDataException($"Expected RES tag, got {tag}");
         }
-        ushort resSize = resourceReader.ReadUInt16();
-        if (resourceReader.ReadUInt16() != 0x0000) {
-            throw new InterestingDataException("UInt16 after size is not 0x0000 in RES tag");
+        uint resSize = resourceReader.ReadUInt32();
+        int nrOfResEntries = resourceReader.ReadUInt16();
+        animation.ResourceFiles = new Dictionary<int, string>(nrOfResEntries);
+        for (int i = 0; i < nrOfResEntries; i++) {
+            int id = resourceReader.ReadUInt16();
+            string fileName = resourceReader.ReadZeroTerminatedString();
+            animation.ResourceFiles.Add(id, fileName);
         }
-        animation.Unknown0 = resourceReader.ReadUInt16();
-        animation.Unknown1 = resourceReader.ReadUInt16();
-        animation.ResourceFileName = resourceReader.ReadZeroTerminatedString();
 
         tag = ReadTag(resourceReader);
         if (tag != "SCR") {
             throw new InvalidDataException($"Expected SCR tag, got {tag}");
         }
-        ushort scrSize = resourceReader.ReadUInt16();
-        if (resourceReader.ReadUInt16() != 0x0000) {
-            throw new InterestingDataException("UInt16 after size is not 0x0000 in SCR tag");
-        }
+        uint scrSize = resourceReader.ReadUInt32();
         animation.ScriptBytes = DecompressToByteArray(resourceReader, scrSize);
 
         return animation;

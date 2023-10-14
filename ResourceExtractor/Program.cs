@@ -1,9 +1,15 @@
-﻿namespace ResourceExtractor;
+﻿using ResourceExtractor.Extractors;
+
+using System.Text;
+
+namespace ResourceExtractor;
 
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
+using ResourceExtractor.Resources.Dialog;
 using ResourceExtractor.Resources.Label;
+using ResourceExtractor.Resources.Spells;
 
 using System.Text;
 
@@ -48,11 +54,15 @@ internal static class Program {
         // }
         // Console.WriteLine(statistics.Dump());
 
-        var labelExtractor = new LabelExtractor();
-        foreach (string labelFile in GetFiles(filePath, "lbl_*.dat")) {
-            LabelSet labelSet = labelExtractor.Extract(labelFile);
-            WriteToJsonFile(labelFile, labelSet.Type, labelSet.ToJson());
-        }
+        // var labelExtractor = new LabelExtractor();
+        // foreach (string labelFile in GetFiles(filePath, "lbl_*.dat")) {
+        //     LabelSet labelSet = labelExtractor.Extract(labelFile);
+        //     WriteToJsonFile(labelFile, labelSet.Type, labelSet.ToJson());
+        // }
+
+        var spellExtractor = new SpellExtractor();
+        List<Spell> spells = spellExtractor.ExtractSpells(filePath);
+        WriteToJsonFile("spells", ResourceType.DAT, spells.ToJson());
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
