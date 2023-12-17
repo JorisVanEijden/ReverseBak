@@ -42,6 +42,59 @@ public class BakOverrides : CSharpOverrideHelper {
         DoOnTopOfInstruction(0x387F, 0x0020, LogDialogBuildCall);
         DoOnTopOfInstruction("3887:0025", Sub_4B54C);
         DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
+        DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
+    }
+
+    private void LogGetValueFromActor() {
+        ushort actorOffset = Stack.Peek16(4);
+        ushort arg2 = Stack.Peek16(6);
+        ushort arg4 = Stack.Peek16(8);
+
+        uint actorAddress = MemoryUtils.ToPhysicalAddress(DS, actorOffset);
+
+        ushort nameOffset = Memory.UInt16[actorAddress];
+        uint nameAddress = MemoryUtils.ToPhysicalAddress(DS, nameOffset);
+        string name = Memory.GetZeroTerminatedString(nameAddress, 9);
+        var field58 = Memory.UInt8[actorAddress + 0x58];
+        name += $" ({field58:X2})";
+        
+        uint attributeBase = actorAddress + 8;
+        var attributeOffset = 5 * arg2;
+        var attribute = (ActorAttribute)arg2;
+        long attributeAddress = attributeBase + attributeOffset;
+
+        int attributeValue;
+        if (attribute == ActorAttribute.HealthStaminaCombo) {
+            var health = GetAttributeValue(arg4, attributeAddress, ActorAttribute.Health, actorAddress);
+            var stamina = GetAttributeValue(arg4, attributeAddress, ActorAttribute.Stamina, actorAddress);
+            attributeValue = health + stamina;
+        } else {
+            attributeValue = GetAttributeValue(arg4, attributeAddress, attribute, actorAddress);
+        }
+
+        var attributeValue1 = Memory.UInt8[attributeAddress + 0];
+        var attributeValue2 = Memory.UInt8[attributeAddress + 1];
+        var attributeValue3 = Memory.UInt8[attributeAddress + 2];
+        var attributeValue4 = Memory.UInt8[attributeAddress + 3];
+        var attributeValue5 = Memory.UInt8[attributeAddress + 4];
+
+        _loggerService.Debug("{MethodName}: actor: {Name}, arg_2: {Arg2:X4}, arg_4: {Arg4:X4}, {Attribute}: {AttributeValue} ({Value1} {Value2} {Value3} {Value4} {Value5})",
+            nameof(LogGetValueFromActor), name, arg2, arg4, attribute, attributeValue, attributeValue1, attributeValue2, attributeValue3, attributeValue4, attributeValue5);
+    }
+
+    private int GetAttributeValue(ushort arg4, long attributeAddress, ActorAttribute attribute, uint actorAddress) {
+        int attributeValue = arg4 switch {
+            1 => Memory.UInt8[attributeAddress],
+            3 => Memory.UInt8[attributeAddress + 1],
+            _ => CalculateActiveValue(attribute, actorAddress)
+        };
+        return attributeValue;
+    }
+
+    private int CalculateActiveValue(ActorAttribute attribute, uint actorAddress) {
+        var current = Memory.UInt8[actorAddress + 8 + 5 * (int)attribute + 1];
+        // apply bonuses and penalties
+        return current;
     }
 
     private void Sub_4B54C() {
@@ -70,7 +123,6 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private void DefineFunctions() {
         DefineFunction(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
-        DefineFunction(0x1834, 0x48EC, SetMouseCursorRange, true, nameof(SetMouseCursorRange));
     }
 
     private Action LoadConfig(int _) {
@@ -145,6 +197,36 @@ public class BakOverrides : CSharpOverrideHelper {
 
         return FarRet();
     }
+}
+
+internal enum ActorAttribute {
+    Health,
+    Stamina,
+    Speed,
+    Strength,
+    Defense,
+    AccuracyCrossbow,
+    AccuracyMelee,
+    AccuracyCasting,
+    Assessment,
+    ArmorCraft,
+    WeaponCraft,
+    Barding,
+    Haggling,
+    LockPicking,
+    Scouting,
+    Stealth,
+    HealthStaminaCombo
+}
+
+internal enum NegativeStatusEffects {
+    Sick,
+    Plagued,
+    Poisoned,
+    Drunk,
+    Healing,
+    Starving,
+    NearDeath,
 }
 
 internal class DialogEntry : MemoryBasedDataStructure {
