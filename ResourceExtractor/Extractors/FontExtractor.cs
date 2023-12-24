@@ -13,10 +13,10 @@ public class FontExtractor : ExtractorBase {
             throw new InvalidOperationException($"Invalid tag '{tag}'");
         }
         uint fileSize = resourceReader.ReadUInt32();
-        byte unknown1 = resourceReader.ReadByte();
-        byte unknown2 = resourceReader.ReadByte();
+        byte version = resourceReader.ReadByte();
+        byte fontWidth = resourceReader.ReadByte();
         byte fontHeight = resourceReader.ReadByte();
-        byte unknown3 = resourceReader.ReadByte();
+        byte baseline = resourceReader.ReadByte();
         byte firstCharacter = resourceReader.ReadByte();
         byte nrOfChars = resourceReader.ReadByte();
         ushort dataLength = resourceReader.ReadUInt16();

@@ -71,14 +71,4 @@ public abstract class ExtractorBase {
         }
     }
 
-    protected static string ReadString(BinaryReader resourceReader) {
-        var text = new StringBuilder();
-        char character = resourceReader.ReadChar();
-        while (character != '\0') {
-            text.Append(character);
-            character = resourceReader.ReadChar();
-        }
-
-        return text.ToString();
-    }
 }

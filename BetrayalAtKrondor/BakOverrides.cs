@@ -2,6 +2,8 @@ namespace BetrayalAtKrondor;
 
 using BetrayalAtKrondor.Overrides.Libraries;
 
+using GameData;
+
 using Serilog.Events;
 
 using Spice86.Core.CLI;
@@ -197,36 +199,6 @@ public class BakOverrides : CSharpOverrideHelper {
 
         return FarRet();
     }
-}
-
-internal enum ActorAttribute {
-    Health,
-    Stamina,
-    Speed,
-    Strength,
-    Defense,
-    AccuracyCrossbow,
-    AccuracyMelee,
-    AccuracyCasting,
-    Assessment,
-    ArmorCraft,
-    WeaponCraft,
-    Barding,
-    Haggling,
-    LockPicking,
-    Scouting,
-    Stealth,
-    HealthStaminaCombo
-}
-
-internal enum NegativeStatusEffects {
-    Sick,
-    Plagued,
-    Poisoned,
-    Drunk,
-    Healing,
-    Starving,
-    NearDeath,
 }
 
 internal class DialogEntry : MemoryBasedDataStructure {
