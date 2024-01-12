@@ -1,5 +1,7 @@
 namespace ResourceExtractor.Resources.Spells;
 
+using GameData;
+
 using ResourceExtractor.Resources;
 
 public class Spell : IResource {
@@ -13,12 +15,12 @@ public class Spell : IResource {
     public int FieldA { get; set; }
     public int FieldC { get; set; }
     public int ObjectId { get; set; }
-    public int Field10 { get; set; }
+    public SpellCalculation Calculation { get; set; }
     public int Damage { get; set; }
     public int Duration { get; set; }
     public SpellInfo Info { get; set; }
 
     public string ToCsv() {
-        return $"{Id},{Name},{MinimumCost},{MaximumCost},{Field6},{Field8},{FieldA},{FieldC},{ObjectId},{Field10},{Damage},{Duration}";
+        return $"{Id},{Name},{MinimumCost},{MaximumCost},{Field6},{Field8},{FieldA},{FieldC},{ObjectId},{Calculation},{Damage},{Duration}";
     }
 }

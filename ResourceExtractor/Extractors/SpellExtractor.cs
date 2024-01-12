@@ -1,5 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
+using GameData;
+
 using ResourceExtractor.Resources.Spells;
 using ResourceExtractor.Extensions;
 
@@ -32,7 +34,7 @@ internal class SpellExtractor : ExtractorBase {
                 FieldA = resourceReader.ReadInt16(),
                 FieldC = resourceReader.ReadInt16(),
                 ObjectId = resourceReader.ReadInt16(),
-                Field10 = resourceReader.ReadInt16(),
+                Calculation = (SpellCalculation)resourceReader.ReadInt16(),
                 Damage = resourceReader.ReadInt16(),
                 Duration = resourceReader.ReadInt16()
             };

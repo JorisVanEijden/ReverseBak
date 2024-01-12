@@ -4,8 +4,6 @@ using System.Text;
 
 namespace ResourceExtractor;
 
-using ResourceExtractor.Extensions;
-using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
 using ResourceExtractor.Resources.Label;
 using ResourceExtractor.Resources.Spells;
@@ -60,15 +58,23 @@ internal static class Program {
         //     WriteToJsonFile(labelFile, labelSet.Type, labelSet.ToJson());
         // }
 
-        var spellExtractor = new SpellExtractor();
-        List<Spell> spells = SpellExtractor.ExtractSpells(filePath);
-        WriteToJsonFile("spells", ResourceType.DAT, spells.ToJson());
-        WriteToCsvFile("spells", ResourceType.DAT, spells.ToCsv());
-
-        var objectExtractor = new ObjectExtractor();
-
-        var objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
-        WriteToCsvFile("objinfo", ResourceType.DAT, objectInfo.ToCsv());
+        // var spellExtractor = new SpellExtractor();
+        // List<Spell> spells = SpellExtractor.ExtractSpells(filePath);
+        // WriteToJsonFile("spells", ResourceType.DAT, spells.ToJson());
+        // WriteToCsvFile("spells", ResourceType.DAT, spells.ToCsv());
+        //
+        // var objectExtractor = new ObjectExtractor();
+        //
+        // var objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
+        // WriteToCsvFile("objinfo", ResourceType.DAT, objectInfo.ToCsv());
+        //
+        // var keywordExtractor = new KeywordExtractor();
+        // var keywords = KeywordExtractor.Extract(Path.Combine(filePath, "keyword.dat"));
+        // WriteToCsvFile("keywords", ResourceType.DAT, string.Join("\r\n", keywords));
+        
+        var mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
+        WriteToCsvFile("mnames", ResourceType.DAT, string.Join("\r\n", mNames));
+        
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
