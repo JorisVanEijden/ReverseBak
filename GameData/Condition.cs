@@ -1,6 +1,6 @@
 namespace GameData;
 
-public enum NegativeStatusEffects {
+public enum Condition {
     Sick,
     Plagued,
     Poisoned,

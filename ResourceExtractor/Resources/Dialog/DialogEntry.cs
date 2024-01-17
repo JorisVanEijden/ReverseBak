@@ -1,5 +1,8 @@
 namespace ResourceExtractor.Resources.Dialog;
 
+using ResourceExtractor.Extractors;
+using ResourceExtractor.Resources.Dialog.Actions;
+
 public class DialogEntry {
     public int Offset { get; set; }
     public uint Id { get; set; }
@@ -7,7 +10,7 @@ public class DialogEntry {
     public int DialogEntry_Field0 { get; set; }
     public int DialogEntry_Field1 { get; set; }
     public int DialogEntry_Field3 { get; set; }
-    public List<DialogDataItem> DataItems { get; set; } = new();
-    public List<DialogEntryVariant> Variants { get; set; } = new();
+    public List<DialogActionBase> DialogActions { get; set; } = [];
+    public List<DialogEntryVariant> Variants { get; set; } = [];
     public int Referer { get; set; }
 }

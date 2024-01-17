@@ -1,4 +1,6 @@
-namespace ResourceExtractor.Extractors;
+namespace ResourceExtractor.Extractors.Dialog;
+
+using GameData;
 
 using ResourceExtractor.Resources.Dialog;
 
@@ -45,8 +47,8 @@ internal class DdxExtractor : ExtractorBase {
             byte variantCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] VariantCount: {variantCount}");
 
-            byte dataItemCount = resourceReader.ReadByte();
-            Log($"[{resourceReader.BaseStream.Position:X8}] DataItemCount: {dataItemCount}");
+            byte dialogActionCount = resourceReader.ReadByte();
+            Log($"[{resourceReader.BaseStream.Position:X8}] DialogActionCount: {dialogActionCount}");
 
             ushort stringLength = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] StringLength: {stringLength}");
@@ -68,21 +70,14 @@ internal class DdxExtractor : ExtractorBase {
                 };
                 dialogEntry.Variants.Add(variant);
             }
-            Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dataItemCount} data items");
-            for (int i = 0; i < dataItemCount; i++) {
-                var dataItem = new DialogDataItem();
-                dataItem.DataItem_Field0 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Field0: {dataItem.DataItem_Field0:X4}");
-                dataItem.DataItem_Field2 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Field2: {dataItem.DataItem_Field2:X4}");
-                dataItem.DataItem_Field4 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Field4: {dataItem.DataItem_Field4:X4}");
-                dataItem.DataItem_Field6 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Field6: {dataItem.DataItem_Field6:X4}");
-                dataItem.DataItem_Field8 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Field8: {dataItem.DataItem_Field8:X4}");
+            Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dialogActionCount} data items");
+            for (int i = 0; i < dialogActionCount; i++) {
+                var actionType = (DialogActionType)resourceReader.ReadUInt16();
+                Log($"[{resourceReader.BaseStream.Position:X8}] ActionType: {actionType}");
 
-                dialogEntry.DataItems.Add(dataItem);
+                var dialogAction = DialogActionFactory.Build(actionType, resourceReader);
+
+                dialogEntry.DialogActions.Add(dialogAction);
             }
             char[] readChars = resourceReader.ReadChars(stringLength);
             int length = stringLength - 1;

@@ -4,6 +4,8 @@ using System.Text;
 
 namespace ResourceExtractor;
 
+using ResourceExtractor.Extensions;
+using ResourceExtractor.Extractors.Dialog;
 using ResourceExtractor.Resources;
 using ResourceExtractor.Resources.Label;
 using ResourceExtractor.Resources.Spells;
@@ -43,13 +45,12 @@ internal static class Program {
         //     WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         // }
         // DdxStatistics statistics = new();
-        // var ddxExtractor = new DdxExtractor();
-        // foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
-        //     // string ddxFile = Path.Combine(filePath, "DIAL_Z19.DDX");    
-        //     var ddx = ddxExtractor.Extract(ddxFile);
-        //     WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
-        //     statistics.Add(ddx);
-        // }
+        var ddxExtractor = new DdxExtractor();
+        foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
+            var ddx = ddxExtractor.Extract(ddxFile);
+            WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
+            // statistics.Add(ddx);
+        }
         // Console.WriteLine(statistics.Dump());
 
         // var labelExtractor = new LabelExtractor();

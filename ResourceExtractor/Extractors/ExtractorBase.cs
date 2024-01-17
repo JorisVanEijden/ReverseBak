@@ -12,7 +12,7 @@ public abstract class ExtractorBase {
     internal const int FileNameLength = 13;
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
-    internal const bool Debug = false; // true;
+    internal const bool Debug = false;//true;
     protected static string Indent = string.Empty;
 
     protected static string ReadTag(BinaryReader resourceReader) {
