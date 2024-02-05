@@ -46,7 +46,12 @@ internal class AnimationExtractor : ExtractorBase {
             throw new InvalidDataException($"Expected SCR tag, got {tag}");
         }
         uint scrSize = resourceReader.ReadUInt32();
-        animation.ScriptBytes = DecompressToByteArray(resourceReader, scrSize);
+        byte[] scriptBytes = DecompressToByteArray(resourceReader, scrSize);
+        animation.Script = [];
+        for (int i = 0; i < scriptBytes.Length; i += 2) {
+            ushort word = BitConverter.ToUInt16(scriptBytes, i);
+            animation.Script.Add($"{word:X4}");
+        }
 
         return animation;
     }

@@ -2,10 +2,7 @@ namespace ResourceExtractor.Resources.Spells;
 
 using GameData;
 
-using ResourceExtractor.Resources;
-
 public class Spell : IResource {
-    public ResourceType Type { get => ResourceType.DAT; }
     public int Id { get; set; }
     public string Name { get; set; }
     public int MinimumCost { get; set; }
@@ -19,6 +16,7 @@ public class Spell : IResource {
     public int Damage { get; set; }
     public int Duration { get; set; }
     public SpellInfo Info { get; set; }
+    public ResourceType Type { get => ResourceType.DAT; }
 
     public string ToCsv() {
         return $"{Id},{Name},{MinimumCost},{MaximumCost},{Field6},{Field8},{FieldA},{FieldC},{ObjectId},{Calculation},{Damage},{Duration}";

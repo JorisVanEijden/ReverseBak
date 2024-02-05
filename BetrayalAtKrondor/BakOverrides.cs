@@ -41,10 +41,42 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void DefineBreakpoints() {
-        DoOnTopOfInstruction(0x387F, 0x0020, LogDialogBuildCall);
+        DoOnTopOfInstruction("387F:0020", LogDialogBuildCall);
         DoOnTopOfInstruction("3887:0025", Sub_4B54C);
         DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
         DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
+        // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
+        DoOnTopOfInstruction("3991:0020", Logsub_ovr185_0);
+        DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
+        DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
+        DoOnTopOfInstruction("3991:004D", Logsub_ovr185_53F);
+    }
+
+    private void Logsub_ovr185_0() {
+        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_0));
+    }
+
+    private void Logsub_ovr185_33F() {
+        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_33F));
+    }
+
+    private void Logsub_ovr185_53F() {
+        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_53F));
+    }
+
+    private void LogLoadTzzxxyy_WLD() {
+        var zoneNumber = Stack.Peek16(6);
+        var xCoordinate = Stack.Peek16(8);
+        var yCoordinate = Stack.Peek16(10);
+        var arg6 = Stack.Peek16(12);
+        
+        _loggerService.Information("{MethodName} called. zoneNumber: {ZoneNumber}, xCoordinate: {XCoordinate}, yCoordinate: {YCoordinate}, arg_6: {Arg6}",
+            nameof(LogLoadTzzxxyy_WLD), zoneNumber, xCoordinate, yCoordinate, arg6);
+    }
+
+    private void LogGetGlobalValue() {
+        _loggerService.Information("GetGlobalValue called: key: {Arg0}",
+            Stack.Peek16(4));
     }
 
     private void LogGetValueFromActor() {

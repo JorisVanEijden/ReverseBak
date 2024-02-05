@@ -1,6 +1,5 @@
 namespace ResourceExtractor.Resources.Dialog;
 
-using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources.Dialog.Actions;
 
 public class DialogEntry {

@@ -12,11 +12,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\GameData\GameData.csproj" />
+        <ProjectReference Include="..\GameData\GameData.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\GameData\GameData.csproj" />
+        <ProjectReference Include="..\GameData\GameData.csproj"/>
     </ItemGroup>
 
 

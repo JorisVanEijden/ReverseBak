@@ -120,15 +120,6 @@ internal class TtmExtractor : ExtractorBase {
                 case 0x1021:
                     command = new UnknownCommand1021(scriptReader);
                     break;
-                case 0x1101:
-                    command = new UnknownCommand1101(scriptReader);
-                    break;
-                case 0x1111:
-                    command = new TagCommand(scriptReader, animatorTags);
-                    break;
-                case 0x1121:
-                    command = new UnknownCommand1121(scriptReader);
-                    break;
                 case 0x1051:
                     command = new SelectImageCommand(scriptReader);
                     break;
@@ -137,6 +128,15 @@ internal class TtmExtractor : ExtractorBase {
                     break;
                 case 0x1071:
                     command = new SelectFontCommand(scriptReader);
+                    break;
+                case 0x1101:
+                    command = new UnknownCommand1101(scriptReader);
+                    break;
+                case 0x1111:
+                    command = new TagCommand(scriptReader, animatorTags);
+                    break;
+                case 0x1121:
+                    command = new UnknownCommand1121(scriptReader);
                     break;
                 case 0x1201:
                     command = new UnknownCommand1201(scriptReader);

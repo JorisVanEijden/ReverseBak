@@ -30,4 +30,22 @@ public class PaletteExtractor : ExtractorBase {
         }
         return palette;
     }
+
+    /// <summary>
+    /// Quick and dirty way of getting a palette file form a filename.
+    /// Works only in some cases, but it's nice to see some colors.
+    /// </summary>
+    /// <param name="filePath"></param>
+    /// <param name="imageName"></param>
+    /// <returns></returns>
+    public static Color[]? FindPalette(string filePath, string imageName) {
+        while (imageName.Length > 1) {
+            string palettePath = Path.Combine(filePath, $"{imageName}.pal");
+            if (File.Exists(palettePath)) {
+                return Extract(palettePath);
+            }
+            imageName = imageName[..^1];
+        }
+        return null;
+    }
 }

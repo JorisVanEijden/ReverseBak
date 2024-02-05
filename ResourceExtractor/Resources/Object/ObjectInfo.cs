@@ -2,12 +2,7 @@ namespace ResourceExtractor.Resources.Object;
 
 using GameData;
 
-using ResourceExtractor.Resources;
-
-using System.Text;
-
 public class ObjectInfo : IResource {
-    public ResourceType Type { get => ResourceType.DAT; }
     public string Name { get; set; }
     public int Field1E { get; set; }
     public ObjectFlags Flags { get; set; }
@@ -37,6 +32,7 @@ public class ObjectInfo : IResource {
     public int Field4E { get; set; }
     public int Number { get; set; }
     public int Field37 { get; set; }
+    public ResourceType Type { get => ResourceType.DAT; }
 
     public string ToCsv() {
         return

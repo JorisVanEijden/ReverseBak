@@ -8,7 +8,7 @@ internal class RleCompression : ICompression {
     public Stream Decompress(Stream inputStream, long length = 0) {
         var outputStream = new MemoryStream();
         long startPosition = inputStream.Position;
-        long endPosition = length == 0 ? inputStream.Length : length;
+        long endPosition = length == 0 ? inputStream.Length : startPosition + length;
 
         while (inputStream.Position < endPosition) {
             int marker = inputStream.ReadByte();

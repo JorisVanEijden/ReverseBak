@@ -1,8 +1,10 @@
 namespace ResourceExtractor.Extensions;
 
 using ResourceExtractor.Resources.Animation;
+using ResourceExtractor.Resources.Book;
 using ResourceExtractor.Resources.Dialog;
 using ResourceExtractor.Resources.Label;
+using ResourceExtractor.Resources.Menu;
 using ResourceExtractor.Resources.Object;
 using ResourceExtractor.Resources.Spells;
 
@@ -40,15 +42,27 @@ public static class ResourceExtensions {
 
     public static string ToJson(this List<ObjectInfo> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
-    }    
+    }
+
+    public static string ToJson(this UserInterface resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this BookResource resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToCsv(this List<ObjectInfo> resource) {
-        const string objectInfoFlags = $"{nameof(ObjectFlags.B0001)},{nameof(ObjectFlags.B0002)},{nameof(ObjectFlags.B0004)},{nameof(ObjectFlags.B0008)},{nameof(ObjectFlags.B0010)},{nameof(ObjectFlags.B0020)},{nameof(ObjectFlags.CombatUsable)},{nameof(ObjectFlags.B0080)},{nameof(ObjectFlags.B0100)},{nameof(ObjectFlags.B0200)},{nameof(ObjectFlags.B0400)},{nameof(ObjectFlags.Stackable)},{nameof(ObjectFlags.B1000)},{nameof(ObjectFlags.LimitedUses)},{nameof(ObjectFlags.B4000)},{nameof(ObjectFlags.B8000)}";
-        var sb = new StringBuilder($"{nameof(ObjectInfo.Number)},{nameof(ObjectInfo.Name)},{nameof(ObjectInfo.Field1E)},{objectInfoFlags},{nameof(ObjectInfo.WordWrap)},{nameof(ObjectInfo.ChapterNumber)},{nameof(ObjectInfo.Price)},{nameof(ObjectInfo.SwingBaseDamage)},{nameof(ObjectInfo.ThrustBaseDamage)},{nameof(ObjectInfo.SwingAccuracy_ArmorMod_BowAccuracy)},{nameof(ObjectInfo.ThrustAccuracy)},{nameof(ObjectInfo.Icon)},{nameof(ObjectInfo.InventorySlots)},{nameof(ObjectInfo.Field34)},{nameof(ObjectInfo.MaxAmount)},{nameof(ObjectInfo.Field37)},{nameof(ObjectInfo.Race)},{nameof(ObjectInfo.ShopType)},{nameof(ObjectInfo.Type)},{nameof(ObjectInfo.Attributes)},{nameof(ObjectInfo.Field40)},{nameof(ObjectInfo.Field42)},{nameof(ObjectInfo.Book1Potion8)},{nameof(ObjectInfo.CanEffect)},{nameof(ObjectInfo.Field48)},{nameof(ObjectInfo.Field4A)},{nameof(ObjectInfo.Field4C)},{nameof(ObjectInfo.Field4E)}\r\n");
+        const string objectInfoFlags =
+            $"{nameof(ObjectFlags.B0001)},{nameof(ObjectFlags.B0002)},{nameof(ObjectFlags.B0004)},{nameof(ObjectFlags.B0008)},{nameof(ObjectFlags.B0010)},{nameof(ObjectFlags.B0020)},{nameof(ObjectFlags.CombatUsable)},{nameof(ObjectFlags.B0080)},{nameof(ObjectFlags.B0100)},{nameof(ObjectFlags.B0200)},{nameof(ObjectFlags.B0400)},{nameof(ObjectFlags.Stackable)},{nameof(ObjectFlags.B1000)},{nameof(ObjectFlags.LimitedUses)},{nameof(ObjectFlags.B4000)},{nameof(ObjectFlags.B8000)}";
+        var sb = new StringBuilder(
+            $"{nameof(ObjectInfo.Number)},{nameof(ObjectInfo.Name)},{nameof(ObjectInfo.Field1E)},{objectInfoFlags},{nameof(ObjectInfo.WordWrap)},{nameof(ObjectInfo.ChapterNumber)},{nameof(ObjectInfo.Price)},{nameof(ObjectInfo.SwingBaseDamage)},{nameof(ObjectInfo.ThrustBaseDamage)},{nameof(ObjectInfo.SwingAccuracy_ArmorMod_BowAccuracy)},{nameof(ObjectInfo.ThrustAccuracy)},{nameof(ObjectInfo.Icon)},{nameof(ObjectInfo.InventorySlots)},{nameof(ObjectInfo.Field34)},{nameof(ObjectInfo.MaxAmount)},{nameof(ObjectInfo.Field37)},{nameof(ObjectInfo.Race)},{nameof(ObjectInfo.ShopType)},{nameof(ObjectInfo.Type)},{nameof(ObjectInfo.Attributes)},{nameof(ObjectInfo.Field40)},{nameof(ObjectInfo.Field42)},{nameof(ObjectInfo.Book1Potion8)},{nameof(ObjectInfo.CanEffect)},{nameof(ObjectInfo.Field48)},{nameof(ObjectInfo.Field4A)},{nameof(ObjectInfo.Field4C)},{nameof(ObjectInfo.Field4E)}\r\n");
         foreach (ObjectInfo info in resource) {
             sb.AppendLine(info.ToCsv());
         }
         return sb.ToString();
     }
+
     public static string ToCsv(this List<Spell> resource) {
         var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.Field6)},{nameof(Spell.Field8)},{nameof(Spell.FieldA)},{nameof(Spell.FieldC)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
         foreach (Spell info in resource) {

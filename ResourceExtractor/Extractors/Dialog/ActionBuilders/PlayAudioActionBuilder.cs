@@ -4,8 +4,8 @@ using ResourceExtractor.Resources.Dialog.Actions;
 
 internal class PlayAudioActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {
-        var audioId = resourceReader.ReadUInt16();
-        var unknown = resourceReader.ReadUInt16();
+        ushort audioId = resourceReader.ReadUInt16();
+        ushort unknown = resourceReader.ReadUInt16();
 
         _ = resourceReader.ReadUInt32(); // unused data
 

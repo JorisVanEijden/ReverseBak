@@ -2,8 +2,8 @@ namespace ResourceExtractor.Extractors;
 
 using GameData;
 
-using ResourceExtractor.Resources.Spells;
 using ResourceExtractor.Extensions;
+using ResourceExtractor.Resources.Spells;
 
 using System.Text;
 

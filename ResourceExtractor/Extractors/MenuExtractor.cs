@@ -1,17 +1,16 @@
 namespace ResourceExtractor.Extractors;
 
-using ResourceExtractor.Resources;
 using ResourceExtractor.Resources.Menu;
 
 using System.Text;
 
 public class MenuExtractor : ExtractorBase {
-    public static MenuData Extract(string filePath) {
+    public static UserInterface Extract(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
-        var menuData = new MenuData();
-        menuData.MenuType = (MenuType)resourceReader.ReadUInt16();
-        menuData.Modal = resourceReader.ReadUInt16() != 0;
+        var menuData = new UserInterface();
+        menuData.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
+        menuData.Modal = resourceReader.ReadUInt16() > 0;
         menuData.Unknown0 = resourceReader.ReadUInt16();
         menuData.XPosition = resourceReader.ReadUInt16();
         menuData.YPosition = resourceReader.ReadUInt16();
@@ -19,28 +18,28 @@ public class MenuExtractor : ExtractorBase {
         menuData.Height = resourceReader.ReadUInt16();
         _ = resourceReader.ReadUInt16(); // Placeholder for number of menu entries
         _ = resourceReader.ReadUInt16(); // Placeholder for pointer to menu entries
-        menuData.Unknown1 = resourceReader.ReadUInt16();
-        menuData.Unknown2 = resourceReader.ReadUInt16();
+        menuData.XOffset = resourceReader.ReadInt16();
+        menuData.YOffset = resourceReader.ReadInt16();
         menuData.Unknown3 = resourceReader.ReadUInt16();
         menuData.Unknown4 = resourceReader.ReadUInt32();
         ushort numberOfEntries = resourceReader.ReadUInt16();
-        var menuEntries = new MenuEntry[numberOfEntries];
+        var menuEntries = new UiElement[numberOfEntries];
         for (int i = 0; i < numberOfEntries; i++) {
-            menuEntries[i] = new MenuEntry {
-                Unknown0 = resourceReader.ReadUInt16(),
-                Unknown2 = resourceReader.ReadUInt16(),
-                Unknown4 = resourceReader.ReadBoolean(),
+            menuEntries[i] = new UiElement {
+                ElementType = (ElementType)resourceReader.ReadUInt16(),
+                ActionId = resourceReader.ReadInt16(),
+                Visible = resourceReader.ReadBoolean(),
                 Unknown5 = resourceReader.ReadUInt16(),
-                Unknown7 = resourceReader.ReadUInt16(),
-                Unknown9 = resourceReader.ReadUInt16(),
-                UnknownB = resourceReader.ReadUInt16(),
-                UnknownD = resourceReader.ReadUInt16(),
-                UnknownF = resourceReader.ReadUInt16(),
-                Unknown11 = resourceReader.ReadUInt16(),
-                Unknown13 = resourceReader.ReadUInt16(),
+                Unknown7 = resourceReader.ReadUInt16() > 0,
+                Unknown9 = resourceReader.ReadUInt16() > 0,
+                XPosition = resourceReader.ReadUInt16(),
+                YPosition = resourceReader.ReadUInt16(),
+                Width = resourceReader.ReadUInt16(),
+                Height = resourceReader.ReadUInt16(),
+                Unknown13 = resourceReader.ReadInt16(),
                 LabelOffset = resourceReader.ReadInt16(),
-                Unknown17 = resourceReader.ReadUInt16(),
-                Unknown19 = resourceReader.ReadUInt16(),
+                Unknown17 = resourceReader.ReadInt16(),
+                Icon = resourceReader.ReadUInt16(),
                 Unknown1B = resourceReader.ReadUInt16(),
                 Unknown1D = resourceReader.ReadUInt16(),
                 Unknown1F = resourceReader.ReadUInt16()
@@ -48,7 +47,7 @@ public class MenuExtractor : ExtractorBase {
         }
         ushort labelBufferSize = resourceReader.ReadUInt16();
         char[] stringBuffer = resourceReader.ReadChars(labelBufferSize);
-        foreach (MenuEntry entry in menuEntries) {
+        foreach (UiElement entry in menuEntries) {
             if (entry.LabelOffset >= 0) {
                 entry.Label = GetZeroTerminatedString(stringBuffer, entry.LabelOffset);
             }

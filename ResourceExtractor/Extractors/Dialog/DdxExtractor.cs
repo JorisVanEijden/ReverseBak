@@ -3,6 +3,7 @@ namespace ResourceExtractor.Extractors.Dialog;
 using GameData;
 
 using ResourceExtractor.Resources.Dialog;
+using ResourceExtractor.Resources.Dialog.Actions;
 
 using System.Text;
 
@@ -75,7 +76,7 @@ internal class DdxExtractor : ExtractorBase {
                 var actionType = (DialogActionType)resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] ActionType: {actionType}");
 
-                var dialogAction = DialogActionFactory.Build(actionType, resourceReader);
+                DialogActionBase dialogAction = DialogActionFactory.Build(actionType, resourceReader);
 
                 dialogEntry.DialogActions.Add(dialogAction);
             }

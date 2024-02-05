@@ -1,16 +1,10 @@
-﻿using ResourceExtractor.Extractors;
-
-using System.Text;
-
-namespace ResourceExtractor;
+﻿namespace ResourceExtractor;
 
 using ResourceExtractor.Extensions;
-using ResourceExtractor.Extractors.Dialog;
+using ResourceExtractor.Extractors;
 using ResourceExtractor.Resources;
-using ResourceExtractor.Resources.Label;
-using ResourceExtractor.Resources.Spells;
+using ResourceExtractor.Resources.Book;
 
-using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 
 internal static class Program {
@@ -27,14 +21,20 @@ internal static class Program {
         // ExtractResourceArchive(filePath);
         // ExtractFont(Path.Combine(filePath, "book.fnt"));
         // ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
-        // ExtractOvl(Path.Combine(filePath, "SX.OVL"));
-        // ExtractAllScx(filePath);
-        // ExtractAllBmx(filePath);
+        // OvlExtractor.Extract(Path.Combine(filePath, "VMCODE.OVL"));
+        ScreenExtractor.ExtractAllScx(filePath);
+        // BitmapExtractor.ExtractAllBmx(filePath);
+
         // var colors = ExtractPalette(Path.Combine(filePath, "PUZZLE.PAL"));
         // var screen = ExtractScreen(Path.Combine(filePath, "PUZZLE.SCX"));
         // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
-        // MenuExtractor.Extract(Path.Combine(filePath, "REQ_SAVE.DAT"));
+
+        // foreach (string reqFile in GetFiles(filePath, "REQ_*.DAT")) {
+        //     var menuData = MenuExtractor.Extract(Path.Combine(filePath, reqFile));
+        //     WriteToJsonFile(reqFile, ResourceType.DAT, menuData.ToJson());
+        // }
+
         // foreach (string adsFile in GetFiles(filePath, "*.ads")) {
         //     AnimationResource anim = AnimationExtractor.Extract(adsFile);
         //     WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
@@ -45,12 +45,12 @@ internal static class Program {
         //     WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         // }
         // DdxStatistics statistics = new();
-        var ddxExtractor = new DdxExtractor();
-        foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
-            var ddx = ddxExtractor.Extract(ddxFile);
-            WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
-            // statistics.Add(ddx);
-        }
+        // var ddxExtractor = new DdxExtractor();
+        // foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
+        //     var ddx = ddxExtractor.Extract(ddxFile);
+        //     WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
+        //     statistics.Add(ddx);
+        // }
         // Console.WriteLine(statistics.Dump());
 
         // var labelExtractor = new LabelExtractor();
@@ -72,10 +72,15 @@ internal static class Program {
         // var keywordExtractor = new KeywordExtractor();
         // var keywords = KeywordExtractor.Extract(Path.Combine(filePath, "keyword.dat"));
         // WriteToCsvFile("keywords", ResourceType.DAT, string.Join("\r\n", keywords));
-        
-        var mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
-        WriteToCsvFile("mnames", ResourceType.DAT, string.Join("\r\n", mNames));
-        
+
+        // var mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
+        // WriteToCsvFile("mnames", ResourceType.DAT, string.Join("\r\n", mNames));
+
+        var bokExtractor = new BokExtractor();
+        foreach (string bokFile in GetFiles(filePath, "*.BOK")) {
+            BookResource book = bokExtractor.Extract(bokFile);
+            WriteToJsonFile(bokFile, book.Type, book.ToJson());
+        }
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {

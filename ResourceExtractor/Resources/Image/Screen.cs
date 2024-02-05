@@ -6,8 +6,7 @@ public class Screen : IResource {
     }
 
     public string FilePath { get; }
-    public int Width { get; set; }
-    public int Height { get; set; }
+    public bool HiRes { get; set; }
 
     public byte[]? BitMapData { get; set; }
 

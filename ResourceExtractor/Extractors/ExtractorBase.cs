@@ -1,18 +1,16 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtractor.Compression;
-using ResourceExtractor.Resources;
 using ResourceExtractor.Resources.Image;
 
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Text;
 
 public abstract class ExtractorBase {
     internal const int FileNameLength = 13;
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
-    internal const bool Debug = false;//true;
+    internal const bool Debug = true;
     protected static string Indent = string.Empty;
 
     protected static string ReadTag(BinaryReader resourceReader) {
@@ -70,5 +68,4 @@ public abstract class ExtractorBase {
             bitmap.Save(imageFileName, ImageFormat.Png);
         }
     }
-
 }
