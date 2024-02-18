@@ -667,8 +667,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.Add(stream);
         result = (short)(_openStreams.Count - 1);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogEventLevel.Information)) {
+            _loggerService.Information("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
                 nameof(StdIO), dosPath, mode, result);
         }
         _openFiles.Add(result, dosPath);
@@ -696,8 +696,8 @@ public class StdIO : CSharpOverrideHelper {
             return FarRet();
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
+        if (_loggerService.IsEnabled(LogEventLevel.Information)) {
+            _loggerService.Information("{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
                 nameof(StdIO), dosPath, flags, mode, result, hostPath, fileStreamOptions);
         }
         _openFiles.Add(result, dosPath);

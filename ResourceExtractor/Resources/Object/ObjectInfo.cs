@@ -15,8 +15,8 @@ public class ObjectInfo : IResource {
     public int ThrustAccuracy { get; set; }
     public int Icon { get; set; }
     public int InventorySlots { get; set; }
-    public int Field34 { get; set; }
-    public int Field35 { get; set; }
+    public int SoundId { get; set; }
+    public int SoundRepeat { get; set; }
     public int MaxAmount { get; set; }
     public Race Race { get; set; }
     public int ShopType { get; set; }
@@ -36,7 +36,7 @@ public class ObjectInfo : IResource {
 
     public string ToCsv() {
         return
-            $"{Number},{Name},{Field1E},{ToBooleans(Flags)},{WordWrap},{ChapterNumber},{Price},{SwingBaseDamage},{ThrustBaseDamage},{SwingAccuracy_ArmorMod_BowAccuracy},{ThrustAccuracy},{Icon},{InventorySlots},{Field34},{MaxAmount},{Field37},{Race},{ShopType:X4},{ObjectType},\"{Attributes}\",{Field40},{Field42},{Book1Potion8},{CanEffect:X4},{Field48:X4},{Field4A},{Field4C},{Field4E}";
+            $"{Number},{Name},{Field1E},{ToBooleans(Flags)},{WordWrap},{ChapterNumber},{Price},{SwingBaseDamage},{ThrustBaseDamage},{SwingAccuracy_ArmorMod_BowAccuracy},{ThrustAccuracy},{Icon},{InventorySlots},{SoundId},{MaxAmount},{Field37},{Race},{ShopType:X4},{ObjectType},\"{Attributes}\",{Field40},{Field42},{Book1Potion8},{CanEffect:X4},{Field48:X4},{Field4A},{Field4C},{Field4E}";
     }
 
     private static string ToBooleans(ObjectFlags flags) {
@@ -55,15 +55,15 @@ public class ObjectInfo : IResource {
 [Flags]
 public enum ObjectFlags {
     B0001 = 0x0001,
-    B0002 = 0x0002,
+    NotEquipable = 0x0002,
     B0004 = 0x0004,
     B0008 = 0x0008,
     B0010 = 0x0010,
     B0020 = 0x0020,
-    CombatUsable = 0x0040,
+    OnlyUsableInCombat = 0x0040,
     B0080 = 0x0080,
-    B0100 = 0x0100,
-    B0200 = 0x0200,
+    NotUsableInCombat = 0x0100,
+    ArchersOnly = 0x0200,
     B0400 = 0x0400,
     Stackable = 0x0800,
     B1000 = 0x1000,

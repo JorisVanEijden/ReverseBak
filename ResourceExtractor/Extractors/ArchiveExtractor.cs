@@ -3,7 +3,7 @@ namespace ResourceExtractor.Extractors;
 using System.Text;
 
 public class ArchiveExtractor : ExtractorBase {
-    private static void ExtractResourceArchive(string filePath) {
+    public static void ExtractResourceArchive(string filePath) {
         const string resourceFileName = "KRONDOR.001";
 
         string resourceFilePath = Path.Combine(filePath, resourceFileName);
