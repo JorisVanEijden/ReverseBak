@@ -18,11 +18,11 @@ internal static class Program {
             ? args[0]
             : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
 
-        // ExtractResourceArchive(filePath);
+        // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         // ExtractFont(Path.Combine(filePath, "book.fnt"));
         // ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
         // OvlExtractor.Extract(Path.Combine(filePath, "VMCODE.OVL"));
-        ScreenExtractor.ExtractAllScx(filePath);
+        // ScreenExtractor.ExtractAllScx(filePath);
         // BitmapExtractor.ExtractAllBmx(filePath);
 
         // var colors = ExtractPalette(Path.Combine(filePath, "PUZZLE.PAL"));
@@ -30,10 +30,17 @@ internal static class Program {
         // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
 
-        // foreach (string reqFile in GetFiles(filePath, "REQ_*.DAT")) {
-        //     var menuData = MenuExtractor.Extract(Path.Combine(filePath, reqFile));
-        //     WriteToJsonFile(reqFile, ResourceType.DAT, menuData.ToJson());
-        // }
+        
+        var reqFiles = new List<string>();
+        reqFiles.AddRange(GetFiles(filePath, "REQ_*.DAT"));
+        reqFiles.Add("contents.dat");
+        reqFiles.Add("combat.dat");
+        reqFiles.Add("shoot.dat");
+        reqFiles.Add("spell.dat");
+        foreach (string reqFile in reqFiles) {
+            var menuData = MenuExtractor.Extract(Path.Combine(filePath, reqFile));
+            WriteToJsonFile(reqFile, ResourceType.REQ, menuData.ToJson());
+        }
 
         // foreach (string adsFile in GetFiles(filePath, "*.ads")) {
         //     AnimationResource anim = AnimationExtractor.Extract(adsFile);
@@ -76,11 +83,11 @@ internal static class Program {
         // var mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
         // WriteToCsvFile("mnames", ResourceType.DAT, string.Join("\r\n", mNames));
 
-        var bokExtractor = new BokExtractor();
-        foreach (string bokFile in GetFiles(filePath, "*.BOK")) {
-            BookResource book = bokExtractor.Extract(bokFile);
-            WriteToJsonFile(bokFile, book.Type, book.ToJson());
-        }
+        // var bokExtractor = new BokExtractor();
+        // foreach (string bokFile in GetFiles(filePath, "*.BOK")) {
+        //     BookResource book = bokExtractor.Extract(bokFile);
+        //     WriteToJsonFile(bokFile, book.Type, book.ToJson());
+        // }
     }
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {

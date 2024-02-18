@@ -11,25 +11,25 @@ public class MenuExtractor : ExtractorBase {
         var menuData = new UserInterface();
         menuData.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
         menuData.Modal = resourceReader.ReadUInt16() > 0;
-        menuData.Unknown0 = resourceReader.ReadUInt16();
+        menuData.Color = resourceReader.ReadUInt16();
         menuData.XPosition = resourceReader.ReadUInt16();
         menuData.YPosition = resourceReader.ReadUInt16();
         menuData.Width = resourceReader.ReadUInt16();
         menuData.Height = resourceReader.ReadUInt16();
         _ = resourceReader.ReadUInt16(); // Placeholder for number of menu entries
         _ = resourceReader.ReadUInt16(); // Placeholder for pointer to menu entries
+        short titleOffset = resourceReader.ReadInt16();
         menuData.XOffset = resourceReader.ReadInt16();
         menuData.YOffset = resourceReader.ReadInt16();
-        menuData.Unknown3 = resourceReader.ReadUInt16();
-        menuData.Unknown4 = resourceReader.ReadUInt32();
-        ushort numberOfEntries = resourceReader.ReadUInt16();
-        var menuEntries = new UiElement[numberOfEntries];
-        for (int i = 0; i < numberOfEntries; i++) {
+        _ = resourceReader.ReadUInt32(); // Placeholder for pointer to bitmap data
+        ushort numberOfElements = resourceReader.ReadUInt16();
+        var menuEntries = new UiElement[numberOfElements];
+        for (int i = 0; i < numberOfElements; i++) {
             menuEntries[i] = new UiElement {
                 ElementType = (ElementType)resourceReader.ReadUInt16(),
                 ActionId = resourceReader.ReadInt16(),
                 Visible = resourceReader.ReadBoolean(),
-                Unknown5 = resourceReader.ReadUInt16(),
+                Colors = resourceReader.ReadUInt16(),
                 Unknown7 = resourceReader.ReadUInt16() > 0,
                 Unknown9 = resourceReader.ReadUInt16() > 0,
                 XPosition = resourceReader.ReadUInt16(),
@@ -38,11 +38,11 @@ public class MenuExtractor : ExtractorBase {
                 Height = resourceReader.ReadUInt16(),
                 Unknown13 = resourceReader.ReadInt16(),
                 LabelOffset = resourceReader.ReadInt16(),
-                Unknown17 = resourceReader.ReadInt16(),
+                Teleport = resourceReader.ReadInt16(),
                 Icon = resourceReader.ReadUInt16(),
-                Unknown1B = resourceReader.ReadUInt16(),
+                Cursor = resourceReader.ReadUInt16(),
                 Unknown1D = resourceReader.ReadUInt16(),
-                Unknown1F = resourceReader.ReadUInt16()
+                Sound = resourceReader.ReadUInt16()
             };
         }
         ushort labelBufferSize = resourceReader.ReadUInt16();
@@ -52,6 +52,7 @@ public class MenuExtractor : ExtractorBase {
                 entry.Label = GetZeroTerminatedString(stringBuffer, entry.LabelOffset);
             }
         }
+        menuData.Title = titleOffset >= 0 ? GetZeroTerminatedString(stringBuffer, titleOffset) : null;
         menuData.MenuEntries = menuEntries;
         return menuData;
     }

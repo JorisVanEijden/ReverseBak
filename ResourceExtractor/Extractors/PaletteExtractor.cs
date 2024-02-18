@@ -46,6 +46,6 @@ public class PaletteExtractor : ExtractorBase {
             }
             imageName = imageName[..^1];
         }
-        return null;
+        return Extract( Path.Combine(filePath, "options.pal")); // use options palette as default cause it goes good with bicons
     }
 }
