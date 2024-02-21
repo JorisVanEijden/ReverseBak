@@ -2,6 +2,7 @@ meta:
   id: invspell
   file-extension: dat
   endian: le
+doc: This contains the "grouping" of the spells.
 seq:
   - id: spell_groups
     type: spell_group

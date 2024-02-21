@@ -2,6 +2,7 @@ meta:
   id: fmap_twn
   file-extension: dat
   endian: le
+doc: Used by the map screen, this appears to be a list of towns names and map coordinates.
 seq:
   - id: unknown1
     type: u2

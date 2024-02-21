@@ -2,6 +2,7 @@ meta:
   id: in_
   file-extension: dat
   endian: le
+doc: this appear to be mostly for the editor, containing labels. It's also used by the game in in_save.dat. 
 seq:
   - id: stringbuffer_len
     type: u2

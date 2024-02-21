@@ -2,6 +2,7 @@ meta:
   id: req
   file-extension: dat
   endian: le
+doc: These are files for the UI of the game. They are used to define the UI elements and their properties.
 seq:
   - id: ui_type
     type: u2

@@ -2,6 +2,7 @@ meta:
   id: gds_
   file-extension: dat
   endian: le
+doc: Could be something to do with encounters.
 seq:
   - id: size_in_bytes
     type: s2

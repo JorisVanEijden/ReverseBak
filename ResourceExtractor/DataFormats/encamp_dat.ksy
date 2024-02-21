@@ -2,6 +2,7 @@ meta:
   id: encamp
   file-extension: dat
   endian: le
+doc: Used by the encamp screen, this appears to be mainly used to plot the hours on the dial where you choose how long to rest.
 seq:
   - id: unknown1
     type: u2

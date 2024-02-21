@@ -2,6 +2,7 @@ meta:
   id: spell_data
   file-extension: dat
   endian: le
+doc: This contains the actual spell data.
 seq:
   - id: num_spells
     type: u2

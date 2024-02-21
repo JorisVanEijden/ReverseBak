@@ -2,6 +2,7 @@ meta:
   id: keywords
   file-extension: dat
   endian: le
+doc: a simple list of keywords, indexed by a number
 seq:
   - id: size
     type: u2

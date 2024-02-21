@@ -2,6 +2,7 @@ meta:
   id: fmap_xy
   file-extension: dat
   endian: le
+doc: Used by the map screen, this appears to be a list of zones and map coordinates.
 seq:
   - id: zones
     type: zone

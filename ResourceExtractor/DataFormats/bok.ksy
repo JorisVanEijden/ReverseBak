@@ -3,7 +3,7 @@ meta:
   title: Book data file
   file-extension: bok
   endian: le
-doc: BOK files
+doc: These are for the "Book cutscenes" that show up now and then.
 seq:
   - id: size
     type: u4
