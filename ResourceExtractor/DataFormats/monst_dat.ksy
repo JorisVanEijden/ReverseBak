@@ -2,28 +2,33 @@ meta:
   id: monst
   file-extension: dat
   endian: le
-doc: Contains monster data for combat encounters
+doc: Contains monster statistics for combat encounters. The number in the filename corresponds to the monster's ID.
+  | each field is filled with a random number between the given min and max when a combat is loaded
 seq:
-  - id: number_0
+  - id: health
     type: min_max
-  - id: number_1
+  - id: stamina
     type: min_max
-  - id: number_2
+  - id: speed
     type: min_max
-  - id: number_3
+  - id: strength
     type: min_max
-  - id: number_5
+  - id: accuracy_crossbow
     type: min_max
-  - id: number_6
+  - id: accuracy_melee
     type: min_max
-  - id: number_7
+  - id: accuracy_casting
     type: min_max
-  - id: number_4
+  - id: defense
     type: min_max
-  - id: negative_one
+  - id: combat_data_field_f
     type: min_max
-    repeat: expr
-    repeat-expr: 4
+  - id: combat_data_field_10
+    type: min_max
+  - id: combat_data_field_11
+    type: min_max
+  - id: combat_data_field_e
+    type: min_max
 types:
   min_max:
     seq:
