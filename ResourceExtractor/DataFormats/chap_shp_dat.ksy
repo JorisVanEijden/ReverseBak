@@ -1,30 +1,20 @@
 meta:
   id: chap_shp
   file-extension: dat
+  imports:
+    - creature_name
   endian: le
 doc: Contains the starting characters for each chapter
 seq:
   - id: party_members
-    type: chapter
+    type: characters
     repeat: eos
 types:
-  chapter:
+  characters:
     seq:
       - id: party_member_1
-        type: s2
-        enum: characters
+        type: creature_name
       - id: party_member_2
-        type: s2
-        enum: characters
+        type: creature_name
       - id: party_member_3
-        type: s2
-        enum: characters
-    enums:
-      characters:
-        15: gorath
-        16: owyn
-        17: locklear
-        45: pug
-        47: patrus
-        51: james
-        
+        type: creature_name
