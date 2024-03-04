@@ -2,6 +2,8 @@
 
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
+using ResourceExtractor.Extractors.Container;
+using ResourceExtractor.Extractors.Dialog;
 using ResourceExtractor.Resources;
 using ResourceExtractor.Resources.Book;
 
@@ -31,16 +33,16 @@ internal static class Program {
         // SaveAsBitmap(image, "PUZZLE.png", colors);
 
         
-        var reqFiles = new List<string>();
-        reqFiles.AddRange(GetFiles(filePath, "REQ_*.DAT"));
-        reqFiles.Add("contents.dat");
-        reqFiles.Add("combat.dat");
-        reqFiles.Add("shoot.dat");
-        reqFiles.Add("spell.dat");
-        foreach (string reqFile in reqFiles) {
-            var menuData = MenuExtractor.Extract(Path.Combine(filePath, reqFile));
-            WriteToJsonFile(reqFile, ResourceType.REQ, menuData.ToJson());
-        }
+        // var reqFiles = new List<string>();
+        // reqFiles.AddRange(GetFiles(filePath, "REQ_*.DAT"));
+        // reqFiles.Add("contents.dat");
+        // reqFiles.Add("combat.dat");
+        // reqFiles.Add("shoot.dat");
+        // reqFiles.Add("spell.dat");
+        // foreach (string reqFile in reqFiles) {
+        //     var menuData = MenuExtractor.Extract(Path.Combine(filePath, reqFile));
+        //     WriteToJsonFile(reqFile, ResourceType.REQ, menuData.ToJson());
+        // }
 
         // foreach (string adsFile in GetFiles(filePath, "*.ads")) {
         //     AnimationResource anim = AnimationExtractor.Extract(adsFile);
@@ -51,14 +53,14 @@ internal static class Program {
         //     var ttm = TtmExtractor.Extract(ttmFile);
         //     WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         // }
-        // DdxStatistics statistics = new();
-        // var ddxExtractor = new DdxExtractor();
-        // foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
-        //     var ddx = ddxExtractor.Extract(ddxFile);
-        //     WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
-        //     statistics.Add(ddx);
-        // }
-        // Console.WriteLine(statistics.Dump());
+        DdxStatistics statistics = new();
+        var ddxExtractor = new DdxExtractor();
+        foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
+            var ddx = ddxExtractor.Extract(ddxFile);
+            WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
+            statistics.Add(ddx);
+        }
+        Console.WriteLine(statistics.Dump());
 
         // var labelExtractor = new LabelExtractor();
         // foreach (string labelFile in GetFiles(filePath, "lbl_*.dat")) {
@@ -88,7 +90,50 @@ internal static class Program {
         //     BookResource book = bokExtractor.Extract(bokFile);
         //     WriteToJsonFile(bokFile, book.Type, book.ToJson());
         // }
+
+        // foreach (string mapFile in GetFiles(filePath, "Z??MAP.DAT")) {
+        //     var s = FileToBitStream(Path.Combine(filePath, mapFile));
+        //     File.AppendAllText("tempdebug.txt", s);
+        // }
+        
+        var objFixedExtractor = new ObjFixedExtractor();
+        string path = "OBJFIXED.DAT";
+        List<Container> fixedObjects = objFixedExtractor.Extract(Path.Combine(filePath, path));
+        WriteToJsonFile(path, ResourceType.DAT, fixedObjects.ToJson());
+
     }
+    
+    public static string FileToBitStream(string filePath)
+    {
+        // Read all bytes from the file
+        byte[] fileBytes = File.ReadAllBytes(filePath);
+        Array.Reverse(fileBytes);
+        // Use a StringBuilder to build the bitstream
+        var stringBuilder = new StringBuilder();
+
+        int pos = 0;
+        
+        // Iterate over each byte
+        foreach (byte b in fileBytes)
+        {
+            // Convert the byte to binary and pad it with zeros to ensure it's always 8 bits
+            stringBuilder.Append(Convert.ToString(b, 2).PadLeft(8, '0'));
+            if (++pos % 8 == 0) {
+                stringBuilder.AppendLine();
+            }
+        }
+
+        stringBuilder.AppendLine();
+        
+        var binary = stringBuilder.ToString();
+
+        var s = binary.Replace("0", "  ")
+            .Replace("1", "##");
+
+        // Return the bitstream as a string
+        return s;
+    }
+    
 
     private static IEnumerable<string> GetFiles(string filePath, string searchPattern) {
         return Directory.GetFileSystemEntries(filePath, searchPattern, new EnumerationOptions {

@@ -10,7 +10,7 @@ public class MenuExtractor : ExtractorBase {
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         var menuData = new UserInterface();
         menuData.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
-        menuData.Modal = resourceReader.ReadUInt16() > 0;
+        menuData.IsModal = resourceReader.ReadUInt16() > 0;
         menuData.Color = resourceReader.ReadUInt16();
         menuData.XPosition = resourceReader.ReadUInt16();
         menuData.YPosition = resourceReader.ReadUInt16();

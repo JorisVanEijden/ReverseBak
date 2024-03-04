@@ -5,6 +5,6 @@ public enum SpellCalculation {
     FixedAmount,
     CostTimesDamage,
     CostTimesDuration,
-    Special1,
+    CombatGridElement,
     Special2
 }

@@ -1,5 +1,6 @@
 namespace ResourceExtractor.Extensions;
 
+using ResourceExtractor.Extractors.Container;
 using ResourceExtractor.Resources.Animation;
 using ResourceExtractor.Resources.Book;
 using ResourceExtractor.Resources.Dialog;
@@ -49,6 +50,10 @@ public static class ResourceExtensions {
     }
 
     public static string ToJson(this BookResource resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+    
+    public static string ToJson(this List<Container> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 

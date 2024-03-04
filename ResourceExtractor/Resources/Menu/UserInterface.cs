@@ -4,7 +4,7 @@ public class UserInterface : IResource {
     public int XPosition { get; set; }
     public int YPosition { get; set; }
     public UserInterfaceType UserInterfaceType { get; set; }
-    public bool Modal { get; set; }
+    public bool IsModal { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
     public int XOffset { get; set; }

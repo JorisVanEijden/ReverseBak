@@ -59,7 +59,7 @@ internal class DdxExtractor : ExtractorBase {
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown2: {unknown2:X4}");
                 ushort unknown3 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown3: {unknown3:X4}");
-                ushort unknown4 = resourceReader.ReadUInt16();
+                short unknown4 = resourceReader.ReadInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown4: {unknown4:X4}");
                 int variantOffset = resourceReader.ReadInt32();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Offset: {variantOffset:X8}");
