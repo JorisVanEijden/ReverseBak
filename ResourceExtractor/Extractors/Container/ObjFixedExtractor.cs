@@ -48,7 +48,7 @@ public class ObjFixedExtractor : ExtractorBase {
 
                 if (dataTypes.HasFlag(ContainerDataType.Lock)) {
                     container.LockData = new LockData {
-                        Field_0 = reader.ReadByte(),
+                        Flags = (LockFlag)reader.ReadByte(),
                         Difficulty = reader.ReadByte(),
                         PuzzleChest = reader.ReadByte(),
                         TrapDamage = reader.ReadByte()
@@ -104,3 +104,4 @@ public class ObjFixedExtractor : ExtractorBase {
         return containerList;
     }
 }
+

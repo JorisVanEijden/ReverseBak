@@ -1,6 +1,5 @@
 namespace ResourceExtractor.Resources.Dialog.Actions;
 
-internal class PlayAudioAction : DialogActionBase {
+internal class PlaySoundAction : DialogActionBase {
     public int AudioId { get; set; }
-    public bool ShouldPlay { get; set; }
 }

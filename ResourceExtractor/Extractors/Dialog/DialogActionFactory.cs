@@ -24,27 +24,62 @@ internal static class DialogActionFactory {
         }, {
             DialogActionType.GetPartyAttribute, new GetPartyAttributeActionBuilder()
         }, {
+            DialogActionType.PlaySound, new PlaySoundActionBuilder()
+        }, {
             DialogActionType.PlayAudio, new PlayAudioActionBuilder()
         }, {
             DialogActionType.AdvanceTime, new AdvanceTimeActionBuilder()
+        }, {
+            DialogActionType.UseItem, new UseItemActionBuilder()
+        }, {
+            DialogActionType.ChangeFace, new ChangeFaceActionBuilder()
+        }, {
+            DialogActionType.ChangeParty, new ChangePartyActionBuilder()
+        }, {
+            DialogActionType.Heal, new HealActionBuilder()
+        }, {
+            DialogActionType.SetTemporaryFlag, new SetTemporaryFlagActionBuilder()
+        }, {
+            DialogActionType.SetTimer, new SetTimerActionBuilder()
+        }, {
+            DialogActionType.LearnSpell, new LearnSpellActionBuilder()
+        }, {
+            DialogActionType.Teleport, new TeleportActionBuilder()
         }
         // ... and so on for all 23 action types
     };
 
-    public static DialogActionBase Build(DialogActionType actionType, BinaryReader resourceReader) {
+    public static DialogActionBase Build(int actionType, BinaryReader resourceReader) {
         DialogActionBase result;
-        if (Builders.TryGetValue(actionType, out IDialogActionBuilder? builder)) {
+        if (Builders.TryGetValue((DialogActionType)actionType, out IDialogActionBuilder? builder)) {
             result = builder.Build(resourceReader);
         } else {
-            // throw new ArgumentException($"Invalid action type: {actionType}");
-            result = new UnknownDialogAction {
-                Field0 = actionType,
-                Field2 = resourceReader.ReadUInt16(),
-                Field4 = resourceReader.ReadUInt16(),
-                Field6 = resourceReader.ReadUInt16(),
-                Field8 = resourceReader.ReadUInt16()
-            };
+            if (actionType == 0) {
+                result = new NullDialogAction();
+                resourceReader.ReadBytes(8);
+            } else {
+                result = new UnknownDialogAction {
+                    Field0 = actionType,
+                    Field2 = resourceReader.ReadUInt16(),
+                    Field4 = resourceReader.ReadUInt16(),
+                    Field6 = resourceReader.ReadUInt16(),
+                    Field8 = resourceReader.ReadUInt16()
+                };
+            }
         }
         return result;
     }
+}
+
+[Flags]
+internal enum TimerFlag {
+    Add = 0x40,
+    Reset = 0x80
+}
+
+internal enum TimerType {
+    Light = 1,
+    Spell = 2,
+    SetFlag = 3,
+    ClearFlag = 4
 }

@@ -7,12 +7,14 @@ internal class GiveItemActionBuilder : IDialogActionBuilder {
         byte objectId = resourceReader.ReadByte();
         byte actor = resourceReader.ReadByte();
         ushort amount = resourceReader.ReadUInt16();
-        _ = resourceReader.ReadUInt32(); // unused data
+        ushort cost = resourceReader.ReadUInt16();
+        _ = resourceReader.ReadUInt16(); // unused data
 
         return new GiveItemAction {
             ObjectId = objectId,
             Actor = actor,
-            Amount = amount
+            Amount = amount,
+            Cost = cost
         };
     }
 }

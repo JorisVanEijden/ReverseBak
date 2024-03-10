@@ -73,7 +73,7 @@ internal class DdxExtractor : ExtractorBase {
             }
             Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dialogActionCount} data items");
             for (int i = 0; i < dialogActionCount; i++) {
-                var actionType = (DialogActionType)resourceReader.ReadUInt16();
+                int actionType = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] ActionType: {actionType}");
 
                 DialogActionBase dialogAction = DialogActionFactory.Build(actionType, resourceReader);

@@ -2,16 +2,13 @@ namespace ResourceExtractor.Extractors.Dialog.ActionBuilders;
 
 using ResourceExtractor.Resources.Dialog.Actions;
 
-internal class PlayAudioActionBuilder : IDialogActionBuilder {
+internal class PlaySoundActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {
         ushort audioId = resourceReader.ReadUInt16();
-        ushort shouldPlay = resourceReader.ReadUInt16();
+        _ = resourceReader.ReadBytes(6); // unused data
 
-        _ = resourceReader.ReadUInt32(); // unused data
-
-        return new PlayAudioAction {
+        return new PlaySoundAction {
             AudioId = audioId,
-            ShouldPlay = shouldPlay > 0
         };
     }
 }

@@ -5,6 +5,7 @@ using ResourceExtractor.Resources.Animation;
 using ResourceExtractor.Resources.Book;
 using ResourceExtractor.Resources.Dialog;
 using ResourceExtractor.Resources.Label;
+using ResourceExtractor.Resources.Location;
 using ResourceExtractor.Resources.Menu;
 using ResourceExtractor.Resources.Object;
 using ResourceExtractor.Resources.Spells;
@@ -54,6 +55,10 @@ public static class ResourceExtensions {
     }
     
     public static string ToJson(this List<Container> resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+    
+    public static string ToJson(this List<TeleportDestination> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
