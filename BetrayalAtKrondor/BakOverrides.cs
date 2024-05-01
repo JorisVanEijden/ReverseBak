@@ -21,7 +21,6 @@ using System.Text;
 public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
     private readonly IGlobalSettings _globalSettings;
-    private readonly StdIO _stdIo;
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -30,7 +29,7 @@ public class BakOverrides : CSharpOverrideHelper {
         _gameEngine.DataPath = configuration.Exe is null
             ? Directory.GetCurrentDirectory()
             : Path.GetDirectoryName(configuration.Exe);
-        _stdIo = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
+        new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
         DefineFunctions();
         DefineBreakpoints();
     }
@@ -45,7 +44,8 @@ public class BakOverrides : CSharpOverrideHelper {
         DoOnTopOfInstruction("3887:0025", Sub_4B54C);
         DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
         DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
-        // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
+        DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
+        DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
         DoOnTopOfInstruction("3991:0020", Logsub_ovr185_0);
         DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
         DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
@@ -75,8 +75,13 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void LogGetGlobalValue() {
-        _loggerService.Information("GetGlobalValue called: key: {Arg0}",
+        _loggerService.Information("GetGlobalValue(key: {Arg0})",
             Stack.Peek16(4));
+    }
+    
+    private void LogSetGlobalValue() {
+        _loggerService.Information("SetGlobalValue(key: {Arg0}, value: {Arg2:X4})",
+            Stack.Peek16(4), Stack.Peek16(6));
     }
 
     private void LogGetValueFromActor() {
@@ -236,14 +241,14 @@ public class BakOverrides : CSharpOverrideHelper {
 internal class DialogEntry : MemoryBasedDataStructure {
     public DialogEntry(IByteReaderWriter byteReaderWriter, uint baseAddress) : base(byteReaderWriter, baseAddress) {
         uint address = baseAddress + 9;
-        DialogVariantDataArray = new DialogVariantData[VariantCount];
-        for (uint i = 0; i < VariantCount; i++) {
-            DialogVariantDataArray[i] = new DialogVariantData(byteReaderWriter, address);
+        DialogBranchDataArray = new DialogBranchData[BranchCount];
+        for (uint i = 0; i < BranchCount; i++) {
+            DialogBranchDataArray[i] = new DialogBranchData(byteReaderWriter, address);
             address += 10;
         }
-        DialogDataItemArray = new DialogDataItem[DataItemCount];
-        for (uint i = 0; i < DataItemCount; i++) {
-            DialogDataItemArray[i] = new DialogDataItem(byteReaderWriter, address);
+        DialogActionArray = new DialogAction[ActionCount];
+        for (uint i = 0; i < ActionCount; i++) {
+            DialogActionArray[i] = new DialogAction(byteReaderWriter, address);
             address += 10;
         }
     }
@@ -251,34 +256,31 @@ internal class DialogEntry : MemoryBasedDataStructure {
     public byte Field_0 { get => UInt8[0x00]; set => UInt8[0x00] = value; }
     public ushort Field_1 { get => UInt16[0x01]; set => UInt16[0x01] = value; }
     public ushort Field_3 { get => UInt16[0x03]; set => UInt16[0x03] = value; }
-    public byte VariantCount { get => UInt8[0x05]; set => UInt8[0x05] = value; }
-    public byte DataItemCount { get => UInt8[0x06]; set => UInt8[0x06] = value; }
+    public byte BranchCount { get => UInt8[0x05]; set => UInt8[0x05] = value; }
+    public byte ActionCount { get => UInt8[0x06]; set => UInt8[0x06] = value; }
     public ushort StringLength { get => UInt16[0x07]; set => UInt16[0x07] = value; }
-    public DialogVariantData[] DialogVariantDataArray { get; set; }
-    public DialogDataItem[] DialogDataItemArray { get; set; }
+    public DialogBranchData[] DialogBranchDataArray { get; set; }
+    public DialogAction[] DialogActionArray { get; set; }
 
     public string Text {
-        get => GetZeroTerminatedString((uint)(9 + 10 * VariantCount + 10 * DataItemCount), StringLength);
-        set => SetZeroTerminatedString((uint)(9 + 10 * VariantCount + 10 * DataItemCount), value, value.Length);
+        get => GetZeroTerminatedString((uint)(9 + 10 * BranchCount + 10 * ActionCount), StringLength);
+        set => SetZeroTerminatedString((uint)(9 + 10 * BranchCount + 10 * ActionCount), value, value.Length);
     }
 
     public override string ToString() {
         StringBuilder sb = new();
-        sb.AppendLine($"Field_0: {Field_0}, Field_1: {Field_1}, Field_3: {Field_3}, VariantCount: {VariantCount}, DataItemCount: {DataItemCount}, StringLength: {StringLength}, Text: {Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(Text, true)}\n");
-        foreach (DialogVariantData variant in DialogVariantDataArray) {
-            sb.AppendLine(variant.ToString());
+        sb.AppendLine($"Field_0: {Field_0}, Field_1: {Field_1}, Field_3: {Field_3}, BranchCount: {BranchCount}, ActionCount: {ActionCount}, StringLength: {StringLength}, Text: {Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(Text, true)}\n");
+        foreach (DialogBranchData branchData in DialogBranchDataArray) {
+            sb.AppendLine(branchData.ToString());
         }
-        foreach (DialogDataItem data in DialogDataItemArray) {
+        foreach (DialogAction data in DialogActionArray) {
             sb.AppendLine(data.ToString());
         }
         return sb.ToString();
     }
 }
 
-internal class DialogDataItem : MemoryBasedDataStructure {
-    public DialogDataItem(IByteReaderWriter byteReaderWriter, uint baseAddress) : base(byteReaderWriter, baseAddress) {
-    }
-
+internal class DialogAction(IByteReaderWriter byteReaderWriter, uint baseAddress) : MemoryBasedDataStructure(byteReaderWriter, baseAddress) {
     public ushort Field_0 { get => UInt16[0x00]; set => UInt16[0x00] = value; }
     public ushort Field_2 { get => UInt16[0x02]; set => UInt16[0x02] = value; }
     public ushort Field_4 { get => UInt16[0x04]; set => UInt16[0x04] = value; }
@@ -290,10 +292,7 @@ internal class DialogDataItem : MemoryBasedDataStructure {
     }
 }
 
-internal class DialogVariantData : MemoryBasedDataStructure {
-    public DialogVariantData(IByteReaderWriter byteReaderWriter, uint baseAddress) : base(byteReaderWriter, baseAddress) {
-    }
-
+internal class DialogBranchData(IByteReaderWriter byteReaderWriter, uint baseAddress) : MemoryBasedDataStructure(byteReaderWriter, baseAddress) {
     public ushort Unknown2 { get => UInt16[0x00]; set => UInt16[0x00] = value; }
     public ushort Unknown3 { get => UInt16[0x02]; set => UInt16[0x02] = value; }
     public ushort Unknown4 { get => UInt16[0x04]; set => UInt16[0x04] = value; }
