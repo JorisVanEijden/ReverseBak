@@ -8,6 +8,7 @@ public enum DialogActionType {
     SetGlobalValue = 4,
     ChangeFace = 5,
     ResizeDialog = 6,
+    SubAction = 7,
     ApplyCondition = 8,
     ChangeAttribute = 9,
     GetPartyAttribute = 10,
