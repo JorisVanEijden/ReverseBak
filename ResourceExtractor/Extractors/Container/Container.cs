@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors.Container;
 
-using ResourceExtractor.Resources;
+using GameData.Resources;
 
 public class Container : IResource {
     public int Zone { get; set; }

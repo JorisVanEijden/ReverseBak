@@ -1,9 +1,9 @@
 namespace ResourceExtractor.Extractors.Dialog;
 
 using GameData;
+using GameData.Resources.Dialog.Actions;
 
 using ResourceExtractor.Extractors.Dialog.ActionBuilders;
-using ResourceExtractor.Resources.Dialog.Actions;
 
 internal static class DialogActionFactory {
     private static readonly Dictionary<DialogActionType, IDialogActionBuilder> Builders = new() {
@@ -45,6 +45,8 @@ internal static class DialogActionFactory {
             DialogActionType.LearnSpell, new LearnSpellActionBuilder()
         }, {
             DialogActionType.Teleport, new TeleportActionBuilder()
+        }, {
+            DialogActionType.SubAction, new SubActionBuilder()
         }
         // ... and so on for all 23 action types
     };
@@ -69,17 +71,4 @@ internal static class DialogActionFactory {
         }
         return result;
     }
-}
-
-[Flags]
-internal enum TimerFlag {
-    Add = 0x40,
-    Reset = 0x80
-}
-
-internal enum TimerType {
-    Light = 1,
-    Spell = 2,
-    SetFlag = 3,
-    ClearFlag = 4
 }

@@ -1,15 +1,17 @@
 namespace ResourceExtractor.Extensions;
 
-using ResourceExtractor.Extractors.Container;
-using ResourceExtractor.Resources.Animation;
-using ResourceExtractor.Resources.Book;
-using ResourceExtractor.Resources.Dialog;
-using ResourceExtractor.Resources.Label;
-using ResourceExtractor.Resources.Location;
-using ResourceExtractor.Resources.Menu;
-using ResourceExtractor.Resources.Object;
-using ResourceExtractor.Resources.Spells;
+using GameData.Resources.Animation;
+using GameData.Resources.Book;
+using GameData.Resources.Dialog;
+using GameData.Resources.Label;
+using GameData.Resources.Location;
+using GameData.Resources.Menu;
+using GameData.Resources.Object;
+using GameData.Resources.Spells;
 
+using ResourceExtractor.Extractors.Container;
+
+using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -49,6 +51,10 @@ public static class ResourceExtensions {
     public static string ToJson(this UserInterface resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
+    
+    public static string ToJson(this Color[] resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
 
     public static string ToJson(this BookResource resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
@@ -77,6 +83,14 @@ public static class ResourceExtensions {
         var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.Field6)},{nameof(Spell.Field8)},{nameof(Spell.FieldA)},{nameof(Spell.FieldC)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
         foreach (Spell info in resource) {
             sb.AppendLine(info.ToCsv());
+        }
+        return sb.ToString();
+    }
+    public static string ToCsv(this Color[] resource) {
+        var sb = new StringBuilder($"index,hex,color\r\n");
+        for (var index = 0; index < resource.Length; index++) {
+            Color color = resource[index];
+            sb.AppendLine($"{index},{index:X2},{color.R:X2}{color.G:X2}{color.B:X2}");
         }
         return sb.ToString();
     }

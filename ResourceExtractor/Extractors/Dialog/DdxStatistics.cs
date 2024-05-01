@@ -1,7 +1,7 @@
 namespace ResourceExtractor.Extractors.Dialog;
 
-using ResourceExtractor.Resources.Dialog;
-using ResourceExtractor.Resources.Dialog.Actions;
+using GameData.Resources.Dialog;
+using GameData.Resources.Dialog.Actions;
 
 using System.Text;
 
@@ -10,7 +10,7 @@ internal class DdxStatistics {
 
     public void Add(Dialog ddx) {
         foreach (DialogEntry entry in ddx.Entries.Values) {
-            IEnumerable<SetTextVariableAction> actions = entry.DialogActions.OfType<SetTextVariableAction>();
+            IEnumerable<SetTextVariableAction> actions = entry.Actions.OfType<SetTextVariableAction>();
             foreach (SetTextVariableAction action in actions) {
                 _items.Add(action);
             }

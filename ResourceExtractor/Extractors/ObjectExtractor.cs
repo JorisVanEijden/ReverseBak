@@ -1,8 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
 using GameData;
-
-using ResourceExtractor.Resources.Object;
+using GameData.Resources.Object;
 
 using System.Text;
 

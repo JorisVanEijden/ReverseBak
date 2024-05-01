@@ -1,7 +1,8 @@
 namespace ResourceExtractor.Extractors;
 
+using GameData.Resources.Label;
+
 using ResourceExtractor.Extensions;
-using ResourceExtractor.Resources.Label;
 
 using System.Text;
 

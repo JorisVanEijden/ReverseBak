@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors;
 
-using ResourceExtractor.Resources.Book;
+using GameData.Resources.Book;
 
 using System.Text;
 

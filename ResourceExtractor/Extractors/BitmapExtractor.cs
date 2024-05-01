@@ -1,7 +1,8 @@
 namespace ResourceExtractor.Extractors;
 
+using GameData.Resources.Image;
+
 using ResourceExtractor.Compression;
-using ResourceExtractor.Resources.Image;
 
 using System.Drawing;
 using System.Text;

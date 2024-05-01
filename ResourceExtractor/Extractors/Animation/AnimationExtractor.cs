@@ -1,7 +1,8 @@
-namespace ResourceExtractor.Extractors;
+namespace ResourceExtractor.Extractors.Animation;
+
+using GameData.Resources.Animation;
 
 using ResourceExtractor.Extensions;
-using ResourceExtractor.Resources.Animation;
 
 using System.Text;
 

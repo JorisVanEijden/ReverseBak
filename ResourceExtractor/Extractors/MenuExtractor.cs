@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors;
 
-using ResourceExtractor.Resources.Menu;
+using GameData.Resources.Menu;
 
 using System.Text;
 
@@ -11,7 +11,7 @@ public class MenuExtractor : ExtractorBase {
         var menuData = new UserInterface();
         menuData.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
         menuData.IsModal = resourceReader.ReadUInt16() > 0;
-        menuData.Color = resourceReader.ReadUInt16();
+        menuData.ColorSet = resourceReader.ReadUInt16();
         menuData.XPosition = resourceReader.ReadUInt16();
         menuData.YPosition = resourceReader.ReadUInt16();
         menuData.Width = resourceReader.ReadUInt16();
@@ -29,7 +29,7 @@ public class MenuExtractor : ExtractorBase {
                 ElementType = (ElementType)resourceReader.ReadUInt16(),
                 ActionId = resourceReader.ReadInt16(),
                 Visible = resourceReader.ReadBoolean(),
-                Colors = resourceReader.ReadUInt16(),
+                ColorSet = resourceReader.ReadUInt16(),
                 Unknown7 = resourceReader.ReadUInt16() > 0,
                 Unknown9 = resourceReader.ReadUInt16() > 0,
                 XPosition = resourceReader.ReadUInt16(),

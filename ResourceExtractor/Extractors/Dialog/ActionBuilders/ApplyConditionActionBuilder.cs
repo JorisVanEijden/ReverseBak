@@ -1,8 +1,7 @@
 namespace ResourceExtractor.Extractors.Dialog.ActionBuilders;
 
 using GameData;
-
-using ResourceExtractor.Resources.Dialog.Actions;
+using GameData.Resources.Dialog.Actions;
 
 internal class ApplyConditionActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {

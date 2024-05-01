@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors;
 
-using ResourceExtractor.Resources.Location;
+using GameData.Resources.Location;
 
 internal class TeleportExtractor : ExtractorBase {
     public static List<TeleportDestination> Extract(string filePath) {

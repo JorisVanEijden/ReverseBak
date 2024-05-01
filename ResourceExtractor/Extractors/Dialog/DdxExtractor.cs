@@ -1,9 +1,7 @@
 namespace ResourceExtractor.Extractors.Dialog;
 
-using GameData;
-
-using ResourceExtractor.Resources.Dialog;
-using ResourceExtractor.Resources.Dialog.Actions;
+using GameData.Resources.Dialog;
+using GameData.Resources.Dialog.Actions;
 
 using System.Text;
 
@@ -45,31 +43,35 @@ internal class DdxExtractor : ExtractorBase {
             Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField3)}: {dialogEntryField3:X4}");
             dialogEntry.DialogEntry_Field3 = dialogEntryField3;
 
-            byte variantCount = resourceReader.ReadByte();
-            Log($"[{resourceReader.BaseStream.Position:X8}] VariantCount: {variantCount}");
+            byte branchCount = resourceReader.ReadByte();
+            Log($"[{resourceReader.BaseStream.Position:X8}] BranchCount: {branchCount}");
 
             byte dialogActionCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] DialogActionCount: {dialogActionCount}");
 
             ushort stringLength = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] StringLength: {stringLength}");
-            for (int i = 0; i < variantCount; i++) {
-                Log($"[{resourceReader.BaseStream.Position:X8}] Variant {i}:");
+            for (int i = 0; i < branchCount; i++) {
+                Log($"[{resourceReader.BaseStream.Position:X8}] Branch {i}:");
                 ushort unknown2 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown2: {unknown2:X4}");
                 ushort unknown3 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown3: {unknown3:X4}");
                 short unknown4 = resourceReader.ReadInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown4: {unknown4:X4}");
-                int variantOffset = resourceReader.ReadInt32();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Offset: {variantOffset:X8}");
-                var variant = new DialogEntryVariant {
-                    Unknown2 = unknown2,
+                long target = resourceReader.ReadUInt32();
+                Log($"[{resourceReader.BaseStream.Position:X8}] Offset: {target:X8}");
+                var branch = new DialogEntryBranch {
+                    GlobalKey = unknown2,
                     Unknown3 = unknown3,
                     Unknown4 = unknown4,
-                    Offset = variantOffset
                 };
-                dialogEntry.Variants.Add(variant);
+                if (target >= 0x80000000) {
+                    branch.TargetId = (int)(target - 0x80000000);
+                } else {
+                    branch.TargetOffset = (int)target;
+                }
+                dialogEntry.Branches.Add(branch);
             }
             Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dialogActionCount} data items");
             for (int i = 0; i < dialogActionCount; i++) {
@@ -78,7 +80,7 @@ internal class DdxExtractor : ExtractorBase {
 
                 DialogActionBase dialogAction = DialogActionFactory.Build(actionType, resourceReader);
 
-                dialogEntry.DialogActions.Add(dialogAction);
+                dialogEntry.Actions.Add(dialogAction);
             }
             char[] readChars = resourceReader.ReadChars(stringLength);
             int length = stringLength - 1;
@@ -91,8 +93,11 @@ internal class DdxExtractor : ExtractorBase {
         }
 
         foreach (DialogEntry entry in dialog.Entries.Values) {
-            foreach (DialogEntryVariant variant in entry.Variants) {
-                if (dialog.Entries.TryGetValue(variant.Offset, out DialogEntry? dialogEntry)) {
+            foreach (DialogEntryBranch branch in entry.Branches) {
+                if (branch.TargetOffset.HasValue && dialog.Entries.TryGetValue(branch.TargetOffset.Value, out DialogEntry? dialogEntry)) {
+                    dialogEntry.Referer = entry.Offset;
+                }
+                else if (branch.TargetId.HasValue && dialog.Entries.TryGetValue(branch.TargetId.Value, out dialogEntry)) {
                     dialogEntry.Referer = entry.Offset;
                 }
             }

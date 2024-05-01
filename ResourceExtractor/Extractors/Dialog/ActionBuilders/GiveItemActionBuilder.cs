@@ -1,6 +1,6 @@
 namespace ResourceExtractor.Extractors.Dialog.ActionBuilders;
 
-using ResourceExtractor.Resources.Dialog.Actions;
+using GameData.Resources.Dialog.Actions;
 
 internal class GiveItemActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {
