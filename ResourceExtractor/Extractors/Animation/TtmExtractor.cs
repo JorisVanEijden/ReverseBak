@@ -3,6 +3,8 @@ namespace ResourceExtractor.Extractors.Animation;
 using GameData.Resources.Animation;
 using GameData.Resources.Animation.Commands;
 
+using ResourceExtraction.Compression;
+
 using ResourceExtractor.Compression;
 using ResourceExtractor.Extensions;
 
@@ -14,9 +16,8 @@ internal class TtmExtractor : ExtractorBase {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
 
-        var animator = new AnimatorScript {
-            Name = Path.GetFileNameWithoutExtension(filePath)
-        };
+        var animator = new AnimatorScript(Path.GetFileName(filePath));
+        
         string tag = ReadTag(resourceReader);
         if (tag != "VER") {
             throw new InvalidDataException($"Expected VER tag, got {tag}");

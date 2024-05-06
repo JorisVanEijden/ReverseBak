@@ -1,4 +1,9 @@
-namespace ResourceExtractor.Compression;
+namespace ResourceExtraction.Compression;
+
+using ResourceExtraction.Extensions;
+
+using System;
+using System.IO;
 
 internal class LzssCompression : ICompression {
     public Stream Compress(Stream inputStream) {
@@ -9,8 +14,8 @@ internal class LzssCompression : ICompression {
         var outputStream = new MemoryStream();
         long endPosition = length == 0 ? inputStream.Length : inputStream.Position + length;
         long startPosition = inputStream.Position;
-        byte[] buffer = new byte[261];
-        // Console.Write($"Performing LZSS decompression from 0x{startPosition:X4} to 0x{endPosition:X4} ({endPosition - startPosition} bytes). ");
+        var buffer = new byte[261];
+        
         while (inputStream.Position < endPosition) {
             int marker = inputStream.ReadByte();
             byte bit = 0x01;

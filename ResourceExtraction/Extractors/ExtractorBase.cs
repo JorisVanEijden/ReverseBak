@@ -1,16 +1,16 @@
-namespace ResourceExtractor.Extractors;
+namespace ResourceExtraction.Extractors;
 
-using GameData.Resources.Image;
+using GameData.Resources;
 
 using ResourceExtraction.Compression;
+using ResourceExtraction.Extensions;
 
 using ResourceExtractor.Compression;
 
-using System.Drawing;
-using System.Drawing.Imaging;
+using System;
+using System.IO;
 
-public abstract class ExtractorBase {
-    internal const int FileNameLength = 13;
+public abstract class ExtractorBase<T> where T : IResource {
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
     internal const bool Debug = false;
@@ -18,6 +18,7 @@ public abstract class ExtractorBase {
 
     protected static string ReadTag(BinaryReader resourceReader) {
         string tagString = new(resourceReader.ReadChars(TagLength));
+
         return tagString.TrimEnd(':');
     }
 
@@ -26,7 +27,6 @@ public abstract class ExtractorBase {
             Console.WriteLine(Indent + message);
     }
 
-   
     protected static byte[] DecompressToByteArray(BinaryReader resourceReader, long length = 0) {
         long endPosition = length == 0 ? resourceReader.BaseStream.Length : resourceReader.BaseStream.Position + length;
         var compressionType = (CompressionType)resourceReader.ReadByte();
@@ -40,4 +40,6 @@ public abstract class ExtractorBase {
 
         return decompressedDataBuffer;
     }
+
+    public abstract T Extract(string id, Stream resourceStream);
 }

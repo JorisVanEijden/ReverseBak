@@ -2,6 +2,10 @@ namespace GameData.Resources.Menu;
 
 [Serializable]
 public class UserInterface : IResource {
+    public UserInterface(string id) {
+        Id = id;
+    }
+
     public int XPosition { get; set; }
     public int YPosition { get; set; }
     public UserInterfaceType UserInterfaceType { get; set; }
@@ -16,6 +20,8 @@ public class UserInterface : IResource {
     public ResourceType Type {
         get => ResourceType.REQ;
     }
+
+    public string Id { get; }
 
     public string? Title { get; set; }
 }

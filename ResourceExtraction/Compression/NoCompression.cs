@@ -1,4 +1,6 @@
-namespace ResourceExtractor.Compression;
+namespace ResourceExtraction.Compression;
+
+using System.IO;
 
 internal class NoCompression : ICompression {
     public Stream Compress(Stream inputStream) {

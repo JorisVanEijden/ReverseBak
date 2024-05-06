@@ -3,6 +3,10 @@ namespace ResourceExtractor.Extractors.Container;
 using GameData.Resources;
 
 public class Container : IResource {
+    public Container(string id) {
+        Id = id;
+    }
+
     public int Zone { get; set; }
     public int MinChapter { get; set; }
     public int MaxChapter { get; set; }
@@ -20,4 +24,5 @@ public class Container : IResource {
     public uint Timestamp { get; set; }
     public int Unknown20 { get; set; }
     public ResourceType Type { get => ResourceType.DAT; }
+    public string Id { get; }
 }

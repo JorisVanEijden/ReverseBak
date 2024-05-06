@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
         <RunPostBuildEvent>Always</RunPostBuildEvent>
+        <Company>StellarGames</Company>
     </PropertyGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">

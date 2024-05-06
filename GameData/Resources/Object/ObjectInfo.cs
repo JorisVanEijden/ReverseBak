@@ -3,6 +3,10 @@ namespace GameData.Resources.Object;
 using GameData;
 
 public class ObjectInfo : IResource {
+    public ObjectInfo(string id) {
+        Id = id;
+    }
+
     public string Name { get; set; }
     public int Field1E { get; set; }
     public ObjectFlags Flags { get; set; }
@@ -33,6 +37,7 @@ public class ObjectInfo : IResource {
     public int Number { get; set; }
     public int Field37 { get; set; }
     public ResourceType Type { get => ResourceType.DAT; }
+    public string Id { get; }
 
     public string ToCsv() {
         return

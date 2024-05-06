@@ -8,6 +8,7 @@ public class ObjFixedExtractor : ExtractorBase {
     public List<Container> Extract(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var reader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
+        var filename = Path.GetFileName(filePath);
 
         var containerList = new List<Container>();
 
@@ -23,7 +24,7 @@ public class ObjFixedExtractor : ExtractorBase {
                 byte numberOfItems = reader.ReadByte();
                 byte capacity = reader.ReadByte();
 
-                var container = new Container {
+                var container = new Container($"{filename}[{i:D2}]") {
                     Zone = zone,
                     MinChapter = minMaxChapter >> 4,
                     MaxChapter = minMaxChapter & 0x0F,

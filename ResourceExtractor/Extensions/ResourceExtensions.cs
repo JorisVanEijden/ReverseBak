@@ -2,16 +2,21 @@ namespace ResourceExtractor.Extensions;
 
 using GameData.Resources.Animation;
 using GameData.Resources.Book;
+using GameData.Resources.Data;
 using GameData.Resources.Dialog;
+using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Location;
 using GameData.Resources.Menu;
 using GameData.Resources.Object;
 using GameData.Resources.Spells;
 
+using ResourceExtraction.Extractors;
+
 using ResourceExtractor.Extractors.Container;
 
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -40,7 +45,10 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
-    public static string ToJson(this List<Spell> resource) {
+    public static string ToJson(this SpellList resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+    public static string ToJson(this SpellInfoList resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
@@ -51,7 +59,7 @@ public static class ResourceExtensions {
     public static string ToJson(this UserInterface resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
-    
+
     public static string ToJson(this Color[] resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
@@ -59,12 +67,16 @@ public static class ResourceExtensions {
     public static string ToJson(this BookResource resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
-    
+
     public static string ToJson(this List<Container> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
-    
+
     public static string ToJson(this List<TeleportDestination> resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this KeywordList resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
@@ -76,6 +88,7 @@ public static class ResourceExtensions {
         foreach (ObjectInfo info in resource) {
             sb.AppendLine(info.ToCsv());
         }
+
         return sb.ToString();
     }
 
@@ -84,14 +97,52 @@ public static class ResourceExtensions {
         foreach (Spell info in resource) {
             sb.AppendLine(info.ToCsv());
         }
+
         return sb.ToString();
     }
+
     public static string ToCsv(this Color[] resource) {
         var sb = new StringBuilder($"index,hex,color\r\n");
         for (var index = 0; index < resource.Length; index++) {
             Color color = resource[index];
             sb.AppendLine($"{index},{index:X2},{color.R:X2}{color.G:X2}{color.B:X2}");
         }
+
         return sb.ToString();
+    }
+
+    public static Bitmap ToBitmap(this BmImage image, Color[]? palette = null) {
+        palette[0] = Color.Transparent;
+        if ((image.Flags & 0x20) != 0 && image.Data != null) {
+            var bitmap = new Bitmap(image.Width, image.Height);
+            int index = 0;
+            for (int x = 0; x < image.Width; x++) {
+                for (int y = 0; y < image.Height; y++) {
+                    byte colorIndex = image.Data[index++];
+                    if (palette != null) {
+                        bitmap.SetPixel(x, y, palette[colorIndex]);
+                    } else {
+                        bitmap.SetPixel(x, y, Color.FromArgb(colorIndex, colorIndex, colorIndex));
+                    }
+                }
+            }
+
+            return bitmap;
+        } else {
+            var bitmap = new Bitmap(image.Width, image.Height);
+            int index = 0;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    byte colorIndex = image.Data[index++];
+                    if (palette != null) {
+                        bitmap.SetPixel(x, y, palette[colorIndex]);
+                    } else {
+                        bitmap.SetPixel(x, y, Color.FromArgb(colorIndex, colorIndex, colorIndex));
+                    }
+                }
+            }
+
+            return bitmap;
+        }
     }
 }

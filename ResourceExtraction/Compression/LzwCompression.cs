@@ -1,4 +1,8 @@
-namespace ResourceExtractor.Compression;
+namespace ResourceExtraction.Compression;
+
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 public class LzwCompression : ICompression {
     private readonly Dictionary<int, List<byte>> _dictionary = new();

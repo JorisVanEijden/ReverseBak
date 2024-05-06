@@ -1,19 +1,16 @@
-namespace ResourceExtractor.Extractors;
+namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Label;
 
-using ResourceExtractor.Extensions;
+using ResourceExtraction.Extensions;
 
+using System.IO;
 using System.Text;
 
-internal class LabelExtractor : ExtractorBase {
-    public LabelSet Extract(string filePath) {
-        Log($"Extracting {filePath}");
-        using FileStream resourceFile = File.OpenRead(filePath);
-        using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
-
-        var labelSet = new LabelSet(Path.GetFileNameWithoutExtension(filePath));
-
+public class LabelExtractor : ExtractorBase<LabelSet> {
+    public override LabelSet Extract(string id, Stream resourceStream) {
+        using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
+        var labelSet = new LabelSet(id);
         ushort numberOfEntries = resourceReader.ReadUInt16();
         for (int i = 0; i < numberOfEntries; i++) {
             var label = new Label {
@@ -32,6 +29,7 @@ internal class LabelExtractor : ExtractorBase {
             resourceReader.BaseStream.Seek(position + label.Offset, SeekOrigin.Begin);
             label.Text = resourceReader.ReadZeroTerminatedString();
         }
+
         return labelSet;
     }
 }

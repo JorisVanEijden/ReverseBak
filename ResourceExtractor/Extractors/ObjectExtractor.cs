@@ -12,7 +12,7 @@ internal class ObjectExtractor : ExtractorBase {
 
         var objectInfoList = new List<ObjectInfo>();
         for (int i = 0; i < 138; i++) {
-            var objectInfo = new ObjectInfo {
+            var objectInfo = new ObjectInfo(Path.GetFileName(filePath)) {
                 Number = i,
                 Name = new string(resourceReader.ReadChars(30)).Replace('\0', ' ').Trim(),
                 Field1E = resourceReader.ReadUInt16(),

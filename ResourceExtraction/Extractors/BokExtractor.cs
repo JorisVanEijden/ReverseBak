@@ -1,26 +1,26 @@
-namespace ResourceExtractor.Extractors;
+namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Book;
 
+using System;
+using System.IO;
 using System.Text;
 
-internal class BokExtractor : ExtractorBase {
+public class BokExtractor : ExtractorBase<BookResource> {
     private const byte EndOfPage = 0xF0;
     private const byte StartOfParagraph = 0xF1;
     private const byte StartOfTextSegment = 0xF4;
     private const int UpperCharacterLimit = 0xB1;
 
-    public BookResource Extract(string filePath) {
-        Log($"File: {filePath}");
-        using FileStream resourceFile = File.OpenRead(filePath);
-        using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
+    public override BookResource Extract(string id, Stream resourceStream) {
+        using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
 
-        var book = new BookResource();
+        var book = new BookResource(id);
 
         int dataSize = resourceReader.ReadInt32();
         int nrOfPages = resourceReader.ReadUInt16();
-        int[] pageOffsets = new int[nrOfPages];
-        for (int i = 0; i < nrOfPages; i++) {
+        var pageOffsets = new int[nrOfPages];
+        for (var i = 0; i < nrOfPages; i++) {
             pageOffsets[i] = resourceReader.ReadInt32() + 4;
         }
         foreach (int pageOffset in pageOffsets) {
@@ -43,7 +43,7 @@ internal class BokExtractor : ExtractorBase {
     }
 
     private static void AddParagraphsWithTextSegmentsToPage(BinaryReader resourceReader, Page page) {
-        bool pageDone = false;
+        var pageDone = false;
         Paragraph? currentParagraph = null;
         while (!pageDone) {
             byte type = resourceReader.ReadByte();
@@ -51,6 +51,7 @@ internal class BokExtractor : ExtractorBase {
                 case EndOfPage:
                     {
                         pageDone = true;
+
                         break;
                     }
                 case StartOfParagraph:
@@ -59,12 +60,14 @@ internal class BokExtractor : ExtractorBase {
                             page.Paragraphs.Add(currentParagraph);
                         }
                         currentParagraph = StartNewParagraph(resourceReader);
+
                         break;
                     }
                 case StartOfTextSegment:
                     {
                         TextSegment textSegment = StartNewTextSegment(resourceReader);
                         currentParagraph?.TextSegments.Add(textSegment);
+
                         break;
                     }
                 default:
@@ -110,7 +113,7 @@ internal class BokExtractor : ExtractorBase {
     }
 
     private static void AddImagesToPage(BinaryReader resourceReader, Page page) {
-        for (int i = 0; i < page.NumberOfImages; i++) {
+        for (var i = 0; i < page.NumberOfImages; i++) {
             page.Images.Add(new BookImage {
                 X = resourceReader.ReadInt16(),
                 Y = resourceReader.ReadInt16(),
@@ -121,7 +124,7 @@ internal class BokExtractor : ExtractorBase {
     }
 
     private static void AddReservedAreasToPage(BinaryReader resourceReader, Page page) {
-        for (int i = 0; i < page.NumberOfReservedAreas; i++) {
+        for (var i = 0; i < page.NumberOfReservedAreas; i++) {
             page.ReservedAreas.Add(new ReservedArea {
                 X = resourceReader.ReadInt16(),
                 Y = resourceReader.ReadInt16(),

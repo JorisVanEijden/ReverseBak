@@ -1,6 +1,10 @@
-namespace ResourceExtractor.Compression;
+namespace ResourceExtraction.Compression;
 
-internal static class CompressionFactory {
+using ResourceExtractor.Compression;
+
+using System;
+
+public static class CompressionFactory {
     public static ICompression Create(CompressionType compressionType) {
         return compressionType switch {
             CompressionType.None => new NoCompression(),

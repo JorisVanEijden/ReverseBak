@@ -1,4 +1,7 @@
-namespace ResourceExtractor.Compression;
+namespace ResourceExtraction.Compression;
+
+using System;
+using System.IO;
 
 internal class RleCompression : ICompression {
     public Stream Compress(Stream inputStream) {
@@ -35,8 +38,6 @@ internal class RleCompression : ICompression {
             }
         }
         outputStream.Seek(0, SeekOrigin.Begin);
-
-        Console.WriteLine($"Performing RLE decompression from 0x{startPosition:X4} to 0x{endPosition:X4} ({endPosition - startPosition} bytes). Output = {outputStream.Length} bytes.");
 
         return outputStream;
     }

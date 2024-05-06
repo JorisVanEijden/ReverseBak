@@ -1,5 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
+using ResourceExtraction.Compression;
+
 using ResourceExtractor.Compression;
 
 using System.Text;

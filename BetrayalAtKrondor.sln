@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bufdio.Spice86", "..\Spice8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameData", "GameData\GameData.csproj", "{EF3571B6-E8BF-40E2-8F45-75C58C6F6212}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceExtraction", "ResourceExtraction\ResourceExtraction.csproj", "{64A3E094-2804-4BBB-BF09-261A5B369C7A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{EF3571B6-E8BF-40E2-8F45-75C58C6F6212}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF3571B6-E8BF-40E2-8F45-75C58C6F6212}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF3571B6-E8BF-40E2-8F45-75C58C6F6212}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64A3E094-2804-4BBB-BF09-261A5B369C7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64A3E094-2804-4BBB-BF09-261A5B369C7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64A3E094-2804-4BBB-BF09-261A5B369C7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64A3E094-2804-4BBB-BF09-261A5B369C7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

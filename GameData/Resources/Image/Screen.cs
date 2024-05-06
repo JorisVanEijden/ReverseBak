@@ -1,12 +1,13 @@
 namespace GameData.Resources.Image;
 
 public class Screen : IResource {
-    public Screen(string filePath) {
-        FilePath = filePath;
+    public Screen(string id) {
+        Id = id;
     }
 
-    public string FilePath { get; }
-    public bool HiRes { get; set; }
+    public string Id { get; }
+    public int Width { get; set; }
+    public int Height { get; set; }
 
     public byte[]? BitMapData { get; set; }
 

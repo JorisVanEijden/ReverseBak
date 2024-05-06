@@ -11,7 +11,7 @@ internal class AnimationExtractor : ExtractorBase {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
 
-        var animation = new AnimationResource();
+        var animation = new AnimationResource(Path.GetFileName(filePath));
         string tag = ReadTag(resourceReader);
         if (tag != "VER") {
             throw new InvalidDataException($"Expected VER tag, got {tag}");

@@ -12,9 +12,7 @@ internal class DdxExtractor : ExtractorBase {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
 
-        var dialog = new Dialog {
-            Name = Path.GetFileNameWithoutExtension(filePath)
-        };
+        var dialog = new Dialog(Path.GetFileName(filePath));
 
         var offsetsIds = new Dictionary<int, uint>();
         ushort numberOfEntries = resourceReader.ReadUInt16();
@@ -96,8 +94,7 @@ internal class DdxExtractor : ExtractorBase {
             foreach (DialogEntryBranch branch in entry.Branches) {
                 if (branch.TargetOffset.HasValue && dialog.Entries.TryGetValue(branch.TargetOffset.Value, out DialogEntry? dialogEntry)) {
                     dialogEntry.Referer = entry.Offset;
-                }
-                else if (branch.TargetId.HasValue && dialog.Entries.TryGetValue(branch.TargetId.Value, out dialogEntry)) {
+                } else if (branch.TargetId.HasValue && dialog.Entries.TryGetValue(branch.TargetId.Value, out dialogEntry)) {
                     dialogEntry.Referer = entry.Offset;
                 }
             }

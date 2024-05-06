@@ -3,7 +3,11 @@ namespace GameData.Resources.Spells;
 using GameData;
 
 public class Spell : IResource {
-    public int Id { get; set; }
+    public Spell(string id) {
+        Id = id;
+    }
+
+    public string Id { get; set; }
     public string Name { get; set; }
     public int MinimumCost { get; set; }
     public int MaximumCost { get; set; }
