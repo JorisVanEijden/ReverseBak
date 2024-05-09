@@ -5,10 +5,16 @@
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <Company>StellarGames</Company>
+        <Configurations>Debug;Release;Unity</Configurations>
+        <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\GameData\GameData.csproj" />
     </ItemGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
+        <OutputPath>C:\Projects\UnityProjects\ModBuilder\Assets\Plugins</OutputPath>
+    </PropertyGroup>
+    
 </Project>
