@@ -39,7 +39,7 @@ internal class DdxExtractor : ExtractorBase {
             dialogEntry.DialogEntry_Field1 = dialogEntryField1;
             ushort dialogEntryField3 = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField3)}: {dialogEntryField3:X4}");
-            dialogEntry.DialogEntry_Field3 = dialogEntryField3;
+            dialogEntry.Flags = (DialogEntryFlags)dialogEntryField3;
 
             byte branchCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] BranchCount: {branchCount}");
