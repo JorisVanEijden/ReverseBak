@@ -40,7 +40,7 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
                 Unknown13 = resourceReader.ReadInt16(),
                 LabelOffset = resourceReader.ReadInt16(),
                 Teleport = resourceReader.ReadInt16(),
-                Icon = resourceReader.ReadUInt16(),
+                Icon = resourceReader.ReadInt16(),
                 Cursor = resourceReader.ReadUInt16(),
                 Unknown1D = resourceReader.ReadUInt16(),
                 Sound = resourceReader.ReadUInt16()

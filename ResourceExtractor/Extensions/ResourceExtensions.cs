@@ -48,6 +48,7 @@ public static class ResourceExtensions {
     public static string ToJson(this SpellList resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
+
     public static string ToJson(this SpellInfoList resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
@@ -92,10 +93,10 @@ public static class ResourceExtensions {
         return sb.ToString();
     }
 
-    public static string ToCsv(this List<Spell> resource) {
+    public static string ToCsv(this SpellList resource) {
         var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.Field6)},{nameof(Spell.Field8)},{nameof(Spell.FieldA)},{nameof(Spell.FieldC)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
-        foreach (Spell info in resource) {
-            sb.AppendLine(info.ToCsv());
+        foreach (Spell spell in resource.Spells.Values) {
+            sb.AppendLine(spell.ToCsv());
         }
 
         return sb.ToString();
@@ -112,7 +113,12 @@ public static class ResourceExtensions {
     }
 
     public static Bitmap ToBitmap(this BmImage image, Color[]? palette = null) {
-        palette[0] = Color.Transparent;
+        if (image.Data == null) {
+            throw new ArgumentException("Image data is null");
+        }
+        if (palette != null) {
+            palette[0] = Color.Transparent;
+        }
         if ((image.Flags & 0x20) != 0 && image.Data != null) {
             var bitmap = new Bitmap(image.Width, image.Height);
             int index = 0;

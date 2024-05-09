@@ -15,7 +15,7 @@ public class SpellExtractor : ExtractorBase<SpellList> {
         var spellList = new SpellList(id);
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
         ushort numberOfEntries = resourceReader.ReadUInt16();
-        spellList.Spells = new List<Spell>(numberOfEntries);
+        spellList.Spells = new Dictionary<int, Spell>(numberOfEntries);
         var spellNameOffsets = new short[numberOfEntries];
         for (var i = 0; i < numberOfEntries; i++) {
             spellNameOffsets[i] = resourceReader.ReadInt16();
@@ -31,7 +31,7 @@ public class SpellExtractor : ExtractorBase<SpellList> {
                 Damage = resourceReader.ReadInt16(),
                 Duration = resourceReader.ReadInt16()
             };
-            spellList.Spells.Add(spell);
+            spellList.Spells[i] = spell;
         }
         // Read spell name block
         ushort stringBufferSize = resourceReader.ReadUInt16();

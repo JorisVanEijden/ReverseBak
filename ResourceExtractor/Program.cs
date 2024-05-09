@@ -117,7 +117,7 @@ internal static class Program {
         using Stream resourceStream = archiveExtractor.GetResourceStream(filename);
         SpellList spellList = spellExtractor.Extract(filename, resourceStream);
         WriteToJsonFile(filename, ResourceType.DAT, spellList.ToJson());
-        WriteToCsvFile(filename, ResourceType.DAT, spellList.Spells.ToCsv());
+        WriteToCsvFile(filename, ResourceType.DAT, spellList.ToCsv());
     }
 
     private static void ExtractSpellInfo(ArchiveExtractor archiveExtractor) {
@@ -210,6 +210,7 @@ internal static class Program {
         reqFiles.Add("combat.dat");
         reqFiles.Add("shoot.dat");
         reqFiles.Add("spell.dat");
+        reqFiles.Add("spellreq.dat");
         foreach (string reqFile in reqFiles) {
             using FileStream resourceFile = File.OpenRead(Path.Combine(filePath, reqFile));
             UserInterface userInterface = userInterfaceExtractor.Extract(reqFile, resourceFile);

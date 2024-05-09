@@ -25,7 +25,7 @@ public class SpellInfoExtractor : ExtractorBase<SpellInfoList> {
 
         // Read 7 strings for each spell
         for (int i = 0, j = 0; i < numberOfEntries && j < stringOffsets.Count; i++) {
-            spellInfoList.List.Add(new SpellInfo {
+            spellInfoList.List.Add(i, new SpellInfo {
                     Title = stringBuffer.GetZeroTerminatedString(stringOffsets[j++]),
                     Cost = stringBuffer.GetZeroTerminatedString(stringOffsets[j++]),
                     Damage = stringBuffer.GetZeroTerminatedString(stringOffsets[j++]),
