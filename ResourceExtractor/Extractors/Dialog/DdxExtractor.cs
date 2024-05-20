@@ -6,24 +6,23 @@ using GameData.Resources.Dialog.Actions;
 using System.Text;
 
 internal class DdxExtractor : ExtractorBase {
-    public Dialog Extract(string filePath) {
+    public Dialog Extract(string filePath, FileStream fileStream) {
         Log($"Extracting {filePath}");
         Indent = string.Empty;
-        using FileStream resourceFile = File.OpenRead(filePath);
-        using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
+        using var resourceReader = new BinaryReader(fileStream, Encoding.GetEncoding(DosCodePage));
 
         var dialog = new Dialog(Path.GetFileName(filePath));
 
         var offsetsIds = new Dictionary<int, uint>();
         ushort numberOfEntries = resourceReader.ReadUInt16();
-        for (int i = 0; i < numberOfEntries; i++) {
+        for (var i = 0; i < numberOfEntries; i++) {
             uint id = resourceReader.ReadUInt32();
             int offset = resourceReader.ReadInt32();
             offsetsIds.Add(offset, id);
         }
 
         while (resourceReader.BaseStream.Position < resourceReader.BaseStream.Length) {
-            int offset = (int)resourceReader.BaseStream.Position;
+            var offset = (int)resourceReader.BaseStream.Position;
             var dialogEntry = new DialogEntry {
                 Offset = offset
             };
@@ -31,15 +30,15 @@ internal class DdxExtractor : ExtractorBase {
                 dialogEntry.Id = id;
             }
 
-            byte dialogEntryField0 = resourceReader.ReadByte();
-            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField0)}: {dialogEntryField0:X2}");
-            dialogEntry.DialogEntry_Field0 = dialogEntryField0;
-            ushort dialogEntryField1 = resourceReader.ReadUInt16();
-            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField1)}: {dialogEntryField1:X4}");
-            dialogEntry.DialogEntry_Field1 = dialogEntryField1;
-            ushort dialogEntryField3 = resourceReader.ReadUInt16();
-            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryField3)}: {dialogEntryField3:X4}");
-            dialogEntry.Flags = (DialogEntryFlags)dialogEntryField3;
+            byte dialogType = resourceReader.ReadByte();
+            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogType)}: {dialogType:X2}");
+            dialogEntry.DialogType = (DialogType)dialogType;
+            short actorNumber = resourceReader.ReadInt16();
+            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(actorNumber)}: {actorNumber:X4}");
+            dialogEntry.ActorNumber = actorNumber;
+            ushort dialogEntryFlags = resourceReader.ReadUInt16();
+            Log($"[{resourceReader.BaseStream.Position:X8}] {nameof(dialogEntryFlags)}: {dialogEntryFlags:X4}");
+            dialogEntry.Flags = (DialogEntryFlags)dialogEntryFlags;
 
             byte branchCount = resourceReader.ReadByte();
             Log($"[{resourceReader.BaseStream.Position:X8}] BranchCount: {branchCount}");
@@ -49,7 +48,7 @@ internal class DdxExtractor : ExtractorBase {
 
             ushort stringLength = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] StringLength: {stringLength}");
-            for (int i = 0; i < branchCount; i++) {
+            for (var i = 0; i < branchCount; i++) {
                 Log($"[{resourceReader.BaseStream.Position:X8}] Branch {i}:");
                 ushort unknown2 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown2: {unknown2:X4}");
@@ -72,7 +71,7 @@ internal class DdxExtractor : ExtractorBase {
                 dialogEntry.Branches.Add(branch);
             }
             Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dialogActionCount} data items");
-            for (int i = 0; i < dialogActionCount; i++) {
+            for (var i = 0; i < dialogActionCount; i++) {
                 int actionType = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] ActionType: {actionType}");
 
@@ -81,23 +80,12 @@ internal class DdxExtractor : ExtractorBase {
                 dialogEntry.Actions.Add(dialogAction);
             }
             char[] readChars = resourceReader.ReadChars(stringLength);
-            int length = stringLength - 1;
-            string text = length > 0 ? new string(readChars)[..length] : string.Empty;
-            Log($"[{resourceReader.BaseStream.Position:X8}] Text: '{text}'");
-
-            dialogEntry.Text = text;
-
-            dialog.Entries[dialogEntry.Offset] = dialogEntry;
-        }
-
-        foreach (DialogEntry entry in dialog.Entries.Values) {
-            foreach (DialogEntryBranch branch in entry.Branches) {
-                if (branch.TargetOffset.HasValue && dialog.Entries.TryGetValue(branch.TargetOffset.Value, out DialogEntry? dialogEntry)) {
-                    dialogEntry.Referer = entry.Offset;
-                } else if (branch.TargetId.HasValue && dialog.Entries.TryGetValue(branch.TargetId.Value, out dialogEntry)) {
-                    dialogEntry.Referer = entry.Offset;
-                }
+            if (stringLength > 1) {
+                dialogEntry.Text = new string(readChars)[..(stringLength - 1)];
+                Log($"[{resourceReader.BaseStream.Position:X8}] Text: '{dialogEntry.Text}'");
             }
+
+            dialog.Entries.Add(dialogEntry);
         }
 
         return dialog;

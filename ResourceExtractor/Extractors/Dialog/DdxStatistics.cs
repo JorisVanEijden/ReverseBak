@@ -9,7 +9,7 @@ internal class DdxStatistics {
     private readonly List<SetTextVariableAction> _items = [];
 
     public void Add(Dialog ddx) {
-        foreach (DialogEntry entry in ddx.Entries.Values) {
+        foreach (DialogEntry entry in ddx.Entries) {
             IEnumerable<SetTextVariableAction> actions = entry.Actions.OfType<SetTextVariableAction>();
             foreach (SetTextVariableAction action in actions) {
                 _items.Add(action);

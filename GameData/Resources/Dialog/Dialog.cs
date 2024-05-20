@@ -1,11 +1,7 @@
 namespace GameData.Resources.Dialog;
 
-public class Dialog : IResource {
-    public Dialog(string id) {
-        Id = id;
-    }
-
-    public Dictionary<int, DialogEntry> Entries { get; set; } = new();
+public class Dialog(string id) : IResource {
     public ResourceType Type { get => ResourceType.DDX; }
-    public string Id { get; }
+    public string Id { get; } = id;
+    public List<DialogEntry> Entries { get; set; } = [];
 }

@@ -2,21 +2,21 @@ namespace GameData.Resources.Dialog;
 
 [Flags]
 public enum DialogEntryFlags {
-    None = 0,
-    F1 = 1,
-    F2 = 2,
-    F4 = 4,
-    F8 = 8,
-    F10 = 16,
-    F20 = 32,
-    F40 = 64,
-    F80 = 128,
-    F100 = 256,
-    F200 = 512,
-    F400 = 1024,
-    F800 = 2048,
-    F1000 = 4096,
-    F2000 = 8192,
-    F4000 = 16384,
-    F8000 = 32768
+    None = 0x0,
+    F1 = 0x1,
+    F2 = 0x2,
+    F4 = 0x4,
+    F8 = 0x8,
+    F10 = 0x10,
+    F20 = 0x20,
+    F40 = 0x40,
+    F80 = 0x80,
+    F100 = 0x100,
+    F200 = 0x200,
+    F400 = 0x400,
+    TakeRandomBranch = 0x800,
+    F1000 = 0x1000,
+    F2000 = 0x2000,
+    F4000 = 0x4000,
+    F8000 = 0x8000
 }
