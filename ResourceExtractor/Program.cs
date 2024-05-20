@@ -9,13 +9,13 @@ using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Location;
 using GameData.Resources.Menu;
+using GameData.Resources.Object;
 using GameData.Resources.Spells;
 
 using ResourceExtraction.Extractors;
-
+using ResourceExtraction.Extractors.Animation;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
-using ResourceExtractor.Extractors.Animation;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtractor.Extractors.Dialog;
 
@@ -37,7 +37,12 @@ internal static class Program {
 
         ArchiveExtractor archiveExtractor = new(filePath);
 
-        Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGames\ModBuilder\overrides");
+        Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGameStudio\BaK-Again\overrides");
+
+        ExtractAnimations(filePath, archiveExtractor);
+
+        return;
+        ExtractAnimatorScripts(filePath, archiveExtractor);
 
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
@@ -47,8 +52,8 @@ internal static class Program {
         ExtractAllScx(filePath, archiveExtractor);
         ExtractAllBmx(filePath, archiveExtractor);
 
-        foreach (var paletteFile in GetFiles(filePath, "*.PAL")) {
-            var colors2 = PaletteExtractor.Extract(paletteFile);
+        foreach (string paletteFile in GetFiles(filePath, "*.PAL")) {
+            Color[] colors2 = PaletteExtractor.Extract(paletteFile);
             // WriteToJsonFile(paletteFile, ResourceType.PAL, colors2.ToJson());
             WriteToCsvFile(paletteFile, ResourceType.PAL, colors2.ToCsv());
         }
@@ -59,21 +64,19 @@ internal static class Program {
 
         ExtractUserInterfaces(filePath);
 
-        DdxStatistics statistics = new();
         var ddxExtractor = new DdxExtractor();
         foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
-            Dialog ddx = ddxExtractor.Extract(ddxFile);
+            using FileStream resourceFile = File.OpenRead(Path.Combine(filePath, ddxFile));
+            Dialog ddx = ddxExtractor.Extract(ddxFile, resourceFile);
             WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
-            statistics.Add(ddx);
         }
-        Console.WriteLine(statistics.Dump());
 
         ExtractLabels(filePath, archiveExtractor);
         ExtractSpells(archiveExtractor);
         ExtractSpellInfo(archiveExtractor);
 
         var objectExtractor = new ObjectExtractor();
-        var objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
+        List<ObjectInfo> objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
         WriteToCsvFile("objinfo.dat", ResourceType.DAT, objectInfo.ToCsv());
 
         var keywordExtractor = new KeywordExtractor();
@@ -81,13 +84,13 @@ internal static class Program {
         KeywordList keywordList = keywordExtractor.Extract("globalKeywords", resourceStream);
         WriteToJsonFile("keywords.dat", keywordList.Type, keywordList.ToJson());
 
-        var mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
+        IEnumerable<string> mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
         WriteToCsvFile("mnames.dat", ResourceType.DAT, string.Join("\r\n", mNames));
 
         ExtractBooks(filePath);
 
         foreach (string mapFile in GetFiles(filePath, "Z??MAP.DAT")) {
-            var s = FileToBitStream(Path.Combine(filePath, mapFile));
+            string s = FileToBitStream(Path.Combine(filePath, mapFile));
             File.AppendAllText("tempdebug.txt", s);
         }
 
@@ -100,15 +103,30 @@ internal static class Program {
         List<TeleportDestination> teleportDestinations = TeleportExtractor.Extract(Path.Combine(filePath, teleportDat));
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
 
-        foreach (string adsFile in GetFiles(filePath, "*.ads")) {
-            AnimationResource anim = AnimationExtractor.Extract(adsFile);
-            WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
-        }
+
+    }
+
+    private static void ExtractAnimatorScripts(string filePath, ArchiveExtractor archiveExtractor) {
+        var animatorScriptExtractor = new TtmExtractor();
         foreach (string ttmFile in GetFiles(filePath, "*.ttm")) {
-            // string ttmFile = Path.Combine(filePath, "C21.TTM");    
-            var ttm = TtmExtractor.Extract(ttmFile);
+            // string ttmFile = Path.Combine(filePath, "C21.TTM");
+            using Stream resourceStream = archiveExtractor.GetResourceStream(ttmFile);
+            AnimatorScript ttm = animatorScriptExtractor.Extract(Path.GetFileName(ttmFile), resourceStream);
             WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         }
+    }
+
+    private static void ExtractAnimations(string filePath, ArchiveExtractor archiveExtractor) {
+        var animationExtractor = new AnimationExtractor();
+        foreach (string adsFile in GetFiles(filePath, "*.ads")) {
+            using Stream resourceStream = archiveExtractor.GetResourceStream(adsFile);
+            AnimationResource anim = animationExtractor.Extract(Path.GetFileName(adsFile), resourceStream);
+            WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
+        }
+        foreach (ushort command in AdsScriptBuilder.SeenCommands) {
+            Console.WriteLine($"{command:X4}");
+        }
+
     }
 
     private static void ExtractSpells(ArchiveExtractor archiveExtractor) {
@@ -145,7 +163,7 @@ internal static class Program {
         var bitmapExtractor = new BitmapExtractor();
         foreach (string bmxFile in bmxFiles) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(bmxFile);
-            ImageSet imageSet = bitmapExtractor.Extract(bmxFile, resourceStream);
+            ImageSet imageSet = bitmapExtractor.Extract(Path.GetFileName(bmxFile), resourceStream);
             var imageName = $"{Path.GetFileNameWithoutExtension(bmxFile)}";
             Color[]? colors = PaletteExtractor.FindPalette(filePath, imageName);
             // If it's just a single image we extract it directly
@@ -173,13 +191,13 @@ internal static class Program {
 
         foreach (string scxFile in scxFiles) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(scxFile);
-            string screenId = Path.GetFileNameWithoutExtension(scxFile);
-            Screen screen = screenExtractor.Extract(screenId, resourceStream);
+            string imageName = Path.GetFileNameWithoutExtension(scxFile);
+            Screen screen = screenExtractor.Extract(Path.GetFileName(scxFile), resourceStream);
             if (screen.BitMapData == null) {
                 continue;
             }
 
-            Color[]? palette = PaletteExtractor.FindPalette(filePath, screenId);
+            Color[]? palette = PaletteExtractor.FindPalette(filePath, imageName);
 
             var image = new BmImage(scxFile) {
                 Data = screen.BitMapData,
@@ -189,7 +207,7 @@ internal static class Program {
 
             var bitmap = image.ToBitmap(palette);
 
-            WriteToPngFile(screenId, screen.Type.ToString(), bitmap);
+            WriteToPngFile(imageName, screen.Type.ToString(), bitmap);
         }
     }
 
@@ -213,7 +231,7 @@ internal static class Program {
         reqFiles.Add("spellreq.dat");
         foreach (string reqFile in reqFiles) {
             using FileStream resourceFile = File.OpenRead(Path.Combine(filePath, reqFile));
-            UserInterface userInterface = userInterfaceExtractor.Extract(reqFile, resourceFile);
+            UserInterface userInterface = userInterfaceExtractor.Extract(Path.GetFileName(reqFile), resourceFile);
             WriteToJsonFile(reqFile, ResourceType.REQ, userInterface.ToJson());
         }
     }
@@ -259,7 +277,7 @@ internal static class Program {
 
         var binary = stringBuilder.ToString();
 
-        var s = binary.Replace("0", "  ")
+        string s = binary.Replace("0", "  ")
             .Replace("1", "##");
 
         // Return the bitstream as a string

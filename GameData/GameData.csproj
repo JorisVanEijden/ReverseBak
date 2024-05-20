@@ -13,7 +13,7 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
         <DefineConstants/>
-        <OutputPath>C:\Projects\UnityProjects\ModBuilder\Assets\Plugins</OutputPath>
+        <OutputPath>C:\Projects\UnityProjects\BaK-Again\Assets\Plugins</OutputPath>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>full</DebugType>
     </PropertyGroup>

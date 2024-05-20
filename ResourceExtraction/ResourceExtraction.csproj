@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
-        <OutputPath>C:\Projects\UnityProjects\ModBuilder\Assets\Plugins</OutputPath>
+        <OutputPath>C:\Projects\UnityProjects\BaK-Again\Assets\Plugins</OutputPath>
     </PropertyGroup>
     
 </Project>

@@ -12,6 +12,7 @@
 | 7269        | bool | Guildis Thorn lock opened                                           |
 | 7270        | bool | Ward of Ralen-Sheb lock opened                                      |
 | 7271        | bool | Royal Key of Krondor lock opened                                    |
+| 30000       | int  | global result?                                                      |
 | 30004       | int  | currentActorNr                                                      |
 | 30009       | bool | is it night?                                                        |
 | 40001       | bool | starvation in party                                                 |

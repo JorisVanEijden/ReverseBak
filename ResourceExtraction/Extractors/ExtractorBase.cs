@@ -1,13 +1,11 @@
 namespace ResourceExtraction.Extractors;
 
 using GameData.Resources;
-
 using ResourceExtraction.Compression;
 using ResourceExtraction.Extensions;
-
 using ResourceExtractor.Compression;
-
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 public abstract class ExtractorBase<T> where T : IResource {
@@ -42,4 +40,24 @@ public abstract class ExtractorBase<T> where T : IResource {
     }
 
     public abstract T Extract(string id, Stream resourceStream);
+
+    protected static string ReadAlignedString(BinaryReader reader) {
+        string text = reader.ReadZeroTerminatedString();
+        if ((text.Length & 1) == 0) {
+            reader.ReadByte();
+        }
+
+        return text;
+    }
+
+    protected static Dictionary<int, string> ReadTags(BinaryReader resourceReader) {
+        uint tagSize = resourceReader.ReadUInt32();
+        ushort numberOfTags = resourceReader.ReadUInt16();
+        var tags = new Dictionary<int, string>(numberOfTags);
+        for (var i = 0; i < numberOfTags; i++) {
+            tags[resourceReader.ReadUInt16()] = resourceReader.ReadZeroTerminatedString();
+        }
+
+        return tags;
+    }
 }
