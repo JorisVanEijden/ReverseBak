@@ -1,11 +1,8 @@
 namespace BetrayalAtKrondor;
 
 using BetrayalAtKrondor.Overrides.Libraries;
-
 using GameData;
-
 using Serilog.Events;
-
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.Memory.ReaderWriter;
@@ -15,12 +12,14 @@ using Spice86.Core.Emulator.VM;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 using Spice86.Shared.Utils;
-
 using System.Text;
 
 public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
     private readonly IGlobalSettings _globalSettings;
+    private readonly List<OvrBreakpoint> _ovrBreakpoints = [];
+    private Dictionary<ushort, ushort> _stubSegments;
+    private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -29,9 +28,18 @@ public class BakOverrides : CSharpOverrideHelper {
         _gameEngine.DataPath = configuration.Exe is null
             ? Directory.GetCurrentDirectory()
             : Path.GetDirectoryName(configuration.Exe);
-        new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
+        _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
+        DefineStubMapping();
         DefineFunctions();
         DefineBreakpoints();
+    }
+
+    private void DefineStubMapping() {
+        _stubSegments = new Dictionary<ushort, ushort> {
+            [0x3FF7] = 0x3817,
+            [0x4028] = 0x381A,
+            [0x5040] = 0x38A2
+        };
     }
 
     private void LogDialogBuildCall() {
@@ -50,6 +58,50 @@ public class BakOverrides : CSharpOverrideHelper {
         DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
         DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
         DoOnTopOfInstruction("3991:004D", Logsub_ovr185_53F);
+        DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
+        // DoOnTopOfInstruction("5040:0510", LogMemoryAtAxDx);
+        // DoOnTopOfInstruction("5040:03D4", LogAx("animationRecordNumber"));
+        // DoOnTopOfInstruction("5040:03DB", LogAx("tagNumber"));
+        AddMemoryMonitor("39DD:0E0E", "animationIndex?_dseg_E0E");
+    }
+
+    private void AddMemoryMonitor(string address, string? name = null) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+        DoOnMemoryWrite(segment, offset, () => {
+            _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
+            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: {Value:X4}",
+                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, offset]);
+        });
+    }
+
+    private Action LogAx(string message) {
+        return () => {
+            _loggerService.Information("{Message} = {Value:X4}", message, State.AX);
+        };
+    }
+
+    private void LogMemoryAtAxDx() {
+        var address = MemoryUtils.ToPhysicalAddress(State.AX, State.DX);
+        for (int i = -2; i < 20; i += 2) {
+            _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value:X4}", State.AX, State.DX + i, Memory.UInt16[address + i]);
+        }
+    }
+
+    private void LogEax() {
+        _loggerService.Information("EAX: {Eax:X4}", State.EAX);
+    }
+
+    private void RecordOvrChange() {
+        var stubSegment = State.ES;
+        var realSegment = State.BX;
+        foreach (var ovrBreakpoint in _ovrBreakpoints) {
+            if (_stubSegments[ovrBreakpoint.Segment] == stubSegment) {
+                _loggerService.Information("OVR Mapping {SourceSegment:X4}:{SourceOffset:X4} to {DestinationSegment:X4}:{DestinationOffset:X4}",
+                    ovrBreakpoint.Segment, ovrBreakpoint.Offset, realSegment, ovrBreakpoint.Offset);
+                _ovrSegmentMapping[realSegment] = ovrBreakpoint.Segment;
+                DoOnTopOfInstruction(realSegment, ovrBreakpoint.Offset, ovrBreakpoint.Action);
+            }
+        }
     }
 
     private void Logsub_ovr185_0() {
@@ -69,7 +121,7 @@ public class BakOverrides : CSharpOverrideHelper {
         var xCoordinate = Stack.Peek16(8);
         var yCoordinate = Stack.Peek16(10);
         var arg6 = Stack.Peek16(12);
-        
+
         _loggerService.Information("{MethodName} called. zoneNumber: {ZoneNumber}, xCoordinate: {XCoordinate}, yCoordinate: {YCoordinate}, arg_6: {Arg6}",
             nameof(LogLoadTzzxxyy_WLD), zoneNumber, xCoordinate, yCoordinate, arg6);
     }
@@ -78,7 +130,7 @@ public class BakOverrides : CSharpOverrideHelper {
         _loggerService.Information("GetGlobalValue(key: {Arg0})",
             Stack.Peek16(4));
     }
-    
+
     private void LogSetGlobalValue() {
         _loggerService.Information("SetGlobalValue(key: {Arg0}, value: {Arg2:X4})",
             Stack.Peek16(4), Stack.Peek16(6));
@@ -96,7 +148,7 @@ public class BakOverrides : CSharpOverrideHelper {
         string name = Memory.GetZeroTerminatedString(nameAddress, 9);
         var field58 = Memory.UInt8[actorAddress + 0x58];
         name += $" ({field58:X2})";
-        
+
         uint attributeBase = actorAddress + 8;
         var attributeOffset = 5 * arg2;
         var attribute = (ActorAttribute)arg2;
@@ -127,11 +179,13 @@ public class BakOverrides : CSharpOverrideHelper {
             3 => Memory.UInt8[attributeAddress + 1],
             _ => CalculateActiveValue(attribute, actorAddress)
         };
+
         return attributeValue;
     }
 
     private int CalculateActiveValue(ActorAttribute attribute, uint actorAddress) {
         var current = Memory.UInt8[actorAddress + 8 + 5 * (int)attribute + 1];
+
         // apply bonuses and penalties
         return current;
     }
@@ -150,10 +204,26 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void DoOnTopOfInstruction(string address, Action action) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+
+        // If segment >= ovr121  (0x3FF7) then it's an overlay
+        // Look up segment in ovr table
+        if (segment >= 0x3FF7) {
+            // We add it to the list, and when the OVR gets mapped, the real breakpoint is added.
+            _ovrBreakpoints.Add(new OvrBreakpoint(segment, offset, action));
+
+            return;
+        }
+
+        DoOnTopOfInstruction(segment, offset, action);
+    }
+
+    private static (ushort segment, ushort offset) ToSegmentOffset(string address) {
         var parts = address.Split(':');
         ushort segment = (ushort)ParseHex(parts[0]);
         ushort offset = (ushort)ParseHex(parts[1]);
-        DoOnTopOfInstruction(segment, offset, action);
+
+        return (segment, offset);
     }
 
     private static int ParseHex(string hex) {
@@ -204,23 +274,29 @@ public class BakOverrides : CSharpOverrideHelper {
                         _ => SoundDriverType.None
                     };
                     _globalSettings.SoundDriverType = soundDriverType;
+
                     break;
                 case "knockknock":
                     if (value.Length == 29) {
                         _globalSettings.KnockKnock = true;
                     }
+
                     break;
                 case "cycle":
                     _globalSettings.Cycles = int.Parse(value);
+
                     break;
                 case "tempdrive":
                     _globalSettings.TempDrive = value.ToUpper()[0];
+
                     break;
                 case "bookmarkverify":
                     _globalSettings.BookmarkVerify = int.Parse(value) != 0;
+
                     break;
                 case "nonrotatingmap":
                     _globalSettings.NonRotatingMap = int.Parse(value) != 0;
+
                     break;
             }
         }
@@ -237,6 +313,8 @@ public class BakOverrides : CSharpOverrideHelper {
         return FarRet();
     }
 }
+
+internal record OvrBreakpoint(ushort Segment, ushort Offset, Action Action);
 
 internal class DialogEntry : MemoryBasedDataStructure {
     public DialogEntry(IByteReaderWriter byteReaderWriter, uint baseAddress) : base(byteReaderWriter, baseAddress) {
@@ -276,6 +354,7 @@ internal class DialogEntry : MemoryBasedDataStructure {
         foreach (DialogAction data in DialogActionArray) {
             sb.AppendLine(data.ToString());
         }
+
         return sb.ToString();
     }
 }
