@@ -1,10 +1,10 @@
 namespace BetrayalAtKrondor.Overrides.Libraries;
 
+using BetrayalAtKrondor.Overrides.Libraries.Structures;
 using Serilog.Events;
 
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
-using Spice86.Core.Emulator.OperatingSystem.Structures;
 using Spice86.Core.Emulator.ReverseEngineer;
 using Spice86.Core.Emulator.VM;
 using Spice86.Shared.Emulator.Memory;
@@ -288,7 +288,7 @@ public class StdIO : CSharpOverrideHelper {
         IEnumerator matchingPaths = Directory.EnumerateFileSystemEntries(currentHostDirectory, searchPath, searchOptions).GetEnumerator();
         if (matchingPaths.MoveNext() && matchingPaths.Current is string firstFile) {
             _fileSearchLists.Add(matchingPaths);
-            var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
+            var ffblk = new Ffblk(Memory, ffblkPointer);
             ffblk.ResultId = (ushort)(_fileSearchLists.Count - 1);
             ffblk.FileName = Path.GetFileName(firstFile);
             result = 0;
@@ -335,7 +335,7 @@ public class StdIO : CSharpOverrideHelper {
         short result;
 
         var ffblkPointer = MemoryUtils.ToPhysicalAddress(DS, ffblkPointerOffset);
-        var ffblk = new DosDiskTransferArea(Memory, ffblkPointer);
+        var ffblk = new Ffblk(Memory, ffblkPointer);
 
         IEnumerator matchingPaths = _fileSearchLists[ffblk.ResultId];
         if (matchingPaths.MoveNext() && matchingPaths.Current is string currentFile) {
