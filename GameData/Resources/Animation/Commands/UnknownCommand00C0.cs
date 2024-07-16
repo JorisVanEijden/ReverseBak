@@ -1,7 +1,7 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class UnknownCommand00C0 : AnimatorCommand {
+public class UnknownCommand00C0 : FrameCommand {
     public override string ToString() {
-        return "UnknownCommand00C0();";
+        return $"{nameof(UnknownCommand00C0)}();";
     }
 }

@@ -1,7 +1,10 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class UnknownCommand0110 : AnimatorCommand {
+/**
+ * This sets global bool at 39DD:4ECC to true.
+ */
+public class UnknownCommand0110 : FrameCommand {
     public override string ToString() {
-        return "UnknownCommand0110();";
+        return $"{nameof(UnknownCommand0110)}();";
     }
 }

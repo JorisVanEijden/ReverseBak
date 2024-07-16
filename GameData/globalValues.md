@@ -14,6 +14,7 @@
 | 7271        | bool | Royal Key of Krondor lock opened                                    |
 | 30000       | int  | global result?                                                      |
 | 30004       | int  | currentActorNr                                                      |
+| 30007       | int  | currentChapter?                                                     |
 | 30009       | bool | is it night?                                                        |
 | 40001       | bool | starvation in party                                                 |
 | 40002       | bool | plague in party                                                     |

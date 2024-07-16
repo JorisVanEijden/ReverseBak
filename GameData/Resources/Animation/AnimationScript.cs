@@ -1,7 +1,0 @@
-namespace GameData.Resources.Animation;
-
-using GameData.Resources.Animation.Commands;
-
-public class AnimationScript {
-    public List<List<AnimatorCommand>> Frames { get; set; } = [];
-}

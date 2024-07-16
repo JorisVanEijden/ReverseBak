@@ -13,6 +13,7 @@ using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 using Spice86.Shared.Utils;
 using System.Text;
+using ArgumentFetcher = Spice86.Core.Emulator.ReverseEngineer.ArgumentFetcher;
 
 public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
@@ -20,6 +21,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly List<OvrBreakpoint> _ovrBreakpoints = [];
     private Dictionary<ushort, ushort> _stubSegments;
     private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
+    private readonly ArgumentFetcher _args;
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -29,16 +31,19 @@ public class BakOverrides : CSharpOverrideHelper {
             ? Directory.GetCurrentDirectory()
             : Path.GetDirectoryName(configuration.Exe);
         _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
+        _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
         DefineStubMapping();
         DefineFunctions();
         DefineBreakpoints();
     }
 
+    // This is the mapping between the OVR segments and the stub segments. ovr151 maps to stub151, etc.
     private void DefineStubMapping() {
         _stubSegments = new Dictionary<ushort, ushort> {
             [0x3FF7] = 0x3817,
             [0x4028] = 0x381A,
-            [0x5040] = 0x38A2
+            [0x5040] = 0x38A2,
+            [0x5278] = 0x38B4
         };
     }
 
@@ -48,43 +53,97 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void DefineBreakpoints() {
-        DoOnTopOfInstruction("387F:0020", LogDialogBuildCall);
-        DoOnTopOfInstruction("3887:0025", Sub_4B54C);
-        DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
-        DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
-        DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
-        DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
-        DoOnTopOfInstruction("3991:0020", Logsub_ovr185_0);
-        DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
-        DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
-        DoOnTopOfInstruction("3991:004D", Logsub_ovr185_53F);
         DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
-        // DoOnTopOfInstruction("5040:0510", LogMemoryAtAxDx);
+
+        // DoOnTopOfInstruction("387F:0020", LogDialogBuildCall);
+        // DoOnTopOfInstruction("3887:0025", Sub_4B54C);
+        // DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
+        // DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
+        // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
+        // DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
+        // DoOnTopOfInstruction("3991:0020", Logsub_ovr185_0);
+        // DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
+        // DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
+        // DoOnTopOfInstruction("3991:004D", Logsub_ovr185_53F);
+        // DoOnTopOfInstruction("5040:0510", LogMemoryAtAxDx());
+        // DoOnTopOfInstruction("5040:03E9", LogMemoryAtAxDx("adscommands"));
         // DoOnTopOfInstruction("5040:03D4", LogAx("animationRecordNumber"));
         // DoOnTopOfInstruction("5040:03DB", LogAx("tagNumber"));
-        AddMemoryMonitor("39DD:0E0E", "animationIndex?_dseg_E0E");
+        // DoOnTopOfInstruction("5040:0466", LogAx("count"));
+        // DoOnTopOfInstruction("5278:12B2", LogStringAt("39dd:4ed4"));
+        // DoOnTopOfInstruction("5040:1810", LogMemoryAtAxDx("animbigstruct"));
+        // AddByteMemoryMonitor("39DD:0E0E", "animationIndex?_dseg_E0E");
+        AddWordMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
+        // AddWordMemoryMonitor("39DD:20D0", "video buffer C");
+        // AddWordMemoryMonitor("39DD:20D2", "video buffer B");
+        // AddWordMemoryMonitor("39DD:20D4", "video buffer A");
+        // AddWordMemoryMonitor("39DD:20D6", "video buffer 1");
+        // AddWordMemoryMonitor("39DD:20D8", "video buffer 2");
+        // AddWordMemoryMonitor("39DD:3E3A", "video buffer");
+        // AddWordMemoryMonitor("39DD:2B76", "video routines");
+        // AddDWordMemoryMonitor("39DD:2F5A", "video routines");
+        DoOnTopOfInstruction("1834:22CC", LogAllocateMemory);
     }
 
-    private void AddMemoryMonitor(string address, string? name = null) {
+    private void LogAllocateMemory() {
+        _args.Get(out uint sizeInBytes, out uint boolClear);
+        _loggerService.Information("AllocateMemory({BoolClear}, {SizeInBytes})",
+            boolClear, sizeInBytes);
+    }
+
+    private void AddDWordMemoryMonitor(string address, string name) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+        DoOnMemoryWrite(segment, (ushort)(offset + 3), () => {
+            _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
+            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: {ValueSegment:X4}:{ValueOffset:X4}",
+                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, (ushort)(offset+2)], Memory.UInt16[segment, offset]);
+        });
+    }
+
+    private Action LogStringAt(string address) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+        return () => {
+            var stringAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
+            _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value}", segment, offset, Memory.GetZeroTerminatedString(stringAddress, 100));
+        };
+    }
+
+    private void AddWordMemoryMonitor(string address, string? name = null) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+        DoOnMemoryWrite(segment, (ushort)(offset + 1), () => {
+            if (!_ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment)) {
+                idaSegment = State.CS;
+            };
+            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
+                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, offset]);
+        });
+    }
+
+    private void AddByteMemoryMonitor(string address, string? name = null) {
         (ushort segment, ushort offset) = ToSegmentOffset(address);
         DoOnMemoryWrite(segment, offset, () => {
             _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
-            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: {Value:X4}",
-                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, offset]);
+            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X2}",
+                idaSegment, State.IP, name, segment, offset, Memory.UInt8[segment, offset]);
         });
     }
 
     private Action LogAx(string message) {
         return () => {
-            _loggerService.Information("{Message} = {Value:X4}", message, State.AX);
+            _loggerService.Information("{Message} = 0x{Value:X4}", message, State.AX);
         };
     }
 
-    private void LogMemoryAtAxDx() {
-        var address = MemoryUtils.ToPhysicalAddress(State.AX, State.DX);
-        for (int i = -2; i < 20; i += 2) {
-            _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value:X4}", State.AX, State.DX + i, Memory.UInt16[address + i]);
-        }
+    private Action LogMemoryAtAxDx(string? message = null) {
+        return () => {
+            if (message != null) {
+                _loggerService.Information("{Message}:", message);
+            }
+            var address = MemoryUtils.ToPhysicalAddress(State.AX, State.DX);
+            for (int i = -2; i < 20; i += 2) {
+                _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value:X4}", State.AX, State.DX + i, Memory.UInt16[address + i]);
+            }
+        };
     }
 
     private void LogEax() {

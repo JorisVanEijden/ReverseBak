@@ -1,6 +1,6 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class UnknownCommandA526 : AnimatorCommand {
+public class UnknownCommandA526 : FrameCommand {
     public int Arg1 { get; set; }
 
     public int Arg2 { get; set; }
@@ -14,6 +14,6 @@ public class UnknownCommandA526 : AnimatorCommand {
     public int Arg6 { get; set; }
 
     public override string ToString() {
-        return $"UnknownCommandA526({Arg1}, {Arg2}, {Arg3}, {Arg4}, {Arg5}, {Arg6});";
+        return $"{nameof(UnknownCommandA526)}({Arg1}, {Arg2}, {Arg3}, {Arg4}, {Arg5}, {Arg6});";
     }
 }

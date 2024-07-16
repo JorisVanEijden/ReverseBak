@@ -11,17 +11,16 @@ using GameData.Resources.Location;
 using GameData.Resources.Menu;
 using GameData.Resources.Object;
 using GameData.Resources.Spells;
-
+using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtractor.Extractors.Dialog;
-
 using System.Drawing;
 using System.Text;
-
+using System.Text.Json;
 using ArchiveExtractor = ResourceExtraction.Extractors.ArchiveExtractor;
 
 internal static class Program {
@@ -41,8 +40,11 @@ internal static class Program {
 
         ExtractAnimations(filePath, archiveExtractor);
 
-        return;
         ExtractAnimatorScripts(filePath, archiveExtractor);
+
+        TestAssembly(filePath, "C51");
+
+        return;
 
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
@@ -102,16 +104,21 @@ internal static class Program {
         const string teleportDat = "teleport.dat";
         List<TeleportDestination> teleportDestinations = TeleportExtractor.Extract(Path.Combine(filePath, teleportDat));
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
+    }
 
-
+    private static void TestAssembly(string filePath, string name) {
+        string destination = Path.Combine(filePath, $"{name}.TTM");
+        var mod = JsonSerializer.Deserialize<AnimatorScene>(File.ReadAllText($"TTM/{name}.json"));
+        TtmAssembler.Assemble(mod ?? throw new InvalidOperationException(), destination);
     }
 
     private static void ExtractAnimatorScripts(string filePath, ArchiveExtractor archiveExtractor) {
         var animatorScriptExtractor = new TtmExtractor();
-        foreach (string ttmFile in GetFiles(filePath, "*.ttm")) {
-            // string ttmFile = Path.Combine(filePath, "C21.TTM");
+        foreach (string ttmFile in GetFiles(filePath, "*.ttm")
+                     // .Where(f => !f.EndsWith("C51.TTM"))
+                ) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(ttmFile);
-            AnimatorScript ttm = animatorScriptExtractor.Extract(Path.GetFileName(ttmFile), resourceStream);
+            AnimatorScene ttm = animatorScriptExtractor.Extract(Path.GetFileName(ttmFile), resourceStream);
             WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         }
     }
@@ -126,7 +133,6 @@ internal static class Program {
         foreach (ushort command in AdsScriptBuilder.SeenCommands) {
             Console.WriteLine($"{command:X4}");
         }
-
     }
 
     private static void ExtractSpells(ArchiveExtractor archiveExtractor) {

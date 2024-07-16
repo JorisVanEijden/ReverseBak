@@ -1,9 +1,9 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class UnknownCommandC061 : AnimatorCommand {
-    public int Arg1 { get; set; }
+public class UnknownCommandC061 : FrameCommand {
+    public int SoundId { get; set; }
 
     public override string ToString() {
-        return $"UnknownCommandC061({Arg1});";
+        return $"{nameof(UnknownCommandC061)}({SoundId});";
     }
 }

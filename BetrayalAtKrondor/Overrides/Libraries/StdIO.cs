@@ -532,7 +532,7 @@ public class StdIO : CSharpOverrideHelper {
             result = Constants.EOF;
             if (_loggerService.IsEnabled(LogEventLevel.Error)) {
                 _loggerService.Error(e, "{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4} ({Exception})",
-                    nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result, e.Demystify());
+                    nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result, e);
             }
         }
 

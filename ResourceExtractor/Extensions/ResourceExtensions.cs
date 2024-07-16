@@ -33,7 +33,7 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
-    public static string ToJson(this AnimatorScript resource) {
+    public static string ToJson(this AnimatorScene resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
