@@ -39,7 +39,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(UnknownCommandA536), nameof(UnknownCommandA536))]
 [JsonDerivedType(typeof(UnknownCommandA524), nameof(UnknownCommandA524))]
 [JsonDerivedType(typeof(SetDelay), nameof(SetDelay))]
-[JsonDerivedType(typeof(UnknownCommand00C0), nameof(UnknownCommand00C0))]
+[JsonDerivedType(typeof(FreeCurrentBuffer), nameof(FreeCurrentBuffer))]
 [JsonDerivedType(typeof(DisposeCurrentBitmap), nameof(DisposeCurrentBitmap))]
 [JsonDerivedType(typeof(StopSound), nameof(StopSound))]
 [JsonDerivedType(typeof(UnknownCommand1101), nameof(UnknownCommand1101))]

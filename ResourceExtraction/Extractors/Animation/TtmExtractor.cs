@@ -94,7 +94,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                     break;
                 case 0x00C0:
-                    command = new UnknownCommand00C0();
+                    command = new FreeCurrentBuffer();
 
                     break;
                 case 0x0110:

@@ -93,7 +93,7 @@ public class TtmAssembler {
                     case StoreScreen:
                     case DisposeCurrentPalette:
                     case DisposeCurrentBitmap:
-                    case UnknownCommand00C0:
+                    case FreeCurrentBuffer:
                     case UnknownCommand0110:
                     case UnknownCommand0400:
                     case UnknownCommand0500:
