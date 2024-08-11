@@ -9,17 +9,14 @@ using GameData.Resources.Label;
 using GameData.Resources.Location;
 using GameData.Resources.Menu;
 using GameData.Resources.Object;
+using GameData.Resources.Palette;
 using GameData.Resources.Spells;
-
-using ResourceExtraction.Extractors;
-
 using ResourceExtractor.Extractors.Container;
-
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Color = GameData.Resources.Palette.Color;
 
 public static class ResourceExtensions {
     private static readonly JsonSerializerOptions JsonOptions = new() {
@@ -77,6 +74,10 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this PaletteResource resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this KeywordList resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
@@ -113,42 +114,38 @@ public static class ResourceExtensions {
     }
 
     public static Bitmap ToBitmap(this BmImage image, Color[]? palette = null) {
-        if (image.Data == null) {
+        if (image.BitMapData == null) {
             throw new ArgumentException("Image data is null");
         }
         if (palette != null) {
-            palette[0] = Color.Transparent;
+            palette[0].A = 0;
         }
-        if ((image.Flags & 0x20) != 0 && image.Data != null) {
-            var bitmap = new Bitmap(image.Width, image.Height);
+        var bitmap = new Bitmap(image.Width, image.Height);
+
+        if ((image.Flags & 0x20) != 0) {
             int index = 0;
             for (int x = 0; x < image.Width; x++) {
                 for (int y = 0; y < image.Height; y++) {
-                    byte colorIndex = image.Data[index++];
-                    if (palette != null) {
-                        bitmap.SetPixel(x, y, palette[colorIndex]);
-                    } else {
-                        bitmap.SetPixel(x, y, Color.FromArgb(colorIndex, colorIndex, colorIndex));
-                    }
+                    byte colorIndex = image.BitMapData[index++];
+                    var color = palette != null
+                        ? System.Drawing.Color.FromArgb(palette[colorIndex].ToArgb())
+                        : System.Drawing.Color.FromArgb(colorIndex, colorIndex, colorIndex);
+                    bitmap.SetPixel(x, y, color);
                 }
             }
-
-            return bitmap;
         } else {
-            var bitmap = new Bitmap(image.Width, image.Height);
             int index = 0;
             for (int y = 0; y < image.Height; y++) {
                 for (int x = 0; x < image.Width; x++) {
-                    byte colorIndex = image.Data[index++];
-                    if (palette != null) {
-                        bitmap.SetPixel(x, y, palette[colorIndex]);
-                    } else {
-                        bitmap.SetPixel(x, y, Color.FromArgb(colorIndex, colorIndex, colorIndex));
-                    }
+                    byte colorIndex = image.BitMapData[index++];
+                    var color = palette != null
+                        ? System.Drawing.Color.FromArgb(palette[colorIndex].ToArgb())
+                        : System.Drawing.Color.FromArgb(colorIndex, colorIndex, colorIndex);
+                    bitmap.SetPixel(x, y, color);
                 }
             }
-
-            return bitmap;
         }
+
+        return bitmap;
     }
 }

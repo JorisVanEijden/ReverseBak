@@ -273,7 +273,7 @@ public class TtmAssembler {
                         writer.Write((ushort)unknownCommandA516.Arg6);
 
                         break;
-                    case UnknownCommandA524 unknownCommandA524:
+                    case DrawImageFlippedHorizontally unknownCommandA524:
                         writer.Write((ushort)unknownCommandA524.X);
                         writer.Write((ushort)unknownCommandA524.Y);
                         writer.Write((ushort)unknownCommandA524.ImageNumber);

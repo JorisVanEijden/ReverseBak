@@ -22,6 +22,8 @@ using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using ArchiveExtractor = ResourceExtraction.Extractors.ArchiveExtractor;
+using Color = GameData.Resources.Palette.Color;
+using PaletteExtractor = ResourceExtraction.Extractors.PaletteExtractor;
 
 internal static class Program {
     private const int DosCodePage = 437;
@@ -44,7 +46,6 @@ internal static class Program {
 
         TestAssembly(filePath, "C51");
 
-        return;
 
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
@@ -54,14 +55,10 @@ internal static class Program {
         ExtractAllScx(filePath, archiveExtractor);
         ExtractAllBmx(filePath, archiveExtractor);
 
-        foreach (string paletteFile in GetFiles(filePath, "*.PAL")) {
-            Color[] colors2 = PaletteExtractor.Extract(paletteFile);
-            // WriteToJsonFile(paletteFile, ResourceType.PAL, colors2.ToJson());
-            WriteToCsvFile(paletteFile, ResourceType.PAL, colors2.ToCsv());
-        }
+        ExtractAllPalettes(filePath, archiveExtractor);
 
         // var screen = ExtractScreen(Path.Combine(filePath, "PUZZLE.SCX"));
-        // var image = new BmImage{Data = screen.BitMapData, Width = 320, Height = 200};
+        // var image = new BmImage{BitMapData = screen.BitMapData, Width = 320, Height = 200};
         // SaveAsBitmap(image, "PUZZLE.png", colors);
 
         ExtractUserInterfaces(filePath);
@@ -106,6 +103,16 @@ internal static class Program {
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
     }
 
+    private static void ExtractAllPalettes(string filePath, ArchiveExtractor archiveExtractor) {
+        var paletteExtractor = new PaletteExtractor();
+        foreach (string paletteFile in GetFiles(filePath, "*.PAL")) {
+            using var resourceStream = archiveExtractor.GetResourceStream(paletteFile);
+            var paletteResource = paletteExtractor.Extract(paletteFile, resourceStream);
+            WriteToJsonFile(paletteFile, ResourceType.PAL, paletteResource.ToJson());
+            // WriteToCsvFile(paletteFile, ResourceType.PAL, paletteResource.Colors.ToCsv());
+        }
+    }
+
     private static void TestAssembly(string filePath, string name) {
         string destination = Path.Combine(filePath, $"{name}.TTM");
         var mod = JsonSerializer.Deserialize<AnimatorScene>(File.ReadAllText($"TTM/{name}.json"));
@@ -115,7 +122,7 @@ internal static class Program {
     private static void ExtractAnimatorScripts(string filePath, ArchiveExtractor archiveExtractor) {
         var animatorScriptExtractor = new TtmExtractor();
         foreach (string ttmFile in GetFiles(filePath, "*.ttm")
-                     // .Where(f => !f.EndsWith("C51.TTM"))
+                 // .Where(f => !f.EndsWith("C51.TTM"))
                 ) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(ttmFile);
             AnimatorScene ttm = animatorScriptExtractor.Extract(Path.GetFileName(ttmFile), resourceStream);
@@ -167,17 +174,12 @@ internal static class Program {
         });
 
         var bitmapExtractor = new BitmapExtractor();
+        var paletteExtractor = new PaletteExtractor();
         foreach (string bmxFile in bmxFiles) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(bmxFile);
             ImageSet imageSet = bitmapExtractor.Extract(Path.GetFileName(bmxFile), resourceStream);
             var imageName = $"{Path.GetFileNameWithoutExtension(bmxFile)}";
-            Color[]? colors = PaletteExtractor.FindPalette(filePath, imageName);
-            // If it's just a single image we extract it directly
-            if (imageSet.Images.Count == 1) {
-                WriteToPngFile(bmxFile, ResourceType.BMX.ToString(), imageSet.Images[0].ToBitmap(colors));
-
-                continue;
-            }
+            Color[] colors = GetColorsFromPalette(filePath, archiveExtractor, imageName, paletteExtractor);
             // For multiple images we create a directory and extract each image
             var path = ResourceType.BMX.ToString();
             string resourceDirectory = Path.Combine(path, imageName);
@@ -188,32 +190,40 @@ internal static class Program {
         }
     }
 
+    private static Color[] GetColorsFromPalette(string filePath, ArchiveExtractor archiveExtractor, string imageName, PaletteExtractor paletteExtractor) {
+        var paletteFile = PaletteExtractor.FindPalette(filePath, imageName);
+        using Stream paletteStream = archiveExtractor.GetResourceStream(paletteFile);
+        var colors = paletteExtractor.Extract(paletteFile, paletteStream).Colors;
+
+        return colors;
+    }
+
     private static void ExtractAllScx(string filePath, ArchiveExtractor archiveExtractor) {
         string[] scxFiles = Directory.GetFileSystemEntries(filePath, "*.scx", new EnumerationOptions {
             MatchCasing = MatchCasing.CaseInsensitive
         });
 
         var screenExtractor = new ScreenExtractor();
-
+        var paletteExtractor = new PaletteExtractor();
         foreach (string scxFile in scxFiles) {
             using Stream resourceStream = archiveExtractor.GetResourceStream(scxFile);
             string imageName = Path.GetFileNameWithoutExtension(scxFile);
-            Screen screen = screenExtractor.Extract(Path.GetFileName(scxFile), resourceStream);
-            if (screen.BitMapData == null) {
+            BackgroundImage backgroundImage = screenExtractor.Extract(Path.GetFileName(scxFile), resourceStream);
+            if (backgroundImage.BitMapData == null) {
                 continue;
             }
 
-            Color[]? palette = PaletteExtractor.FindPalette(filePath, imageName);
+            Color[] colors = GetColorsFromPalette(filePath, archiveExtractor, imageName, paletteExtractor);
 
             var image = new BmImage(scxFile) {
-                Data = screen.BitMapData,
-                Width = screen.Width,
-                Height = screen.Height
+                BitMapData = backgroundImage.BitMapData,
+                Width = backgroundImage.Width,
+                Height = backgroundImage.Height
             };
 
-            var bitmap = image.ToBitmap(palette);
+            var bitmap = image.ToBitmap(colors);
 
-            WriteToPngFile(imageName, screen.Type.ToString(), bitmap);
+            WriteToPngFile(imageName, backgroundImage.Type.ToString(), bitmap);
         }
     }
 

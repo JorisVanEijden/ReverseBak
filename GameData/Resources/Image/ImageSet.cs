@@ -5,8 +5,8 @@ public class ImageSet : IResource {
         Id = id;
     }
 
+    public List<BmImage> Images { get; set; } = [];
+
     public ResourceType Type { get => ResourceType.BMX; }
     public string Id { get; }
-    
-    public List<BmImage> Images { get; set; } = [];
 }

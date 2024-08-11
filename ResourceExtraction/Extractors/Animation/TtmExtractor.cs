@@ -352,7 +352,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                     break;
                 case 0xA524:
-                    command = new UnknownCommandA524 {
+                    command = new DrawImageFlippedHorizontally {
                         X = scriptReader.ReadInt16(),
                         Y = scriptReader.ReadInt16(),
                         ImageNumber = scriptReader.ReadInt16(),

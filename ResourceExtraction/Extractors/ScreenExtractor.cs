@@ -5,8 +5,8 @@ using GameData.Resources.Image;
 using System.IO;
 using System.Text;
 
-public class ScreenExtractor : ExtractorBase<Screen> {
-    public override Screen Extract(string screenId, Stream resourceStream) {
+public class ScreenExtractor : ExtractorBase<BackgroundImage> {
+    public override BackgroundImage Extract(string screenId, Stream resourceStream) {
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
         ushort signature = resourceReader.ReadUInt16();
         bool hiRes = signature != 0x27B6;
@@ -27,7 +27,7 @@ public class ScreenExtractor : ExtractorBase<Screen> {
             bitMapData = tempArray;
         }
 
-        var screen = new Screen(screenId) {
+        var screen = new BackgroundImage(screenId) {
             BitMapData = bitMapData,
             Width = hiRes ? 640 : 320,
             Height = hiRes ? 350 : 200

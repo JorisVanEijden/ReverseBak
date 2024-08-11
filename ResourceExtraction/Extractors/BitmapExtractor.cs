@@ -76,13 +76,13 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
 
         for (var i = 0; i < nrOfImages; i++) {
             BmImage image = images[i];
-            image.Data = new byte[image.Width * image.Height];
+            image.BitMapData = new byte[image.Width * image.Height];
             Log($"Reading image {i} with a size of {image.Width * image.Height} bytes at position {decompressedStream.Position}.");
 
-            for (var j = 0; j < image.Data.Length; j++) {
+            for (var j = 0; j < image.BitMapData.Length; j++) {
                 int colors = decompressedStream.ReadByte();
-                image.Data[j++] = (byte)(colors >> 4);
-                image.Data[j] = (byte)(colors & 0x0F);
+                image.BitMapData[j++] = (byte)(colors >> 4);
+                image.BitMapData[j] = (byte)(colors & 0x0F);
             }
         }
 
@@ -151,17 +151,17 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
             Log($"Reading image {i} with a size of {image.Size} bytes.");
             if ((image.Flags & 0x80) == 0) {
                 Log($"No extra compression for image {i}");
-                image.Data = new byte[image.Size];
-                imageStream.ReadExactly(image.Data);
+                image.BitMapData = new byte[image.Size];
+                imageStream.ReadExactly(image.BitMapData);
             } else {
                 Stream decompressedStream = rleCompression.Decompress(imageStream, image.Size);
-                image.Data = new byte[decompressedStream.Length];
-                decompressedStream.ReadExactly(image.Data);
+                image.BitMapData = new byte[decompressedStream.Length];
+                decompressedStream.ReadExactly(image.BitMapData);
             }
-            if (image.Height * image.Width != image.Data.Length) {
-                File.WriteAllBytes("debug.bin", image.Data);
+            if (image.Height * image.Width != image.BitMapData.Length) {
+                File.WriteAllBytes("debug.bin", image.BitMapData);
 
-                throw new InvalidOperationException($"Image {i} has a size of {image.Data.Length} bytes but should be {image.Height} * {image.Width} = {image.Height * image.Width} bytes.");
+                throw new InvalidOperationException($"Image {i} has a size of {image.BitMapData.Length} bytes but should be {image.Height} * {image.Width} = {image.Height * image.Width} bytes.");
             }
         }
 

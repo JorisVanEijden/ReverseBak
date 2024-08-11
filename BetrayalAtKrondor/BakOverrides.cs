@@ -22,6 +22,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private Dictionary<ushort, ushort> _stubSegments;
     private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
     private readonly ArgumentFetcher _args;
+    private readonly IPauseHandler _pauseHandler;
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -32,6 +33,7 @@ public class BakOverrides : CSharpOverrideHelper {
             : Path.GetDirectoryName(configuration.Exe);
         _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
         _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
+        _pauseHandler = machine.PauseHandler;
         DefineStubMapping();
         DefineFunctions();
         DefineBreakpoints();
@@ -54,35 +56,21 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private void DefineBreakpoints() {
         DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
+        // DoOnTopOfInstruction("1834:22CC", LogAllocateMemory);
 
-        // DoOnTopOfInstruction("387F:0020", LogDialogBuildCall);
-        // DoOnTopOfInstruction("3887:0025", Sub_4B54C);
-        // DoOnTopOfInstruction("3887:0034", LogField1KeyWordCall);
-        // DoOnTopOfInstruction("3840:0025", LogGetValueFromActor);
         // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
         // DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
-        // DoOnTopOfInstruction("3991:0020", Logsub_ovr185_0);
-        // DoOnTopOfInstruction("3991:002F", LogLoadTzzxxyy_WLD);
-        // DoOnTopOfInstruction("3991:0034", Logsub_ovr185_33F);
-        // DoOnTopOfInstruction("3991:004D", Logsub_ovr185_53F);
-        // DoOnTopOfInstruction("5040:0510", LogMemoryAtAxDx());
-        // DoOnTopOfInstruction("5040:03E9", LogMemoryAtAxDx("adscommands"));
-        // DoOnTopOfInstruction("5040:03D4", LogAx("animationRecordNumber"));
-        // DoOnTopOfInstruction("5040:03DB", LogAx("tagNumber"));
-        // DoOnTopOfInstruction("5040:0466", LogAx("count"));
-        // DoOnTopOfInstruction("5278:12B2", LogStringAt("39dd:4ed4"));
-        // DoOnTopOfInstruction("5040:1810", LogMemoryAtAxDx("animbigstruct"));
-        // AddByteMemoryMonitor("39DD:0E0E", "animationIndex?_dseg_E0E");
-        AddWordMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
-        // AddWordMemoryMonitor("39DD:20D0", "video buffer C");
-        // AddWordMemoryMonitor("39DD:20D2", "video buffer B");
-        // AddWordMemoryMonitor("39DD:20D4", "video buffer A");
-        // AddWordMemoryMonitor("39DD:20D6", "video buffer 1");
-        // AddWordMemoryMonitor("39DD:20D8", "video buffer 2");
-        // AddWordMemoryMonitor("39DD:3E3A", "video buffer");
-        // AddWordMemoryMonitor("39DD:2B76", "video routines");
-        // AddDWordMemoryMonitor("39DD:2F5A", "video routines");
-        DoOnTopOfInstruction("1834:22CC", LogAllocateMemory);
+
+        // AddWordMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
+
+        DoOnTopOfInstruction("5278:0540", LogAx("framenumber"));
+        PauseAt("5278:0543", "anim_executeFrameFunctions");
+    }
+
+    private void PauseAt(string address, string message) {
+        DoOnTopOfInstruction(address, () => {
+            _pauseHandler.RequestPause(message);
+        });
     }
 
     private void LogAllocateMemory() {
@@ -116,6 +104,7 @@ public class BakOverrides : CSharpOverrideHelper {
             };
             _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
                 idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, offset]);
+            _pauseHandler.RequestPause("memory write");
         });
     }
 
@@ -131,6 +120,11 @@ public class BakOverrides : CSharpOverrideHelper {
     private Action LogAx(string message) {
         return () => {
             _loggerService.Information("{Message} = 0x{Value:X4}", message, State.AX);
+        };
+    }
+    private Action LogDs(string message) {
+        return () => {
+            _loggerService.Information("{Message} = 0x{Value:X4}", message, State.DS);
         };
     }
 
@@ -267,7 +261,7 @@ public class BakOverrides : CSharpOverrideHelper {
 
         // If segment >= ovr121  (0x3FF7) then it's an overlay
         // Look up segment in ovr table
-        if (segment >= 0x3FF7) {
+        if (segment is >= 0x3FF7 and < 0x5ADE) {
             // We add it to the list, and when the OVR gets mapped, the real breakpoint is added.
             _ovrBreakpoints.Add(new OvrBreakpoint(segment, offset, action));
 
@@ -406,7 +400,7 @@ internal class DialogEntry : MemoryBasedDataStructure {
 
     public override string ToString() {
         StringBuilder sb = new();
-        sb.AppendLine($"Field_0: {Field_0}, Field_1: {Field_1}, Field_3: {Field_3}, BranchCount: {BranchCount}, ActionCount: {ActionCount}, StringLength: {StringLength}, Text: {Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(Text, true)}\n");
+        sb.AppendLine($"Field_0: {Field_0}, Field_1: {Field_1}, Field_3: {Field_3}, BranchCount: {BranchCount}, ActionCount: {ActionCount}, StringLength: {StringLength}, Text: {Text}\n");
         foreach (DialogBranchData branchData in DialogBranchDataArray) {
             sb.AppendLine(branchData.ToString());
         }

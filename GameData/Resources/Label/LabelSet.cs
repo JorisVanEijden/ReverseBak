@@ -5,7 +5,7 @@ public class LabelSet : IResource {
         Id = id;
     }
 
-    public List<Label> Labels { get; set; } = new();
+    public List<Label> Labels { get; set; } = [];
     public ResourceType Type { get => ResourceType.LBL; }
     public string Id { get; }
 }

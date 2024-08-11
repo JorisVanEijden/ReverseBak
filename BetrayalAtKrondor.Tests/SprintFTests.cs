@@ -32,7 +32,8 @@ public class SprintFTests {
         };
 
         ILoggerService loggerService = new Mock<LoggerService>(new LoggerPropertyBag()).Object;
-        var programExecutor = new ProgramExecutor(configuration, loggerService, null);
+        PauseHandler pauseHandler = new PauseHandler(loggerService);
+        var programExecutor = new ProgramExecutor(configuration, loggerService, null, pauseHandler);
         Machine machine = programExecutor.Machine;
         _cpu = machine.Cpu;
         _cFunctions = new CFunctions(_cpu, machine.Memory);

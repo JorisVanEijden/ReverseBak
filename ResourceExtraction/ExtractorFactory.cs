@@ -7,6 +7,7 @@ using GameData.Resources.Data;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
+using GameData.Resources.Palette;
 using GameData.Resources.Spells;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
@@ -30,11 +31,13 @@ public static class ExtractorFactory {
         }, {
             typeof(LabelSet), typeof(LabelExtractor)
         }, {
-            typeof(Screen), typeof(ScreenExtractor)
+            typeof(BackgroundImage), typeof(ScreenExtractor)
         }, {
             typeof(SpellList), typeof(SpellExtractor)
         }, {
             typeof(SpellInfoList), typeof(SpellInfoExtractor)
+        }, {
+            typeof(PaletteResource), typeof(PaletteExtractor)
         }
     };
 
@@ -44,5 +47,9 @@ public static class ExtractorFactory {
         }
 
         throw new InvalidOperationException($"No extractor found for type {typeof(T).Name}");
+    }
+
+    public static object GetExtractor(Type extractorType) {
+        return Activator.CreateInstance(extractorType);
     }
 }
