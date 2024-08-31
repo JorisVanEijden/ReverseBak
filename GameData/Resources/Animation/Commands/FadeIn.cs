@@ -11,10 +11,10 @@ public class FadeIn : FrameCommand {
     /// Palette index of the color to fade from
     public int Color { get; set; }
 
-    /// Delay ranging from 0 to 6, determines the speed of the fade
-    public int Delay { get; set; }
+    /// Speed ranging from 0 to 6, determines the speed of the fade
+    public int Speed { get; set; }
 
     public override string ToString() {
-        return $"{nameof(FadeIn)}({Start}, {End}, {Color}, {Delay});";
+        return $"{nameof(FadeIn)}({Start}, {End}, {Color}, {Speed});";
     }
 }

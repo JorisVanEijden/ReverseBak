@@ -1,6 +1,6 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class CopyAreaBetweenBuffers : FrameCommand {
+public class CopyAreaBetweenBuffers : FrameCommand, IArea {
     public int X { get; set; }
     public int Y { get; set; }
     public int Width { set; get; }

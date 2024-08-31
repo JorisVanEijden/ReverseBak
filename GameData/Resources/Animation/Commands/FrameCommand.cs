@@ -15,7 +15,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(NextFrame), nameof(NextFrame))]
 [JsonDerivedType(typeof(StoreArea), nameof(StoreArea))]
 [JsonDerivedType(typeof(FadeOut), nameof(FadeOut))]
-[JsonDerivedType(typeof(ClearArea), nameof(ClearArea))]
+[JsonDerivedType(typeof(DrawBoxForegroundColor), nameof(DrawBoxForegroundColor))]
 [JsonDerivedType(typeof(LoadFontResource), nameof(LoadFontResource))]
 [JsonDerivedType(typeof(SelectFontSlot), nameof(SelectFontSlot))]
 [JsonDerivedType(typeof(DialogCommand), nameof(DialogCommand))]
@@ -38,7 +38,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(UnknownCommandA516), nameof(UnknownCommandA516))]
 [JsonDerivedType(typeof(UnknownCommandA536), nameof(UnknownCommandA536))]
 [JsonDerivedType(typeof(DrawImageFlippedHorizontally), nameof(DrawImageFlippedHorizontally))]
-[JsonDerivedType(typeof(SetDelay), nameof(SetDelay))]
+[JsonDerivedType(typeof(SetFramesDuration), nameof(SetFramesDuration))]
 [JsonDerivedType(typeof(FreeCurrentBuffer), nameof(FreeCurrentBuffer))]
 [JsonDerivedType(typeof(DisposeCurrentBitmap), nameof(DisposeCurrentBitmap))]
 [JsonDerivedType(typeof(StopSound), nameof(StopSound))]
@@ -53,11 +53,14 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(UnknownCommandA5A7), nameof(UnknownCommandA5A7))]
 [JsonDerivedType(typeof(UnknownCommandA526), nameof(UnknownCommandA526))]
 [JsonDerivedType(typeof(UnknownCommandA514), nameof(UnknownCommandA514))]
-[JsonDerivedType(typeof(UnknownCommandA114), nameof(UnknownCommandA114))]
+[JsonDerivedType(typeof(DrawBoxBackgroundColor), nameof(DrawBoxBackgroundColor))]
 [JsonDerivedType(typeof(UnknownCommandA034), nameof(UnknownCommandA034))]
 [JsonDerivedType(typeof(UnknownCommandC061), nameof(UnknownCommandC061))]
 [JsonDerivedType(typeof(DisposeCurrentPalette), nameof(DisposeCurrentPalette))]
 #endif
 public abstract class FrameCommand {
-    public string Id { get; set; }
+    public string Id { get; set; } = "Unknown";
+    public override string ToString() {
+        return Id;
+    }
 }

@@ -1,6 +1,6 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class SetClipArea : FrameCommand {
+public class SetClipArea : FrameCommand, IArea {
     public int X { get; set; }
     public int Y { get; set; }
     public int Width { get; set; }

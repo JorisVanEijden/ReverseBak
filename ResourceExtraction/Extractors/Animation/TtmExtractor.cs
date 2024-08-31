@@ -119,7 +119,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                     continue;
                 case 0x1021:
-                    command = new SetDelay {
+                    command = new SetFramesDuration {
                         Amount = scriptReader.ReadInt16()
                     };
 
@@ -225,7 +225,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
                         End = scriptReader.ReadInt16(),
                         Start = scriptReader.ReadInt16(),
                         Color = scriptReader.ReadInt16(),
-                        Delay = scriptReader.ReadInt16()
+                        Speed = scriptReader.ReadInt16()
                     };
 
                     break;
@@ -234,7 +234,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
                         Start = scriptReader.ReadInt16(),
                         End = scriptReader.ReadInt16(),
                         Color = scriptReader.ReadInt16(),
-                        Delay = scriptReader.ReadInt16()
+                        Speed = scriptReader.ReadInt16()
                     };
 
                     break;
@@ -294,7 +294,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                     break;
                 case 0xA104:
-                    command = new ClearArea {
+                    command = new DrawBoxForegroundColor {
                         X = scriptReader.ReadInt16(),
                         Y = scriptReader.ReadInt16(),
                         Width = scriptReader.ReadInt16(),
@@ -303,11 +303,11 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                     break;
                 case 0xA114:
-                    command = new UnknownCommandA114 {
-                        Arg1 = scriptReader.ReadInt16(),
-                        Arg2 = scriptReader.ReadInt16(),
-                        Arg3 = scriptReader.ReadInt16(),
-                        Arg4 = scriptReader.ReadInt16()
+                    command = new DrawBoxBackgroundColor {
+                        X = scriptReader.ReadInt16(),
+                        Y = scriptReader.ReadInt16(),
+                        Width = scriptReader.ReadInt16(),
+                        Height = scriptReader.ReadInt16()
                     };
 
                     break;

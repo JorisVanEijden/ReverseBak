@@ -3,7 +3,7 @@ namespace GameData.Resources.Animation.Commands;
 /**
  * Fills the current buffer with the contents of the specified area.
  */
-public class CopyToCurrentBuffer : FrameCommand {
+public class CopyToCurrentBuffer : FrameCommand, IArea {
     public int X { get; set; }
     public int Y { get; set; }
     public int Width { get; set; }

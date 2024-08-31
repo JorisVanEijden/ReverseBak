@@ -1,6 +1,6 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class StoreArea : FrameCommand, IArea {
+public class DrawBoxForegroundColor : FrameCommand, IArea {
     public int X { get; set; }
 
     public int Y { get; set; }
@@ -10,6 +10,6 @@ public class StoreArea : FrameCommand, IArea {
     public int Height { get; set; }
 
     public override string ToString() {
-        return $"{nameof(StoreArea)}({X}, {Y}, {Width}, {Height});";
+        return $"{nameof(DrawBoxForegroundColor)}({X}, {Y}, {Width}, {Height});";
     }
 }

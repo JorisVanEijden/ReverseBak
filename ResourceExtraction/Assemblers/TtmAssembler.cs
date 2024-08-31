@@ -100,7 +100,7 @@ public class TtmAssembler {
                     case UnknownCommand0510:
 
                         break;
-                    case SetDelay setDelay:
+                    case SetFramesDuration setDelay:
                         writer.Write((ushort)setDelay.Amount);
 
                         break;
@@ -173,14 +173,14 @@ public class TtmAssembler {
                         writer.Write((ushort)fadeOut.End);
                         writer.Write((ushort)fadeOut.Start);
                         writer.Write((ushort)fadeOut.Color);
-                        writer.Write((ushort)fadeOut.Delay);
+                        writer.Write((ushort)fadeOut.Speed);
 
                         break;
                     case FadeIn fadeIn:
                         writer.Write((ushort)fadeIn.Start);
                         writer.Write((ushort)fadeIn.End);
                         writer.Write((ushort)fadeIn.Color);
-                        writer.Write((ushort)fadeIn.Delay);
+                        writer.Write((ushort)fadeIn.Speed);
 
                         break;
                     case StoreArea storeArea:
@@ -226,18 +226,18 @@ public class TtmAssembler {
 
                         break;
 
-                    case ClearArea clearArea:
+                    case DrawBoxForegroundColor clearArea:
                         writer.Write((ushort)clearArea.X);
                         writer.Write((ushort)clearArea.Y);
                         writer.Write((ushort)clearArea.Width);
                         writer.Write((ushort)clearArea.Height);
 
                         break;
-                    case UnknownCommandA114 unknownCommandA114:
-                        writer.Write((ushort)unknownCommandA114.Arg1);
-                        writer.Write((ushort)unknownCommandA114.Arg2);
-                        writer.Write((ushort)unknownCommandA114.Arg3);
-                        writer.Write((ushort)unknownCommandA114.Arg4);
+                    case DrawBoxBackgroundColor unknownCommandA114:
+                        writer.Write((ushort)unknownCommandA114.X);
+                        writer.Write((ushort)unknownCommandA114.Y);
+                        writer.Write((ushort)unknownCommandA114.Width);
+                        writer.Write((ushort)unknownCommandA114.Height);
 
                         break;
 

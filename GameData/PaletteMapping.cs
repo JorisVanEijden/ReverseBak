@@ -3,10 +3,9 @@ namespace GameData;
 public static class PaletteMapping {
 
     public static string? GetPaletteFor(string image) {
-        image = StripThreeLetterExtension(image);
+        image = StripThreeLetterExtension(image).ToUpper();
 
-
-        return image.ToUpper() switch {
+        return image switch {
             "BLANK" => "CREDITS.PAL",
             "BOOK" => "BOOK.PAL",
             "C11" => "C11B.PAL", // also B variant
