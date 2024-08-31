@@ -2,7 +2,6 @@ namespace BetrayalAtKrondor.Overrides.Libraries;
 
 using BetrayalAtKrondor.Overrides.Libraries.Structures;
 using Serilog.Events;
-
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.ReverseEngineer;
@@ -10,12 +9,8 @@ using Spice86.Core.Emulator.VM;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 using Spice86.Shared.Utils;
-
 using System.Collections;
-using System.Diagnostics;
 using System.Text;
-
-using File = System.IO.File;
 
 public class StdIO : CSharpOverrideHelper {
     private readonly List<Stream> _openStreams = new();
@@ -89,6 +84,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         ES = DS;
         SetResult(string1Pointer);
+
         return FarRet();
     }
 
@@ -101,6 +97,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         ES = DS;
         SetResult(result);
+
         return FarRet();
     }
 
@@ -120,6 +117,7 @@ public class StdIO : CSharpOverrideHelper {
                 nameof(StdIO), DS, destination, DS, source, destination, sourceString);
         }
         SetResult(destination);
+
         return FarRet();
     }
 
@@ -132,6 +130,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         ES = DS;
         SetResult(result);
+
         return FarRet();
     }
 
@@ -149,6 +148,7 @@ public class StdIO : CSharpOverrideHelper {
         Memory.SetZeroTerminatedString(address, formatted, int.MaxValue);
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -163,6 +163,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -178,11 +179,13 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
         result = (short)count;
         SetResult(result);
+
         return FarRet();
     }
 
@@ -200,6 +203,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -216,6 +220,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -225,6 +230,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -242,6 +248,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -258,6 +265,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -267,6 +275,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -305,6 +314,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -327,6 +337,7 @@ public class StdIO : CSharpOverrideHelper {
             MatchCasing = MatchCasing.CaseInsensitive,
             MatchType = MatchType.Simple
         };
+
         return searchOptions;
     }
 
@@ -354,6 +365,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -370,6 +382,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -395,6 +408,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -420,6 +434,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -445,6 +460,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -459,6 +475,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         _openFiles.Remove(fileDescriptor);
         SetResult(result);
+
         return FarRet();
     }
 
@@ -473,6 +490,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -508,6 +526,7 @@ public class StdIO : CSharpOverrideHelper {
                 nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, _openFiles[fileDescriptor], result, dataWritten);
         }
         SetResult(result);
+
         return FarRet();
     }
 
@@ -522,6 +541,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -542,6 +562,7 @@ public class StdIO : CSharpOverrideHelper {
         }
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -556,6 +577,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -591,6 +613,7 @@ public class StdIO : CSharpOverrideHelper {
                 nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, _openFiles[fileDescriptor], result, dataRead);
         }
         SetResult(result);
+
         return FarRet();
     }
 
@@ -605,6 +628,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -616,6 +640,7 @@ public class StdIO : CSharpOverrideHelper {
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         SetResult(result);
+
         return FarRet();
     }
 
@@ -630,6 +655,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -644,6 +670,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         _openFiles.Remove(fileDescriptor);
         SetResult(result);
+
         return FarRet();
     }
 
@@ -659,6 +686,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), dosPath, mode, result);
             }
             SetResult(result);
+
             return FarRet();
         }
         FileStreamOptions fileStreamOptions = ModeStringToFileStreamOptions(mode);
@@ -673,6 +701,7 @@ public class StdIO : CSharpOverrideHelper {
         }
         _openFiles.Add(result, dosPath);
         SetResult(result);
+
         return FarRet();
     }
 
@@ -693,6 +722,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), dosPath, flags, mode, result, hostPath, fileStreamOptions);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -703,6 +733,7 @@ public class StdIO : CSharpOverrideHelper {
         _openFiles.Add(result, dosPath);
 
         SetResult(result);
+
         return FarRet();
     }
 
@@ -735,28 +766,33 @@ public class StdIO : CSharpOverrideHelper {
             case "rb":
                 options.Mode = FileMode.Open;
                 options.Access = FileAccess.Read;
+
                 break;
             case "w":
             case "wb":
                 options.Mode = FileMode.Create;
                 options.Access = FileAccess.Write;
+
                 break;
             case "a":
             case "ab":
                 options.Mode = FileMode.Append;
                 options.Access = FileAccess.Write;
+
                 break;
             case "r+":
             case "rb+":
             case "r+b":
                 options.Mode = FileMode.OpenOrCreate;
                 options.Access = FileAccess.ReadWrite;
+
                 break;
             case "w+":
             case "wb+":
             case "w+b":
                 options.Mode = FileMode.Truncate;
                 options.Access = FileAccess.ReadWrite;
+
                 break;
             default:
                 throw new ArgumentException("Invalid fopen mode.", nameof(mode));
@@ -783,6 +819,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, offset, origin, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 
@@ -797,6 +834,7 @@ public class StdIO : CSharpOverrideHelper {
                     nameof(StdIO), fileDescriptor, offset, origin, result);
             }
             SetResult(result);
+
             return FarRet();
         }
 

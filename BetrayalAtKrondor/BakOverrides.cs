@@ -23,6 +23,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
     private readonly ArgumentFetcher _args;
     private readonly IPauseHandler _pauseHandler;
+    private Dictionary<uint, byte> _wordLowByteWrites = [];
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -44,8 +45,80 @@ public class BakOverrides : CSharpOverrideHelper {
         _stubSegments = new Dictionary<ushort, ushort> {
             [0x3FF7] = 0x3817,
             [0x4028] = 0x381A,
+            [0x4040] = 0x381E,
+            [0x4041] = 0x3820,
+            [0x4042] = 0x3822,
+            [0x4043] = 0x3824,
+            [0x4052] = 0x3827,
+            [0x40A6] = 0x382B,
+            [0x4162] = 0x382F,
+            [0x41C0] = 0x3836,
+            [0x4225] = 0x3839,
+            [0x42EA] = 0x3840,
+            [0x438F] = 0x3846,
+            [0x43A4] = 0x3849,
+            [0x43CB] = 0x384C,
+            [0x43F6] = 0x384F,
+            [0x4513] = 0x3859,
+            [0x45E8] = 0x385F,
+            [0x464B] = 0x3862,
+            [0x469F] = 0x3868,
+            [0x476E] = 0x3873,
+            [0x478C] = 0x3877,
+            [0x480E] = 0x387F,
+            [0x4A8B] = 0x3887,
+            [0x4B6D] = 0x388C,
+            [0x4BB3] = 0x388F,
+            [0x4C5C] = 0x3893,
+            [0x4CB8] = 0x3897,
+            [0x4D7D] = 0x389A,
+            [0x4EBA] = 0x389E,
             [0x5040] = 0x38A2,
-            [0x5278] = 0x38B4
+            [0x51FD] = 0x38AD,
+            [0x5278] = 0x38B4,
+            [0x53DD] = 0x38BA,
+            [0x53DF] = 0x38BD,
+            [0x540F] = 0x38C0,
+            [0x5421] = 0x38C3,
+            [0x5605] = 0x38CA,
+            [0x577A] = 0x38D0,
+            [0x57BF] = 0x38D6,
+            [0x58B9] = 0x38D9,
+            [0x59D6] = 0x38DE,
+            [0x5AAB] = 0x38E1,
+            [0x5B3E] = 0x38E6,
+            [0x5BBA] = 0x38EA,
+            [0x5BCA] = 0x38ED,
+            [0x5C16] = 0x38F1,
+            [0x5F2C] = 0x3907,
+            [0x6300] = 0x3913,
+            [0x64A9] = 0x3923,
+            [0x6571] = 0x392A,
+            [0x65F7] = 0x3931,
+            [0x6670] = 0x3938,
+            [0x6A36] = 0x3947,
+            [0x6A70] = 0x394A,
+            [0x6B0F] = 0x3950,
+            [0x6B41] = 0x3953,
+            [0x6C1A] = 0x395C,
+            [0x6CA3] = 0x3961,
+            [0x6D38] = 0x396A,
+            [0x6DDF] = 0x396F,
+            [0x703D] = 0x397B,
+            [0x70F6] = 0x3981,
+            [0x7179] = 0x3985,
+            [0x72A0] = 0x3991,
+            [0x7307] = 0x3998,
+            [0x7395] = 0x39A0,
+            [0x7517] = 0x39B1,
+            [0x7650] = 0x39BB,
+            [0x7651] = 0x39BD,
+            [0x78C6] = 0x39C9,
+            [0x7981] = 0x39CE,
+            [0x799E] = 0x39D1,
+            [0x79A7] = 0x39D4,
+            [0x79AE] = 0x39D7,
+            [0x7A16] = 0x39DA,
         };
     }
 
@@ -61,10 +134,22 @@ public class BakOverrides : CSharpOverrideHelper {
         // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
         // DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
 
-        // AddWordMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
+        AddWordWriteMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
 
-        DoOnTopOfInstruction("5278:0540", LogAx("framenumber"));
-        PauseAt("5278:0543", "anim_executeFrameFunctions");
+        // DoOnTopOfInstruction("5278:0540", LogAx("framenumber"));
+
+        // AddWordReadMemoryMonitor("39DD:20D0", "BUFFER_C");
+        // AddWordReadMemoryMonitor("39DD:20D2", "BUFFER_B");
+        // AddWordReadMemoryMonitor("39DD:20D4", "BUFFER_A");
+        // AddWordReadMemoryMonitor("39DD:20D6", "BUFFER_1");
+        // AddWordReadMemoryMonitor("39DD:20D8", "BUFFER_2");
+        // AddWordWriteMemoryMonitor("39DD:20D0", "VGA_videoBuffer_C");
+        // AddWordWriteMemoryMonitor("39DD:20D2", "VGA_videoBuffer_B");
+        // AddWordWriteMemoryMonitor("39DD:20D4", "VGA_videoBuffer_A");
+        // AddWordWriteMemoryMonitor("39DD:20D6", "VGA_videoBuffer_1");
+        // AddWordWriteMemoryMonitor("39DD:20D8", "VGA_videoBuffer_2");
+
+        // PauseAt("5278:0543", "anim_executeFrameFunctions");
     }
 
     private void PauseAt(string address, string message) {
@@ -84,27 +169,49 @@ public class BakOverrides : CSharpOverrideHelper {
         DoOnMemoryWrite(segment, (ushort)(offset + 3), () => {
             _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
             _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: {ValueSegment:X4}:{ValueOffset:X4}",
-                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, (ushort)(offset+2)], Memory.UInt16[segment, offset]);
+                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, (ushort)(offset + 2)], Memory.UInt16[segment, offset]);
         });
     }
 
     private Action LogStringAt(string address) {
         (ushort segment, ushort offset) = ToSegmentOffset(address);
+
         return () => {
             var stringAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
             _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value}", segment, offset, Memory.GetZeroTerminatedString(stringAddress, 100));
         };
     }
 
-    private void AddWordMemoryMonitor(string address, string? name = null) {
+    private void AddWordWriteMemoryMonitor(string address, string? name = null) {
         (ushort segment, ushort offset) = ToSegmentOffset(address);
+        DoOnMemoryWrite(segment, offset, () => {
+            _wordLowByteWrites[MemoryUtils.ToPhysicalAddress(segment, offset)] = Memory.CurrentlyWritingByte;
+        });
         DoOnMemoryWrite(segment, (ushort)(offset + 1), () => {
+            uint physicalAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
+            if (_wordLowByteWrites.TryGetValue(physicalAddress, out byte lowByte))
+            {
+                if (!_ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment)) {
+                    idaSegment = State.CS;
+                }
+                int writtenValue = lowByte | Memory.CurrentlyWritingByte << 8;
+                _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
+                    idaSegment, State.IP, name, segment, offset, writtenValue);
+                _wordLowByteWrites.Remove(physicalAddress);
+            }
+        });
+    }
+
+    private void AddWordReadMemoryMonitor(string address, string? name = null) {
+        (ushort segment, ushort offset) = ToSegmentOffset(address);
+        DoOnMemoryRead(segment, (ushort)(offset + 1), () => {
             if (!_ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment)) {
                 idaSegment = State.CS;
-            };
-            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
-                idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, offset]);
-            _pauseHandler.RequestPause("memory write");
+            }
+            uint physicalAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
+            int readValue = Memory.Ram.Read(physicalAddress) | Memory.Ram.Read(physicalAddress + 1) << 8;
+            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory read at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
+                idaSegment, State.IP, name, segment, offset, readValue);
         });
     }
 
@@ -122,6 +229,7 @@ public class BakOverrides : CSharpOverrideHelper {
             _loggerService.Information("{Message} = 0x{Value:X4}", message, State.AX);
         };
     }
+
     private Action LogDs(string message) {
         return () => {
             _loggerService.Information("{Message} = 0x{Value:X4}", message, State.DS);
