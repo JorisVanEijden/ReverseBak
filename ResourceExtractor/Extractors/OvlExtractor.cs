@@ -12,7 +12,7 @@ public class OvlExtractor : ExtractorBase {
         while (resourceReader.BaseStream.Position < fileSize) {
             string tag = ReadTag(resourceReader);
             uint chunkSize = resourceReader.ReadUInt32();
-            Console.WriteLine($"Reading `{mainTag}` `{tag}` with a length of {chunkSize} bytes.");
+            Log($"Reading `{mainTag}` `{tag}` with a length of {chunkSize} bytes.");
             byte[] ovlData = DecompressToByteArray(resourceReader, chunkSize);
             File.WriteAllBytes($"{tag.TrimEnd(':')}.{mainTag}", ovlData);
         }

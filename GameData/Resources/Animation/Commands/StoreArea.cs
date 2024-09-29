@@ -1,5 +1,8 @@
 namespace GameData.Resources.Animation.Commands;
 
+
+// Copy area from buffer B to buffer C
+
 public class StoreArea : FrameCommand, IArea {
     public int X { get; set; }
 

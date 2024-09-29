@@ -1,9 +1,9 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class DrawBuffer : FrameCommand {
+public class DrawAreaFromBuffer : FrameCommand {
     public int BufferNumber { get; set; }
 
     public override string ToString() {
-        return $"{nameof(DrawBuffer)}({BufferNumber});";
+        return $"{nameof(DrawAreaFromBuffer)}({BufferNumber});";
     }
 }

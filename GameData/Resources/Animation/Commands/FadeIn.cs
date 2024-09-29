@@ -6,7 +6,7 @@ namespace GameData.Resources.Animation.Commands;
 public class FadeIn : FrameCommand {
     public int Start { get; set; }
 
-    public int End { get; set; }
+    public int Length { get; set; }
 
     /// Palette index of the color to fade from
     public int Color { get; set; }
@@ -15,6 +15,6 @@ public class FadeIn : FrameCommand {
     public int Speed { get; set; }
 
     public override string ToString() {
-        return $"{nameof(FadeIn)}({Start}, {End}, {Color}, {Speed});";
+        return $"{nameof(FadeIn)}({Start}, {Length}, {Color}, {Speed});";
     }
 }

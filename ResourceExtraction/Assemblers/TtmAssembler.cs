@@ -39,7 +39,7 @@ public class TtmAssembler {
         writer.Write(scriptData.Length); // Decompressed size is the actual size since no compression
         writer.Write(scriptData);
 
-        // Start TTI section
+        // Length TTI section
         WriteTag(writer, "TTI");
         long ttiSectionSizePosition = writer.BaseStream.Position;
         writer.Write((ushort)0); // Placeholder for TTI section size
@@ -93,7 +93,7 @@ public class TtmAssembler {
                     case StoreScreen:
                     case DisposeCurrentPalette:
                     case DisposeCurrentBitmap:
-                    case FreeCurrentBuffer:
+                    case DisposeTargetBuffer:
                     case UnknownCommand0110:
                     case UnknownCommand0400:
                     case UnknownCommand0500:
@@ -124,7 +124,7 @@ public class TtmAssembler {
                         writer.Write((ushort)tagFrame.SceneNumber);
 
                         break;
-                    case SetActiveBuffer setActiveBuffer:
+                    case SetTargetBuffer setActiveBuffer:
                         writer.Write((ushort)setActiveBuffer.BufferNumber);
 
                         break;
@@ -170,7 +170,7 @@ public class TtmAssembler {
 
                         break;
                     case FadeOut fadeOut:
-                        writer.Write((ushort)fadeOut.End);
+                        writer.Write((ushort)fadeOut.Length);
                         writer.Write((ushort)fadeOut.Start);
                         writer.Write((ushort)fadeOut.Color);
                         writer.Write((ushort)fadeOut.Speed);
@@ -178,7 +178,7 @@ public class TtmAssembler {
                         break;
                     case FadeIn fadeIn:
                         writer.Write((ushort)fadeIn.Start);
-                        writer.Write((ushort)fadeIn.End);
+                        writer.Write((ushort)fadeIn.Length);
                         writer.Write((ushort)fadeIn.Color);
                         writer.Write((ushort)fadeIn.Speed);
 
@@ -190,7 +190,7 @@ public class TtmAssembler {
                         writer.Write((ushort)storeArea.Height);
 
                         break;
-                    case CopyToCurrentBuffer copyToCurrentBuffer:
+                    case CopyToTargetBuffer copyToCurrentBuffer:
                         writer.Write((ushort)copyToCurrentBuffer.X);
                         writer.Write((ushort)copyToCurrentBuffer.Y);
                         writer.Write((ushort)copyToCurrentBuffer.Width);
@@ -315,7 +315,7 @@ public class TtmAssembler {
                         writer.Write((ushort)unknownCommandA5A7.Arg7);
 
                         break;
-                    case DrawBuffer drawBuffer:
+                    case DrawAreaFromBuffer drawBuffer:
                         writer.Write((ushort)drawBuffer.BufferNumber);
 
                         break;
@@ -366,7 +366,7 @@ public class TtmAssembler {
                         break;
                 }
             }
-            // End of frame marker
+            // Start of frame marker
             writer.Write((ushort)0x0FF0);
         }
 

@@ -32,19 +32,19 @@ public class FontExtractor : ExtractorBase {
         for (int i = 0; i < nrOfChars; i++) {
             ushort characterOffset = resultReader.ReadUInt16();
             offsets[i] = characterOffset;
-            Console.WriteLine($"{i}: {characterOffset}");
+            Log($"{i}: {characterOffset}");
         }
         // widths
         int[] widths = new int[nrOfChars];
         for (int i = 0; i < nrOfChars; i++) {
             byte characterWidth = resultReader.ReadByte();
             widths[i] = characterWidth;
-            Console.WriteLine($"{i}: {characterWidth}");
+            Log($"{i}: {characterWidth}");
         }
         // data
         for (int i = 0; i < nrOfChars; i++) {
             int characterWidth = widths[i];
-            Console.WriteLine($"{i}: ");
+            Log($"{i}: ");
             for (int j = 0; j < fontHeight; j++) {
                 int data = resultReader.ReadByte() << 8;
                 if (characterWidth > 8) {
@@ -57,6 +57,6 @@ public class FontExtractor : ExtractorBase {
             }
         }
 
-        Console.WriteLine("Done.");
+        Log("Done.");
     }
 }

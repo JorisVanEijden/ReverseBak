@@ -19,7 +19,7 @@ public class KeywordExtractor : ExtractorBase<KeywordList> {
         var offsets = new int[amount];
         for (var i = 0; i < amount; i++) {
             offsets[i] = resourceReader.ReadInt16();
-            Console.WriteLine($"{offsets[i]:X4}");
+            Log($"{offsets[i]:X4}");
         }
         var keywords = new Dictionary<int, string>(amount);
         for (var i = 0; i < amount; i++) {

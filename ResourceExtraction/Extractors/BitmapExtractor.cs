@@ -14,6 +14,9 @@ using System.Linq;
 using System.Text;
 
 public class BitmapExtractor : ExtractorBase<ImageSet> {
+    private const double NormalScreenWidth = 320.0;
+    private const double NormalScreenHeight = 200.0;
+
     public override ImageSet Extract(string id, Stream resourceStream) {
         var imageSet = new ImageSet(id);
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
@@ -58,6 +61,10 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
         }
         for (var i = 0; i < nrOfImages; i++) {
             images[i].Height = resourceReader.ReadUInt16();
+        }
+        for (var i = 0; i < nrOfImages; i++) {
+            images[i].ScaleX = images[i].Width / NormalScreenWidth;
+            images[i].ScaleY = images[i].Height / NormalScreenHeight;
         }
         string binTag = ReadTag(resourceReader);
         if (!binTag.Equals("BIN")) {
@@ -104,6 +111,8 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
                 Width = resourceReader.ReadUInt16(),
                 Height = resourceReader.ReadUInt16()
             };
+            images[i].ScaleX = images[i].Width / NormalScreenWidth;
+            images[i].ScaleY = images[i].Height / NormalScreenHeight;
         }
         Stream imageStream;
         switch (alsoCompressionType) {
@@ -148,7 +157,7 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
         for (var i = 0; i < nrOfImages; i++) {
             BmImage image = images[i];
             Log($"Image: {i} size: {image.Size} bytes, flags: {image.Flags:X4}, width: {image.Width}, height: {image.Height}, expectedSize: {image.Height * image.Width} bytes.");
-            Log($"Reading image {i} with a size of {image.Size} bytes.");
+
             if ((image.Flags & 0x80) == 0) {
                 Log($"No extra compression for image {i}");
                 image.BitMapData = new byte[image.Size];

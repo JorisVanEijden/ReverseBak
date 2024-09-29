@@ -137,9 +137,9 @@ internal static class Program {
             AnimationResource anim = animationExtractor.Extract(Path.GetFileName(adsFile), resourceStream);
             WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
         }
-        foreach (ushort command in AdsScriptBuilder.SeenCommands) {
-            Console.WriteLine($"{command:X4}");
-        }
+        // foreach (ushort command in AdsScriptBuilder.SeenCommands) {
+        //     Console.WriteLine($"{command:X4}");
+        // }
     }
 
     private static void ExtractSpells(ArchiveExtractor archiveExtractor) {
@@ -185,6 +185,8 @@ internal static class Program {
             string resourceDirectory = Path.Combine(path, imageName);
             for (var i = 0; i < imageSet.Images.Count; i++) {
                 BmImage bmImage = imageSet.Images[i];
+                bmImage.Filename = $"{i}.png";
+                File.WriteAllText(Path.Combine(resourceDirectory, $"{i}.json"), bmImage.ToJson());
                 WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToBitmap(colors));
             }
         }

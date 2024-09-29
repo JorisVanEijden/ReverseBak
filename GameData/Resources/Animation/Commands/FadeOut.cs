@@ -4,9 +4,9 @@ namespace GameData.Resources.Animation.Commands;
 /// Fade out the current buffer.
 /// </summary>
 public class FadeOut : FrameCommand {
-    public int End { get; set; }
-
     public int Start { get; set; }
+
+    public int Length { get; set; }
 
     /// Palette index of the color to fade to
     public int Color { get; set; }
@@ -15,6 +15,6 @@ public class FadeOut : FrameCommand {
     public int Speed { get; set; }
 
     public override string ToString() {
-        return $"{nameof(FadeOut)}({End}, {Start}, {Color}, {Speed});";
+        return $"{nameof(FadeOut)}({Start}, {Length}, {Color}, {Speed});";
     }
 }

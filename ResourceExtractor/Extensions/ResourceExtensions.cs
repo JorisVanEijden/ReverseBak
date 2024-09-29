@@ -82,6 +82,10 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this BmImage resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToCsv(this List<ObjectInfo> resource) {
         const string objectInfoFlags =
             $"{nameof(ObjectFlags.B0001)},{nameof(ObjectFlags.NotEquipable)},{nameof(ObjectFlags.B0004)},{nameof(ObjectFlags.B0008)},{nameof(ObjectFlags.B0010)},{nameof(ObjectFlags.B0020)},{nameof(ObjectFlags.OnlyUsableInCombat)},{nameof(ObjectFlags.B0080)},{nameof(ObjectFlags.NotUsableInCombat)},{nameof(ObjectFlags.ArchersOnly)},{nameof(ObjectFlags.B0400)},{nameof(ObjectFlags.Stackable)},{nameof(ObjectFlags.B1000)},{nameof(ObjectFlags.LimitedUses)},{nameof(ObjectFlags.B4000)},{nameof(ObjectFlags.B8000)}";

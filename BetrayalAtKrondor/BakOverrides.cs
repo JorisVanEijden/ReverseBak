@@ -19,7 +19,6 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly IGameEngine _gameEngine;
     private readonly IGlobalSettings _globalSettings;
     private readonly List<OvrBreakpoint> _ovrBreakpoints = [];
-    private Dictionary<ushort, ushort> _stubSegments;
     private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
     private readonly ArgumentFetcher _args;
     private readonly IPauseHandler _pauseHandler;
@@ -35,91 +34,8 @@ public class BakOverrides : CSharpOverrideHelper {
         _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
         _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
         _pauseHandler = machine.PauseHandler;
-        DefineStubMapping();
         DefineFunctions();
         DefineBreakpoints();
-    }
-
-    // This is the mapping between the OVR segments and the stub segments. ovr151 maps to stub151, etc.
-    private void DefineStubMapping() {
-        _stubSegments = new Dictionary<ushort, ushort> {
-            [0x3FF7] = 0x3817,
-            [0x4028] = 0x381A,
-            [0x4040] = 0x381E,
-            [0x4041] = 0x3820,
-            [0x4042] = 0x3822,
-            [0x4043] = 0x3824,
-            [0x4052] = 0x3827,
-            [0x40A6] = 0x382B,
-            [0x4162] = 0x382F,
-            [0x41C0] = 0x3836,
-            [0x4225] = 0x3839,
-            [0x42EA] = 0x3840,
-            [0x438F] = 0x3846,
-            [0x43A4] = 0x3849,
-            [0x43CB] = 0x384C,
-            [0x43F6] = 0x384F,
-            [0x4513] = 0x3859,
-            [0x45E8] = 0x385F,
-            [0x464B] = 0x3862,
-            [0x469F] = 0x3868,
-            [0x476E] = 0x3873,
-            [0x478C] = 0x3877,
-            [0x480E] = 0x387F,
-            [0x4A8B] = 0x3887,
-            [0x4B6D] = 0x388C,
-            [0x4BB3] = 0x388F,
-            [0x4C5C] = 0x3893,
-            [0x4CB8] = 0x3897,
-            [0x4D7D] = 0x389A,
-            [0x4EBA] = 0x389E,
-            [0x5040] = 0x38A2,
-            [0x51FD] = 0x38AD,
-            [0x5278] = 0x38B4,
-            [0x53DD] = 0x38BA,
-            [0x53DF] = 0x38BD,
-            [0x540F] = 0x38C0,
-            [0x5421] = 0x38C3,
-            [0x5605] = 0x38CA,
-            [0x577A] = 0x38D0,
-            [0x57BF] = 0x38D6,
-            [0x58B9] = 0x38D9,
-            [0x59D6] = 0x38DE,
-            [0x5AAB] = 0x38E1,
-            [0x5B3E] = 0x38E6,
-            [0x5BBA] = 0x38EA,
-            [0x5BCA] = 0x38ED,
-            [0x5C16] = 0x38F1,
-            [0x5F2C] = 0x3907,
-            [0x6300] = 0x3913,
-            [0x64A9] = 0x3923,
-            [0x6571] = 0x392A,
-            [0x65F7] = 0x3931,
-            [0x6670] = 0x3938,
-            [0x6A36] = 0x3947,
-            [0x6A70] = 0x394A,
-            [0x6B0F] = 0x3950,
-            [0x6B41] = 0x3953,
-            [0x6C1A] = 0x395C,
-            [0x6CA3] = 0x3961,
-            [0x6D38] = 0x396A,
-            [0x6DDF] = 0x396F,
-            [0x703D] = 0x397B,
-            [0x70F6] = 0x3981,
-            [0x7179] = 0x3985,
-            [0x72A0] = 0x3991,
-            [0x7307] = 0x3998,
-            [0x7395] = 0x39A0,
-            [0x7517] = 0x39B1,
-            [0x7650] = 0x39BB,
-            [0x7651] = 0x39BD,
-            [0x78C6] = 0x39C9,
-            [0x7981] = 0x39CE,
-            [0x799E] = 0x39D1,
-            [0x79A7] = 0x39D4,
-            [0x79AE] = 0x39D7,
-            [0x7A16] = 0x39DA,
-        };
     }
 
     private void LogDialogBuildCall() {
@@ -129,27 +45,72 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private void DefineBreakpoints() {
         DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
+        DoOnTopOfInstruction("1834:2AA5", RecordVmCodeSegment);
+
         // DoOnTopOfInstruction("1834:22CC", LogAllocateMemory);
 
         // DoOnTopOfInstruction("3839:0020", LogGetGlobalValue);
         // DoOnTopOfInstruction("3839:0025", LogSetGlobalValue);
 
-        AddWordWriteMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
+        // AddWordWriteMemoryMonitor("39DD:4F70", "currentAnimFunctionId");
 
         // DoOnTopOfInstruction("5278:0540", LogAx("framenumber"));
+        DoOnTopOfInstruction("5278:0565", LogFrameCommand);
 
-        // AddWordReadMemoryMonitor("39DD:20D0", "BUFFER_C");
-        // AddWordReadMemoryMonitor("39DD:20D2", "BUFFER_B");
-        // AddWordReadMemoryMonitor("39DD:20D4", "BUFFER_A");
-        // AddWordReadMemoryMonitor("39DD:20D6", "BUFFER_1");
-        // AddWordReadMemoryMonitor("39DD:20D8", "BUFFER_2");
-        // AddWordWriteMemoryMonitor("39DD:20D0", "VGA_videoBuffer_C");
-        // AddWordWriteMemoryMonitor("39DD:20D2", "VGA_videoBuffer_B");
-        // AddWordWriteMemoryMonitor("39DD:20D4", "VGA_videoBuffer_A");
-        // AddWordWriteMemoryMonitor("39DD:20D6", "VGA_videoBuffer_1");
-        // AddWordWriteMemoryMonitor("39DD:20D8", "VGA_videoBuffer_2");
+
+        AddWordReadMemoryMonitor("39DD:3E3A", "READ_BUFFER_X");
+        AddWordReadMemoryMonitor("39DD:20D0", "READ_BUFFER_C");
+        AddWordReadMemoryMonitor("39DD:20D2", "READ_BUFFER_B");
+        AddWordReadMemoryMonitor("39DD:20D4", "READ_BUFFER_A");
+        AddWordReadMemoryMonitor("39DD:20D6", "READ_BUFFER_1");
+        AddWordReadMemoryMonitor("39DD:20D8", "READ_BUFFER_2");
+        AddWordWriteMemoryMonitor("39DD:3E3A", "write_Buffer_X");
+        AddWordWriteMemoryMonitor("39DD:20D0", "write_Buffer_C");
+        AddWordWriteMemoryMonitor("39DD:20D2", "write_Buffer_B");
+        AddWordWriteMemoryMonitor("39DD:20D4", "write_Buffer_A");
+        AddWordWriteMemoryMonitor("39DD:20D6", "write_Buffer_1");
+        AddWordWriteMemoryMonitor("39DD:20D8", "write_Buffer_2");
 
         // PauseAt("5278:0543", "anim_executeFrameFunctions");
+        // DoOnTopOfInstruction("1834:0D36", LogColorCycle);
+
+        // PauseAt("5278:0FB9", "drawing empty image slot");
+
+        // DoOnTopOfInstruction("5040:16E2", () => {
+        // _loggerService.Information("EAX = 0x{Eax:X8}, EDX = 0x{Edx:X8}", State.EAX, State.EDX);
+        // });
+    }
+
+    private void RecordVmCodeSegment() {
+        _ovrSegmentMapping[State.DX] = 0x7B00;
+    }
+
+    private void LogFrameCommand() {
+        var segment = State.ES;
+        var offset = State.BX;
+        var address = MemoryUtils.ToPhysicalAddress(segment, offset);
+        var bytes = Memory.ReadRam(16, address);
+        var reader = new BinaryReader(new MemoryStream(bytes));
+        ushort type = reader.ReadUInt16();
+        if (type == 0x0FF0) {
+            _loggerService.Information("FrameCommand: [{Type:X4}] (End of frame)", type);
+
+            return;
+        }
+        var command = ResourceExtraction.Extractors.Animation.TtmExtractor.GetFrameCommand(new Dictionary<int, string>(), type, reader);
+        _loggerService.Information("FrameCommand: [{Type:X4}] {Command}", type, command);
+    }
+
+    private void LogAt(string address, string message) {
+        DoOnTopOfInstruction(address, () => {
+            _loggerService.Information("{Message}", message);
+        });
+    }
+
+    private void LogColorCycle() {
+        _args.Get(out ushort start, out ushort length, out ushort color, out ushort blendAmount);
+        _loggerService.Information("[{Segment:X4}:{Offset:X4}] ColorCycle(start: {Length:X4}, end: {Start:X4}, color: {Color:X4}, blendAmount: {BlendAmount:X4})",
+            State.CS, State.IP, length, start, color, blendAmount);
     }
 
     private void PauseAt(string address, string message) {
@@ -189,8 +150,7 @@ public class BakOverrides : CSharpOverrideHelper {
         });
         DoOnMemoryWrite(segment, (ushort)(offset + 1), () => {
             uint physicalAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
-            if (_wordLowByteWrites.TryGetValue(physicalAddress, out byte lowByte))
-            {
+            if (_wordLowByteWrites.TryGetValue(physicalAddress, out byte lowByte)) {
                 if (!_ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment)) {
                     idaSegment = State.CS;
                 }
@@ -255,13 +215,16 @@ public class BakOverrides : CSharpOverrideHelper {
     private void RecordOvrChange() {
         var stubSegment = State.ES;
         var realSegment = State.BX;
-        foreach (var ovrBreakpoint in _ovrBreakpoints) {
-            if (_stubSegments[ovrBreakpoint.Segment] == stubSegment) {
-                _loggerService.Information("OVR Mapping {SourceSegment:X4}:{SourceOffset:X4} to {DestinationSegment:X4}:{DestinationOffset:X4}",
-                    ovrBreakpoint.Segment, ovrBreakpoint.Offset, realSegment, ovrBreakpoint.Offset);
-                _ovrSegmentMapping[realSegment] = ovrBreakpoint.Segment;
-                DoOnTopOfInstruction(realSegment, ovrBreakpoint.Offset, ovrBreakpoint.Action);
-            }
+
+        if (StubSegments.StubToIda.TryGetValue(stubSegment, out ushort idaSegment)) {
+            _ovrSegmentMapping[realSegment] = idaSegment;
+            _loggerService.Verbose("OVR Mapping real segment {SourceSegment:X4} to ida segment {DestinationSegment:X4}",
+                realSegment, idaSegment);
+        }
+
+        var ovrBreakpoint = _ovrBreakpoints.FirstOrDefault(ovrBreakpoint => StubSegments.IdaToStub[ovrBreakpoint.Segment] == stubSegment);
+        if (ovrBreakpoint is not null) {
+            DoOnTopOfInstruction(realSegment, ovrBreakpoint.Offset, ovrBreakpoint.Action);
         }
     }
 

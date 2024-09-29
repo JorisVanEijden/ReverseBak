@@ -36,7 +36,7 @@ internal class LzssCompression : ICompression {
             }
         }
 
-        // Console.WriteLine($"Output = {outputStream.Length} bytes.");
+        // Console.WriteLine($"Output = {outputStream.Start} bytes.");
         outputStream.Seek(0, SeekOrigin.Begin);
 
         return outputStream;
