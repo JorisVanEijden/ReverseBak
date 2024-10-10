@@ -306,7 +306,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA104:
-                command = new DrawBoxForegroundColor {
+                command = new FillArea {
                     X = scriptReader.ReadInt16(),
                     Y = scriptReader.ReadInt16(),
                     Width = scriptReader.ReadInt16(),
@@ -315,7 +315,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA114:
-                command = new DrawBoxBackgroundColor {
+                command = new DrawBorder {
                     X = scriptReader.ReadInt16(),
                     Y = scriptReader.ReadInt16(),
                     Width = scriptReader.ReadInt16(),
@@ -333,13 +333,13 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA506:
-                command = new DrawImageCommand2 {
+                command = new DrawImageScaled {
                     X = scriptReader.ReadInt16(),
                     Y = scriptReader.ReadInt16(),
                     ImageNumber = scriptReader.ReadInt16(),
                     ImageSlot = scriptReader.ReadInt16(),
-                    Arg5 = scriptReader.ReadInt16(),
-                    Arg6 = scriptReader.ReadInt16()
+                    Width = scriptReader.ReadInt16(),
+                    Height = scriptReader.ReadInt16()
                 };
 
                 break;
@@ -373,13 +373,13 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA526:
-                command = new UnknownCommandA526 {
-                    Arg1 = scriptReader.ReadInt16(),
-                    Arg2 = scriptReader.ReadInt16(),
-                    Arg3 = scriptReader.ReadInt16(),
-                    Arg4 = scriptReader.ReadInt16(),
-                    Arg5 = scriptReader.ReadInt16(),
-                    Arg6 = scriptReader.ReadInt16()
+                command = new DrawImageFlippedHorizontallyScaled {
+                    X = scriptReader.ReadInt16(),
+                    Y = scriptReader.ReadInt16(),
+                    ImageNumber = scriptReader.ReadInt16(),
+                    ImageSlot = scriptReader.ReadInt16(),
+                    Width = scriptReader.ReadInt16(),
+                    Height = scriptReader.ReadInt16()
                 };
 
                 break;

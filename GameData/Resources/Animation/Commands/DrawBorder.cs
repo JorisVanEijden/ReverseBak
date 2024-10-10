@@ -1,6 +1,6 @@
 namespace GameData.Resources.Animation.Commands;
 
-public class DrawBoxForegroundColor : FrameCommand, IArea {
+public class DrawBorder : FrameCommand, IArea {
     public int X { get; set; }
 
     public int Y { get; set; }
@@ -10,6 +10,6 @@ public class DrawBoxForegroundColor : FrameCommand, IArea {
     public int Height { get; set; }
 
     public override string ToString() {
-        return $"{nameof(DrawBoxForegroundColor)}({X}, {Y}, {Width}, {Height});";
+        return $"{nameof(DrawBorder)}({X}, {Y}, {Width}, {Height});";
     }
 }

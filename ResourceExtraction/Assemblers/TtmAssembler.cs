@@ -226,14 +226,14 @@ public class TtmAssembler {
 
                         break;
 
-                    case DrawBoxForegroundColor clearArea:
+                    case FillArea clearArea:
                         writer.Write((ushort)clearArea.X);
                         writer.Write((ushort)clearArea.Y);
                         writer.Write((ushort)clearArea.Width);
                         writer.Write((ushort)clearArea.Height);
 
                         break;
-                    case DrawBoxBackgroundColor unknownCommandA114:
+                    case DrawBorder unknownCommandA114:
                         writer.Write((ushort)unknownCommandA114.X);
                         writer.Write((ushort)unknownCommandA114.Y);
                         writer.Write((ushort)unknownCommandA114.Width);
@@ -248,13 +248,13 @@ public class TtmAssembler {
                         writer.Write((ushort)drawImage.ImageSlot);
 
                         break;
-                    case DrawImageCommand2 drawImageCommand2:
-                        writer.Write((ushort)drawImageCommand2.X);
-                        writer.Write((ushort)drawImageCommand2.Y);
-                        writer.Write((ushort)drawImageCommand2.ImageNumber);
-                        writer.Write((ushort)drawImageCommand2.ImageSlot);
-                        writer.Write((ushort)drawImageCommand2.Arg5);
-                        writer.Write((ushort)drawImageCommand2.Arg6);
+                    case DrawImageScaled drawImageScaled:
+                        writer.Write((ushort)drawImageScaled.X);
+                        writer.Write((ushort)drawImageScaled.Y);
+                        writer.Write((ushort)drawImageScaled.ImageNumber);
+                        writer.Write((ushort)drawImageScaled.ImageSlot);
+                        writer.Write((ushort)drawImageScaled.Width);
+                        writer.Write((ushort)drawImageScaled.Height);
 
                         break;
                     case UnknownCommandA514 unknownCommandA514:
@@ -273,20 +273,20 @@ public class TtmAssembler {
                         writer.Write((ushort)unknownCommandA516.Arg6);
 
                         break;
-                    case DrawImageFlippedHorizontally unknownCommandA524:
-                        writer.Write((ushort)unknownCommandA524.X);
-                        writer.Write((ushort)unknownCommandA524.Y);
-                        writer.Write((ushort)unknownCommandA524.ImageNumber);
-                        writer.Write((ushort)unknownCommandA524.ImageSlot);
+                    case DrawImageFlippedHorizontally drawImageFlippedHorizontally:
+                        writer.Write((ushort)drawImageFlippedHorizontally.X);
+                        writer.Write((ushort)drawImageFlippedHorizontally.Y);
+                        writer.Write((ushort)drawImageFlippedHorizontally.ImageNumber);
+                        writer.Write((ushort)drawImageFlippedHorizontally.ImageSlot);
 
                         break;
-                    case UnknownCommandA526 unknownCommandA526:
-                        writer.Write((ushort)unknownCommandA526.Arg1);
-                        writer.Write((ushort)unknownCommandA526.Arg2);
-                        writer.Write((ushort)unknownCommandA526.Arg3);
-                        writer.Write((ushort)unknownCommandA526.Arg4);
-                        writer.Write((ushort)unknownCommandA526.Arg5);
-                        writer.Write((ushort)unknownCommandA526.Arg6);
+                    case DrawImageFlippedHorizontallyScaled drawImageFlippedHorizontallyScaled:
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.X);
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.Y);
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.ImageNumber);
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.ImageSlot);
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.Width);
+                        writer.Write((ushort)drawImageFlippedHorizontallyScaled.Height);
 
                         break;
                     case UnknownCommandA534 unknownCommandA534:

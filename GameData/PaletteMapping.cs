@@ -8,7 +8,17 @@ public static class PaletteMapping {
         return image switch {
             "BLANK" => "CREDITS.PAL",
             "BOOK" => "BOOK.PAL",
-            "C11" => "C11B.PAL", // also B variant
+            "C11" => "C11B.PAL",
+            "C11A1" => "C11A.PAL",
+            "C11A2" => "C11A.PAL",
+            "C11B" => "C11B.PAL",
+            "C12A" => "C12A.PAL",
+            "C12A_BAK" => "C12A.PAL",
+            "C12A_MAG" => "C12A.PAL",
+            "C12A_PUG" => "C12A.PAL",
+            "C12B_ARC" => "C12B.PAL",
+            "C12B_GOR" => "C12B.PAL",
+            "C12B_SRL" => "C12A.PAL",
             "C42" => "C42.PAL",
             "CAST" => "OPTIONS.PAL",
             "CFRAME" => "OPTIONS.PAL",
