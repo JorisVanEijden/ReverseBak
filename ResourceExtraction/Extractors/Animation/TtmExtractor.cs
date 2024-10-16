@@ -114,7 +114,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0x0110:
-                command = new UnknownCommand0110();
+                command = new EndScene();
 
                 break;
             case 0x0400:
@@ -122,11 +122,11 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0x0500:
-                command = new UnknownCommand0500();
+                command = new ObsoleteCommand0500();
 
                 break;
             case 0x0510:
-                command = new UnknownCommand0510();
+                command = new ObsoleteCommand0510();
 
                 break;
 
@@ -155,17 +155,13 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0x1101:
-                command = new UnknownCommand1101 {
-                    Arg1 = scriptReader.ReadInt16()
-                };
-
-                break;
             case 0x1111:
                 ushort tagNumber = scriptReader.ReadUInt16();
                 animatorTags.TryGetValue(tagNumber, out string? tagName);
                 command = new TagFrame {
                     SceneNumber = tagNumber,
-                    SceneTag = tagName
+                    SceneTag = tagName,
+                    UnknownBool = type == 0x1111
                 };
 
                 break;
@@ -218,7 +214,7 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
                 break;
             case 0x2402:
                 command = new UnknownCommand2402 {
-                    Arg1 = scriptReader.ReadInt16(),
+                    Range = (Ranges)scriptReader.ReadInt16(),
                     Arg2 = scriptReader.ReadInt16()
                 };
 
@@ -344,22 +340,22 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA514:
-                command = new UnknownCommandA514 {
-                    Arg1 = scriptReader.ReadInt16(),
-                    Arg2 = scriptReader.ReadInt16(),
-                    Arg3 = scriptReader.ReadInt16(),
-                    Arg4 = scriptReader.ReadInt16()
+                command = new DrawImageFlippedVertically {
+                    X = scriptReader.ReadInt16(),
+                    Y = scriptReader.ReadInt16(),
+                    ImageNumber = scriptReader.ReadInt16(),
+                    ImageSlot = scriptReader.ReadInt16()
                 };
 
                 break;
             case 0xA516:
-                command = new UnknownCommandA516 {
-                    Arg1 = scriptReader.ReadInt16(),
-                    Arg2 = scriptReader.ReadInt16(),
-                    Arg3 = scriptReader.ReadInt16(),
-                    Arg4 = scriptReader.ReadInt16(),
-                    Arg5 = scriptReader.ReadInt16(),
-                    Arg6 = scriptReader.ReadInt16()
+                command = new DrawImageFlippedVerticallyScaled {
+                    X = scriptReader.ReadInt16(),
+                    Y = scriptReader.ReadInt16(),
+                    ImageNumber = scriptReader.ReadInt16(),
+                    ImageSlot = scriptReader.ReadInt16(),
+                    Width = scriptReader.ReadInt16(),
+                    Height = scriptReader.ReadInt16()
                 };
 
                 break;
@@ -384,22 +380,22 @@ public class TtmExtractor : ExtractorBase<AnimatorScene> {
 
                 break;
             case 0xA534:
-                command = new UnknownCommandA534 {
-                    Arg1 = scriptReader.ReadInt16(),
-                    Arg2 = scriptReader.ReadInt16(),
-                    Arg3 = scriptReader.ReadInt16(),
-                    Arg4 = scriptReader.ReadInt16()
+                command = new DrawImageRotated180 {
+                    X = scriptReader.ReadInt16(),
+                    Y = scriptReader.ReadInt16(),
+                    ImageNumber = scriptReader.ReadInt16(),
+                    ImageSlot = scriptReader.ReadInt16()
                 };
 
                 break;
             case 0xA536:
-                command = new UnknownCommandA536 {
-                    Arg1 = scriptReader.ReadInt16(),
-                    Arg2 = scriptReader.ReadInt16(),
-                    Arg3 = scriptReader.ReadInt16(),
-                    Arg4 = scriptReader.ReadInt16(),
-                    Arg5 = scriptReader.ReadInt16(),
-                    Arg6 = scriptReader.ReadInt16()
+                command = new DrawImageRotated180Scaled {
+                    X = scriptReader.ReadInt16(),
+                    Y = scriptReader.ReadInt16(),
+                    ImageNumber = scriptReader.ReadInt16(),
+                    ImageSlot = scriptReader.ReadInt16(),
+                    Width = scriptReader.ReadInt16(),
+                    Height = scriptReader.ReadInt16()
                 };
 
                 break;

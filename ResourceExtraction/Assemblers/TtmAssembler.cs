@@ -94,10 +94,10 @@ public class TtmAssembler {
                     case DisposeCurrentPalette:
                     case DisposeCurrentBitmap:
                     case DisposeTargetBuffer:
-                    case UnknownCommand0110:
+                    case EndScene:
                     case UnknownCommand0400:
-                    case UnknownCommand0500:
-                    case UnknownCommand0510:
+                    case ObsoleteCommand0500:
+                    case ObsoleteCommand0510:
 
                         break;
                     case SetFramesDuration setDelay:
@@ -114,10 +114,6 @@ public class TtmAssembler {
                         break;
                     case SelectFontSlot selectFontSlot:
                         writer.Write((ushort)selectFontSlot.SlotNumber);
-
-                        break;
-                    case UnknownCommand1101 unknownCommand1101:
-                        writer.Write((ushort)unknownCommand1101.Arg1);
 
                         break;
                     case TagFrame tagFrame:
@@ -158,7 +154,7 @@ public class TtmAssembler {
 
                         break;
                     case UnknownCommand2402 unknownCommand2402:
-                        writer.Write((ushort)unknownCommand2402.Arg1);
+                        writer.Write((ushort)unknownCommand2402.Range);
                         writer.Write((ushort)unknownCommand2402.Arg2);
 
                         break;
@@ -257,20 +253,20 @@ public class TtmAssembler {
                         writer.Write((ushort)drawImageScaled.Height);
 
                         break;
-                    case UnknownCommandA514 unknownCommandA514:
-                        writer.Write((ushort)unknownCommandA514.Arg1);
-                        writer.Write((ushort)unknownCommandA514.Arg2);
-                        writer.Write((ushort)unknownCommandA514.Arg3);
-                        writer.Write((ushort)unknownCommandA514.Arg4);
+                    case DrawImageFlippedVertically drawImageFlippedVertically:
+                        writer.Write((ushort)drawImageFlippedVertically.X);
+                        writer.Write((ushort)drawImageFlippedVertically.Y);
+                        writer.Write((ushort)drawImageFlippedVertically.ImageNumber);
+                        writer.Write((ushort)drawImageFlippedVertically.ImageSlot);
 
                         break;
-                    case UnknownCommandA516 unknownCommandA516:
-                        writer.Write((ushort)unknownCommandA516.Arg1);
-                        writer.Write((ushort)unknownCommandA516.Arg2);
-                        writer.Write((ushort)unknownCommandA516.Arg3);
-                        writer.Write((ushort)unknownCommandA516.Arg4);
-                        writer.Write((ushort)unknownCommandA516.Arg5);
-                        writer.Write((ushort)unknownCommandA516.Arg6);
+                    case DrawImageFlippedVerticallyScaled drawImageFlippedVerticallyScaled:
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.X);
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.Y);
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.ImageNumber);
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.ImageSlot);
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.Width);
+                        writer.Write((ushort)drawImageFlippedVerticallyScaled.Height);
 
                         break;
                     case DrawImageFlippedHorizontally drawImageFlippedHorizontally:
@@ -289,20 +285,20 @@ public class TtmAssembler {
                         writer.Write((ushort)drawImageFlippedHorizontallyScaled.Height);
 
                         break;
-                    case UnknownCommandA534 unknownCommandA534:
-                        writer.Write((ushort)unknownCommandA534.Arg1);
-                        writer.Write((ushort)unknownCommandA534.Arg2);
-                        writer.Write((ushort)unknownCommandA534.Arg3);
-                        writer.Write((ushort)unknownCommandA534.Arg4);
+                    case DrawImageRotated180 drawImageRotated180:
+                        writer.Write((ushort)drawImageRotated180.X);
+                        writer.Write((ushort)drawImageRotated180.Y);
+                        writer.Write((ushort)drawImageRotated180.ImageNumber);
+                        writer.Write((ushort)drawImageRotated180.ImageSlot);
 
                         break;
-                    case UnknownCommandA536 unknownCommandA536:
-                        writer.Write((ushort)unknownCommandA536.Arg1);
-                        writer.Write((ushort)unknownCommandA536.Arg2);
-                        writer.Write((ushort)unknownCommandA536.Arg3);
-                        writer.Write((ushort)unknownCommandA536.Arg4);
-                        writer.Write((ushort)unknownCommandA536.Arg5);
-                        writer.Write((ushort)unknownCommandA536.Arg6);
+                    case DrawImageRotated180Scaled drawImageRotated180Scaled:
+                        writer.Write((ushort)drawImageRotated180Scaled.X);
+                        writer.Write((ushort)drawImageRotated180Scaled.Y);
+                        writer.Write((ushort)drawImageRotated180Scaled.ImageNumber);
+                        writer.Write((ushort)drawImageRotated180Scaled.ImageSlot);
+                        writer.Write((ushort)drawImageRotated180Scaled.Width);
+                        writer.Write((ushort)drawImageRotated180Scaled.Height);
 
                         break;
                     case UnknownCommandA5A7 unknownCommandA5A7:
