@@ -1,3 +1,19 @@
+TODO: replace image url with downloads of the images:
+1. For the hero section corners (292860):
+   - "Leafy corner" - A decorative vine/leaf corner ornament
+   - Used as mirrored pairs in top corners
+
+2. For section decorations (168833):
+   - A medieval manuscript-style corner flourish
+   - Used as a small decorative element in top-left of sections
+
+3. For heading underlines (321624):
+   - A horizontal medieval scroll/vine divider
+   - Used under h2 headings as a decorative separator
+
+4. For tool card borders:
+   - Same scroll/vine divider repurposed as a frame
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,6 +53,7 @@
             margin-bottom: 40px;
             border-bottom: 3px solid var(--accent-color);
             position: relative;
+            overflow: hidden;
         }
 
         .hero::before,
@@ -49,6 +66,31 @@
             background: url('https://openclipart.org/image/800px/292860') no-repeat;
             background-size: contain;
             opacity: 0.6;
+            animation: sway 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes sway {
+            from { transform: rotate(-2deg); }
+            to { transform: rotate(2deg); }
+        }
+
+        .hero h1::before,
+        .hero h1::after {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 2px;
+            background: var(--accent-color);
+            top: 50%;
+            opacity: 0.8;
+        }
+
+        .hero h1::before {
+            right: 65%;
+        }
+
+        .hero h1::after {
+            left: 65%;
         }
 
         .hero::before {
@@ -76,20 +118,62 @@
         a {
             color: var(--link-color);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0 2px;
         }
 
         a:hover {
             color: #fff;
             text-shadow: 0 0 5px var(--link-color);
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 3px;
         }
 
         .section {
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7) url('https://www.transparenttextures.com/patterns/dark-wood.png');
             padding: 20px;
             margin: 20px 0;
             border: 1px solid var(--accent-color);
             border-radius: 5px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            width: 30px;
+            height: 30px;
+            background: url('https://openclipart.org/image/800px/168833') no-repeat;
+            background-size: contain;
+            opacity: 0.4;
+            animation: fadeInOut 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes fadeInOut {
+            from { opacity: 0.2; }
+            to { opacity: 0.6; }
+        }
+
+        h2 {
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 15px;
+            background: url('https://openclipart.org/image/800px/321624') no-repeat center;
+            background-size: contain;
+            opacity: 0.4;
+            animation: fadeInOut 4s ease-in-out infinite alternate;
         }
 
         ul {
@@ -101,6 +185,8 @@
             content: "►";
             color: var(--accent-color);
             margin-right: 10px;
+            text-shadow: 0 0 3px var(--accent-color);
+            opacity: 0.8;
         }
 
         .tools-grid {
@@ -116,6 +202,23 @@
             border: 1px solid var(--accent-color);
             border-radius: 5px;
             text-align: center;
+            position: relative;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 1px solid var(--accent-color);
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0.4;
+            background: url('https://openclipart.org/image/800px/321624') no-repeat center;
+            background-size: contain;
+            animation: fadeInOut 3s ease-in-out infinite alternate;
         }
 
         /* Add new gallery styles */

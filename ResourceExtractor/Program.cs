@@ -37,6 +37,11 @@ internal static class Program {
             ? args[0]
             : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
 
+
+        OvlExtractor.Extract(filePath, "SX.OVL");
+
+        return;
+
         ArchiveExtractor archiveExtractor = new(filePath);
 
         // Extracts all resource from krondor.001 to separate files in the game directory
@@ -45,10 +50,9 @@ internal static class Program {
         Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGameStudio\BaK-Again\overrides");
 
         ExtractAnimations(filePath, archiveExtractor);
-
         ExtractAnimatorScripts(filePath, archiveExtractor);
 
-        // TestAssembly(filePath, "C51");
+        // TestAssembly(filePath, "INTRO");
 
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));

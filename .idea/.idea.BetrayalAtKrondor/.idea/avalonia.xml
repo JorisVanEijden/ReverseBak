@@ -4,6 +4,8 @@
     <option name="projectPerEditor">
       <map>
         <entry key="../Spice86/src/Spice86/Views/DebugWindow.axaml" value="BetrayalAtKrondor/BetrayalAtKrondor.csproj" />
+        <entry key="../Spice86/src/Spice86/Views/MemoryView.axaml" value="BetrayalAtKrondor/BetrayalAtKrondor.csproj" />
+        <entry key="../Spice86/src/Spice86/Views/ModernDisassemblyView.axaml" value="BetrayalAtKrondor/BetrayalAtKrondor.csproj" />
       </map>
     </option>
   </component>

@@ -13,6 +13,7 @@ public enum ResourceType {
     REQ,
     RMP,
     SCX,
+    SND,
     TBL,
     TTM,
     WLD
