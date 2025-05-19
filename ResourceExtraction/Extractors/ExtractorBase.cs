@@ -11,7 +11,7 @@ using System.IO;
 public abstract class ExtractorBase<T> where T : IResource {
     private const int TagLength = 4;
     internal const int DosCodePage = 437;
-    internal const bool Debug = false;
+    internal const bool Debug = true;
     protected static string Indent = string.Empty;
 
     protected static string ReadTag(BinaryReader resourceReader) {

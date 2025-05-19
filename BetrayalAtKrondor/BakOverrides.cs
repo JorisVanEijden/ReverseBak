@@ -9,6 +9,7 @@ using Spice86.Core.Emulator.Memory.ReaderWriter;
 using Spice86.Core.Emulator.ReverseEngineer;
 using Spice86.Core.Emulator.ReverseEngineer.DataStructure;
 using Spice86.Core.Emulator.VM;
+using Spice86.Core.Emulator.VM.Breakpoint;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Interfaces;
 using Spice86.Shared.Utils;
@@ -24,6 +25,12 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly ArgumentFetcher _args;
     private readonly IPauseHandler _pauseHandler;
     private Dictionary<uint, byte> _wordLowByteWrites = [];
+    private ushort _capturedSoundDriverSegment = 0;
+    private ushort _capturedExtraSoundDriverSegment = 0;
+    private List<OvrBreakpoint> _dynamicLoadedCodeBreakpoints = [];
+
+    private const int SoundDriverSegment = 0x8000;
+    private const int ExtraSoundDriverSegment = 0x8300;
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration) : base(functionsInformation,
         machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
@@ -42,6 +49,16 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void DefineBreakpoints() {
+        DoOnTopOfInstruction("35C1:0040", () => {
+            foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == ExtraSoundDriverSegment)) {
+                DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
+            }
+        });
+        DoOnTopOfInstruction("35C1:00D5", () => {
+            foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == SoundDriverSegment)) {
+                DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
+            }
+        });
         DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
         DoOnTopOfInstruction("1834:2AA5", RecordVmCodeSegment);
 
@@ -69,28 +86,28 @@ public class BakOverrides : CSharpOverrideHelper {
             _args.Get(out ushort stream, out uint nrOfBytes, out uint pBuffer);
             _loggerService.Information("[{Caller}] sub_seg045_0(stream: {Stream}, nrOfBytes: {NrOfBytes}, pBuffer: {PBuffer:X8})", CallerAddress(), stream, nrOfBytes, pBuffer);
         });
-        DoOnTopOfInstruction("3239:000C", () => {
-            _args.Get(out ushort stream, out byte arg2);
-            _loggerService.Information("[{Caller}] resourceLoadSound(stream: {Stream}, arg2: {Arg2})", CallerAddress(), stream, arg2);
-        });
+        // DoOnTopOfInstruction("3239:000C", () => {
+        //     _args.Get(out ushort stream, out byte arg2);
+        //     _loggerService.Information("[{Caller}] resourceLoadSound(stream: {Stream}, arg2: {Arg2})", CallerAddress(), stream, arg2);
+        // });
         DoOnTopOfInstruction("3556:000F", () => {
             _args.Get(out ushort stream, out ushort soundId);
             _loggerService.Information("[{Caller}] resourceLoadSx(stream: {Stream}, soundId: {SoundId})", CallerAddress(), stream, soundId);
-            _pauseHandler.RequestPause("step from here");
+            // _pauseHandler.RequestPause("step from here");
         });
 
-        DoOnTopOfInstruction("1834:7320", () => {
-            _args.Get(out ushort index, out ushort offset, out ushort segment, out ushort size);
-            _loggerService.Information("[{Caller}] resourceLoadCurrentFile(index: {Index}, pBuffer: {Segment:X4}:{Offset:X4}, size: {Size} (0x{SizeHex:X4}))", CallerAddress(), index, segment, offset, size, size);
-        });
+        // DoOnTopOfInstruction("1834:7320", () => {
+        //     _args.Get(out ushort index, out ushort offset, out ushort segment, out ushort size);
+        //     _loggerService.Information("[{Caller}] resourceLoadCurrentFile(index: {Index}, pBuffer: {Segment:X4}:{Offset:X4}, size: {Size} (0x{SizeHex:X4}))", CallerAddress(), index, segment, offset, size, size);
+        // });
 
-        DoOnTopOfInstruction("158B:0121", () => {
-            _args.Get(out uint size, out ushort flag);
-            _loggerService.Information("[{Caller}] audio_allocate_memory(flag: {Flag}, size: {Size} (0x{SizeHex:X8}))", CallerAddress(), flag, size, size);
-        });
-        DoOnTopOfInstruction("158B:01AF", () => {
-            _loggerService.Information("[{Caller}] allocated audio memory at: {Segment:X4}:{Offset:X4}", CallerAddress(), State.DX, State.AX);
-        });
+        // DoOnTopOfInstruction("158B:0121", () => {
+        //     _args.Get(out uint size, out ushort flag);
+        //     _loggerService.Information("[{Caller}] audio_allocate_memory(flag: {Flag}, size: {Size} (0x{SizeHex:X8}))", CallerAddress(), flag, size, size);
+        // });
+        // DoOnTopOfInstruction("158B:01AF", () => {
+        //     _loggerService.Information("[{Caller}] allocated audio memory at: {Segment:X4}:{Offset:X4}", CallerAddress(), State.DX, State.AX);
+        // });
 
         // DoOnTopOfInstruction("1834:649F", () => {
         //     string dump = Stack.PeekWindow(6);
@@ -99,19 +116,44 @@ public class BakOverrides : CSharpOverrideHelper {
         // });
 
         DoOnTopOfInstruction("327D:0208", () => {
-            _args.Get(out ushort index, out byte arg2);
-            _loggerService.Information("[{Caller}] sub_seg045_208(index: {Index}, arg2: {Arg2})", CallerAddress(), index, arg2);
+            _args.Get(out ushort index, out byte soundFormat);
+            _loggerService.Information("[{Caller}] sub_seg045_208(index: {Index}, soundFormat: {Arg2:X2})", CallerAddress(), index, soundFormat);
+            if (soundFormat != 0x0) {
+                _loggerService.Warning("soundFormat = {SoundFormat:X2}", soundFormat);
+            }
             // _pauseHandler.RequestPause("step from here");
         });
 
-        DoOnTopOfInstruction("1834:7441", () => {
-            _args.Get(out ushort index, out uint size, out ushort compressedMaybe);
-            _loggerService.Information("[{Caller}] resourceReadFileData(index: {Index}, size: {Size} (0x{SizeHex:X8})), compressedMaybe: {CompressedMaybe})", CallerAddress(), index, size, size, compressedMaybe);
-        });
+        // DoOnTopOfInstruction("1834:7441", () => {
+        //     _args.Get(out ushort index, out uint size, out ushort compressedMaybe);
+        //     _loggerService.Information("[{Caller}] resourceReadFileData(index: {Index}, size: {Size} (0x{SizeHex:X8})), compressedMaybe: {CompressedMaybe})", CallerAddress(), index, size, size, compressedMaybe);
+        // });
 
-        // AddWordReadMemoryMonitor("39DD:3C3E", "word_dseg_3C3E");
+
+        DoOnMemoryWrite(0x39DD, 0x3698, () => _pauseHandler.RequestPause("word_dseg_3698 was written to"));
+
+
 // PauseAt("3239:0140", "step from here");
 // PauseAt("35C1:0061", "check 3656:0002");
+
+        // PauseAt("35D5:000D", "playing a sound");
+        PauseAt("3638:0071", "playing a sound continued");
+
+        DoOnTopOfInstruction("32E5:000B", () => {
+            _args.Get(out string path, out string tag, out ushort arg4);
+            _loggerService.Information("[{Caller}] LoadSoundCodeOverlay(path: {Path}, tag: {Tag}, arg4: {Arg4})", CallerAddress(), path, tag, arg4);
+        });
+
+        DoOnTopOfInstruction("8300:0000", () => {
+            if (State.AX != 1) {
+                _loggerService.Information("[{Caller}] Extra AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.AX);
+            }
+        });
+        DoOnTopOfInstruction("8000:0000", () => {
+            if (State.BP != 3) {
+                _loggerService.Information("[{Caller}] AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.BP);
+            }
+        });
     }
 
     private Action LogBx(string message) {
@@ -391,6 +433,11 @@ public class BakOverrides : CSharpOverrideHelper {
         if (segment is >= 0x3FF7 and < 0x5ADE) {
             // We add it to the list, and when the OVR gets mapped, the real breakpoint is added.
             _ovrBreakpoints.Add(new OvrBreakpoint(segment, offset, action));
+
+            return;
+        }
+        if (segment is SoundDriverSegment or ExtraSoundDriverSegment) {
+            _dynamicLoadedCodeBreakpoints.Add(new OvrBreakpoint(segment, offset, action));
 
             return;
         }

@@ -77,7 +77,7 @@ public class StubSegments {
         [0x799E] = 0x39D1,
         [0x79A7] = 0x39D4,
         [0x79AE] = 0x39D7,
-        [0x7A16] = 0x39DA,
+        [0x7A16] = 0x39DA
     };
 
     public static readonly Dictionary<ushort, ushort> StubToIda = new() {

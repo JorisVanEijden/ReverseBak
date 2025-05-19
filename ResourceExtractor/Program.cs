@@ -37,11 +37,6 @@ internal static class Program {
             ? args[0]
             : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
 
-
-        OvlExtractor.Extract(filePath, "SX.OVL");
-
-        return;
-
         ArchiveExtractor archiveExtractor = new(filePath);
 
         // Extracts all resource from krondor.001 to separate files in the game directory
@@ -49,6 +44,12 @@ internal static class Program {
 
         Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGameStudio\BaK-Again\overrides");
 
+        ExtractAllSounds(filePath, archiveExtractor);
+
+        // OvlExtractor.Extract(filePath, "VMCODE.OVL");
+        OvlExtractor.Extract(filePath, "SX.OVL");
+
+        return;
         ExtractAnimations(filePath, archiveExtractor);
         ExtractAnimatorScripts(filePath, archiveExtractor);
 
@@ -57,7 +58,6 @@ internal static class Program {
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
         // ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
-        // OvlExtractor.Extract(Path.Combine(filePath, "VMCODE.OVL"));
 
         ExtractAllScx(filePath, archiveExtractor);
         ExtractAllBmx(filePath, archiveExtractor);
@@ -109,6 +109,27 @@ internal static class Program {
         const string teleportDat = "teleport.dat";
         List<TeleportDestination> teleportDestinations = TeleportExtractor.Extract(Path.Combine(filePath, teleportDat));
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
+    }
+
+    private static void ExtractAllSounds(string filePath, ArchiveExtractor archiveExtractor) {
+        var soundExtractor = new SoundExtractor();
+        string sfxFile = Path.Join(filePath, "FRP.SX");
+        using var resourceStream = archiveExtractor.GetResourceStream(sfxFile);
+        var sounds = soundExtractor.Extract("frp.sx", resourceStream);
+        foreach (var soundEffect in sounds.SoundEffects) {
+            var path = nameof(ResourceType.SND);
+            string resourceDirectory = Path.Combine(path, soundEffect.Id);
+            foreach (KeyValuePair<int, List<byte[]>> effectSoundFormat in soundEffect.SoundFormats) {
+                var formatName = effectSoundFormat.Key.ToString("X2");
+                if (!Directory.Exists(resourceDirectory)) {
+                    Directory.CreateDirectory(resourceDirectory);
+                }
+                for (int i = 0; i < effectSoundFormat.Value.Count; i++) {
+                    var destPath = Path.Combine(resourceDirectory, $"{soundEffect.Id}_{formatName}_{i}.mid");
+                    File.WriteAllBytes(destPath, effectSoundFormat.Value[i]);
+                }
+            }
+        }
     }
 
     private static void ExtractAllPalettes(string filePath, ArchiveExtractor archiveExtractor) {
