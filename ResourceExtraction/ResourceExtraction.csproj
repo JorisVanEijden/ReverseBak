@@ -13,6 +13,10 @@
       <ProjectReference Include="..\GameData\GameData.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Melanchall.DryWetMidi" Version="8.0.0" />
+    </ItemGroup>
+
     <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
         <OutputPath>C:\Projects\UnityProjects\BaK-Again\Assets\Plugins</OutputPath>
     </PropertyGroup>

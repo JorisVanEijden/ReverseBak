@@ -1,13 +1,15 @@
 namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Audio;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Common;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-public class SoundExtractor : ExtractorBase<SoundEffectList> {
-    public override SoundEffectList Extract(string id, Stream resourceStream) {
-        var soundEffectList = new SoundEffectList();
+public class SoundExtractor : ExtractorBase<AudioResourceList> {
+    public override AudioResourceList Extract(string id, Stream resourceStream) {
+        var audioResourceList = new AudioResourceList();
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
 
         Log($"Extracting {id}");
@@ -32,7 +34,7 @@ public class SoundExtractor : ExtractorBase<SoundEffectList> {
         }
 
         foreach (var soundOffset in soundOffsetsMap) {
-            var soundEffect = new SoundEffect(soundOffset.Key.ToString());
+            var audioResource = new AudioResource(soundOffset.Key.ToString());
             var offset = soundOffset.Value;
             resourceReader.BaseStream.Seek(offset, SeekOrigin.Begin);
 
@@ -42,6 +44,7 @@ public class SoundExtractor : ExtractorBase<SoundEffectList> {
             }
             uint dataBlockSize = resourceReader.ReadUInt32();
             ushort soundId = resourceReader.ReadUInt16();
+            audioResource.AudioType = soundId >= 1000 ? AudioType.Music : AudioType.SoundEffect;
             // Log($"Sound ID: {soundId} (0x{soundId:X4})");
             byte unknownByte2 = resourceReader.ReadByte();
             // Log($"Unknown byte 2: {unknownByte2} (0x{unknownByte2:X2})");
@@ -60,8 +63,9 @@ public class SoundExtractor : ExtractorBase<SoundEffectList> {
 
             byte soundFormat;
             while ((soundFormat = resourceReader.ReadByte()) != 0xFF) {
+                audioResource.Variants[soundFormat] = new Dictionary<AudioFormat, byte[]>();
+                var midiTrackChunks = new List<TrackChunk>();
                 // Log($"Sound format: {soundFormat} (0x{soundFormat:X2})");
-                soundEffect.SoundFormats[soundFormat] = [];
                 byte markerByte = resourceReader.ReadByte();
                 while (markerByte != 0xFF) {
                     byte unknownByte5 = resourceReader.ReadByte(); // always 00
@@ -75,16 +79,29 @@ public class SoundExtractor : ExtractorBase<SoundEffectList> {
                     }
                     resourceReader.BaseStream.Seek(basePosition + dataOffset, SeekOrigin.Begin);
                     var parsedSound = AudioParser.ParseSound(resourceReader, soundFormat, dataSize);
-                    var rawData = parsedSound.Data;
-                    soundEffect.SoundFormats[soundFormat].Add(rawData);
+
+                    if (parsedSound is {AudioFileType: AudioFileType.Midi, MidiTrackChunk: not null}) {
+                        // Collect MIDI track chunks for later combination
+                        midiTrackChunks.Add(parsedSound.MidiTrackChunk);
+                    } else if (parsedSound is {AudioFileType: AudioFileType.Wave, Data: not null}) {
+                        // Store WAV data directly
+                        audioResource.Variants[soundFormat][AudioFormat.Wav] = parsedSound.Data;
+                    }
+
                     resourceReader.BaseStream.Seek(savedPosition, SeekOrigin.Begin);
                     // Log($"{soundId}: {soundFormat:X2}_{soundEffect.SoundFormats[soundFormat].Count - 1}");
                 }
+                // If we collected any MIDI tracks, combine them into a single MIDI file
+                if (midiTrackChunks.Count > 0) {
+                    byte[] midiData = AudioParser.CombineMidiTracks(midiTrackChunks);
+                    audioResource.Variants[soundFormat][AudioFormat.Midi] = midiData;
+                }
             }
-            soundEffectList.SoundEffects.Add(soundEffect);
+
+            audioResourceList.AudioResources.Add(audioResource);
         }
 
-        return soundEffectList;
+        return audioResourceList;
     }
 }
 
@@ -93,28 +110,16 @@ public class AudioParser {
         var flags = reader.ReadByte();
         var channel = flags & 0x0F;
 
-        return flags == 0xFE ? ParseWave(reader, soundFormat) : ParseMidi(reader, soundFormat, channel, dataSize);
+        return flags == 0xFE ? ParseWave(reader, soundFormat) : ParseMidiTrack(reader, soundFormat, channel);
     }
 
-    private static ParsedSound ParseMidi(BinaryReader reader, int soundFormat, int channel, int dataSize) {
+    // Renamed from ParseMidi to ParseMidiTrack to better reflect its purpose
+    private static ParsedSound ParseMidiTrack(BinaryReader reader, int soundFormat, int channel) {
         // Read and discard the unknown byte
         byte unknownByte = reader.ReadByte();
 
-        using var output = new MemoryStream();
-        using var writer = new BinaryWriter(output);
-
-        // SMF Header Chunk
-        writer.Write("MThd"u8.ToArray()); // Chunk type
-        WriteBigEndianUInt32(writer, 6); // Chunk length (always 6 for header)
-        // Write format, tracks, and division in Big-Endian format
-        WriteBigEndianUInt16(writer, 0); // Format 0 (single track)
-        WriteBigEndianUInt16(writer, 1); // Number of tracks (1)
-        WriteBigEndianUInt16(writer, 32); // Ticks per quarter note (32 for this game)
-
-        // Track Chunk
-        long trackStartPos = output.Position;
-        writer.Write("MTrk"u8.ToArray()); // Track chunk type
-        writer.Write(0); // Placeholder for track length
+        // Create a track chunk for the MIDI events
+        var trackChunk = new TrackChunk();
 
         // Process MIDI events
         byte lastStatus = 0;
@@ -134,116 +139,214 @@ public class AudioParser {
                 }
             }
 
-            // Write variable-length delta time
-            WriteVariableLength(writer, (uint)deltaTime);
+            // Update absolute ticks position
 
             // Read status byte
             byte status = reader.ReadByte();
 
             // Handle running status
             if ((status & 0x80) == 0) {
-                // Running status - use previous status and this is the first data byte
-                // writer.Write(lastStatus);
-                writer.Write(status);
+                // This is actually a data byte, not a status byte
+                byte dataByte1 = status;
 
-                // Write second data byte if needed (except for program change and channel aftertouch)
-                if ((lastStatus & 0xE0) != 0xC0 && (lastStatus & 0xE0) != 0xD0) {
-                    writer.Write(reader.ReadByte());
+                // Use the last status byte
+                status = lastStatus;
+
+                // Create MIDI event based on the event type
+                byte eventType = (byte)(status & 0xF0);
+                byte channelByte = (byte)(status & 0x0F);
+
+                switch (eventType) {
+                    case 0x80: // Note Off
+                        trackChunk.Events.Add(new NoteOffEvent((SevenBitNumber)dataByte1, (SevenBitNumber)reader.ReadByte()) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0x90: // Note On
+                        byte velocity = reader.ReadByte();
+                        trackChunk.Events.Add(new NoteOnEvent((SevenBitNumber)dataByte1, (SevenBitNumber)velocity) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0xA0: // Polyphonic Key Pressure
+                        trackChunk.Events.Add(new NoteAftertouchEvent((SevenBitNumber)dataByte1, (SevenBitNumber)reader.ReadByte()) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0xB0: // Control Change
+                        trackChunk.Events.Add(new ControlChangeEvent((SevenBitNumber)dataByte1, (SevenBitNumber)reader.ReadByte()) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0xC0: // Program Change
+                        trackChunk.Events.Add(new ProgramChangeEvent((SevenBitNumber)dataByte1) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0xD0: // Channel Pressure
+                        trackChunk.Events.Add(new ChannelAftertouchEvent((SevenBitNumber)dataByte1) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
+
+                    case 0xE0: // Pitch Bend
+                        byte lsb = dataByte1;
+                        byte msb = reader.ReadByte();
+                        ushort pitchBendValue = (ushort)((msb << 7) | lsb);
+                        trackChunk.Events.Add(new PitchBendEvent(pitchBendValue) {
+                            Channel = (FourBitNumber)channelByte,
+                            DeltaTime = deltaTime
+                        });
+
+                        break;
                 }
 
                 continue;
             }
 
             // Update last status for running status
-            // lastStatus = status;
+            lastStatus = status;
 
             // Handle different MIDI events
-            byte eventType = (byte)(status & 0xF0);
-            switch (eventType) {
+            byte statusEventType = (byte)(status & 0xF0);
+            byte statusChannel = (byte)(status & 0x0F);
+
+            switch (statusEventType) {
                 case 0x80: // Note Off
+                    trackChunk.Events.Add(new NoteOffEvent((SevenBitNumber)reader.ReadByte(), (SevenBitNumber)reader.ReadByte()) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
+                    break;
+
                 case 0x90: // Note On
+                    byte noteNumber = reader.ReadByte();
+                    byte velocity = reader.ReadByte();
+                    trackChunk.Events.Add(new NoteOnEvent((SevenBitNumber)noteNumber, (SevenBitNumber)velocity) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
+                    break;
+
                 case 0xA0: // Polyphonic Key Pressure
+                    trackChunk.Events.Add(new NoteAftertouchEvent((SevenBitNumber)reader.ReadByte(), (SevenBitNumber)reader.ReadByte()) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
+                    break;
+
                 case 0xB0: // Control Change
-                case 0xE0: // Pitch Bend
-                    writer.Write(status);
-                    writer.Write(reader.ReadBytes(2)); // 2 data bytes
+                    trackChunk.Events.Add(new ControlChangeEvent((SevenBitNumber)reader.ReadByte(), (SevenBitNumber)reader.ReadByte()) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
                     break;
 
                 case 0xC0: // Program Change
+                    trackChunk.Events.Add(new ProgramChangeEvent((SevenBitNumber)reader.ReadByte()) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
+                    break;
+
                 case 0xD0: // Channel Pressure
-                    writer.Write(status);
-                    writer.Write(reader.ReadByte()); // 1 data byte
+                    trackChunk.Events.Add(new ChannelAftertouchEvent((SevenBitNumber)reader.ReadByte()) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
+
+                    break;
+
+                case 0xE0: // Pitch Bend
+                    byte lsb = reader.ReadByte();
+                    byte msb = reader.ReadByte();
+                    ushort pitchBendValue = (ushort)((msb << 7) | lsb);
+                    trackChunk.Events.Add(new PitchBendEvent(pitchBendValue) {
+                        Channel = (FourBitNumber)statusChannel,
+                        DeltaTime = deltaTime
+                    });
 
                     break;
 
                 case 0xF0: // System messages
                     if (status == 0xFC) {
                         // STOP
-                        writer.Write((byte)0xFF); // End of track event
-                        writer.Write((byte)0x2F); // End of track event
-                        writer.Write((byte)0x00); // End of track event
                         endOfTrack = true;
                     } else {
-                        writer.Write(status); // Write the status byte
+                        // For other system messages, add them as meta events or sysex
+                        if (status == 0xF0) {
+                            // SysEx
+                            var sysExData = new List<byte>();
+                            byte b;
+                            while ((b = reader.ReadByte()) != 0xF7) {
+                                sysExData.Add(b);
+                            }
+                            trackChunk.Events.Add(new NormalSysExEvent(sysExData.ToArray()) {
+                                DeltaTime = deltaTime
+                            });
+                        } else {
+                            // Other system common messages
+                            // These are typically not stored in a MIDI file, but we'll handle them as meta events
+                            // For simplicity, we'll just add a marker event
+                            trackChunk.Events.Add(new MarkerEvent($"System message 0x{status:X2}") {
+                                DeltaTime = deltaTime
+                            });
+                        }
                     }
 
-                    // 0xFF (SYSTEM RESET) and others are just passed through as single-byte messages
                     break;
             }
         }
 
-        // Update track length in the header
-        long endPos = output.Position;
-        output.Position = trackStartPos + 4; // Position of track length field
-        WriteBigEndianUInt32(writer, (uint)(endPos - trackStartPos - 8)); // Length of track data in Big-Endian
-        output.Position = endPos;
-
-        // byte[] midiData = reader.ReadBytes(dataSize - 5);
-        // writer.Write(midiData);
-        // writer.Write((byte)0x04); // End of track event
-        // writer.Write((byte)0xFF); // End of track event
-        // writer.Write((byte)0x2F); // End of track event
-        // writer.Write((byte)0x00); // End of track event
-
+        // Return the track chunk as part of a ParsedSound object
         return new ParsedSound {
             SoundFormat = soundFormat,
             Channel = channel,
-            Data = output.ToArray(),
+            MidiTrackChunk = trackChunk, // Store the track chunk instead of raw bytes
             AudioFileType = AudioFileType.Midi
         };
     }
 
-    // Helper method to write a UInt16 in Big-Endian format
-    private static void WriteBigEndianUInt16(BinaryWriter writer, ushort value) {
-        writer.Write((byte)((value >> 8) & 0xFF)); // High byte
-        writer.Write((byte)(value & 0xFF)); // Low byte
-    }
+    // This method combines multiple MIDI track chunks into a single MIDI file
+    public static byte[] CombineMidiTracks(IEnumerable<TrackChunk> trackChunks) {
+        // Create a new MIDI file
+        var midiFile = new MidiFile {
+            // Set the time division (ticks per quarter note)
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(32)
+        };
 
-    // Helper method to write a UInt32 in Big-Endian format
-    private static void WriteBigEndianUInt32(BinaryWriter writer, uint value) {
-        writer.Write((byte)((value >> 24) & 0xFF)); // Highest byte
-        writer.Write((byte)((value >> 16) & 0xFF));
-        writer.Write((byte)((value >> 8) & 0xFF));
-        writer.Write((byte)(value & 0xFF)); // Lowest byte
-    }
-
-    private static void WriteVariableLength(BinaryWriter writer, uint value) {
-        var buffer = new byte[4];
-        int index = 0;
-
-        buffer[index] = (byte)(value & 0x7F);
-        value >>= 7;
-
-        while (value != 0) {
-            index++;
-            buffer[index] = (byte)((value & 0x7F) | 0x80);
-            value >>= 7;
+        // Add all track chunks to the MIDI file
+        foreach (var trackChunk in trackChunks) {
+            midiFile.Chunks.Add(trackChunk);
         }
 
-        // Write in reverse order (MSB first)
-        for (int i = index; i >= 0; i--) {
-            writer.Write(buffer[i]);
-        }
+        // Convert the MIDI file to a byte array
+        using var memoryStream = new MemoryStream();
+        midiFile.Write(memoryStream);
+
+        return memoryStream.ToArray();
     }
 
     private static ParsedSound ParseWave(BinaryReader reader, int soundFormat) {
@@ -294,8 +397,9 @@ public class AudioParser {
 public class ParsedSound {
     public int SoundFormat { get; set; }
     public int Channel { get; set; }
-    public byte[] Data { get; set; }
+    public byte[]? Data { get; set; }
     public AudioFileType AudioFileType { get; set; }
+    public TrackChunk? MidiTrackChunk { get; set; }
 }
 
 public enum AudioFileType {

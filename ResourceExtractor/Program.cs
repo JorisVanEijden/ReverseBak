@@ -2,6 +2,7 @@
 
 using GameData.Resources;
 using GameData.Resources.Animation;
+using GameData.Resources.Audio;
 using GameData.Resources.Book;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
@@ -115,18 +116,20 @@ internal static class Program {
         var soundExtractor = new SoundExtractor();
         string sfxFile = Path.Join(filePath, "FRP.SX");
         using var resourceStream = archiveExtractor.GetResourceStream(sfxFile);
-        var sounds = soundExtractor.Extract("frp.sx", resourceStream);
-        foreach (var soundEffect in sounds.SoundEffects) {
+        var audioAssetList = soundExtractor.Extract("frp.sx", resourceStream);
+        foreach (var audioResource in audioAssetList.AudioResources) {
             var path = nameof(ResourceType.SND);
-            string resourceDirectory = Path.Combine(path, soundEffect.Id);
-            foreach (KeyValuePair<int, List<byte[]>> effectSoundFormat in soundEffect.SoundFormats) {
-                var formatName = effectSoundFormat.Key.ToString("X2");
+            string resourceDirectory = Path.Combine(path, audioResource.Id);
+            foreach (KeyValuePair<byte, Dictionary<AudioFormat, byte[]>> soundVariant in audioResource.Variants) {
+                var variantName = soundVariant.Key.ToString("X2");
                 if (!Directory.Exists(resourceDirectory)) {
                     Directory.CreateDirectory(resourceDirectory);
                 }
-                for (int i = 0; i < effectSoundFormat.Value.Count; i++) {
-                    var destPath = Path.Combine(resourceDirectory, $"{soundEffect.Id}_{formatName}_{i}.mid");
-                    File.WriteAllBytes(destPath, effectSoundFormat.Value[i]);
+                foreach (KeyValuePair<AudioFormat, byte[]> keyValuePair in soundVariant.Value) {
+                    var format = keyValuePair.Key == AudioFormat.Midi ? "mid" : "wav";
+                    var data = keyValuePair.Value;
+                    var destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.{format}");
+                    File.WriteAllBytes(destPath, data);
                 }
             }
         }
