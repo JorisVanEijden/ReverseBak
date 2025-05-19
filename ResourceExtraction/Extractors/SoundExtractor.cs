@@ -375,7 +375,7 @@ public class AudioParser {
         writer.Write(16); // Chunk size
         writer.Write((ushort)1); // Audio format (1 = PCM)
         writer.Write((ushort)1); // Num channels (1 = mono)
-        writer.Write(sampleRate); // Sample rate
+        writer.Write((int)sampleRate); // Sample rate
         writer.Write(sampleRate * 1 * 8 / 8); // Byte rate (SampleRate * NumChannels * BitsPerSample/8)
         writer.Write((ushort)(1 * 8 / 8)); // Block align (NumChannels * BitsPerSample/8)
         writer.Write((ushort)8); // Bits per sample (8-bit PCM)
