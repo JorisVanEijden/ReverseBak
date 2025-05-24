@@ -16,6 +16,7 @@ using GameData.Resources.Spells;
 using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
+using ResourceExtraction.Extractors.Audio;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
@@ -119,17 +120,19 @@ internal static class Program {
         var audioAssetList = soundExtractor.Extract("frp.sx", resourceStream);
         foreach (var audioResource in audioAssetList.AudioResources) {
             var path = nameof(ResourceType.SND);
-            string resourceDirectory = Path.Combine(path, audioResource.Id);
-            foreach (KeyValuePair<byte, Dictionary<AudioFormat, byte[]>> soundVariant in audioResource.Variants) {
+            string resourceDirectory = Path.Combine(path, audioResource.Id + "_" + audioResource.Name);
+            foreach (KeyValuePair<byte, AudioDataResource> soundVariant in audioResource.Variants) {
                 var variantName = soundVariant.Key.ToString("X2");
                 if (!Directory.Exists(resourceDirectory)) {
                     Directory.CreateDirectory(resourceDirectory);
                 }
-                foreach (KeyValuePair<AudioFormat, byte[]> keyValuePair in soundVariant.Value) {
-                    var format = keyValuePair.Key == AudioFormat.Midi ? "mid" : "wav";
-                    var data = keyValuePair.Value;
-                    var destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.{format}");
-                    File.WriteAllBytes(destPath, data);
+                if (soundVariant.Value.MidiData != null) {
+                    string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.mid");
+                    File.WriteAllBytes(destPath, soundVariant.Value.MidiData);
+                }
+                if (soundVariant.Value.WavData != null) {
+                    string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.wav");
+                    File.WriteAllBytes(destPath, soundVariant.Value.WavData);
                 }
             }
         }

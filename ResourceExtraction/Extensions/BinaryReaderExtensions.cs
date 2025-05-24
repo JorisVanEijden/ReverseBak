@@ -14,4 +14,11 @@ public static class BinaryReaderExtensions {
 
         return text.ToString();
     }
+
+    public static byte PeekByte(this BinaryReader reader) {
+        long position = reader.BaseStream.Position;
+        byte value = reader.ReadByte();
+        reader.BaseStream.Position = position;
+        return value;
+    }
 }
