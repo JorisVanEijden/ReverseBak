@@ -1,25 +1,25 @@
-namespace ResourceExtraction.Extractors;
+namespace ResourceExtraction.Providers;
 
+using GameData.Resources;
 using ResourceExtraction.Extensions;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-public class ArchiveExtractor {
+public class GeneralResourceProvider : IResourceProvider {
     private const string ResourceFileName = "KRONDOR.001";
     private const int DosCodePage = 437;
     private const int FileNameLength = 13;
 
-    private readonly Dictionary<string, (long, uint)> _dictionary;
+    private readonly IDictionary<string, (long, uint)> _dictionary;
     private readonly string _resourceFilePath;
 
-    public ArchiveExtractor(string gameDirectory) {
+    public GeneralResourceProvider(string gameDirectory) {
         _resourceFilePath = Path.Combine(gameDirectory, ResourceFileName);
         _dictionary = GetDictionary();
     }
 
-    public Dictionary<string, (long, uint)> GetDictionary() {
+    public IDictionary<string, (long, uint)> GetDictionary() {
         using FileStream resourceFile = File.OpenRead(_resourceFilePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         long resourceFileLength = resourceFile.Length;
@@ -36,6 +36,14 @@ public class ArchiveExtractor {
         }
 
         return offsets;
+    }
+
+    public ResourceExtraction.ResourceType ResourceType {
+        get => ResourceExtraction.ResourceType.General;
+    }
+
+    public bool CanProvideResource(string resourceId) {
+        return _dictionary.ContainsKey(resourceId.ToUpper());
     }
 
     public Stream GetResourceStream(string filename) {
@@ -66,5 +74,16 @@ public class ArchiveExtractor {
             using var outStream = File.Create(Path.Combine(Path.GetDirectoryName(_resourceFilePath)!, kvp.Key));
             s.CopyTo(outStream);
         }
+    }
+    
+    public T GetResource<T>(string resourceId) where T : IResource {
+        // Get the extractor for the requested resource type
+        var extractor = ExtractorFactory.GetExtractor<T>();
+        
+        // Get the resource stream
+        using var stream = GetResourceStream(resourceId);
+        
+        // Extract and return the resource
+        return extractor.Extract(resourceId, stream);
     }
 }

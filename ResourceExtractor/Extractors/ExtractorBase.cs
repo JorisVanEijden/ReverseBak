@@ -16,11 +16,6 @@ public abstract class ExtractorBase {
     internal const bool Debug = false;
     protected static string Indent = string.Empty;
 
-    protected static string ReadTag(BinaryReader resourceReader) {
-        string tagString = new(resourceReader.ReadChars(TagLength));
-        return tagString.TrimEnd(':');
-    }
-
     protected static void Log(string message) {
         if (Debug)
             Console.WriteLine(Indent + message);

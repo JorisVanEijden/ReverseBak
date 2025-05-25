@@ -2,18 +2,19 @@ namespace ResourceExtraction.Extractors;
 
 using GameData;
 using GameData.Resources.Palette;
+using ResourceExtraction.Extensions;
 using System.IO;
 using System.Text;
 
 public class PaletteExtractor : ExtractorBase<PaletteResource> {
     public override PaletteResource Extract(string id, Stream resourceStream) {
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
-        string mainTag = ReadTag(resourceReader);
+        string mainTag = resourceReader.ReadTag();
         uint fileSize = resourceReader.ReadUInt16();
         ushort unknown = resourceReader.ReadUInt16();
         var palette = new PaletteResource(id);
         while (resourceReader.BaseStream.Position < fileSize) {
-            string tag = ReadTag(resourceReader);
+            string tag = resourceReader.ReadTag();
             uint chunkSize = resourceReader.ReadUInt32();
             if (tag != "VGA") {
                 resourceReader.BaseStream.Seek(chunkSize, SeekOrigin.Current);

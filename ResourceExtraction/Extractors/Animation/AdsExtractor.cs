@@ -13,7 +13,7 @@ public class AdsExtractor : ExtractorBase<AnimatorResource> {
     public override AnimatorResource Extract(string id, Stream resourceStream) {
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
         var animation = new AnimatorResource(id);
-        string tag = ReadTag(resourceReader);
+        string tag = resourceReader.ReadTag();
         if (tag != "VER") {
             throw new InvalidDataException($"Expected VER tag, got {tag}");
         }
@@ -22,7 +22,7 @@ public class AdsExtractor : ExtractorBase<AnimatorResource> {
             throw new InterestingDataException("UInt16 after size is not 0x0000 in VER tag");
         }
         animation.Version = resourceReader.ReadZeroTerminatedString();
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "ADS") {
             throw new InvalidDataException($"Expected ADS tag, got {tag}");
         }
@@ -30,7 +30,7 @@ public class AdsExtractor : ExtractorBase<AnimatorResource> {
         if ((adsSize | 0x8000) == 0) {
             throw new InterestingDataException("Ads size does not have 0x8000 in ADS tag");
         }
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "RES") {
             throw new InvalidDataException($"Expected RES tag, got {tag}");
         }
@@ -43,7 +43,7 @@ public class AdsExtractor : ExtractorBase<AnimatorResource> {
             animation.ResourceFiles.Add(resourceId, fileName);
         }
 
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "SCR") {
             throw new InvalidDataException($"Expected SCR tag, got {tag}");
         }
@@ -55,11 +55,11 @@ public class AdsExtractor : ExtractorBase<AnimatorResource> {
             Dictionary<int, List<AdsScriptCall>> commandsDebug = AdsScriptBuilder.CreateDebug(scriptBytes);
         }
 
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "TAG") {
             throw new InvalidDataException($"Expected TAG tag, got {tag}");
         }
-        Dictionary<int, string> tags = ReadTags(resourceReader);
+        Dictionary<int, string> tags = resourceReader.ReadTags();
 
         foreach (int sceneNr in scripts.Keys) {
             var scene = new AnimatorScript {

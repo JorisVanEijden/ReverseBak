@@ -2,6 +2,7 @@ namespace ResourceExtraction;
 
 using GameData.Resources;
 using GameData.Resources.Animation;
+using GameData.Resources.Audio;
 using GameData.Resources.Book;
 using GameData.Resources.Data;
 using GameData.Resources.Image;
@@ -11,6 +12,7 @@ using GameData.Resources.Palette;
 using GameData.Resources.Spells;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
+using ResourceExtraction.Extractors.Audio;
 using System;
 using System.Collections.Generic;
 
@@ -38,6 +40,8 @@ public static class ExtractorFactory {
             typeof(SpellInfoList), typeof(SpellInfoExtractor)
         }, {
             typeof(PaletteResource), typeof(PaletteExtractor)
+        }, {
+            typeof(AudioResource), typeof(AudioExtractor)
         }
     };
 

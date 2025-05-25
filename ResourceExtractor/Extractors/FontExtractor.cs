@@ -1,7 +1,7 @@
 namespace ResourceExtractor.Extractors;
 
 using ResourceExtraction.Compression;
-
+using ResourceExtraction.Extensions;
 using ResourceExtractor.Compression;
 
 using System.Text;
@@ -10,7 +10,7 @@ public class FontExtractor : ExtractorBase {
     public static void Extract(string filePath) {
         using FileStream resourceFile = File.OpenRead(filePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
-        string tag = ReadTag(resourceReader);
+        string tag = resourceReader.ReadTag();
         if (!tag.Equals("FNT")) {
             throw new InvalidOperationException($"Invalid tag '{tag}'");
         }

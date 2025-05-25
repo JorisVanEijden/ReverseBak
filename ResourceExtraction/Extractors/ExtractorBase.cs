@@ -9,16 +9,9 @@ using System.Collections.Generic;
 using System.IO;
 
 public abstract class ExtractorBase<T> where T : IResource {
-    private const int TagLength = 4;
     internal const int DosCodePage = 437;
     internal const bool Debug = true;
     protected static string Indent = string.Empty;
-
-    protected static string ReadTag(BinaryReader resourceReader) {
-        string tagString = new(resourceReader.ReadChars(TagLength));
-
-        return tagString.TrimEnd(':');
-    }
 
     protected static void Log(string message) {
         if (Debug)
@@ -48,16 +41,5 @@ public abstract class ExtractorBase<T> where T : IResource {
         }
 
         return text;
-    }
-
-    protected static Dictionary<int, string> ReadTags(BinaryReader resourceReader) {
-        uint tagSize = resourceReader.ReadUInt32();
-        ushort numberOfTags = resourceReader.ReadUInt16();
-        var tags = new Dictionary<int, string>(numberOfTags);
-        for (var i = 0; i < numberOfTags; i++) {
-            tags[resourceReader.ReadUInt16()] = resourceReader.ReadZeroTerminatedString();
-        }
-
-        return tags;
     }
 }

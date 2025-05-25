@@ -1,6 +1,5 @@
-﻿namespace ResourceExtractor;
+namespace ResourceExtractor;
 
-using GameData.Resources;
 using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
@@ -13,10 +12,11 @@ using GameData.Resources.Menu;
 using GameData.Resources.Object;
 using GameData.Resources.Palette;
 using GameData.Resources.Spells;
+using ResourceExtraction;
 using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
-using ResourceExtraction.Extractors.Audio;
+using ResourceExtraction.Providers;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
@@ -24,9 +24,9 @@ using ResourceExtractor.Extractors.Dialog;
 using System.Drawing;
 using System.Text;
 using System.Text.Json;
-using ArchiveExtractor = ResourceExtraction.Extractors.ArchiveExtractor;
 using Color = GameData.Resources.Palette.Color;
 using PaletteExtractor = ResourceExtraction.Extractors.PaletteExtractor;
+using ResourceType = GameData.Resources.ResourceType;
 
 internal static class Program {
     private const int DosCodePage = 437;
@@ -35,25 +35,28 @@ internal static class Program {
         CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        string filePath = args.Length == 1
-            ? args[0]
-            : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
+        string filePath = args.Length == 1 ? args[0] : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
 
-        ArchiveExtractor archiveExtractor = new(filePath);
+        GeneralResourceProvider generalResourceProvider = new(filePath);
 
         // Extracts all resource from krondor.001 to separate files in the game directory
         // archiveExtractor.ExtractAllResources();
 
         Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGameStudio\BaK-Again\overrides");
 
-        ExtractAllSounds(filePath, archiveExtractor);
+        // ExtractAllSounds(filePath, archiveExtractor);
+
+        var resourceProvider = ResourceProviderFactory.CreateResourceProvider(filePath);
+        var resource = resourceProvider.GetResource<AudioResource>("1023");
+        Console.WriteLine(resource.Type);
+        Console.WriteLine(resource.Name);
 
         // OvlExtractor.Extract(filePath, "VMCODE.OVL");
         OvlExtractor.Extract(filePath, "SX.OVL");
 
         return;
-        ExtractAnimations(filePath, archiveExtractor);
-        ExtractAnimatorScripts(filePath, archiveExtractor);
+        ExtractAnimations(filePath, generalResourceProvider);
+        ExtractAnimatorScripts(filePath, generalResourceProvider);
 
         // TestAssembly(filePath, "INTRO");
 
@@ -61,11 +64,11 @@ internal static class Program {
         FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
         // ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
 
-        ExtractAllScx(filePath, archiveExtractor);
-        ExtractAllBmx(filePath, archiveExtractor);
+        ExtractAllScx(filePath, generalResourceProvider);
+        ExtractAllBmx(filePath, generalResourceProvider);
 
-        ExtractAllPalettes(filePath, archiveExtractor);
-        ExtractAllRemappings(filePath, archiveExtractor);
+        ExtractAllPalettes(filePath, generalResourceProvider);
+        ExtractAllRemappings(filePath, generalResourceProvider);
 
         // var screen = ExtractScreen(Path.Combine(filePath, "PUZZLE.SCX"));
         // var image = new BmImage{BitMapData = screen.BitMapData, Width = 320, Height = 200};
@@ -80,16 +83,16 @@ internal static class Program {
             WriteToJsonFile(ddxFile, ddx.Type, ddx.ToJson());
         }
 
-        ExtractLabels(filePath, archiveExtractor);
-        ExtractSpells(archiveExtractor);
-        ExtractSpellInfo(archiveExtractor);
+        ExtractLabels(filePath, generalResourceProvider);
+        ExtractSpells(generalResourceProvider);
+        ExtractSpellInfo(generalResourceProvider);
 
         var objectExtractor = new ObjectExtractor();
         List<ObjectInfo> objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
         WriteToCsvFile("objinfo.dat", ResourceType.DAT, objectInfo.ToCsv());
 
         var keywordExtractor = new KeywordExtractor();
-        using Stream resourceStream = archiveExtractor.GetResourceStream("keyword.dat");
+        using Stream resourceStream = generalResourceProvider.GetResourceStream("keyword.dat");
         KeywordList keywordList = keywordExtractor.Extract("globalKeywords", resourceStream);
         WriteToJsonFile("keywords.dat", keywordList.Type, keywordList.ToJson());
 
@@ -113,45 +116,45 @@ internal static class Program {
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
     }
 
-    private static void ExtractAllSounds(string filePath, ArchiveExtractor archiveExtractor) {
-        var soundExtractor = new SoundExtractor();
-        string sfxFile = Path.Join(filePath, "FRP.SX");
-        using var resourceStream = archiveExtractor.GetResourceStream(sfxFile);
-        var audioAssetList = soundExtractor.Extract("frp.sx", resourceStream);
-        foreach (var audioResource in audioAssetList.AudioResources) {
-            var path = nameof(ResourceType.SND);
-            string resourceDirectory = Path.Combine(path, audioResource.Id + "_" + audioResource.Name);
-            foreach (KeyValuePair<byte, AudioDataResource> soundVariant in audioResource.Variants) {
-                var variantName = soundVariant.Key.ToString("X2");
-                if (!Directory.Exists(resourceDirectory)) {
-                    Directory.CreateDirectory(resourceDirectory);
-                }
-                if (soundVariant.Value.MidiData != null) {
-                    string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.mid");
-                    File.WriteAllBytes(destPath, soundVariant.Value.MidiData);
-                }
-                if (soundVariant.Value.WavData != null) {
-                    string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.wav");
-                    File.WriteAllBytes(destPath, soundVariant.Value.WavData);
-                }
-            }
-        }
-    }
+    // private static void ExtractAllSounds(string filePath, ArchiveExtractor archiveExtractor) {
+    //     var soundExtractor = new SoundExtractor();
+    //     string sfxFile = Path.Join(filePath, "FRP.SX");
+    //     using var resourceStream = archiveExtractor.GetResourceStream(sfxFile);
+    //     var audioAssetList = soundExtractor.ExtractAll("frp.sx", resourceStream);
+    //     foreach (var audioResource in audioAssetList.AudioResources) {
+    //         var path = nameof(ResourceType.SND);
+    //         string resourceDirectory = Path.Combine(path, audioResource.Id + "_" + audioResource.Name);
+    //         foreach (KeyValuePair<byte, AudioDataResource> soundVariant in audioResource.Variants) {
+    //             var variantName = soundVariant.Key.ToString("X2");
+    //             if (!Directory.Exists(resourceDirectory)) {
+    //                 Directory.CreateDirectory(resourceDirectory);
+    //             }
+    //             if (soundVariant.Value.MidiData != null) {
+    //                 string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.mid");
+    //                 File.WriteAllBytes(destPath, soundVariant.Value.MidiData);
+    //             }
+    //             if (soundVariant.Value.WavData != null) {
+    //                 string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.wav");
+    //                 File.WriteAllBytes(destPath, soundVariant.Value.WavData);
+    //             }
+    //         }
+    //     }
+    // }
 
-    private static void ExtractAllPalettes(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAllPalettes(string filePath, GeneralResourceProvider generalResourceProvider) {
         var paletteExtractor = new PaletteExtractor();
         foreach (string paletteFile in GetFiles(filePath, "*.PAL")) {
-            using var resourceStream = archiveExtractor.GetResourceStream(paletteFile);
+            using var resourceStream = generalResourceProvider.GetResourceStream(paletteFile);
             var paletteResource = paletteExtractor.Extract(paletteFile, resourceStream);
             WriteToJsonFile(paletteFile, ResourceType.PAL, paletteResource.ToJson());
             // WriteToCsvFile(paletteFile, ResourceType.PAL, paletteResource.Colors.ToCsv());
         }
     }
 
-    private static void ExtractAllRemappings(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAllRemappings(string filePath, GeneralResourceProvider generalResourceProvider) {
         var remapExtractor = new RemapExtractor();
         foreach (string paletteFile in GetFiles(filePath, "*.RMP")) {
-            using var resourceStream = archiveExtractor.GetResourceStream(paletteFile);
+            using var resourceStream = generalResourceProvider.GetResourceStream(paletteFile);
             var remapResource = remapExtractor.Extract(Path.GetFileName(paletteFile), resourceStream);
             WriteToJsonFile(paletteFile, ResourceType.RMP, remapResource.ToJson());
         }
@@ -163,23 +166,23 @@ internal static class Program {
         TtmAssembler.Assemble(mod ?? throw new InvalidOperationException(), destination);
     }
 
-    private static void ExtractAnimatorScripts(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAnimatorScripts(string filePath, GeneralResourceProvider generalResourceProvider) {
         var animatorScriptExtractor = new TtmExtractor();
         foreach (string ttmFile in GetFiles(filePath, "*.ttm")
                  // .Where(f => !f.EndsWith("C51.TTM"))
                 ) {
-            using Stream resourceStream = archiveExtractor.GetResourceStream(ttmFile);
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(ttmFile);
             AnimationResource ttm = animatorScriptExtractor.Extract(Path.GetFileName(ttmFile), resourceStream);
             WriteToJsonFile(ttmFile, ttm.Type, ttm.ToJson());
         }
     }
 
-    private static void ExtractAnimations(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAnimations(string filePath, GeneralResourceProvider generalResourceProvider) {
         var animationExtractor = new AdsExtractor();
         foreach (string adsFile in GetFiles(filePath, "*.ads")
                  // .Where(f => f.EndsWith("C12.ADS"))
                 ) {
-            using Stream resourceStream = archiveExtractor.GetResourceStream(adsFile);
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(adsFile);
             AnimatorResource anim = animationExtractor.Extract(Path.GetFileName(adsFile), resourceStream);
             WriteToJsonFile(adsFile, anim.Type, anim.ToJson());
         }
@@ -188,33 +191,33 @@ internal static class Program {
         // }
     }
 
-    private static void ExtractSpells(ArchiveExtractor archiveExtractor) {
+    private static void ExtractSpells(GeneralResourceProvider generalResourceProvider) {
         var spellExtractor = new SpellExtractor();
         const string filename = "spells.dat";
-        using Stream resourceStream = archiveExtractor.GetResourceStream(filename);
+        using Stream resourceStream = generalResourceProvider.GetResourceStream(filename);
         SpellList spellList = spellExtractor.Extract(filename, resourceStream);
         WriteToJsonFile(filename, ResourceType.DAT, spellList.ToJson());
         WriteToCsvFile(filename, ResourceType.DAT, spellList.ToCsv());
     }
 
-    private static void ExtractSpellInfo(ArchiveExtractor archiveExtractor) {
+    private static void ExtractSpellInfo(GeneralResourceProvider generalResourceProvider) {
         var spellInfoExtractor = new SpellInfoExtractor();
         const string filename = "spelldoc.dat";
-        using Stream resourceStream = archiveExtractor.GetResourceStream(filename);
+        using Stream resourceStream = generalResourceProvider.GetResourceStream(filename);
         SpellInfoList spellInfoList = spellInfoExtractor.Extract(filename, resourceStream);
         WriteToJsonFile(filename, ResourceType.DAT, spellInfoList.ToJson());
     }
 
-    private static void ExtractLabels(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractLabels(string filePath, GeneralResourceProvider generalResourceProvider) {
         var labelExtractor = new LabelExtractor();
         foreach (string labelFile in GetFiles(filePath, "lbl_*.dat")) {
-            using Stream resourceStream = archiveExtractor.GetResourceStream(labelFile);
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(labelFile);
             LabelSet labelSet = labelExtractor.Extract(Path.GetFileName(labelFile), resourceStream);
             WriteToJsonFile(labelFile, labelSet.Type, labelSet.ToJson());
         }
     }
 
-    private static void ExtractAllBmx(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAllBmx(string filePath, GeneralResourceProvider generalResourceProvider) {
         string[] bmxFiles = Directory.GetFileSystemEntries(filePath, "*.bmx", new EnumerationOptions {
             MatchCasing = MatchCasing.CaseInsensitive
         });
@@ -222,10 +225,10 @@ internal static class Program {
         var bitmapExtractor = new BitmapExtractor();
         var paletteExtractor = new PaletteExtractor();
         foreach (string bmxFile in bmxFiles) {
-            using Stream resourceStream = archiveExtractor.GetResourceStream(bmxFile);
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(bmxFile);
             ImageSet imageSet = bitmapExtractor.Extract(Path.GetFileName(bmxFile), resourceStream);
             var imageName = $"{Path.GetFileNameWithoutExtension(bmxFile)}";
-            Color[] colors = GetColorsFromPalette(filePath, archiveExtractor, imageName, paletteExtractor);
+            Color[] colors = GetColorsFromPalette(filePath, generalResourceProvider, imageName, paletteExtractor);
             colors = ApplyRemapping("Z12.RMP", colors, 2);
             // For multiple images we create a directory and extract each image
             var path = ResourceType.BMX.ToString();
@@ -257,15 +260,15 @@ internal static class Program {
         return remappedColors;
     }
 
-    private static Color[] GetColorsFromPalette(string filePath, ArchiveExtractor archiveExtractor, string imageName, PaletteExtractor paletteExtractor) {
+    private static Color[] GetColorsFromPalette(string filePath, GeneralResourceProvider generalResourceProvider, string imageName, PaletteExtractor paletteExtractor) {
         var paletteFile = PaletteExtractor.FindPalette(filePath, imageName);
-        using Stream paletteStream = archiveExtractor.GetResourceStream(paletteFile);
+        using Stream paletteStream = generalResourceProvider.GetResourceStream(paletteFile);
         var colors = paletteExtractor.Extract(paletteFile, paletteStream).Colors;
 
         return colors;
     }
 
-    private static void ExtractAllScx(string filePath, ArchiveExtractor archiveExtractor) {
+    private static void ExtractAllScx(string filePath, GeneralResourceProvider generalResourceProvider) {
         string[] scxFiles = Directory.GetFileSystemEntries(filePath, "*.scx", new EnumerationOptions {
             MatchCasing = MatchCasing.CaseInsensitive
         });
@@ -273,14 +276,14 @@ internal static class Program {
         var screenExtractor = new ScreenExtractor();
         var paletteExtractor = new PaletteExtractor();
         foreach (string scxFile in scxFiles) {
-            using Stream resourceStream = archiveExtractor.GetResourceStream(scxFile);
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(scxFile);
             string imageName = Path.GetFileNameWithoutExtension(scxFile);
             BackgroundImage backgroundImage = screenExtractor.Extract(Path.GetFileName(scxFile), resourceStream);
             if (backgroundImage.BitMapData == null) {
                 continue;
             }
 
-            Color[] colors = GetColorsFromPalette(filePath, archiveExtractor, imageName, paletteExtractor);
+            Color[] colors = GetColorsFromPalette(filePath, generalResourceProvider, imageName, paletteExtractor);
 
             var image = new BmImage(scxFile) {
                 BitMapData = backgroundImage.BitMapData,
@@ -360,8 +363,7 @@ internal static class Program {
 
         var binary = stringBuilder.ToString();
 
-        string s = binary.Replace("0", "  ")
-            .Replace("1", "##");
+        string s = binary.Replace("0", "  ").Replace("1", "##");
 
         // Return the bitstream as a string
         return s;

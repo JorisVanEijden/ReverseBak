@@ -40,13 +40,13 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
     }
 
     private static List<BmImage> ReadTaggedBmxStream(string name, BinaryReader resourceReader) {
-        string mainTag = ReadTag(resourceReader);
+        string mainTag = resourceReader.ReadTag();
         if (!mainTag.Equals("BMP")) {
             throw new InvalidOperationException($"Invalid tag '{mainTag}', expected 'BMP'");
         }
         ushort fileSize = resourceReader.ReadUInt16();
         ushort unknown = resourceReader.ReadUInt16();
-        string infTag = ReadTag(resourceReader);
+        string infTag = resourceReader.ReadTag();
         if (!infTag.Equals("INF")) {
             throw new InvalidOperationException($"Invalid tag '{infTag}', expected 'INF'");
         }
@@ -66,7 +66,7 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
             images[i].ScaleX = images[i].Width / NormalScreenWidth;
             images[i].ScaleY = images[i].Height / NormalScreenHeight;
         }
-        string binTag = ReadTag(resourceReader);
+        string binTag = resourceReader.ReadTag();
         if (!binTag.Equals("BIN")) {
             throw new InvalidOperationException($"Invalid tag '{binTag}', expected 'BIN'");
         }

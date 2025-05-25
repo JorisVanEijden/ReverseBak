@@ -16,7 +16,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
 
         Log($"Extracting {id}");
 
-        string tag = ReadTag(resourceReader);
+        string tag = resourceReader.ReadTag();
         if (tag != "VER") {
             throw new InvalidDataException($"Expected VER tag, got {tag}");
         }
@@ -25,7 +25,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
             throw new InterestingDataException("UInt16 after size is not 0x0000 in VER tag");
         }
         string version = resourceReader.ReadZeroTerminatedString();
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "PAG") {
             throw new InvalidDataException($"Expected PAG tag, got {tag}");
         }
@@ -34,7 +34,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
             throw new InterestingDataException("UInt16 after size is not 0x0000 in PAG tag");
         }
         int numberOfFrames = resourceReader.ReadUInt16();
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "TT3") {
             throw new InvalidDataException($"Expected TT3 tag, got {tag}");
         }
@@ -52,7 +52,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
         var commandBytes = new byte[commandStream.Length];
         commandStream.ReadExactly(commandBytes);
 
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "TTI") {
             throw new InvalidDataException($"Expected TTI tag, got {tag}");
         }
@@ -60,12 +60,12 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
         if (resourceReader.ReadUInt16() != 0x8000) {
             throw new InterestingDataException("UInt16 after size is not 0x8000 in TTI tag");
         }
-        tag = ReadTag(resourceReader);
+        tag = resourceReader.ReadTag();
         if (tag != "TAG") {
             throw new InvalidDataException($"Expected TAG tag, got {tag}");
         }
 
-        Dictionary<int, string> tags = ReadTags(resourceReader);
+        Dictionary<int, string> tags =  resourceReader.ReadTags();
         List<Frame> frames = ExtractFrames(commandBytes, id);
 
         return new AnimationResource(id, version, tags, frames);
