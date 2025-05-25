@@ -2,9 +2,11 @@ namespace ResourceExtraction.Providers;
 
 using GameData.Resources;
 using ResourceExtraction.Extensions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using ResourceType = ResourceExtraction.ResourceType;
 
 public class GeneralResourceProvider : IResourceProvider {
     private const string ResourceFileName = "KRONDOR.001";
@@ -19,7 +21,10 @@ public class GeneralResourceProvider : IResourceProvider {
         _dictionary = GetDictionary();
     }
 
-    public IDictionary<string, (long, uint)> GetDictionary() {
+    public IDictionary<string, (long, uint)> GetDictionary(ResourceType? type = null) {
+        if (type.HasValue && type.Value != ResourceType.General) {
+            throw new ArgumentException($"Invalid resource type: {type.Value}. Expected: {ResourceType.General}");
+        }
         using FileStream resourceFile = File.OpenRead(_resourceFilePath);
         using var resourceReader = new BinaryReader(resourceFile, Encoding.GetEncoding(DosCodePage));
         long resourceFileLength = resourceFile.Length;
@@ -75,14 +80,14 @@ public class GeneralResourceProvider : IResourceProvider {
             s.CopyTo(outStream);
         }
     }
-    
+
     public T GetResource<T>(string resourceId) where T : IResource {
         // Get the extractor for the requested resource type
         var extractor = ExtractorFactory.GetExtractor<T>();
-        
+
         // Get the resource stream
         using var stream = GetResourceStream(resourceId);
-        
+
         // Extract and return the resource
         return extractor.Extract(resourceId, stream);
     }

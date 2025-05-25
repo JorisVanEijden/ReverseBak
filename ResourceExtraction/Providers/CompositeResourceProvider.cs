@@ -56,16 +56,12 @@ namespace ResourceExtraction.Providers {
 
             var result = new Dictionary<string, (long, uint)>();
             foreach (var provider in _providers) {
-                foreach (var entry in provider.GetDictionary()) {
-                    result[$"{provider.ResourceType}:{entry.Key}"] = entry.Value;
+                foreach (KeyValuePair<string, (long, uint)> entry in provider.GetDictionary()) {
+                    result.Add(entry.Key, entry.Value);
                 }
             }
 
             return result;
-        }
-
-        IDictionary<string, (long, uint)> IResourceProvider.GetDictionary() {
-            return GetDictionary();
         }
 
         public T GetResource<T>(string resourceId) where T : IResource {

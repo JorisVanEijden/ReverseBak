@@ -8,7 +8,7 @@ namespace ResourceExtraction {
         ResourceType ResourceType { get; }
         bool CanProvideResource(string resourceId);
         Stream GetResourceStream(string resourceId);
-        IDictionary<string, (long, uint)> GetDictionary();
+        IDictionary<string, (long, uint)> GetDictionary(ResourceType? type = null);
 
         /// <summary>
         /// Gets a resource of the specified type directly

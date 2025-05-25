@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using ResourceType = ResourceExtraction.ResourceType;
 
 public class AudioResourceProvider : IResourceProvider {
     private const string ResourceFileName = "FRP.SX";
@@ -76,7 +77,10 @@ public class AudioResourceProvider : IResourceProvider {
         return new MemoryStream(buffer);
     }
 
-    public IDictionary<string, (long, uint)> GetDictionary() {
+    public IDictionary<string, (long, uint)> GetDictionary(ResourceType? type = null) {
+        if (type.HasValue && type.Value != ResourceType.Audio) {
+            throw new ArgumentException($"Invalid resource type: {type.Value}. Expected: {ResourceType.Audio}");
+        }
         if (!_isInitialized) Initialize();
 
         return new Dictionary<string, (long, uint)>(_audioDictionary);
