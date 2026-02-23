@@ -23,11 +23,11 @@ public class StdIO : CSharpOverrideHelper {
 
     public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService, configuration) {
-        _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
+        _args = new ArgumentFetcher(machine.Stack, machine.CpuState, machine.Memory);
         string configurationExe = configuration.Exe ?? throw new InvalidOperationException("Missing configuration exe");
         DirectoryInfo parent = Directory.GetParent(configurationExe) ?? throw new InvalidOperationException("Could not determine parent directory");
         _mountPoint = parent.FullName;
-        _cFunctions = new CFunctions(machine.Cpu, machine.Memory);
+        _cFunctions = new CFunctions(machine.Stack, machine.CpuState, machine.Memory);
         CurrentDir = "";
         DefineFunctions();
         Initialize();

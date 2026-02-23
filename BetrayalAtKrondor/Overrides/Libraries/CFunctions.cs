@@ -12,9 +12,9 @@ public partial class CFunctions {
     private readonly Stack _stack;
     private readonly State _state;
 
-    public CFunctions(Cpu cpu, IMemory memory) {
-        _state = cpu.State;
-        _stack = cpu.Stack;
+    public CFunctions(Stack stack, State state, IMemory memory) {
+        _state = state;
+        _stack = stack;
         _memory = memory;
     }
 

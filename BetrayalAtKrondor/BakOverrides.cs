@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor;
 
+using BetrayalAtKrondor.Mcp;
 using BetrayalAtKrondor.Overrides.Libraries;
 using GameData;
 using Serilog.Events;
@@ -22,6 +23,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private readonly IGlobalSettings _globalSettings;
     private readonly List<OvrBreakpoint> _ovrBreakpoints = [];
     private readonly Dictionary<ushort, ushort> _ovrSegmentMapping = [];
+    private readonly OverlayAddressTranslator _translator;
     private readonly ArgumentFetcher _args;
     private readonly IPauseHandler _pauseHandler;
     private Dictionary<uint, byte> _wordLowByteWrites = [];
@@ -32,13 +34,14 @@ public class BakOverrides : CSharpOverrideHelper {
     private const int SoundDriverSegment = 0x8000;
     private const int ExtraSoundDriverSegment = 0x8300;
 
-    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration) : base(functionsInformation,
+    public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration, OverlayAddressTranslator translator) : base(functionsInformation,
         machine, loggerService.WithLogLevel(LogEventLevel.Debug), configuration) {
+        _translator = translator;
         _globalSettings = new GlobalSettings(machine.Memory);
         _gameEngine = new GameEngine(machine.MouseDriver);
         _gameEngine.DataPath = configuration.Exe is null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(configuration.Exe);
         _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
-        _args = new ArgumentFetcher(machine.Cpu, machine.Memory);
+        _args = new ArgumentFetcher(machine.Stack, machine.CpuState, machine.Memory);
         _pauseHandler = machine.PauseHandler;
         DefineFunctions();
         DefineBreakpoints();
@@ -49,16 +52,16 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void DefineBreakpoints() {
-        DoOnTopOfInstruction("35C1:0040", () => {
-            foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == ExtraSoundDriverSegment)) {
-                DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
-            }
-        });
-        DoOnTopOfInstruction("35C1:00D5", () => {
-            foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == SoundDriverSegment)) {
-                DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
-            }
-        });
+        // DoOnTopOfInstruction("35C1:0040", () => {
+        //     foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == ExtraSoundDriverSegment)) {
+        //         DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
+        //     }
+        // });
+        // DoOnTopOfInstruction("35C1:00D5", () => {
+        //     foreach (var breakpoint in _dynamicLoadedCodeBreakpoints.Where(ovrBreakpoint => ovrBreakpoint.Segment == SoundDriverSegment)) {
+        //         DoOnTopOfInstruction(State.DX, breakpoint.Offset, breakpoint.Action);
+        //     }
+        // });
         DoOnTopOfInstruction("36BC:069A", RecordOvrChange);
         DoOnTopOfInstruction("1834:2AA5", RecordVmCodeSegment);
 
@@ -82,19 +85,19 @@ public class BakOverrides : CSharpOverrideHelper {
         // PauseAt("1834:3F7B", "drawrotated?");
         // PauseAt("5278:10D2", "call what?");
 
-        DoOnTopOfInstruction("327D:0000", () => {
-            _args.Get(out ushort stream, out uint nrOfBytes, out uint pBuffer);
-            _loggerService.Information("[{Caller}] sub_seg045_0(stream: {Stream}, nrOfBytes: {NrOfBytes}, pBuffer: {PBuffer:X8})", CallerAddress(), stream, nrOfBytes, pBuffer);
-        });
+        // DoOnTopOfInstruction("327D:0000", () => {
+        //     _args.Get(out ushort stream, out uint nrOfBytes, out uint pBuffer);
+        //     _loggerService.Information("[{Caller}] sub_seg045_0(stream: {Stream}, nrOfBytes: {NrOfBytes}, pBuffer: {PBuffer:X8})", CallerAddress(), stream, nrOfBytes, pBuffer);
+        // });
         // DoOnTopOfInstruction("3239:000C", () => {
         //     _args.Get(out ushort stream, out byte arg2);
         //     _loggerService.Information("[{Caller}] resourceLoadSound(stream: {Stream}, arg2: {Arg2})", CallerAddress(), stream, arg2);
         // });
-        DoOnTopOfInstruction("3556:000F", () => {
-            _args.Get(out ushort stream, out ushort soundId);
-            _loggerService.Information("[{Caller}] resourceLoadSx(stream: {Stream}, soundId: {SoundId})", CallerAddress(), stream, soundId);
-            // _pauseHandler.RequestPause("step from here");
-        });
+        // DoOnTopOfInstruction("3556:000F", () => {
+        //     _args.Get(out ushort stream, out ushort soundId);
+        //     _loggerService.Information("[{Caller}] resourceLoadSx(stream: {Stream}, soundId: {SoundId})", CallerAddress(), stream, soundId);
+        //     // _pauseHandler.RequestPause("step from here");
+        // });
 
         // DoOnTopOfInstruction("1834:7320", () => {
         //     _args.Get(out ushort index, out ushort offset, out ushort segment, out ushort size);
@@ -115,14 +118,14 @@ public class BakOverrides : CSharpOverrideHelper {
         //     // _pauseHandler.RequestPause("check 39DD:5FA9");
         // });
 
-        DoOnTopOfInstruction("327D:0208", () => {
-            _args.Get(out ushort index, out byte soundFormat);
-            _loggerService.Information("[{Caller}] sub_seg045_208(index: {Index}, soundFormat: {Arg2:X2})", CallerAddress(), index, soundFormat);
-            if (soundFormat != 0x0) {
-                _loggerService.Warning("soundFormat = {SoundFormat:X2}", soundFormat);
-            }
-            // _pauseHandler.RequestPause("step from here");
-        });
+        // DoOnTopOfInstruction("327D:0208", () => {
+        //     _args.Get(out ushort index, out byte soundFormat);
+        //     _loggerService.Information("[{Caller}] sub_seg045_208(index: {Index}, soundFormat: {Arg2:X2})", CallerAddress(), index, soundFormat);
+        //     if (soundFormat != 0x0) {
+        //         _loggerService.Warning("soundFormat = {SoundFormat:X2}", soundFormat);
+        //     }
+        //     // _pauseHandler.RequestPause("step from here");
+        // });
 
         // DoOnTopOfInstruction("1834:7441", () => {
         //     _args.Get(out ushort index, out uint size, out ushort compressedMaybe);
@@ -130,7 +133,7 @@ public class BakOverrides : CSharpOverrideHelper {
         // });
 
 
-        DoOnMemoryWrite(0x39DD, 0x3698, () => _pauseHandler.RequestPause("word_dseg_3698 was written to"));
+        // DoOnMemoryWrite(0x39DD, 0x3698, () => _pauseHandler.RequestPause("word_dseg_3698 was written to"));
 
 
 // PauseAt("3239:0140", "step from here");
@@ -320,6 +323,7 @@ public class BakOverrides : CSharpOverrideHelper {
 
         if (StubSegments.StubToIda.TryGetValue(stubSegment, out ushort idaSegment)) {
             _ovrSegmentMapping[realSegment] = idaSegment;
+            _translator.RecordMapping(realSegment, idaSegment);
             _loggerService.Verbose("OVR Mapping real segment {SourceSegment:X4} to ida segment {DestinationSegment:X4}", realSegment, idaSegment);
         }
 

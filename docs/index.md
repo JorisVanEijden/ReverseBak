@@ -1,10 +1,10 @@
-# ReverseBak Project
+# Project
 
 This project contains tooling used to investigate the old Betrayal at Krondor MS-DOS game.
 
 ## About
 
-ReverseBak is a project focused on reverse engineering the classic MS-DOS game Betrayal at Krondor. The goal is to understand the game's data formats and mechanics to eventually create a highly moddable version in Unity.
+This is a project focused on reverse engineering the classic MS-DOS game Betrayal at Krondor. The goal is to understand the game's data formats and mechanics to eventually create a highly moddable version in Unity.
 
 ## Project Status
 
