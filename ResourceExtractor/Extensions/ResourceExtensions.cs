@@ -4,6 +4,8 @@ using GameData.Resources.Animation;
 using GameData.Resources.Book;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
+using GameData.Resources.Monster;
+using GameData.Resources.World;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Location;
@@ -86,7 +88,43 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this StartupGame resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this SaveGame resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this BmImage resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this ZoneBounds resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this ZoneDefinition resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this ZoneMap resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this ZoneRef resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this ZoneShape resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this WorldTile resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this MonsterStats resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 

@@ -12,6 +12,8 @@ using GameData.Resources.Menu;
 using GameData.Resources.Object;
 using GameData.Resources.Palette;
 using GameData.Resources.Spells;
+using GameData.Resources.Monster;
+using GameData.Resources.World;
 using ResourceExtraction;
 using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
@@ -42,6 +44,19 @@ internal static class Program {
 
         if (args.Length >= 1 && args[0] == "--objinfo") {
             ExportObjectInfo(args);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--world") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractZoneData(gamePath);
+            ExtractWorldTiles(gamePath);
+            ExtractMonsterStats(gamePath);
+            return;
+        }
+
+        if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
+            ExtractGamFile(args[0]);
             return;
         }
 
@@ -478,6 +493,36 @@ internal static class Program {
         Console.WriteLine($"GlobalFlags2 changed bits: {globalFlag2Changes.Count}");
     }
 
+    private static void ExtractGamFile(string gamPath) {
+        var extractor = new SaveGameExtractor();
+        using FileStream stream = File.OpenRead(gamPath);
+        SaveGame saveGame = extractor.Extract(Path.GetFileName(gamPath), stream);
+        Console.WriteLine($"Extracted: {saveGame.Id}");
+        Console.WriteLine($"Name: '{saveGame.SaveGameName}'");
+        Console.WriteLine($"Header Chapter: {saveGame.ChapterNumber}");
+        Console.WriteLine($"Version: {saveGame.Version} (supported: {saveGame.IsSupportedVersion})");
+        Console.WriteLine($"Temp.GAM bytes: {saveGame.TempGameData.Length}");
+        string jsonPath = Path.GetFileNameWithoutExtension(gamPath) + ".savegame.json";
+        File.WriteAllText(jsonPath, saveGame.ToJson());
+        Console.WriteLine($"Dumped JSON: {Path.GetFullPath(jsonPath)}");
+        if (saveGame.Data != null) {
+            Console.WriteLine($"State Chapter: {saveGame.Data.StateData.ChapterNumber}");
+            Console.WriteLine($"Party Gold: {saveGame.Data.StateData.PartyGold}");
+            Console.WriteLine($"Zone: {saveGame.Data.StateData.CurrentZoneNumber} @ ({saveGame.Data.StateData.WorldXCoordinate},{saveGame.Data.StateData.WorldYCoordinate})");
+            Console.WriteLine($"Active Party Members: {saveGame.Data.StateData.PartyConfigurationData.NumberOfActivePartyCharacters}");
+            Console.WriteLine($"Game Time (2s ticks): {saveGame.Data.StateData.GameTimeIn2Seconds}");
+            Console.WriteLine($"Timers: {saveGame.Data.StateData.Timers.Count(t => t.Type != 0)}");
+            Console.WriteLine($"Zones with containers: {saveGame.Data.ZoneContainerStateData.Zones.Length}");
+            int totalContainers = saveGame.Data.ZoneContainerStateData.Zones.Sum(z => z.Containers.Length);
+            Console.WriteLine($"Total containers: {totalContainers}");
+            int nonEmptyActors = saveGame.Data.ActorStateData.Count(a => a.NamePointer != 0);
+            Console.WriteLine($"Non-empty actor slots: {nonEmptyActors}");
+            Console.WriteLine($"Actor names: {string.Join(", ", saveGame.Data.StateData.ActorNames.Where(n => !string.IsNullOrEmpty(n)))}");
+        } else {
+            Console.WriteLine("WARNING: Data section could not be parsed!");
+        }
+    }
+
     private static SaveGame ExtractSaveGame(string savePath, SaveGameExtractor extractor) {
         using FileStream saveStream = File.OpenRead(savePath);
         return extractor.Extract(Path.GetFileName(savePath), saveStream);
@@ -517,6 +562,69 @@ internal static class Program {
         List<FlagBitChange> GlobalFlagsChanges,
         List<FlagBitChange> GlobalFlags2Changes
     );
+
+    private static void ExtractZoneData(string filePath) {
+        var defExtractor = new ZoneDefExtractor();
+        var mapExtractor = new ZoneMapExtractor();
+        var refExtractor = new ZoneRefExtractor();
+        var shapeExtractor = new ZoneShapeExtractor();
+        var boundsExtractor = new ZoneBoundsExtractor();
+
+        string zoneDatPath = Path.Combine(filePath, "zone.dat");
+        if (File.Exists(zoneDatPath)) {
+            using var stream = File.OpenRead(zoneDatPath);
+            var bounds = boundsExtractor.Extract("zone.dat", stream);
+            WriteToJsonFile("zone.dat", ResourceType.DAT, bounds.ToJson());
+        }
+
+        foreach (string defFile in GetFiles(filePath, "Z??DEF.DAT")) {
+            string fileName = Path.GetFileName(defFile);
+            using var stream = File.OpenRead(defFile);
+            var def = defExtractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, def.ToJson());
+        }
+
+        foreach (string mapFile in GetFiles(filePath, "Z??MAP.DAT")) {
+            string fileName = Path.GetFileName(mapFile);
+            using var stream = File.OpenRead(mapFile);
+            var map = mapExtractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, map.ToJson());
+        }
+
+        foreach (string refFile in GetFiles(filePath, "Z??REF.DAT")) {
+            string fileName = Path.GetFileName(refFile);
+            using var stream = File.OpenRead(refFile);
+            var zoneRef = refExtractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, zoneRef.ToJson());
+        }
+
+        foreach (string shpFile in GetFiles(filePath, "Z??SHP.DAT")) {
+            string fileName = Path.GetFileName(shpFile);
+            using var stream = File.OpenRead(shpFile);
+            var shape = shapeExtractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, shape.ToJson());
+        }
+    }
+
+    private static void ExtractWorldTiles(string filePath) {
+        var extractor = new WorldItemExtractor();
+        foreach (string wldFile in GetFiles(filePath, "T??????.WLD")) {
+            string fileName = Path.GetFileName(wldFile);
+            using var stream = File.OpenRead(wldFile);
+            var tile = extractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.WLD, tile.ToJson());
+        }
+    }
+
+    private static void ExtractMonsterStats(string filePath) {
+        var extractor = new MonsterStatsExtractor();
+        foreach (string monstFile in GetFiles(filePath, "MONST*.DAT")) {
+            string fileName = Path.GetFileName(monstFile);
+            using var stream = File.OpenRead(monstFile);
+            var stats = extractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, stats.ToJson());
+        }
+    }
 
     private static void ExportObjectInfo(string[] args) {
         string gamePath = args.Length >= 2 ? args[1] : Directory.GetCurrentDirectory();
