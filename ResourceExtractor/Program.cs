@@ -32,14 +32,56 @@ internal static class Program {
     private const int DosCodePage = 437;
 
     public static void Main(string[] args) {
-        CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
+        // CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        string filePath = args.Length == 1 ? args[0] : @"C:\Games\Betrayal at Krondor"; //Directory.GetCurrentDirectory();
+        if (args.Length >= 1 && args[0] == "--ddx") {
+            ExportDdxDialogs(args);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--objinfo") {
+            ExportObjectInfo(args);
+            return;
+        }
+
+        if (args.Length == 2
+            && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)
+            && args[1].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
+            RunSaveGameFlagDiff(args[0], args[1]);
+            return;
+        }
+
+        string filePath = args.Length == 1 ? args[0] : @"D:\BaK\OriginalGame"; //Directory.GetCurrentDirectory();
+
+        const string saveGamePath = @"D:\BaK\OriginalGame\GAMES\dir.G01\SAVE02.GAM";
+        var saveGameExtractor = new SaveGameExtractor();
+        using (FileStream saveGameStream = File.OpenRead(saveGamePath)) {
+            SaveGame saveGame = saveGameExtractor.Extract(Path.GetFileName(saveGamePath), saveGameStream);
+            Console.WriteLine($"Extracted: {saveGame.Id}");
+            Console.WriteLine($"Name: {saveGame.SaveGameName}");
+            Console.WriteLine($"Header Chapter: {saveGame.ChapterNumber}");
+            Console.WriteLine($"Version: {saveGame.Version} (supported: {saveGame.IsSupportedVersion})");
+            Console.WriteLine($"Temp.GAM bytes: {saveGame.TempGameData.Length}");
+            string saveGameJsonPath = Path.GetFileNameWithoutExtension(saveGamePath) + ".savegame.json";
+            File.WriteAllText(saveGameJsonPath, saveGame.ToJson());
+            Console.WriteLine($"Dumped JSON: {Path.GetFullPath(saveGameJsonPath)}");
+            if (saveGame.Data != null) {
+                Console.WriteLine($"State Chapter: {saveGame.Data.StateData.ChapterNumber}");
+                Console.WriteLine($"Party Gold: {saveGame.Data.StateData.PartyGold}");
+                Console.WriteLine($"Zone: {saveGame.Data.StateData.CurrentZoneNumber} @ ({saveGame.Data.StateData.WorldXCoordinate},{saveGame.Data.StateData.WorldYCoordinate})");
+            }
+        }
+
+        const string saveGameAfterActionPath = @"D:\BaK\OriginalGame\GAMES\dir.G01\SAVE03.GAM";
+        RunSaveGameFlagDiff(saveGamePath, saveGameAfterActionPath);
+
+        return;
 
         GeneralResourceProvider generalResourceProvider = new(filePath);
 
         // Extracts all resource from krondor.001 to separate files in the game directory
+        // var archiveExtractor = new ResourceExtraction.Extractors.ArchiveExtractor(filePath);
         // archiveExtractor.ExtractAllResources();
 
         Directory.SetCurrentDirectory(@"C:\Users\JvE\AppData\LocalLow\StellarGameStudio\BaK-Again\overrides");
@@ -402,5 +444,106 @@ internal static class Program {
             Directory.CreateDirectory(resourceDirectory);
         }
         File.WriteAllText(Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(fileName) + ".csv"), csv);
+    }
+
+    private static void RunSaveGameFlagDiff(string beforeSavePath, string afterSavePath) {
+        var saveGameExtractor = new SaveGameExtractor();
+        SaveGame before = ExtractSaveGame(beforeSavePath, saveGameExtractor);
+        SaveGame after = ExtractSaveGame(afterSavePath, saveGameExtractor);
+
+        if (before.Data == null || after.Data == null) {
+            Console.WriteLine("Unable to diff flags: one of the saves did not contain parsed state data.");
+            return;
+        }
+
+        var globalFlagChanges = GetFlagBitChanges(before.Data.StateData.GlobalFlags, after.Data.StateData.GlobalFlags, 0);
+        var globalFlag2Changes = GetFlagBitChanges(before.Data.StateData.GlobalFlags2, after.Data.StateData.GlobalFlags2, null);
+
+        var diffReport = new SaveGameFlagDiffReport(
+            Path.GetFileName(beforeSavePath),
+            Path.GetFileName(afterSavePath),
+            globalFlagChanges,
+            globalFlag2Changes
+        );
+
+        string diffJson = JsonSerializer.Serialize(diffReport, new JsonSerializerOptions {
+            WriteIndented = true
+        });
+
+        string diffReportPath = $"{Path.GetFileNameWithoutExtension(beforeSavePath)}_to_{Path.GetFileNameWithoutExtension(afterSavePath)}.flagdiff.json";
+        File.WriteAllText(diffReportPath, diffJson);
+
+        Console.WriteLine($"Flag diff written: {Path.GetFullPath(diffReportPath)}");
+        Console.WriteLine($"GlobalFlags changed bits: {globalFlagChanges.Count}");
+        Console.WriteLine($"GlobalFlags2 changed bits: {globalFlag2Changes.Count}");
+    }
+
+    private static SaveGame ExtractSaveGame(string savePath, SaveGameExtractor extractor) {
+        using FileStream saveStream = File.OpenRead(savePath);
+        return extractor.Extract(Path.GetFileName(savePath), saveStream);
+    }
+
+    private static List<FlagBitChange> GetFlagBitChanges(byte[] before, byte[] after, int? keyBase) {
+        int bytesToCompare = Math.Min(before.Length, after.Length);
+        var changes = new List<FlagBitChange>();
+
+        for (var byteIndex = 0; byteIndex < bytesToCompare; byteIndex++) {
+            int xor = before[byteIndex] ^ after[byteIndex];
+            if (xor == 0) {
+                continue;
+            }
+
+            for (var bitIndex = 0; bitIndex < 8; bitIndex++) {
+                if ((xor & (1 << bitIndex)) == 0) {
+                    continue;
+                }
+
+                bool beforeSet = (before[byteIndex] & (1 << bitIndex)) != 0;
+                bool afterSet = (after[byteIndex] & (1 << bitIndex)) != 0;
+                int? key = keyBase.HasValue ? keyBase.Value + (byteIndex * 8) + bitIndex : null;
+
+                changes.Add(new FlagBitChange(byteIndex, bitIndex, key, beforeSet, afterSet));
+            }
+        }
+
+        return changes;
+    }
+
+    private sealed record FlagBitChange(int ByteIndex, int BitIndex, int? Key, bool BeforeSet, bool AfterSet);
+
+    private sealed record SaveGameFlagDiffReport(
+        string BeforeSave,
+        string AfterSave,
+        List<FlagBitChange> GlobalFlagsChanges,
+        List<FlagBitChange> GlobalFlags2Changes
+    );
+
+    private static void ExportObjectInfo(string[] args) {
+        string gamePath = args.Length >= 2 ? args[1] : Directory.GetCurrentDirectory();
+        string outputDir = args.Length >= 3 ? args[2] : "ObjectInfo";
+        if (!Directory.Exists(outputDir)) Directory.CreateDirectory(outputDir);
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        string objInfoPath = Directory.GetFileSystemEntries(gamePath, "objinfo.dat",
+            new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }).First();
+        var extractor = new ObjectExtractor();
+        List<ObjectInfo> objects = extractor.Extract(objInfoPath);
+        string json = objects.ToJson();
+        File.WriteAllText(Path.Combine(outputDir, "objinfo.json"), json);
+        Console.WriteLine($"Exported: {objects.Count} objects to objinfo.json");
+    }
+
+    private static void ExportDdxDialogs(string[] args) {
+        string gamePath = args.Length >= 2 ? args[1] : Directory.GetCurrentDirectory();
+        string outputDir = args.Length >= 3 ? args[2] : "DDX";
+        if (!Directory.Exists(outputDir)) Directory.CreateDirectory(outputDir);
+        var extractor = new DdxExtractor();
+        foreach (string ddxFile in Directory.GetFileSystemEntries(gamePath, "*.ddx",
+            new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive })) {
+            using FileStream resourceFile = File.OpenRead(ddxFile);
+            Dialog ddx = extractor.Extract(Path.GetFileName(ddxFile), resourceFile);
+            string json = ddx.ToJson();
+            File.WriteAllText(Path.Combine(outputDir, Path.GetFileNameWithoutExtension(ddxFile) + ".json"), json);
+            Console.WriteLine($"Exported: {Path.GetFileName(ddxFile)}");
+        }
     }
 }

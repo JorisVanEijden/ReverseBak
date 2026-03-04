@@ -26,6 +26,8 @@
 
     <ItemGroup>
       <ProjectReference Include="..\BetrayalAtKrondor\BetrayalAtKrondor.csproj" />
+      <ProjectReference Include="..\GameData\GameData.csproj" />
+      <ProjectReference Include="..\ResourceExtraction\ResourceExtraction.csproj" />
     </ItemGroup>
 
 </Project>
