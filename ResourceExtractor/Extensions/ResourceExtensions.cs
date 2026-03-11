@@ -88,11 +88,7 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
-    public static string ToJson(this StartupGame resource) {
-        return JsonSerializer.Serialize(resource, JsonOptions);
-    }
-
-    public static string ToJson(this SaveGame resource) {
+public static string ToJson(this SaveGame resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
