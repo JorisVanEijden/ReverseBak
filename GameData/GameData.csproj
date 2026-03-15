@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -13,7 +13,7 @@
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
         <DefineConstants/>
-        <OutputPath>C:\Projects\UnityProjects\BaK-Again\Assets\Plugins</OutputPath>
+        <OutputPath>..\..\UnityProject\Assets\Plugins\</OutputPath>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>full</DebugType>
     </PropertyGroup>

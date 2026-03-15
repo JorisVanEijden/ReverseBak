@@ -48,7 +48,8 @@ public class GeneralResourceProvider : IResourceProvider {
     }
 
     public bool CanProvideResource(string resourceId) {
-        return _dictionary.ContainsKey(resourceId.ToUpper());
+        string filePath = Path.Combine(Path.GetDirectoryName(_resourceFilePath)!, resourceId);
+        return File.Exists(filePath) || _dictionary.ContainsKey(resourceId.ToUpper());
     }
 
     public Stream GetResourceStream(string filename) {
@@ -92,3 +93,4 @@ public class GeneralResourceProvider : IResourceProvider {
         return extractor.Extract(resourceId, stream);
     }
 }
+

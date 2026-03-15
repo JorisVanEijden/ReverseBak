@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Unity' ">
-        <OutputPath>C:\Projects\UnityProjects\BaK-Again\Assets\Plugins</OutputPath>
+        <OutputPath>..\..\UnityProject\Assets\Plugins\</OutputPath>
     </PropertyGroup>
     
 </Project>
