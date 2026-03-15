@@ -1,7 +1,7 @@
 namespace BetrayalAtKrondor;
 
 public class StubSegments {
-    public static readonly Dictionary<ushort, ushort> IdaToStub = new() {
+    public static readonly Dictionary<ushort, ushort> IdaCodeToIdaStub = new() {
         [0x3FF7] = 0x3817,
         [0x4028] = 0x381A,
         [0x4040] = 0x381E,
@@ -80,7 +80,7 @@ public class StubSegments {
         [0x7A16] = 0x39DA
     };
 
-    public static readonly Dictionary<ushort, ushort> StubToIda = new() {
+    public static readonly Dictionary<ushort, ushort> IdaStubToIdaCode = new() {
         [0x3817] = 0x3FF7,
         [0x381A] = 0x4028,
         [0x381E] = 0x4040,

@@ -33,7 +33,8 @@ public class WorldDataIntegrationTests
         {
             using var stream = File.OpenRead(mapFile);
             var map = extractor.Extract(Path.GetFileName(mapFile), stream);
-            Assert.Equal(400, map.BitmapData.Length);
+            Assert.Equal(ZoneMap.Width, map.Tiles.GetLength(0));
+            Assert.Equal(ZoneMap.Height, map.Tiles.GetLength(1));
         }
     }
 

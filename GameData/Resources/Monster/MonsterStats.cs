@@ -14,10 +14,10 @@ public class MonsterStats : IResource
     public StatRange AccuracyMelee { get; set; } = new();
     public StatRange AccuracyCasting { get; set; } = new();
     public StatRange Defense { get; set; } = new();
-    public StatRange CombatFieldF { get; set; } = new();
-    public StatRange CombatField10 { get; set; } = new();
-    public StatRange CombatField11 { get; set; } = new();
-    public StatRange CombatFieldE { get; set; } = new();
+    public StatRange AttackPattern { get; set; } = new();
+    public StatRange DefensePattern { get; set; } = new();
+    public StatRange MovementPattern { get; set; } = new();
+    public StatRange FleeThreshold { get; set; } = new();
     public ResourceType Type => ResourceType.DAT;
     public string Id { get; }
 }

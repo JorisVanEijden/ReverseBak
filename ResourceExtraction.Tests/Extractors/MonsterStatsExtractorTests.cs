@@ -10,10 +10,10 @@ public class MonsterStatsExtractorTests
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
-        writer.Write((ushort)100); // Health max
         writer.Write((ushort)50);  // Health min
-        writer.Write((ushort)80);  // Stamina max
+        writer.Write((ushort)100); // Health max
         writer.Write((ushort)40);  // Stamina min
+        writer.Write((ushort)80);  // Stamina max
         for (int i = 0; i < 10; i++)
         {
             writer.Write((ushort)0);

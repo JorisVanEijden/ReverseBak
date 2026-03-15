@@ -31,6 +31,8 @@ public static class ExtractorFactory {
         }, {
             typeof(KeywordList), typeof(KeywordExtractor)
         }, {
+            typeof(SaveGame), typeof(SaveGameExtractor)
+        }, {
             typeof(LabelSet), typeof(LabelExtractor)
         }, {
             typeof(BackgroundImage), typeof(ScreenExtractor)

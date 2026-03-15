@@ -11,24 +11,24 @@ public class ZoneDefExtractor : ExtractorBase<ZoneDefinition>
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
         return new ZoneDefinition(id)
         {
-            ZoneLocation = reader.ReadUInt16(),
-            ZonePointer = reader.ReadUInt16(),
-            Field04 = reader.ReadUInt32(),
-            Field08 = reader.ReadUInt16(),
+            ZoneLocation = reader.ReadInt16(),
+            ZonePointer = reader.ReadInt16(),
+            DefaultCameraZ = reader.ReadUInt32(),
+            DefaultCameraPitch = reader.ReadUInt16(),
             Flags = reader.ReadUInt16(),
-            Unknown0C = reader.ReadByte(),
-            Unknown0D = reader.ReadByte(),
-            Field0E = reader.ReadUInt32(),
+            SkyColor = reader.ReadByte(),
+            GroundColor = reader.ReadByte(),
+            MapMinZ = reader.ReadUInt32(),
             CameraZPosition = reader.ReadUInt32(),
-            Field16 = reader.ReadUInt32(),
-            Field1A = reader.ReadUInt32(),
-            RmpResourceCount = reader.ReadUInt16(),
-            Field20 = reader.ReadUInt16(),
-            Field22 = reader.ReadUInt32(),
-            Field26 = reader.ReadUInt32(),
-            Field2A = reader.ReadUInt16(),
-            Field2C = reader.ReadUInt32(),
-            Field30 = reader.ReadUInt32()
+            MapMaxZ = reader.ReadUInt32(),
+            MapZoomStep = reader.ReadUInt32(),
+            RmpResourceCount = reader.ReadInt16(),
+            SpriteFogDivisor = reader.ReadInt16(),
+            SpriteFogNearDistance = reader.ReadUInt32(),
+            Unused26 = reader.ReadUInt32(),
+            PolygonFogDivisor = reader.ReadInt16(),
+            PolygonFogNearDistance = reader.ReadUInt32(),
+            FarClipDistance = reader.ReadUInt32()
         };
     }
 }

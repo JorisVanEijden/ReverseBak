@@ -34,9 +34,11 @@ public sealed class OverlayAddressTranslator {
     // IDA linear address where overlay segments begin (ovr121 start)
     private const uint OverlayStartLinear = 0x3FF70;
 
+    private const uint OverlayEndLinearExclusive = 0x7B000;
+
     public OverlayAddressTranslator() {
         // Pre-populate IDA overlay segment bases from StubSegments
-        foreach (ushort idaSeg in StubSegments.IdaToStub.Keys) {
+        foreach (ushort idaSeg in StubSegments.IdaCodeToIdaStub.Keys) {
             _idaSegmentBases[(uint)(idaSeg << 4)] = idaSeg;
         }
     }
@@ -67,10 +69,14 @@ public sealed class OverlayAddressTranslator {
             return idaLinear - RelocationDeltaConst;
         }
 
+        if (idaLinear >= OverlayEndLinearExclusive) {
+            return null;
+        }
+
         // Overlay segment: find which IDA segment, then use overlay map
         ushort? idaSeg = FindIdaSegment(idaLinear);
         if (idaSeg == null) {
-            return idaLinear - RelocationDeltaConst; // fallback: treat as resident
+            return null;
         }
 
         lock (_lock) {
@@ -98,7 +104,8 @@ public sealed class OverlayAddressTranslator {
         }
 
         // Not in overlay map: treat as resident segment, apply delta
-        return physLinear + RelocationDeltaConst;
+        uint idaLinear = physLinear + RelocationDeltaConst;
+        return idaLinear < OverlayStartLinear ? idaLinear : null;
     }
 
     /// <summary>Returns the relocation delta (IDA - physical) in bytes.</summary>

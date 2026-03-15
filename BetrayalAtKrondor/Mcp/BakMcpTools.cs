@@ -111,12 +111,22 @@ public sealed class BakMcpTools {
             uint? physical = _translator.IdaToPhysical(idaAddress);
 
             if (physical != null) {
+                string id;
+                lock (_emulator.McpBreakpointsLock) {
+                    id = _emulator.GetNextBreakpointId().ToString();
+                }
+
                 var bp = new AddressBreakPoint(BreakPointType.CPU_EXECUTION_ADDRESS, physical.Value,
-                    _ => _emulator.PauseHandler.RequestPause($"BaK breakpoint hit at IDA 0x{idaAddress:X}"), false);
+                    _ => _emulator.PauseHandler.RequestPause($"BaK breakpoint {id} hit at IDA 0x{idaAddress:X}"), false);
                 _emulator.BreakpointsManager.ToggleBreakPoint(bp, true);
+
+                lock (_emulator.McpBreakpointsLock) {
+                    _emulator.McpBreakpoints[id] = bp;
+                }
 
                 return new {
                     status = "active",
+                    id,
                     ida_address = $"0x{idaAddress:X}",
                     physical_address = $"0x{physical.Value:X}"
                 };

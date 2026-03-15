@@ -11,15 +11,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameData", "GameData\GameDa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceExtraction", "ResourceExtraction\ResourceExtraction.csproj", "{64A3E094-2804-4BBB-BF09-261A5B369C7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86", "C:\Projects\DotNetProjects\Spice86\src\Spice86\Spice86.csproj", "{302A6D19-FAB3-4107-81A3-64C4C41FACE9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86", "..\Spice86\src\Spice86\Spice86.csproj", "{302A6D19-FAB3-4107-81A3-64C4C41FACE9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Core", "C:\Projects\DotNetProjects\Spice86\src\Spice86.Core\Spice86.Core.csproj", "{16024BE2-0338-45B1-8ECC-2428B8BCFF3D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Core", "..\Spice86\src\Spice86.Core\Spice86.Core.csproj", "{16024BE2-0338-45B1-8ECC-2428B8BCFF3D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Libs", "C:\Projects\DotNetProjects\Spice86\src\Spice86.Libs\Spice86.Libs.csproj", "{827686FD-D2E4-4948-BA1B-E12EE9BC1EF9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Libs", "..\Spice86\src\Spice86.Libs\Spice86.Libs.csproj", "{827686FD-D2E4-4948-BA1B-E12EE9BC1EF9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Logging", "C:\Projects\DotNetProjects\Spice86\src\Spice86.Logging\Spice86.Logging.csproj", "{5E879107-49DA-4612-97A5-CFA94D6154D3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Logging", "..\Spice86\src\Spice86.Logging\Spice86.Logging.csproj", "{5E879107-49DA-4612-97A5-CFA94D6154D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Shared", "C:\Projects\DotNetProjects\Spice86\src\Spice86.Shared\Spice86.Shared.csproj", "{D5437F7D-63A3-4A7D-A12A-E1DBD785921D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spice86.Shared", "..\Spice86\src\Spice86.Shared\Spice86.Shared.csproj", "{D5437F7D-63A3-4A7D-A12A-E1DBD785921D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Spice86", "Spice86", "{E8E5F190-7CB5-415A-9C6E-3C99309CA67B}"
 EndProject

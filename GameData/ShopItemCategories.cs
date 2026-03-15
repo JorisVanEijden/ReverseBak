@@ -1,5 +1,6 @@
 namespace GameData;
 
+[Flags]
 public enum ShopItemCategories {
     Miscellaneous = 0x1,
     Rations_ = 0x2,

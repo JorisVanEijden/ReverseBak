@@ -24,19 +24,20 @@ public class MonsterStatsExtractor : ExtractorBase<MonsterStats>
         stats.AccuracyMelee = ReadStatRange(reader);
         stats.AccuracyCasting = ReadStatRange(reader);
         stats.Defense = ReadStatRange(reader);
-        stats.CombatFieldF = ReadStatRange(reader);
-        stats.CombatField10 = ReadStatRange(reader);
-        stats.CombatField11 = ReadStatRange(reader);
-        stats.CombatFieldE = ReadStatRange(reader);
+        stats.AttackPattern = ReadStatRange(reader);
+        stats.DefensePattern = ReadStatRange(reader);
+        stats.MovementPattern = ReadStatRange(reader);
+        stats.FleeThreshold = ReadStatRange(reader);
 
         return stats;
     }
 
     private static StatRange ReadStatRange(BinaryReader reader)
     {
-        // IMPORTANT: File stores max first, then min (verified against disasm at 0x6a3c3)
-        ushort max = reader.ReadUInt16();
+        // File stores min first, then max (verified against disasm at sub_ovr174_0:
+        // range = max - min, result = min + random % range)
         ushort min = reader.ReadUInt16();
-        return new StatRange { Max = max, Min = min };
+        ushort max = reader.ReadUInt16();
+        return new StatRange { Min = min, Max = max };
     }
 }
