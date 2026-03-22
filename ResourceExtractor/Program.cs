@@ -37,6 +37,13 @@ internal static class Program {
         // CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+        if (args.Length >= 1 && args[0] == "--cutscene-data") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            string outputDir = args.Length >= 3 ? args[2] : "generated";
+            ExportCutsceneData(gamePath, outputDir);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--ddx") {
             ExportDdxDialogs(args);
             return;
@@ -52,6 +59,7 @@ internal static class Program {
             ExtractZoneData(gamePath);
             ExtractWorldTiles(gamePath);
             ExtractMonsterStats(gamePath);
+            ExtractZoneTables(gamePath);
             return;
         }
 
@@ -626,6 +634,17 @@ internal static class Program {
         }
     }
 
+    private static void ExtractZoneTables(string filePath) {
+        var extractor = new ZoneTableExtractor();
+        foreach (string tblFile in GetFiles(filePath, "Z??.TBL")) {
+            string fileName = Path.GetFileName(tblFile);
+            using var stream = File.OpenRead(tblFile);
+            var table = extractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
+            Console.WriteLine($"Extracted TBL: {fileName} ({table.Entries.Count} entries)");
+        }
+    }
+
     private static void ExportObjectInfo(string[] args) {
         string gamePath = args.Length >= 2 ? args[1] : Directory.GetCurrentDirectory();
         string outputDir = args.Length >= 3 ? args[2] : "ObjectInfo";
@@ -638,6 +657,65 @@ internal static class Program {
         string json = objects.ToJson();
         File.WriteAllText(Path.Combine(outputDir, "objinfo.json"), json);
         Console.WriteLine($"Exported: {objects.Count} objects to objinfo.json");
+    }
+
+    private static void ExportCutsceneData(string gamePath, string outputDir) {
+        var generalResourceProvider = new GeneralResourceProvider(gamePath);
+        var archiveResources = generalResourceProvider.GetDictionary();
+
+        // DDX dialogs
+        string ddxDir = Path.Combine(outputDir, "dialogs");
+        if (!Directory.Exists(ddxDir)) Directory.CreateDirectory(ddxDir);
+        var ddxExtractor = new DdxExtractor();
+        foreach (string ddxFile in GetFiles(gamePath, "*.ddx")) {
+            using FileStream resourceFile = File.OpenRead(ddxFile);
+            string fileName = Path.GetFileName(ddxFile);
+            Dialog ddx = ddxExtractor.Extract(fileName, resourceFile);
+            File.WriteAllText(Path.Combine(ddxDir, Path.GetFileNameWithoutExtension(fileName) + ".json"), ddx.ToJson());
+            Console.WriteLine($"Exported DDX: {fileName}");
+        }
+
+        // ADS animator scripts — from both loose files and KRONDOR.001 archive
+        string adsDir = Path.Combine(outputDir, "ads");
+        if (!Directory.Exists(adsDir)) Directory.CreateDirectory(adsDir);
+        var adsExtractor = new AdsExtractor();
+        var adsNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string adsFile in GetFiles(gamePath, "*.ads"))
+            adsNames.Add(Path.GetFileName(adsFile).ToUpper());
+        foreach (string key in archiveResources.Keys)
+            if (key.EndsWith(".ADS", StringComparison.OrdinalIgnoreCase))
+                adsNames.Add(key);
+        foreach (string adsName in adsNames.OrderBy(n => n)) {
+            try {
+                using Stream resourceStream = generalResourceProvider.GetResourceStream(adsName);
+                AnimatorResource anim = adsExtractor.Extract(adsName, resourceStream);
+                File.WriteAllText(Path.Combine(adsDir, Path.GetFileNameWithoutExtension(adsName) + ".json"), anim.ToJson());
+                Console.WriteLine($"Exported ADS: {adsName}");
+            } catch (Exception ex) {
+                Console.WriteLine($"FAILED ADS: {adsName} - {ex.Message}");
+            }
+        }
+
+        // TTM animation resources — from both loose files and KRONDOR.001 archive
+        string ttmDir = Path.Combine(outputDir, "ttm");
+        if (!Directory.Exists(ttmDir)) Directory.CreateDirectory(ttmDir);
+        var ttmExtractor = new TtmExtractor();
+        var ttmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string ttmFile in GetFiles(gamePath, "*.ttm"))
+            ttmNames.Add(Path.GetFileName(ttmFile).ToUpper());
+        foreach (string key in archiveResources.Keys)
+            if (key.EndsWith(".TTM", StringComparison.OrdinalIgnoreCase))
+                ttmNames.Add(key);
+        foreach (string ttmName in ttmNames.OrderBy(n => n)) {
+            try {
+                using Stream resourceStream = generalResourceProvider.GetResourceStream(ttmName);
+                AnimationResource ttm = ttmExtractor.Extract(ttmName, resourceStream);
+                File.WriteAllText(Path.Combine(ttmDir, Path.GetFileNameWithoutExtension(ttmName) + ".json"), ttm.ToJson());
+                Console.WriteLine($"Exported TTM: {ttmName}");
+            } catch (Exception ex) {
+                Console.WriteLine($"FAILED TTM: {ttmName} - {ex.Message}");
+            }
+        }
     }
 
     private static void ExportDdxDialogs(string[] args) {

@@ -17,7 +17,7 @@ public class ZoneMapExtractor : ExtractorBase<ZoneMap>
             {
                 int byteIndex = y * 8 + x / 8;
                 int bit = x % 8;
-                zoneMap.Tiles[x, y] = ((rawBytes[byteIndex] >> bit) & 1) == 1;
+                zoneMap.Tiles[x][y] = ((rawBytes[byteIndex] >> bit) & 1) == 1;
             }
         }
         return zoneMap;

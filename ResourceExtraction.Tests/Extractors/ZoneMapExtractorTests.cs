@@ -14,8 +14,8 @@ public class ZoneMapExtractorTests
         using var stream = new MemoryStream(data);
         var extractor = new ZoneMapExtractor();
         var result = extractor.Extract("Z01MAP.DAT", stream);
-        Assert.Equal(ZoneMap.Width, result.Tiles.GetLength(0));
-        Assert.Equal(ZoneMap.Height, result.Tiles.GetLength(1));
+        Assert.Equal(ZoneMap.Width, result.Tiles.Length);
+        Assert.Equal(ZoneMap.Height, result.Tiles[0].Length);
         Assert.True(result.IsTileInZone(0, 0));
         Assert.False(result.IsTileInZone(1, 0));
         Assert.True(result.IsTileInZone(2, 0));
