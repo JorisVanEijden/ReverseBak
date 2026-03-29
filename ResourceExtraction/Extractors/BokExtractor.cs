@@ -102,7 +102,7 @@ public class BokExtractor : ExtractorBase<BookResource> {
             XOffset = resourceReader.ReadInt16(),
             Width = resourceReader.ReadInt16(),
             LineSpacing = resourceReader.ReadInt16(),
-            WordSpacing = resourceReader.ReadInt16(),
+            InterParagraphSpacing = resourceReader.ReadInt16(),
             StartIndent = resourceReader.ReadInt16()
         };
         _ = resourceReader.ReadInt16(); // Always 0. Code seems to indicate something with horizontal spacing but messing with it doesn't seem to change anything.
@@ -128,8 +128,8 @@ public class BokExtractor : ExtractorBase<BookResource> {
             page.ReservedAreas.Add(new ReservedArea {
                 X = resourceReader.ReadInt16(),
                 Y = resourceReader.ReadInt16(),
-                Width = resourceReader.ReadInt16(),
-                Height = resourceReader.ReadInt16()
+                X2 = resourceReader.ReadInt16(),
+                Y2 = resourceReader.ReadInt16()
             });
         }
     }
