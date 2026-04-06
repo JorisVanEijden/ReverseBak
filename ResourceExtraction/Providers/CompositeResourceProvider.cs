@@ -67,11 +67,11 @@ namespace ResourceExtraction.Providers {
         public T GetResource<T>(string resourceId) where T : IResource {
             foreach (var provider in _providers) {
                 if (provider.CanProvideResource(resourceId)) {
-                    try {
+                    // try {
                         return provider.GetResource<T>(resourceId);
-                    } catch (InvalidOperationException) {
+                    // } catch (InvalidOperationException) {
                         // Skip providers that can't provide the requested type
-                    }
+                    // }
                 }
             }
 

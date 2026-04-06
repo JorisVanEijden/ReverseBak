@@ -77,6 +77,9 @@ internal static class Program {
 
         string filePath = args.Length == 1 ? args[0] : @"D:\BaK\OriginalGame"; //Directory.GetCurrentDirectory();
 
+        ExtractBooks(filePath);
+
+
         const string saveGamePath = @"D:\BaK\OriginalGame\GAMES\dir.G01\SAVE02.GAM";
         var saveGameExtractor = new SaveGameExtractor();
         using (FileStream saveGameStream = File.OpenRead(saveGamePath)) {

@@ -1,3 +1,5 @@
+using GameData.Resources.World;
+
 namespace ResourceExtraction;
 
 using GameData.Resources;
@@ -8,11 +10,12 @@ using GameData.Resources.Data;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
+using GameData.Resources.Monster;
 using GameData.Resources.Palette;
 using GameData.Resources.Spells;
-using ResourceExtraction.Extractors;
-using ResourceExtraction.Extractors.Animation;
-using ResourceExtraction.Extractors.Audio;
+using Extractors;
+using Extractors.Animation;
+using Extractors.Audio;
 using System;
 using System.Collections.Generic;
 
@@ -44,6 +47,24 @@ public static class ExtractorFactory {
             typeof(PaletteResource), typeof(PaletteExtractor)
         }, {
             typeof(AudioResource), typeof(AudioExtractor)
+        }, {
+            typeof(ZoneTable), typeof(ZoneTableExtractor)
+        }, {
+            typeof(RemapResource), typeof(RemapExtractor)
+        }, {
+            typeof(MonsterStats), typeof(MonsterStatsExtractor)
+        }, {
+            typeof(WorldTile), typeof(WorldItemExtractor)
+        }, {
+            typeof(ZoneBounds), typeof(ZoneBoundsExtractor)
+        }, {
+            typeof(ZoneDefinition), typeof(ZoneDefExtractor)
+        }, {
+            typeof(ZoneMap), typeof(ZoneMapExtractor)
+        }, {
+            typeof(ZoneRef), typeof(ZoneRefExtractor)
+        }, {
+            typeof(ZoneShape), typeof(ZoneShapeExtractor)
         }
     };
 
