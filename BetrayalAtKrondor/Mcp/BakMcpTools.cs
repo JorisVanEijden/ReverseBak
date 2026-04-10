@@ -1,7 +1,9 @@
 namespace BetrayalAtKrondor.Mcp;
 
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using ModelContextProtocol.Server;
+using SkiaSharp;
 using Spice86.Core.Emulator.CPU;
 using Spice86.Core.Emulator.CPU.CfgCpu.Ast.Builder;
 using Spice86.Core.Emulator.CPU.CfgCpu.Ast.Instruction;
@@ -14,6 +16,7 @@ using Spice86.Core.Emulator.VM.Breakpoint;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Emulator.VM.Breakpoint;
 using Spice86.Shared.Utils;
+using Spice86.ViewModels.Services;
 
 /// <summary>
 /// MCP tools for BaK reverse engineering that translate between IDA and Spice86 address spaces.
@@ -28,6 +31,56 @@ public sealed class BakMcpTools {
     public BakMcpTools(OverlayAddressTranslator translator, EmulatorMcpServices emulator) {
         _translator = translator;
         _emulator = emulator;
+    }
+
+    /// <summary>
+    /// Resolved address with both physical and (optional) IDA representations.
+    /// </summary>
+    private record ResolvedAddress(uint PhysicalAddress, uint? IdaAddress) {
+        public string IdaDisplay => IdaAddress.HasValue ? $"0x{IdaAddress.Value:X}" : "N/A";
+        public string PhysDisplay => $"0x{PhysicalAddress:X}";
+    }
+
+    /// <summary>
+    /// Parse a flexible address string into a resolved physical + IDA address pair.
+    /// Delegates seg:off and register parsing to Spice86's <see cref="AddressAndValueParser"/>.
+    /// Supported formats:
+    ///   "0x3fdf6"   — IDA linear hex (translated via overlay map)
+    ///   "249846"    — IDA linear decimal
+    ///   "d5e3:86d2" — seg:off → physical directly
+    ///   "DS:123c"   — register-relative (DS, CS, ES, SS, or any register pair)
+    /// </summary>
+    private (ResolvedAddress? Address, string? Error) ResolveAddress(string address) {
+        address = address.Trim();
+
+        // Try seg:off first (contains ':') — resolves to physical address directly
+        SegmentedAddress? segOff = AddressAndValueParser.ParseSegmentedAddress(address, _emulator.State);
+        if (segOff != null) {
+            uint physical = segOff.Value.Linear;
+            uint? ida = _translator.PhysicalToIda(segOff.Value.Segment, segOff.Value.Offset);
+            return (new ResolvedAddress(physical, ida), null);
+        }
+
+        // Not seg:off — treat as IDA linear address (hex or decimal)
+        uint? hexValue = AddressAndValueParser.ParseHex(address);
+        if (hexValue != null) {
+            uint? phys = _translator.IdaToPhysical(hexValue.Value);
+            if (phys == null) {
+                return (null, $"Overlay not loaded for IDA 0x{hexValue.Value:X}");
+            }
+            return (new ResolvedAddress(phys.Value, hexValue.Value), null);
+        }
+
+        // Try plain decimal
+        if (uint.TryParse(address, out uint decValue)) {
+            uint? phys = _translator.IdaToPhysical(decValue);
+            if (phys == null) {
+                return (null, $"Overlay not loaded for IDA 0x{decValue:X}");
+            }
+            return (new ResolvedAddress(phys.Value, decValue), null);
+        }
+
+        return (null, $"Cannot parse '{address}'. Use hex (0x3fdf6), decimal, or seg:off (DS:1234).");
     }
 
     [McpServerTool(Name = "bak_get_current_ida_location")]
@@ -80,32 +133,26 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_read_memory_ida")]
-    [Description("Read memory using an IDA linear address (same format as IDA MCP returns). " +
-        "Automatically translates to the correct physical address: " +
-        "applies relocation delta for resident segments, overlay map for overlays. " +
-        "For overlay code, the overlay must be currently loaded.")]
-    public object ReadMemoryIda([Description("IDA linear address (decimal integer, e.g. 0x3D448 = 250952)")] uint idaAddress,
+    [Description("Read memory at an address. Accepts IDA hex (\"0x3fdf6\"), decimal, " +
+        "seg:off (\"d5e3:86d2\"), or register-relative (\"dseg:123c\", \"cs:0505\").")]
+    public object ReadMemoryIda(
+        [Description("Address: IDA hex/dec, seg:off, or dseg:offset")] string address,
         [Description("Number of bytes to read (1-4096)")] int length) {
         lock (_lock) {
             if (length is <= 0 or > 4096) {
-                return new {
-                    error = "Length must be between 1 and 4096"
-                };
+                return new { error = "Length must be between 1 and 4096" };
             }
 
-            uint? physical = _translator.IdaToPhysical(idaAddress);
-            if (physical == null) {
-                return new {
-                    error = "Overlay segment not currently loaded in memory",
-                    ida_address = $"0x{idaAddress:X}"
-                };
+            var (resolved, error) = ResolveAddress(address);
+            if (resolved == null) {
+                return new { error };
             }
 
-            byte[] data = _emulator.Memory.ReadRam((uint)length, physical.Value);
+            byte[] data = _emulator.Memory.ReadRam((uint)length, resolved.PhysicalAddress);
 
             return new {
-                ida_address = $"0x{idaAddress:X}",
-                physical_address = $"0x{physical.Value:X}",
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay,
                 length,
                 data = Convert.ToHexString(data)
             };
@@ -113,19 +160,15 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_write_memory_ida")]
-    [Description("Write hex-encoded bytes at an IDA linear address. " +
-        "Translates to physical address automatically. " +
-        "For overlay segments, the overlay must be currently loaded. Max 4096 bytes.")]
+    [Description("Write hex-encoded bytes at an address. Accepts IDA hex (\"0x3fdf6\"), " +
+        "decimal, seg:off (\"d5e3:86d2\"), or register-relative (\"DS:123c\"). Max 4096 bytes.")]
     public object WriteMemoryIda(
-        [Description("IDA linear address (decimal integer)")] uint idaAddress,
+        [Description("Address: IDA hex/dec, seg:off, or DS:offset")] string address,
         [Description("Hex-encoded bytes to write (e.g. 'B80200909090')")] string data) {
         lock (_lock) {
-            uint? physical = _translator.IdaToPhysical(idaAddress);
-            if (physical == null) {
-                return new {
-                    error = "Overlay segment not currently loaded in memory",
-                    ida_address = $"0x{idaAddress:X}"
-                };
+            var (resolved, error) = ResolveAddress(address);
+            if (resolved == null) {
+                return new { error };
             }
 
             byte[] bytes = Convert.FromHexString(data);
@@ -133,11 +176,11 @@ public sealed class BakMcpTools {
                 return new { error = "Data length must be between 1 and 4096 bytes" };
             }
 
-            _emulator.Memory.WriteRam(bytes, physical.Value);
+            _emulator.Memory.WriteRam(bytes, resolved.PhysicalAddress);
 
             return new {
-                ida_address = $"0x{idaAddress:X}",
-                physical_address = $"0x{physical.Value:X}",
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay,
                 length = bytes.Length,
                 success = true
             };
@@ -145,28 +188,23 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_disasm_ida")]
-    [Description("Disassemble x86 real-mode instructions at an IDA linear address. " +
-        "Translates to physical address automatically. " +
-        "Returns array of instructions with address, hex bytes, and assembly text. " +
-        "For overlay segments, the overlay must be currently loaded.")]
+    [Description("Disassemble x86 real-mode instructions at an address. " +
+        "Accepts IDA hex (\"0x3fdf6\"), decimal, seg:off, or register-relative (\"CS:IP\").")]
     public object DisasmIda(
-        [Description("IDA linear address (decimal integer)")] uint idaAddress,
+        [Description("Address: IDA hex/dec, seg:off, or DS:offset")] string address,
         [Description("Number of instructions to disassemble (1-500)")] int instructionCount) {
         lock (_lock) {
             if (instructionCount is <= 0 or > 500) {
                 return new { error = "instructionCount must be between 1 and 500" };
             }
 
-            uint? physical = _translator.IdaToPhysical(idaAddress);
-            if (physical == null) {
-                return new {
-                    error = "Overlay segment not currently loaded in memory",
-                    ida_address = $"0x{idaAddress:X}"
-                };
+            var (resolved, error) = ResolveAddress(address);
+            if (resolved == null) {
+                return new { error };
             }
 
-            ushort segment = MemoryUtils.ToSegment(physical.Value);
-            ushort offset = (ushort)(physical.Value & 0xF);
+            ushort segment = MemoryUtils.ToSegment(resolved.PhysicalAddress);
+            ushort offset = (ushort)(resolved.PhysicalAddress & 0xF);
             SegmentedAddress current = new(segment, offset);
 
             InstructionParser parser = new(_emulator.Memory, _emulator.State);
@@ -199,79 +237,61 @@ public sealed class BakMcpTools {
             }
 
             return new {
-                ida_address = $"0x{idaAddress:X}",
-                physical_address = $"0x{physical.Value:X}",
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay,
                 instructions = lines
             };
         }
     }
 
     [McpServerTool(Name = "bak_set_breakpoint_ida")]
-    [Description("Set an execution breakpoint using an IDA linear address. " +
-        "For resident segments, the breakpoint is set immediately. " + "For overlay segments, the overlay must be currently loaded.")]
-    public object SetBreakpointIda([Description("IDA linear address (decimal integer)")] uint idaAddress) {
+    [Description("Set an execution breakpoint at an address. " +
+        "Accepts IDA hex (\"0x3fdf6\"), decimal, seg:off, or register-relative.")]
+    public object SetBreakpointIda(
+        [Description("Address: IDA hex/dec, seg:off, or DS:offset")] string address) {
         lock (_lock) {
-            uint? physical = _translator.IdaToPhysical(idaAddress);
+            var (resolved, error) = ResolveAddress(address);
+            if (resolved == null) {
+                return new { status = "error", message = error };
+            }
 
-            if (physical != null) {
-                string id;
-                lock (_emulator.McpBreakpointsLock) {
-                    id = _emulator.GetNextBreakpointId().ToString();
-                }
+            string id;
+            lock (_emulator.McpBreakpointsLock) {
+                id = _emulator.GetNextBreakpointId().ToString();
+            }
 
-                var bp = new AddressBreakPoint(BreakPointType.CPU_EXECUTION_ADDRESS, physical.Value,
-                    _ => _emulator.PauseHandler.RequestPause($"BaK breakpoint {id} hit at IDA 0x{idaAddress:X}"), false);
-                _emulator.BreakpointsManager.ToggleBreakPoint(bp, true);
+            var bp = new AddressBreakPoint(BreakPointType.CPU_EXECUTION_ADDRESS, resolved.PhysicalAddress,
+                _ => _emulator.PauseHandler.RequestPause($"BaK breakpoint {id} hit at {resolved.IdaDisplay}"), false);
+            _emulator.BreakpointsManager.ToggleBreakPoint(bp, true);
 
-                lock (_emulator.McpBreakpointsLock) {
-                    _emulator.McpBreakpoints[id] = bp;
-                }
-
-                return new {
-                    status = "active",
-                    id,
-                    ida_address = $"0x{idaAddress:X}",
-                    physical_address = $"0x{physical.Value:X}"
-                };
+            lock (_emulator.McpBreakpointsLock) {
+                _emulator.McpBreakpoints[id] = bp;
             }
 
             return new {
-                status = "error",
-                ida_address = $"0x{idaAddress:X}",
-                message = "Overlay not currently loaded. Cannot set breakpoint."
+                status = "active",
+                id,
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay
             };
         }
     }
 
     [McpServerTool(Name = "bak_translate_address")]
-    [Description("Translate between IDA linear and Spice86 physical address spaces. " +
-        "Provide ida_address to get physical, or runtime_cs and ip to get IDA.")]
-    public object TranslateAddress([Description("IDA linear address to translate to physical (optional)")] uint? idaAddress = null,
-        [Description("Runtime CS register value (optional, use with ip)")] int? runtimeCs = null,
-        [Description("Runtime IP register value (optional, use with runtime_cs)")] int? ip = null) {
+    [Description("Translate any address format to IDA + physical. " +
+        "Accepts IDA hex (\"0x3fdf6\"), decimal, seg:off (\"d5e3:86d2\"), or register-relative (\"DS:1234\", \"CS:IP\").")]
+    public object TranslateAddress(
+        [Description("Address in any supported format")] string address) {
         lock (_lock) {
-            if (idaAddress != null) {
-                uint? physical = _translator.IdaToPhysical(idaAddress.Value);
-
-                return new {
-                    ida_address = $"0x{idaAddress:X}",
-                    physical_address = physical != null ? $"0x{physical.Value:X}" : null,
-                    is_loaded = physical != null
-                };
-            }
-            if (runtimeCs != null && ip != null) {
-                uint? ida = _translator.PhysicalToIda((ushort)runtimeCs.Value, (ushort)ip.Value);
-                uint phys = (uint)(runtimeCs.Value << 4) + (uint)ip.Value;
-
-                return new {
-                    physical_address = $"0x{phys:X}",
-                    ida_address = ida != null ? $"0x{ida.Value:X}" : null,
-                    known = ida != null
-                };
+            var (resolved, error) = ResolveAddress(address);
+            if (resolved == null) {
+                return new { error };
             }
 
             return new {
-                error = "Provide ida_address, or both runtime_cs and ip"
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay,
+                is_loaded = true
             };
         }
     }
@@ -304,32 +324,28 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_run_to_ida")]
-    [Description("Resume emulator and run until an IDA linear address is hit, or timeout. " +
-        "Sets a temporary breakpoint, resumes execution, waits for the emulator to pause, " +
-        "then removes the breakpoint. Returns CPU state and IDA location when hit. " +
+    [Description("Resume emulator and run until an address is hit, or timeout. " +
+        "Sets a temporary breakpoint, resumes execution, waits for hit, removes breakpoint. " +
+        "Accepts IDA hex (\"0x3fdf6\"), decimal, seg:off, or register-relative. " +
         "The emulator will be paused when this tool returns.")]
     public object RunToIda(
-        [Description("IDA linear address to run to (decimal integer)")] uint idaAddress,
+        [Description("Address: IDA hex/dec, seg:off, or DS:offset")] string address,
         [Description("Timeout in milliseconds (default 5000, max 30000)")] int timeoutMs = 5000) {
         timeoutMs = Math.Clamp(timeoutMs, 100, 30000);
 
-        uint? physical = _translator.IdaToPhysical(idaAddress);
-        if (physical == null) {
-            return new {
-                hit = false,
-                error = "Overlay segment not currently loaded in memory",
-                ida_address = $"0x{idaAddress:X}"
-            };
+        var (resolved, error) = ResolveAddress(address);
+        if (resolved == null) {
+            return new { hit = false, error };
         }
 
         // Create temporary breakpoint
         bool breakpointHit = false;
         var bp = new AddressBreakPoint(
             BreakPointType.CPU_EXECUTION_ADDRESS,
-            physical.Value,
+            resolved.PhysicalAddress,
             _ => {
                 breakpointHit = true;
-                _emulator.PauseHandler.RequestPause($"bak_run_to_ida hit at IDA 0x{idaAddress:X}");
+                _emulator.PauseHandler.RequestPause($"bak_run_to_ida hit at {resolved.IdaDisplay}");
             },
             false);
 
@@ -359,7 +375,7 @@ public sealed class BakMcpTools {
                     hit = false,
                     timeout = true,
                     timeout_ms = timeoutMs,
-                    ida_address = $"0x{idaAddress:X}",
+                    ida_address = resolved.IdaDisplay,
                     stopped_at = currentIda != null ? $"0x{currentIda.Value:X}" : null,
                     runtime_cs = $"0x{cs:X4}",
                     runtime_ip = $"0x{ip:X4}"
@@ -371,8 +387,8 @@ public sealed class BakMcpTools {
             ushort hitIp = _emulator.State.IP;
             return new {
                 hit = true,
-                ida_address = $"0x{idaAddress:X}",
-                physical_address = $"0x{physical.Value:X}",
+                ida_address = resolved.IdaDisplay,
+                physical_address = resolved.PhysDisplay,
                 runtime_cs = $"0x{hitCs:X4}",
                 runtime_ip = $"0x{hitIp:X4}",
                 cpu_state = new {
@@ -394,4 +410,89 @@ public sealed class BakMcpTools {
             _emulator.BreakpointsManager.ToggleBreakPoint(bp, false);
         }
     }
+
+    [McpServerTool(Name = "bak_mouse_click")]
+    [Description("Click the mouse at a screen position. Writes x, y to the game's mouse position " +
+        "globals (MouseHorizontal, MouseVertical), sets MouseButtonState, lets the emulator run " +
+        "for ~100 ms so the game processes the click, then clears the button state. " +
+        "Coordinates are screen pixels (320x200).")]
+    public object MouseClick(
+        [Description("Screen X coordinate (0-319)")] int x,
+        [Description("Screen Y coordinate (0-199)")] int y,
+        [Description("Mouse button: 'left' or 'right' (default: 'left')")] string button = "left") {
+        // IDA addresses for BaK mouse globals (dseg, always resident)
+        const uint idaMouseX = 0x3CE0C;      // MouseHorizontal (word)
+        const uint idaMouseY = 0x3CE0E;      // MouseVertical   (word)
+        const uint idaMouseButton = 0x3CFB7;  // MouseButtonState (byte)
+
+        uint? physX = _translator.IdaToPhysical(idaMouseX);
+        uint? physY = _translator.IdaToPhysical(idaMouseY);
+        uint? physButton = _translator.IdaToPhysical(idaMouseButton);
+
+        if (physX == null || physY == null || physButton == null) {
+            return new { error = "Could not translate mouse global addresses" };
+        }
+
+        byte buttonBit = button.ToLowerInvariant() == "right" ? (byte)0x02 : (byte)0x01;
+
+        // BaK mouse globals use 4x screen coordinates (LoadMousePosition divides by 4)
+        _emulator.Memory.UInt16[physX.Value] = (ushort)(x * 4);
+        _emulator.Memory.UInt16[physY.Value] = (ushort)(y * 4);
+        _emulator.Memory.WriteRam(new[] { buttonBit }, physButton.Value);
+
+        // Let the emulator run so the game sees the click
+        _emulator.PauseHandler.Resume();
+        Thread.Sleep(100);
+
+        // Button up
+        _emulator.Memory.WriteRam(new byte[] { 0 }, physButton.Value);
+
+        return new {
+            success = true,
+            x,
+            y,
+            button,
+            message = $"Mouse {button}-clicked at ({x}, {y})"
+        };
+    }
+
+    private const string ScreenshotPath = "/tmp/spice86-screenshot.png";
+
+    [McpServerTool(Name = "bak_screenshot")]
+    [Description("Take a screenshot and save to /tmp/spice86-screenshot.png. " +
+        "Returns the file path — use Read tool on it to view the image. " +
+        "Much simpler than the base screenshot tool for CLI workflows.")]
+    public object BakScreenshot() {
+        int width = _emulator.VgaRenderer.Width;
+        int height = _emulator.VgaRenderer.Height;
+        if (width <= 0 || height <= 0) {
+            return new { error = "No frame available yet" };
+        }
+
+        uint[] buffer = new uint[width * height];
+        _emulator.VgaRenderer.CopyLastFrame(buffer);
+
+        byte[] bytes = new byte[buffer.Length * 4];
+        Buffer.BlockCopy(buffer, 0, bytes, 0, bytes.Length);
+
+        SKImageInfo imageInfo = new(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        using SKBitmap bitmap = new(imageInfo);
+        Marshal.Copy(bytes, 0, bitmap.GetPixels(), bytes.Length);
+
+        using SKImage image = SKImage.FromBitmap(bitmap);
+        using SKData pngData = image.Encode(SKEncodedImageFormat.Png, 100);
+        if (pngData == null) {
+            return new { error = "Failed to encode PNG" };
+        }
+
+        using FileStream fs = File.Open(ScreenshotPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+        pngData.SaveTo(fs);
+
+        return new {
+            path = ScreenshotPath,
+            width,
+            height
+        };
+    }
+
 }

@@ -158,7 +158,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             dat.EntityFlags = reader.ReadByte();
             dat.EntityType = reader.ReadByte();
             dat.TerrainType = reader.ReadByte();
-            dat.TerrainClass = reader.ReadByte();
+            dat.VertexScale = reader.ReadByte();
             reader.BaseStream.Seek(4, SeekOrigin.Current); // skip 4
             bool more = reader.ReadUInt16() > 0;
             reader.BaseStream.Seek(4, SeekOrigin.Current); // skip 4

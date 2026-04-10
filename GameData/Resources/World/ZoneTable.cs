@@ -31,7 +31,7 @@ public class TableDatInfo
     public byte EntityFlags { get; set; }
     public byte EntityType { get; set; }
     public byte TerrainType { get; set; }
-    public byte TerrainClass { get; set; }
+    public byte VertexScale { get; set; }
 
     /// <summary>Sprite index into concatenated SLOT BMX array. -1 if polygon geometry.</summary>
     public int Sprite { get; set; } = -1;
