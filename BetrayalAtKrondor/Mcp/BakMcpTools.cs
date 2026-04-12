@@ -12,6 +12,7 @@ using Spice86.Core.Emulator.CPU.CfgCpu.Parser;
 using Spice86.Core.Emulator.CPU.CfgCpu.ParsedInstruction;
 using Spice86.Core.Emulator.Devices.Input.Keyboard;
 using Spice86.Core.Emulator.Mcp;
+using Spice86.Core.Emulator.VM;
 using Spice86.Core.Emulator.VM.Breakpoint;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Emulator.VM.Breakpoint;
@@ -298,7 +299,8 @@ public sealed class BakMcpTools {
 
     [McpServerTool(Name = "bak_press_key")]
     [Description("Press and release a keyboard key in one call. " +
-        "Simulates key-down, waits briefly, then key-up. " +
+        "Posts key-down then key-up through the emulator input queue, resumes execution " +
+        "long enough for the game's INT 9 ISR to run, then returns. " +
         "Use PcKeyboardKey enum names: Escape, Enter, A-Z, Up, Down, Left, Right, F1-F12, " +
         "Space, Tab, Backspace, Delete, Home, End, PageUp, PageDown.")]
     public object PressKey(
@@ -308,13 +310,20 @@ public sealed class BakMcpTools {
             return new { error = "PS/2 controller is not available" };
         }
 
+        InputEventHub? hub = _emulator.InputEventHub;
+        if (hub == null) {
+            return new { error = "InputEventHub is not wired" };
+        }
+
         if (!Enum.TryParse(key, true, out PcKeyboardKey parsedKey)) {
             return new { error = $"Invalid key name: '{key}'. Use PcKeyboardKey enum names." };
         }
 
-        controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, true);
-        Thread.Sleep(100);
-        controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, false);
+        hub.PostToEmulatorThread(() => controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, true));
+        hub.PostToEmulatorThread(() => controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, false));
+
+        _emulator.PauseHandler.Resume();
+        Thread.Sleep(150);
 
         return new {
             success = true,
