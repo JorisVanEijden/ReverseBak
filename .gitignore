@@ -4,3 +4,5 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .qodo
+logs/
+BetrayalAtKrondor/[A-F0-9]*/
