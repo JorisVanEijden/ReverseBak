@@ -272,7 +272,6 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         var vertexSets = new List<(uint count, uint offset)>();
         var meshRecords = new List<MeshRecord>();
         uint vertexAccum = 0;
-        int totalMeshCount = 0;
 
         foreach (var (_, meshCount, meshBaseOffset) in lodRecords)
         {
@@ -298,14 +297,11 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
                 meshRecords.Add(new MeshRecord
                 {
-                    VertexCount = vertexCount,
-                    VertexOffset = vertexOffset,
                     VertexIndexBase = vertexAccum,
                     FaceGroupCount = faceGroupCount,
                     FaceGroupOffset = faceGroupOffset
                 });
             }
-            totalMeshCount += meshCount;
         }
 
         // --- Total vertex count ---
@@ -329,12 +325,9 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         // --- Read vertex data from unique vertex sets ---
         ReadVertices(reader, dat, vertexSets, dataStart, regionBase);
 
-        // --- Read face data from mesh records ---
-        // EntityType 0x0A skips the last LOD's meshes (from BaKGL analysis)
-        int meshLimit = dat.EntityType == 0x0A && lodRecords.Count > 0
-            ? totalMeshCount - lodRecords[^1].meshCount
-            : totalMeshCount;
-        ReadFaces(reader, dat, meshRecords, meshLimit, dataStart, regionBase);
+        // --- Read face data from all mesh records ---
+        // Verified against IDA (RenderWorldItem 0x2a89f, renderShapeDispatcher 0x2a70c):
+        ReadFaces(reader, dat, meshRecords, meshRecords.Count, dataStart, regionBase);
 
         return dat;
     }
@@ -478,8 +471,6 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     /// <summary>Mesh record within a mesh group — tracks vertex and face offsets.</summary>
     private class MeshRecord
     {
-        public uint VertexCount { get; set; }
-        public uint VertexOffset { get; set; }
         public uint VertexIndexBase { get; set; } // Cumulative offset for multi-mesh vertex index remapping
         public ushort FaceGroupCount { get; set; }
         public ushort FaceGroupOffset { get; set; }

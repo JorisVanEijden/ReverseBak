@@ -36,6 +36,7 @@ internal static class Program {
     public static void Main(string[] args) {
         // CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Directory.SetCurrentDirectory(@"D:\BaK\generated");
 
         if (args.Length >= 1 && args[0] == "--cutscene-data") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
