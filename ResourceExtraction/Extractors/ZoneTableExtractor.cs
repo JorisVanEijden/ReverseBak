@@ -88,13 +88,14 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         reader.BaseStream.Seek(section.offset, SeekOrigin.Begin);
         var names = new List<string>();
 
-        reader.ReadUInt16(); // skip first u16
+        ushort mapUnknown0 = reader.ReadUInt16();    // header u16 — purpose TBD
         ushort numItems = reader.ReadUInt16();
         var offsets = new ushort[numItems];
         for (int i = 0; i < numItems; i++)
             offsets[i] = reader.ReadUInt16();
 
-        reader.ReadUInt16(); // skip trailing u16
+        ushort mapUnknownTail = reader.ReadUInt16(); // trailing u16 before name strings — purpose TBD
+        _ = mapUnknown0; _ = mapUnknownTail;
         long dataStart = reader.BaseStream.Position;
 
         for (int i = 0; i < numItems; i++)
@@ -131,9 +132,11 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
             if (more)
             {
-                reader.BaseStream.Seek(2, SeekOrigin.Current);
+                ushort gidUnknown06 = reader.ReadUInt16();   // purpose TBD
                 byte n = reader.ReadByte();
-                reader.BaseStream.Seek(3, SeekOrigin.Current);
+                byte gidUnknown09 = reader.ReadByte();       // purpose TBD
+                ushort gidUnknown0A = reader.ReadUInt16();   // purpose TBD
+                _ = gidUnknown06; _ = gidUnknown09; _ = gidUnknown0A;
                 for (int j = 0; j < n; j++)
                 {
                     int u = reader.ReadSByte();
@@ -220,13 +223,16 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         var dat = new TableDatInfo();
 
         // --- Entity header (14 bytes) ---
-        dat.EntityFlags = reader.ReadByte();
-        dat.EntityType = reader.ReadByte();
-        dat.TerrainType = reader.ReadByte();
-        dat.VertexScale = reader.ReadByte();
-        reader.BaseStream.Seek(4, SeekOrigin.Current); // skip reserved fields (+4..+7)
+        dat.EntityFlags = reader.ReadByte();            // +0
+        dat.EntityType = reader.ReadByte();             // +1
+        dat.TerrainType = reader.ReadByte();            // +2
+        dat.VertexScale = reader.ReadByte();            // +3
+        dat.Unknown04 = reader.ReadUInt16();            // +4  (runtime-only? always 0 in samples)
+        dat.Unknown06 = reader.ReadUInt16();            // +6  (runtime-only? always 0 in samples)
         ushort lodCount = reader.ReadUInt16();          // +8: number of LOD levels (0 = no geometry)
-        reader.BaseStream.Seek(4, SeekOrigin.Current);  // skip +A (lodArrayOffset) and +C (extent)
+        ushort lodArrayOffset = reader.ReadUInt16();    // +A: navigation handled structurally, value preserved for completeness
+        dat.Extent = reader.ReadInt16();                // +C: draw-distance/extent (shifted by VertexScale)
+        _ = lodArrayOffset;
 
         if (lodCount == 0)
         {
@@ -279,12 +285,17 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
             for (int m = 0; m < meshCount; m++)
             {
-                reader.BaseStream.Seek(3, SeekOrigin.Current); // skip (runtime flags index, etc.)
+                byte meshRuntimeFlagsIndex = reader.ReadByte(); // +0 IDA entityDatRecord.runtimeFlagsIndex (0xFF = leaf)
+                byte meshEntityType = reader.ReadByte();        // +1 IDA entityDatRecord.entityType
+                byte meshTerrainType = reader.ReadByte();       // +2 IDA entityDatRecord.terrainType
                 byte vertexCount = reader.ReadByte();           // +3
-                ushort vertexOffset = reader.ReadUInt16();       // +4
-                ushort faceGroupCount = reader.ReadUInt16();     // +6
-                ushort faceGroupOffset = reader.ReadUInt16();    // +8
-                reader.BaseStream.Seek(4, SeekOrigin.Current);  // skip (child count, child offset)
+                ushort vertexOffset = reader.ReadUInt16();      // +4
+                ushort faceGroupCount = reader.ReadUInt16();    // +6
+                ushort faceGroupOffset = reader.ReadUInt16();   // +8
+                ushort meshChildCount = reader.ReadUInt16();    // +A IDA entityDatRecord.field_A (child count — recursion not implemented yet)
+                ushort meshChildOffset = reader.ReadUInt16();   // +C IDA entityDatRecord.field_C (pointer to children)
+                _ = meshRuntimeFlagsIndex; _ = meshEntityType; _ = meshTerrainType;
+                _ = meshChildCount; _ = meshChildOffset;
 
                 // Track unique vertex sets: different meshes may share the same vertex buffer
                 var key = ((uint)vertexCount, (uint)vertexOffset);
@@ -370,9 +381,9 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
                 {
                     Type = reader.ReadUInt16(),
                     FaceCount = reader.ReadUInt16(),
-                    FaceArrayOffset = reader.ReadUInt16()
+                    FaceArrayOffset = reader.ReadUInt16(),
+                    Unknown06 = reader.ReadUInt16()   // mesh-face record +6 (u16) — purpose TBD
                 };
-                reader.BaseStream.Seek(2, SeekOrigin.Current); // skip extra data
                 faceGroups.Add(group);
 
                 // Face type 2 = sprite reference (FaceCount is the sprite index)
@@ -404,13 +415,13 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
             var face = new TableFace
             {
-                PaletteSource = reader.ReadByte(),  // +0
-                FaceColor = reader.ReadByte(),       // +1
-                EdgeColor = reader.ReadByte(),       // +2
-                Color3 = reader.ReadByte(),          // +3
-                Color4 = reader.ReadByte()           // +4
+                Flags = reader.ReadByte(),              // +0 bits: 0-1=type, 4=underground, 5=shading enable, 7=flat override
+                VgaColor = reader.ReadByte(),           // +1 VGA pen color (palette index)
+                VgaShade = reader.ReadByte(),           // +2 VGA shade-table input + background color
+                EgaColor = reader.ReadByte(),           // +3 EGA pen color
+                EgaShade = reader.ReadByte(),           // +4 EGA shade-table input
+                NormalVertexIndex = reader.ReadByte()   // +5 vertex index used for backface cull normal
             };
-            reader.BaseStream.Seek(1, SeekOrigin.Current); // +5: skip normal vertex index
             ushort vertexListOffset = reader.ReadUInt16();  // +6
 
             // Record current position as the next face's offset
@@ -433,7 +444,8 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     /// <summary>
     /// Try to read a direct sprite reference for entities without polygon geometry.
     /// Sprite entities have flags: unbounded (0x20) + 2D object (0x40).
-    /// After the entity header, the sprite index follows a 2-byte skip.
+    /// After the entity header, the sprite index is in a small trailing block.
+    /// Trailing block layout (8 bytes) is TBD — preserved as named unknowns for now.
     /// </summary>
     private static void TryReadDirectSprite(BinaryReader reader, TableDatInfo dat)
     {
@@ -441,9 +453,10 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             && (dat.EntityFlags & EF_2D_OBJECT) != 0
             && reader.BaseStream.Position + 8 <= reader.BaseStream.Length)
         {
-            reader.BaseStream.Seek(2, SeekOrigin.Current);
-            dat.Sprite = reader.ReadUInt16();
-            reader.BaseStream.Seek(4, SeekOrigin.Current);
+            ushort spriteUnknown00 = reader.ReadUInt16();  // TBD
+            dat.Sprite = reader.ReadUInt16();              // sprite index at +2
+            uint spriteUnknown04 = reader.ReadUInt32();    // TBD
+            _ = spriteUnknown00; _ = spriteUnknown04;
         }
     }
 
@@ -476,11 +489,12 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         public ushort FaceGroupOffset { get; set; }
     }
 
-    /// <summary>Face group header — groups faces by rendering type.</summary>
+    /// <summary>Face group header (8-byte mesh-face record in IDA terms) — dispatches faces by rendering type.</summary>
     private class FaceGroupHeader
     {
-        public ushort Type { get; set; }            // 0=polygon, 2=sprite
-        public ushort FaceCount { get; set; }       // Number of faces (or sprite index if Type==2)
-        public ushort FaceArrayOffset { get; set; } // Offset to face records in DAT buffer
+        public ushort Type { get; set; }              // 0=polygon, 2=sprite (verified via renderShapeDispatcher 0x2a70c)
+        public ushort FaceCount { get; set; }         // Number of faces (or sprite index if Type==2)
+        public ushort FaceArrayOffset { get; set; }   // Offset to face records in DAT buffer
+        public ushort Unknown06 { get; set; }         // +6 u16 — purpose TBD
     }
 }
