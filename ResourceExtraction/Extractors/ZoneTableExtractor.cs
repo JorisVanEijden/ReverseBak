@@ -13,27 +13,76 @@ using System.Text;
 ///   MAP: name string table (one per entity type)
 ///   APP: application data (skipped)
 ///   GID: grid/collision data per entity type
-///   DAT: rendering data — geometry, sprites, bounding boxes
+///   DAT: rendering data — geometry and sprite references
 ///
-/// DAT section layout:
-///   Offset table: numItems × 4 bytes (u16 pair → combined offset within section)
-///   Entity data blocks at each offset:
-///     [14 bytes] Entity header (flags, type, terrain, vertexScale, lodCount, etc.)
-///     [12 bytes] Bounding box (if bounded: entityFlags &amp; 0x20 == 0)
-///     [6 × lodCount] LOD records (distanceThreshold, meshCount, meshBaseOffset)
-///     [14 × meshCount] Mesh records (vertices, faces, children)
-///     Vertex arrays, face group records, face records, vertex index lists
+/// DAT-section layout on disk (verified against IDA: LoadZoneTableDatTag 0x31503,
+/// RenderWorldItem 0x2a89f, renderShapeDispatcher 0x2a70c, sub_seg027_5D9 0x2a6d9,
+/// computeEntityViewExtent 0x238d7, sub_seg027_2BB 0x2a3bb —
+/// see docs/FileFormats/ZoneTable-DAT.md §1a/§1b/§1c):
 ///
-/// All sub-structure offsets are segment-relative within the game's data segment,
-/// converted to file positions via: filePos = dataStart + (segOffset - regionBase)
+///   1. Top-level pointer table — array of 4-byte (lower:u16, upper:u16) pairs.
+///      Each entity's flat byte offset within DAT = (upper &lt;&lt; 4) + (lower &amp; 0xF).
+///      Each entity's segment base for resolving internal near-pointers = (upper &lt;&lt; 4).
+///      Terminated by (0, 0). LoadZoneTableDatTag relocates these in-place.
 ///
-/// Verified against IDA disassembly: RenderWorldItem (0x2a89f), renderShapeDispatcher
-/// (0x2a70c), processEntityFaces (0x23a48), LoadZoneTableDatTag (0x31503).
+///   2. Top-level entity (14 bytes) — TableDatInfo:
+///        +0x00 u8  entityFlags       (bit 0x20 EF_UNBOUNDED → no bbox; bit 0x40 EF_2D_OBJECT → rotated cull)
+///        +0x01 u8  entityType
+///        +0x02 u8  terrainType
+///        +0x03 u8  vertexScale       (shift count for vertex coords + extent)
+///        +0x04 u16 unknown04         (interaction param? non-zero only on ~20 interactive entities)
+///        +0x06 u16 unknown06         (interaction param? same)
+///        +0x08 u16 lodCount
+///        +0x0A u16 lodArrayOffset    (segment-relative)
+///        +0x0C i16 extent            (signed; world-size = extent &lt;&lt; vertexScale)
+///
+///   2b. Bbox (12 bytes, ONLY when (entityFlags &amp; 0x20) == 0):
+///        +0x0E i16 minX
+///        +0x10 i16 minY
+///        +0x12 i16 minZ
+///        +0x14 i16 maxX
+///        +0x16 i16 maxY
+///        +0x18 i16 maxZ
+///       Read by computeEntityViewExtent (0x238ea-0x239ac) for view-extent culling.
+///
+///   3. LOD records (6 bytes each, lodCount of them, at LodArrayOffset):
+///        +0x00 u16 threshold
+///        +0x02 u16 meshCount
+///        +0x04 u16 meshBaseOffset    (segment-relative)
+///
+///   4. Mesh records (14 bytes each, meshCount of them, at MeshBaseOffset; stride 0xE):
+///        +0x00 u8  runtimeFlagsIndex (0xFF = no runtime lookup)
+///        +0x01 u8  entityType
+///        +0x02 u8  terrainType
+///        +0x03 u8  vertexCount
+///        +0x04 u16 pVertexArray     (segment-relative)
+///        +0x06 u16 meshFaceCount
+///        +0x08 u16 pMeshFaceData    (segment-relative)
+///        +0x0A u16 childCount
+///        +0x0C u16 pChildren        (segment-relative; recursive)
+///
+///   5. Mesh-face records (8 bytes, tagged union by +0; see §2 of docs).
+///   6. Polygon face records (8 bytes; see §3 of docs).
+///
+/// All segment-relative pointers within an entity's tree share the same segment base
+/// = (upper &lt;&lt; 4) from the top-level pointer-table entry. To resolve any internal
+/// pointer P to a flat DAT byte offset: <c>(upper &lt;&lt; 4) + P</c>.
 /// </summary>
 public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 {
+    // entityFlags bit definitions (verified 2026-04-25 against IDA disasm):
+    //   0x20 = EF_UNBOUNDED — when SET, the 12-byte bbox is omitted.
+    //   0x40 = EF_2D_OBJECT — toggles rotated-cull path in sub_seg027_2BB.
     private const byte EF_UNBOUNDED = 0x20;
-    private const byte EF_2D_OBJECT = 0x40;
+
+    // Defensive caps — guard against malformed records / wrong format guesses.
+    private const int MaxLodLevels = 16;
+    private const int MaxMeshesPerLod = 256;
+    private const int MaxChildrenPerMesh = 256;
+    private const int MaxRecursionDepth = 16;
+    private const int MaxMeshFaceRecords = 256;
+    private const int MaxPolygonFacesPerMesh = 256;
+    private const int MaxVertexIndicesPerFace = 256;
 
     public override ZoneTable Extract(string id, Stream resourceStream)
     {
@@ -52,7 +101,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             ? ParseGidSection(reader, sections["GID"], numItems)
             : new List<TableGidInfo>();
 
-        var datItems = ParseDatSection(reader, sections["DAT"], numItems);
+        var datItems = ParseDatSection(reader, sections["DAT"], numItems, (long)sections["DAT"].size);
 
         for (int i = 0; i < numItems; i++)
         {
@@ -88,13 +137,13 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         reader.BaseStream.Seek(section.offset, SeekOrigin.Begin);
         var names = new List<string>();
 
-        ushort mapUnknown0 = reader.ReadUInt16();    // header u16 — purpose TBD
+        ushort mapUnknown0 = reader.ReadUInt16();
         ushort numItems = reader.ReadUInt16();
         var offsets = new ushort[numItems];
         for (int i = 0; i < numItems; i++)
             offsets[i] = reader.ReadUInt16();
 
-        ushort mapUnknownTail = reader.ReadUInt16(); // trailing u16 before name strings — purpose TBD
+        ushort mapUnknownTail = reader.ReadUInt16();
         _ = mapUnknown0; _ = mapUnknownTail;
         long dataStart = reader.BaseStream.Position;
 
@@ -132,10 +181,10 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
             if (more)
             {
-                ushort gidUnknown06 = reader.ReadUInt16();   // purpose TBD
+                ushort gidUnknown06 = reader.ReadUInt16();
                 byte n = reader.ReadByte();
-                byte gidUnknown09 = reader.ReadByte();       // purpose TBD
-                ushort gidUnknown0A = reader.ReadUInt16();   // purpose TBD
+                byte gidUnknown09 = reader.ReadByte();
+                ushort gidUnknown0A = reader.ReadUInt16();
                 _ = gidUnknown06; _ = gidUnknown09; _ = gidUnknown0A;
                 for (int j = 0; j < n; j++)
                 {
@@ -154,347 +203,256 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         return items;
     }
 
-    /// <summary>
-    /// Parse DAT section — rendering data with geometry and sprite references.
-    ///
-    /// Per-entity layout (verified against IDA: RenderWorldItem 0x2a89f,
-    /// sub_seg027_5D9 0x2a6d9, LoadZoneTableDatTag 0x31503):
-    ///
-    ///   Entity header (14 bytes):
-    ///     +0x00 byte  entityFlags      (0x20=unbounded, 0x40=2D object)
-    ///     +0x01 byte  entityType
-    ///     +0x02 byte  terrainType
-    ///     +0x03 byte  vertexScale      (vertex coords left-shifted by this amount)
-    ///     +0x04 word  (reserved)
-    ///     +0x06 word  (reserved)
-    ///     +0x08 word  lodCount         (0 = sprite/empty, &gt;0 = number of LOD levels)
-    ///     +0x0A word  lodArrayOffset   (segment-relative offset to LOD array — game uses for far ptr)
-    ///     +0x0C word  extent           (draw distance, shifted by vertexScale)
-    ///
-    ///   If bounded (entityFlags &amp; 0x20 == 0):
-    ///     +0x0E  6×int16  bounding box (minX, minY, minZ, maxX, maxY, maxZ)
-    ///
-    ///   LOD records (6 bytes each × lodCount):
-    ///     +0x00 word  distanceThreshold  (game selects LOD where viewDist &lt;= threshold)
-    ///     +0x02 word  meshCount          (number of 14-byte mesh records at this LOD)
-    ///     +0x04 word  meshBaseOffset     (segment-relative offset to mesh records)
-    ///
-    ///   Mesh records (14 bytes each, contiguous from meshBaseOffset):
-    ///     +0x00 3 bytes (skip — runtime flags index, etc.)
-    ///     +0x03 byte  vertexCount
-    ///     +0x04 word  vertexOffset     (segment-relative)
-    ///     +0x06 word  faceGroupCount
-    ///     +0x08 word  faceGroupOffset  (segment-relative)
-    ///     +0x0A word  childCount
-    ///     +0x0C word  childOffset      (segment-relative)
-    ///
-    ///   All sub-structure offsets are segment-relative (absolute within the game's
-    ///   data segment). Converted to file positions via:
-    ///     filePos = dataStart + (segOffset - regionBase)
-    ///   where dataStart is the file position after all LOD records,
-    ///   and regionBase = meshBaseOffset of the first LOD record.
-    /// </summary>
-    private static List<TableDatInfo> ParseDatSection(BinaryReader reader, (long offset, uint size) section, int numItems)
+    private static List<TableDatInfo> ParseDatSection(BinaryReader reader, (long offset, uint size) section, int numItems, long datSize)
     {
         reader.BaseStream.Seek(section.offset, SeekOrigin.Begin);
         var items = new List<TableDatInfo>();
 
-        // Offset table: each entry is a pair of u16, combined into an absolute offset within the section
-        var offsets = new uint[numItems];
+        // Top-level pointer table: numItems × 4 bytes (lower:u16, upper:u16).
+        // Decoded flat byte offset within DAT = (upper << 4) + (lower & 0xF).
+        // Segment base for that entity's internal pointers = (upper << 4).
+        var entityOffsets = new uint[numItems];
+        var segmentBases = new uint[numItems];
         for (int i = 0; i < numItems; i++)
         {
             ushort lower = reader.ReadUInt16();
             ushort upper = reader.ReadUInt16();
-            offsets[i] = ((uint)upper << 4) + (uint)(lower & 0x000f);
+            entityOffsets[i] = ((uint)upper << 4) + (uint)(lower & 0x000f);
+            segmentBases[i] = (uint)upper << 4;
         }
 
         for (int i = 0; i < numItems; i++)
         {
-            var dat = ParseDatEntity(reader, section.offset + offsets[i], section.offset + section.size, i);
-            items.Add(dat);
+            items.Add(ParseEntity(reader, section.offset, entityOffsets[i], segmentBases[i], datSize));
         }
 
         return items;
     }
 
-    private static TableDatInfo ParseDatEntity(BinaryReader reader, long itemBase, long sectionEnd, int index)
+    /// <summary>
+    /// Parse a top-level 14-byte entity header and walk its LOD records.
+    /// </summary>
+    private static TableDatInfo ParseEntity(BinaryReader reader, long datBase, uint entityOffset, uint segmentBase, long datSize)
     {
-        reader.BaseStream.Seek(itemBase, SeekOrigin.Begin);
-        var dat = new TableDatInfo();
-
-        // --- Entity header (14 bytes) ---
-        dat.EntityFlags = reader.ReadByte();            // +0
-        dat.EntityType = reader.ReadByte();             // +1
-        dat.TerrainType = reader.ReadByte();            // +2
-        dat.VertexScale = reader.ReadByte();            // +3
-        dat.Unknown04 = reader.ReadUInt16();            // +4  (runtime-only? always 0 in samples)
-        dat.Unknown06 = reader.ReadUInt16();            // +6  (runtime-only? always 0 in samples)
-        ushort lodCount = reader.ReadUInt16();          // +8: number of LOD levels (0 = no geometry)
-        ushort lodArrayOffset = reader.ReadUInt16();    // +A: navigation handled structurally, value preserved for completeness
-        dat.Extent = reader.ReadInt16();                // +C: draw-distance/extent (shifted by VertexScale)
-        _ = lodArrayOffset;
-
-        if (lodCount == 0)
+        reader.BaseStream.Seek(datBase + entityOffset, SeekOrigin.Begin);
+        var dat = new TableDatInfo
         {
-            // No geometry — check for direct sprite reference
-            TryReadDirectSprite(reader, dat);
-            return dat;
-        }
+            EntityFlags = reader.ReadByte(),
+            EntityType = reader.ReadByte(),
+            TerrainType = reader.ReadByte(),
+            VertexScale = reader.ReadByte(),
+            Unknown04 = reader.ReadUInt16(),
+            Unknown06 = reader.ReadUInt16(),
+            LodCount = reader.ReadUInt16(),
+            LodArrayOffset = reader.ReadUInt16(),
+            Extent = reader.ReadInt16()
+        };
 
-        // --- Bounding box (12 bytes, bounded entities only) ---
-        bool bounded = (dat.EntityFlags & EF_UNBOUNDED) == 0;
-        if (bounded)
+        // Bbox follows the 14-byte header iff EF_UNBOUNDED is clear. Reader is positioned at +0x0E.
+        if ((dat.EntityFlags & EF_UNBOUNDED) == 0)
         {
             dat.Min = new Position3DShort
             {
-                X = reader.ReadInt16(), Y = reader.ReadInt16(), Z = reader.ReadInt16()
+                X = reader.ReadInt16(),
+                Y = reader.ReadInt16(),
+                Z = reader.ReadInt16()
             };
             dat.Max = new Position3DShort
             {
-                X = reader.ReadInt16(), Y = reader.ReadInt16(), Z = reader.ReadInt16()
+                X = reader.ReadInt16(),
+                Y = reader.ReadInt16(),
+                Z = reader.ReadInt16()
             };
         }
 
-        // --- LOD records (6 bytes each × lodCount) ---
-        // Each LOD: distanceThreshold(u16), meshCount(u16), meshBaseOffset(u16)
-        // Game selects LOD where viewDistance <= threshold; falls back to last LOD.
-        var lodRecords = new List<(ushort threshold, ushort meshCount, ushort meshBaseOffset)>();
-        for (int j = 0; j < lodCount; j++)
+        if (dat.LodCount > 0 && dat.LodCount <= MaxLodLevels && dat.LodArrayOffset != 0)
         {
-            ushort threshold = reader.ReadUInt16();
-            ushort meshCount = reader.ReadUInt16();
-            ushort meshBaseOffset = reader.ReadUInt16();
-            lodRecords.Add((threshold, meshCount, meshBaseOffset));
-        }
-
-        // dataStart = file position AFTER all LOD records (where mesh data region begins)
-        // regionBase = meshBaseOffset of first LOD (corresponds to dataStart in segment space)
-        long dataStart = itemBase + 14 + (bounded ? 12 : 0) + lodCount * 6;
-        ushort regionBase = lodRecords[0].meshBaseOffset;
-
-        // --- Read mesh records from all LOD levels ---
-        // Use all LODs to capture maximum geometry. Different LODs may reference
-        // different mesh groups at different offsets within the same data region.
-        var vertexSets = new List<(uint count, uint offset)>();
-        var meshRecords = new List<MeshRecord>();
-        uint vertexAccum = 0;
-
-        foreach (var (_, meshCount, meshBaseOffset) in lodRecords)
-        {
-            SeekToOffset(reader, dataStart, meshBaseOffset, regionBase);
-
-            for (int m = 0; m < meshCount; m++)
+            for (int li = 0; li < dat.LodCount; li++)
             {
-                byte meshRuntimeFlagsIndex = reader.ReadByte(); // +0 IDA entityDatRecord.runtimeFlagsIndex (0xFF = leaf)
-                byte meshEntityType = reader.ReadByte();        // +1 IDA entityDatRecord.entityType
-                byte meshTerrainType = reader.ReadByte();       // +2 IDA entityDatRecord.terrainType
-                byte vertexCount = reader.ReadByte();           // +3
-                ushort vertexOffset = reader.ReadUInt16();      // +4
-                ushort faceGroupCount = reader.ReadUInt16();    // +6
-                ushort faceGroupOffset = reader.ReadUInt16();   // +8
-                ushort meshChildCount = reader.ReadUInt16();    // +A IDA entityDatRecord.field_A (child count — recursion not implemented yet)
-                ushort meshChildOffset = reader.ReadUInt16();   // +C IDA entityDatRecord.field_C (pointer to children)
-                _ = meshRuntimeFlagsIndex; _ = meshEntityType; _ = meshTerrainType;
-                _ = meshChildCount; _ = meshChildOffset;
+                long lodPos = datBase + segmentBase + dat.LodArrayOffset + li * 6L;
+                if (lodPos + 6 > datBase + datSize) break;
 
-                // Track unique vertex sets: different meshes may share the same vertex buffer
-                var key = ((uint)vertexCount, (uint)vertexOffset);
-                if (vertexSets.Count == 0 || vertexSets[^1] != key)
+                reader.BaseStream.Seek(lodPos, SeekOrigin.Begin);
+                var lod = new LodLevel
                 {
-                    if (vertexSets.Count > 0)
-                        vertexAccum += vertexSets[^1].count;
-                    vertexSets.Add(key);
-                }
-
-                meshRecords.Add(new MeshRecord
-                {
-                    VertexIndexBase = vertexAccum,
-                    FaceGroupCount = faceGroupCount,
-                    FaceGroupOffset = faceGroupOffset
-                });
+                    Threshold = reader.ReadUInt16(),
+                    MeshCount = reader.ReadUInt16(),
+                    MeshBaseOffset = reader.ReadUInt16()
+                };
+                ReadMeshArray(reader, lod, datBase, segmentBase, datSize);
+                dat.Lods.Add(lod);
             }
         }
-
-        // --- Total vertex count ---
-        uint totalVertices = vertexAccum;
-        if (vertexSets.Count > 0)
-            totalVertices += vertexSets[^1].count;
-
-        // Standard entity types store an extra origin vertex at index 0 (not referenced by faces).
-        // We still read it, but the -1 gate prevents treating single-vertex entities as geometry.
-        int effectiveVertices = (int)totalVertices;
-        if (IsStandardEntityType(dat.EntityType) && effectiveVertices > 0)
-            effectiveVertices -= 1;
-
-        if (effectiveVertices <= 0)
-        {
-            // No renderable geometry — might be a sprite entity with LOD structure
-            TryReadDirectSprite(reader, dat);
-            return dat;
-        }
-
-        // --- Read vertex data from unique vertex sets ---
-        ReadVertices(reader, dat, vertexSets, dataStart, regionBase);
-
-        // --- Read face data from all mesh records ---
-        // Verified against IDA (RenderWorldItem 0x2a89f, renderShapeDispatcher 0x2a70c):
-        ReadFaces(reader, dat, meshRecords, meshRecords.Count, dataStart, regionBase);
 
         return dat;
     }
 
-    private static void ReadVertices(BinaryReader reader, TableDatInfo dat,
-        List<(uint count, uint offset)> vertexSets, long dataStart, ushort regionBase)
+    private static void ReadMeshArray(BinaryReader reader, LodLevel lod, long datBase, uint segmentBase, long datSize)
     {
-        var readOffsets = new HashSet<uint>();
-        foreach (var (count, offset) in vertexSets)
+        if (lod.MeshCount == 0 || lod.MeshBaseOffset == 0) return;
+        int count = lod.MeshCount > MaxMeshesPerLod ? MaxMeshesPerLod : lod.MeshCount;
+        for (int m = 0; m < count; m++)
         {
-            if (!readOffsets.Add(offset))
-                continue; // already read this vertex buffer
-
-            SeekToOffset(reader, dataStart, offset, regionBase);
-            for (int v = 0; v < count; v++)
-            {
-                dat.Vertices.Add(new Position3DShort
-                {
-                    X = reader.ReadInt16(),
-                    Y = reader.ReadInt16(),
-                    Z = reader.ReadInt16()
-                });
-            }
+            long meshPos = datBase + segmentBase + lod.MeshBaseOffset + m * 14L;
+            if (meshPos + 14 > datBase + datSize) break;
+            lod.Meshes.Add(ParseMeshRecord(reader, meshPos, datBase, segmentBase, datSize, depth: 0));
         }
     }
 
-    private static void ReadFaces(BinaryReader reader, TableDatInfo dat,
-        List<MeshRecord> meshRecords, int groupLimit, long dataStart, ushort regionBase)
+    /// <summary>
+    /// Parse a single 14-byte mesh record + its vertex array, mesh-face array, and child mesh records.
+    /// </summary>
+    private static MeshRecord ParseMeshRecord(BinaryReader reader, long meshPos, long datBase, uint segmentBase, long datSize, int depth)
     {
-        for (int j = 0; j < meshRecords.Count && j < groupLimit; j++)
+        reader.BaseStream.Seek(meshPos, SeekOrigin.Begin);
+        var mesh = new MeshRecord
         {
-            var mesh = meshRecords[j];
+            RuntimeFlagsIndex = reader.ReadByte(),
+            EntityType = reader.ReadByte(),
+            TerrainType = reader.ReadByte(),
+            VertexCount = reader.ReadByte(),
+            PVertexArray = reader.ReadUInt16(),
+            MeshFaceCount = reader.ReadUInt16(),
+            PMeshFaceData = reader.ReadUInt16(),
+            ChildCount = reader.ReadUInt16(),
+            PChildren = reader.ReadUInt16()
+        };
 
-            // Read face group headers (8 bytes each)
-            SeekToOffset(reader, dataStart, mesh.FaceGroupOffset, regionBase);
-            var faceGroups = new List<FaceGroupHeader>();
-            for (int fg = 0; fg < mesh.FaceGroupCount; fg++)
+        if (mesh.PVertexArray != 0 && mesh.VertexCount > 0)
+            ReadVertices(reader, mesh, datBase, segmentBase, datSize);
+
+        if (mesh.PMeshFaceData != 0 && mesh.MeshFaceCount > 0)
+            ReadMeshFaces(reader, mesh, datBase, segmentBase, datSize);
+
+        if (mesh.PChildren != 0 && mesh.ChildCount > 0
+            && mesh.ChildCount <= MaxChildrenPerMesh && depth < MaxRecursionDepth)
+        {
+            for (int c = 0; c < mesh.ChildCount; c++)
             {
-                var group = new FaceGroupHeader
+                long childPos = datBase + segmentBase + mesh.PChildren + c * 14L;
+                if (childPos + 14 > datBase + datSize) break;
+                mesh.Children.Add(ParseMeshRecord(reader, childPos, datBase, segmentBase, datSize, depth + 1));
+            }
+        }
+
+        return mesh;
+    }
+
+    private static void ReadVertices(BinaryReader reader, MeshRecord mesh, long datBase, uint segmentBase, long datSize)
+    {
+        long vertexPos = datBase + segmentBase + mesh.PVertexArray;
+        if (vertexPos + mesh.VertexCount * 6L > datBase + datSize) return;
+
+        reader.BaseStream.Seek(vertexPos, SeekOrigin.Begin);
+        for (int v = 0; v < mesh.VertexCount; v++)
+        {
+            mesh.Vertices.Add(new Position3DShort
+            {
+                X = reader.ReadInt16(),
+                Y = reader.ReadInt16(),
+                Z = reader.ReadInt16()
+            });
+        }
+    }
+
+    private static void ReadMeshFaces(BinaryReader reader, MeshRecord mesh, long datBase, uint segmentBase, long datSize)
+    {
+        int count = mesh.MeshFaceCount > MaxMeshFaceRecords ? MaxMeshFaceRecords : mesh.MeshFaceCount;
+        for (int m = 0; m < count; m++)
+        {
+            long recordPos = datBase + segmentBase + mesh.PMeshFaceData + m * 8L;
+            if (recordPos + 8 > datBase + datSize) break;
+
+            reader.BaseStream.Seek(recordPos, SeekOrigin.Begin);
+            byte renderType = reader.ReadByte();
+            byte padding01 = reader.ReadByte();
+
+            MeshFaceRecord record;
+            if (renderType == 0)
+            {
+                var poly = new PolygonMeshFace
                 {
-                    Type = reader.ReadUInt16(),
+                    RenderType = renderType,
+                    Padding01 = padding01,
                     FaceCount = reader.ReadUInt16(),
-                    FaceArrayOffset = reader.ReadUInt16(),
-                    Unknown06 = reader.ReadUInt16()   // mesh-face record +6 (u16) — purpose TBD
+                    PFaceArray = reader.ReadUInt16(),
+                    Reserved06 = reader.ReadUInt16()
                 };
-                faceGroups.Add(group);
-
-                // Face type 2 = sprite reference (FaceCount is the sprite index)
-                if (group.Type == 2)
-                    dat.Sprite = group.FaceCount;
+                if (poly.PFaceArray != 0 && poly.FaceCount > 0)
+                    ReadPolygonFaces(reader, poly, datBase, segmentBase, datSize);
+                record = poly;
             }
-
-            // Read individual faces from each polygon face group
-            foreach (var group in faceGroups)
+            else if (renderType == 1)
             {
-                if (group.Type == 2)
-                    continue; // sprite group, not polygon faces
-
-                ReadFaceGroup(reader, dat, group, mesh.VertexIndexBase, dataStart, regionBase);
+                record = new SpriteAMeshFace
+                {
+                    RenderType = renderType,
+                    Padding01 = padding01,
+                    HalfSize = reader.ReadUInt16(),
+                    VertexIndex = reader.ReadByte(),
+                    ColorEga = reader.ReadByte(),
+                    ColorVga = reader.ReadByte(),
+                    Reserved07 = reader.ReadByte()
+                };
             }
+            else
+            {
+                record = new SpriteBMeshFace
+                {
+                    RenderType = renderType,
+                    Padding01 = padding01,
+                    BitmapIndex = reader.ReadUInt16(),
+                    Reserved04 = reader.ReadByte(),
+                    Reserved05 = reader.ReadByte(),
+                    Reserved06 = reader.ReadByte(),
+                    VertexIndex = reader.ReadByte()
+                };
+            }
+
+            mesh.MeshFaces.Add(record);
         }
     }
 
-    private static void ReadFaceGroup(BinaryReader reader, TableDatInfo dat,
-        FaceGroupHeader group, uint vertexIndexBase, long dataStart, ushort regionBase)
+    private static void ReadPolygonFaces(BinaryReader reader, PolygonMeshFace poly, long datBase, uint segmentBase, long datSize)
     {
-        // Face records are 8 bytes each, but we navigate via offsets rather than sequential reads
-        // because face records contain a vertexListOffset that requires seeking.
-        uint currentOffset = group.FaceArrayOffset;
-
-        for (int f = 0; f < group.FaceCount; f++)
+        long datEnd = datBase + datSize;
+        int count = poly.FaceCount > MaxPolygonFacesPerMesh ? MaxPolygonFacesPerMesh : poly.FaceCount;
+        for (int f = 0; f < count; f++)
         {
-            SeekToOffset(reader, dataStart, currentOffset, regionBase);
+            long facePos = datBase + segmentBase + poly.PFaceArray + f * 8L;
+            if (facePos + 8 > datEnd) break;
 
-            var face = new TableFace
+            reader.BaseStream.Seek(facePos, SeekOrigin.Begin);
+            var face = new PolygonFace
             {
-                Flags = reader.ReadByte(),              // +0 bits: 0-1=type, 4=underground, 5=shading enable, 7=flat override
-                VgaColor = reader.ReadByte(),           // +1 VGA pen color (palette index)
-                VgaShade = reader.ReadByte(),           // +2 VGA shade-table input + background color
-                EgaColor = reader.ReadByte(),           // +3 EGA pen color
-                EgaShade = reader.ReadByte(),           // +4 EGA shade-table input
-                NormalVertexIndex = reader.ReadByte()   // +5 vertex index used for backface cull normal
+                Flags = reader.ReadByte(),
+                VgaColor = reader.ReadByte(),
+                VgaShade = reader.ReadByte(),
+                EgaColor = reader.ReadByte(),
+                EgaShade = reader.ReadByte(),
+                NormalVertexIndex = reader.ReadByte(),
+                PVertexIndexList = reader.ReadUInt16()
             };
-            ushort vertexListOffset = reader.ReadUInt16();  // +6
 
-            // Record current position as the next face's offset
-            currentOffset = (uint)(reader.BaseStream.Position - dataStart + regionBase);
-
-            // Read 0xFF-terminated vertex index list
-            SeekToOffset(reader, dataStart, vertexListOffset, regionBase);
-            var indices = new List<int>();
-            byte idx;
-            while ((idx = reader.ReadByte()) != 0xFF)
+            if (face.PVertexIndexList != 0)
             {
-                indices.Add(idx + (int)vertexIndexBase);
+                long listPos = datBase + segmentBase + face.PVertexIndexList;
+                if (listPos < datEnd)
+                {
+                    reader.BaseStream.Seek(listPos, SeekOrigin.Begin);
+                    int safety = 0;
+                    while (listPos < datEnd && safety < MaxVertexIndicesPerFace)
+                    {
+                        byte idx = reader.ReadByte();
+                        listPos++;
+                        safety++;
+                        if (idx == 0xFF) break;
+                        face.VertexIndices.Add(idx);
+                    }
+                }
             }
 
-            face.VertexIndices = indices;
-            dat.Faces.Add(face);
+            poly.Faces.Add(face);
         }
-    }
-
-    /// <summary>
-    /// Try to read a direct sprite reference for entities without polygon geometry.
-    /// Sprite entities have flags: unbounded (0x20) + 2D object (0x40).
-    /// After the entity header, the sprite index is in a small trailing block.
-    /// Trailing block layout (8 bytes) is TBD — preserved as named unknowns for now.
-    /// </summary>
-    private static void TryReadDirectSprite(BinaryReader reader, TableDatInfo dat)
-    {
-        if ((dat.EntityFlags & EF_UNBOUNDED) != 0
-            && (dat.EntityFlags & EF_2D_OBJECT) != 0
-            && reader.BaseStream.Position + 8 <= reader.BaseStream.Length)
-        {
-            ushort spriteUnknown00 = reader.ReadUInt16();  // TBD
-            dat.Sprite = reader.ReadUInt16();              // sprite index at +2
-            uint spriteUnknown04 = reader.ReadUInt32();    // TBD
-            _ = spriteUnknown00; _ = spriteUnknown04;
-        }
-    }
-
-    /// <summary>
-    /// Seek to a position within the entity's data region using a segment-relative offset.
-    /// filePos = dataStart + (segOffset - regionBase)
-    /// </summary>
-    private static void SeekToOffset(BinaryReader reader, long dataStart, uint segOffset, ushort regionBase)
-    {
-        reader.BaseStream.Seek(dataStart + segOffset - regionBase, SeekOrigin.Begin);
-    }
-
-    /// <summary>
-    /// Entity types where totalVertices includes an extra origin vertex at index 0
-    /// that is not referenced by face data. From BaKGL analysis (mScale adjustment).
-    /// </summary>
-    private static bool IsStandardEntityType(byte entityType)
-    {
-        return entityType is 0x0 or 0x1 or 0x2 or 0x3 or 0x4 or 0x5
-            or 0x6 or 0x7 or 0x8 or 0x9 or 0xa
-            or 0xe or 0xf or 0x12 or 0x14 or 0x17
-            or 0x24 or 0x26 or 0x27;
-    }
-
-    /// <summary>Mesh record within a mesh group — tracks vertex and face offsets.</summary>
-    private class MeshRecord
-    {
-        public uint VertexIndexBase { get; set; } // Cumulative offset for multi-mesh vertex index remapping
-        public ushort FaceGroupCount { get; set; }
-        public ushort FaceGroupOffset { get; set; }
-    }
-
-    /// <summary>Face group header (8-byte mesh-face record in IDA terms) — dispatches faces by rendering type.</summary>
-    private class FaceGroupHeader
-    {
-        public ushort Type { get; set; }              // 0=polygon, 2=sprite (verified via renderShapeDispatcher 0x2a70c)
-        public ushort FaceCount { get; set; }         // Number of faces (or sprite index if Type==2)
-        public ushort FaceArrayOffset { get; set; }   // Offset to face records in DAT buffer
-        public ushort Unknown06 { get; set; }         // +6 u16 — purpose TBD
     }
 }

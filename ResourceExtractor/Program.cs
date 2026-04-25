@@ -36,7 +36,9 @@ internal static class Program {
     public static void Main(string[] args) {
         // CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        Directory.SetCurrentDirectory(@"D:\BaK\generated");
+        string generatedDir = Environment.GetEnvironmentVariable("BAK_GENERATED_DIR") ?? @"D:\BaK\generated";
+        if (Directory.Exists(generatedDir))
+            Directory.SetCurrentDirectory(generatedDir);
 
         if (args.Length >= 1 && args[0] == "--cutscene-data") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
@@ -642,10 +644,11 @@ internal static class Program {
         var extractor = new ZoneTableExtractor();
         foreach (string tblFile in GetFiles(filePath, "Z??.TBL")) {
             string fileName = Path.GetFileName(tblFile);
+            Console.Error.WriteLine($"[TBL] begin {fileName}"); Console.Error.Flush();
             using var stream = File.OpenRead(tblFile);
             var table = extractor.Extract(fileName, stream);
             WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
-            Console.WriteLine($"Extracted TBL: {fileName} ({table.Entries.Count} entries)");
+            Console.Error.WriteLine($"[TBL] done  {fileName} ({table.Entries.Count} entries)"); Console.Error.Flush();
         }
     }
 
@@ -668,7 +671,7 @@ internal static class Program {
         var archiveResources = generalResourceProvider.GetDictionary();
 
         // DDX dialogs
-        string ddxDir = Path.Combine(outputDir, "dialogs");
+        string ddxDir = Path.Combine(outputDir, "DIALOGS");
         if (!Directory.Exists(ddxDir)) Directory.CreateDirectory(ddxDir);
         var ddxExtractor = new DdxExtractor();
         foreach (string ddxFile in GetFiles(gamePath, "*.ddx")) {
@@ -680,7 +683,7 @@ internal static class Program {
         }
 
         // ADS animator scripts — from both loose files and KRONDOR.001 archive
-        string adsDir = Path.Combine(outputDir, "ads");
+        string adsDir = Path.Combine(outputDir, "ADS");
         if (!Directory.Exists(adsDir)) Directory.CreateDirectory(adsDir);
         var adsExtractor = new AdsExtractor();
         var adsNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -701,7 +704,7 @@ internal static class Program {
         }
 
         // TTM animation resources — from both loose files and KRONDOR.001 archive
-        string ttmDir = Path.Combine(outputDir, "ttm");
+        string ttmDir = Path.Combine(outputDir, "TTM");
         if (!Directory.Exists(ttmDir)) Directory.CreateDirectory(ttmDir);
         var ttmExtractor = new TtmExtractor();
         var ttmNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
