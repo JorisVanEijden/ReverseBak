@@ -127,6 +127,14 @@ public class LodLevel
 
     /// <summary>Resolved mesh records (length = MeshCount).</summary>
     public List<MeshRecord> Meshes { get; set; } = new();
+
+    /// <summary>Unique vertex arrays referenced by this LOD's mesh records.
+    /// Multiple <see cref="MeshRecord"/>s frequently share the same pVertexArray near-pointer
+    /// (verified: Z01 inn has 35 mesh records but only 2 unique vertex pools — one shared by
+    /// 12 submeshes, one by 23). Each <see cref="MeshRecord.VertexPoolIndex"/> indexes into
+    /// this list, so submeshes are face-and-sort-metadata groupings of a shared vertex pool.
+    /// Across all 12 zones: 4009 mesh records → 1122 unique pools (~1.66 MB JSON saved).</summary>
+    public List<List<Position3DShort>> VertexPools { get; set; } = new();
 }
 
 /// <summary>
@@ -142,25 +150,26 @@ public class MeshRecord
     /// the active mesh-face record.</summary>
     public byte RuntimeFlagsIndex { get; set; }
 
-    /// <summary>+0x01. Index into this mesh's <see cref="Vertices"/> pool, used as the
-    /// direction reference (rotation2) for the per-mesh depth-sort dot product computed
-    /// by cullEntityForRender at 0x2a54f. Only consumed when the entity has
+    /// <summary>+0x01. Index into this mesh's vertex pool (see <see cref="VertexPoolIndex"/>),
+    /// used as the direction reference (rotation2) for the per-mesh depth-sort dot product
+    /// computed by cullEntityForRender at 0x2a54f. Only consumed when the entity has
     /// <c>EntityFlags &amp; 0x40</c> (EF_DEPTH_SORTED) set; non-flagged entities never
     /// read this byte and pin it to 0xFF in shipped data. 0xFF on a flagged entity =
     /// skip this mesh's sort contribution (rotationDotProduct forced to 0).
     /// Empirical: 100% of in-range values fit `&lt; VertexCount` across 12 zones.</summary>
     public byte SortNormalVertex { get; set; }
 
-    /// <summary>+0x02. Index into this mesh's <see cref="Vertices"/> pool, used as the
-    /// anchor reference (rotation1, combined with a camera-related global offset) for
-    /// the per-mesh depth-sort dot product. Read by cullEntityForRender at 0x2a4fa.
+    /// <summary>+0x02. Index into this mesh's vertex pool (see <see cref="VertexPoolIndex"/>),
+    /// used as the anchor reference (rotation1, combined with a camera-related global offset)
+    /// for the per-mesh depth-sort dot product. Read by cullEntityForRender at 0x2a4fa.
     /// Only consumed when the entity has <c>EntityFlags &amp; 0x40</c> set; non-flagged
     /// entities pin this to 0xFF. 0xFF on a flagged entity = use the global default
     /// anchor (stru_seg024_37DD) without per-vertex offset.</summary>
     public byte SortAnchorVertex { get; set; }
 
-    /// <summary>+0x03. Number of vertices in <see cref="Vertices"/>. Used as <c>rep stosw</c>
-    /// count to clear the per-mesh vertex-visited array (one word per vertex) at 0x23a77 etc.</summary>
+    /// <summary>+0x03. Number of vertices in this mesh's vertex pool. Used as <c>rep stosw</c>
+    /// count to clear the per-mesh vertex-visited array (one word per vertex) at 0x23a77 etc.
+    /// Equal to <c>LodLevel.VertexPools[VertexPoolIndex].Count</c> when a pool is referenced.</summary>
     public byte VertexCount { get; set; }
 
     /// <summary>+0x06. Number of 8-byte mesh-face records at PMeshFaceData. Modulus for the
@@ -170,8 +179,11 @@ public class MeshRecord
     /// <summary>+0x0A. Number of 14-byte child mesh records at PChildren. 0 = leaf.</summary>
     public ushort ChildCount { get; set; }
 
-    /// <summary>Resolved vertex array (length = VertexCount).</summary>
-    public List<Position3DShort> Vertices { get; set; } = [];
+    /// <summary>Index into the parent <see cref="LodLevel.VertexPools"/> identifying which
+    /// vertex pool this mesh references. -1 = no pool (mesh's pVertexArray was 0 or
+    /// VertexCount was 0). Multiple meshes commonly share a pool; the original file's
+    /// pVertexArray near-pointer is the dedup key (see ZoneTable-DAT.md §1b).</summary>
+    public int VertexPoolIndex { get; set; } = -1;
 
     /// <summary>Resolved mesh-face record array (length = MeshFaceCount). Tagged union by RenderType.</summary>
     public List<MeshFaceRecord> MeshFaces { get; set; } = [];

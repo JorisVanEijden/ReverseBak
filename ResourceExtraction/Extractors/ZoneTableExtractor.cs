@@ -281,7 +281,11 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
                 lod.Threshold = reader.ReadUInt16();
                 lod.MeshCount = reader.ReadUInt16();
                 var meshBaseOffset = reader.ReadUInt16();
-                ReadMeshArray(reader, lod, datBase, segmentBase, datSize, meshBaseOffset);
+                // Pool dedup is per-LOD: meshes with the same pVertexArray near-pointer
+                // (very common — e.g. inn has 35 meshes referencing only 2 unique pools)
+                // share a single LodLevel.VertexPools entry instead of duplicating data.
+                var poolIndexByOffset = new Dictionary<ushort, int>();
+                ReadMeshArray(reader, lod, datBase, segmentBase, datSize, meshBaseOffset, poolIndexByOffset);
                 dat.Lods.Add(lod);
             }
         }
@@ -298,8 +302,10 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     /// <param name="segmentBase">The base offset of the current segment within the resource file.</param>
     /// <param name="datSize">The total size of the data block to be read.</param>
     /// <param name="meshBaseOffset"></param>
+    /// <param name="poolIndexByOffset">Per-LOD dedup map: pVertexArray near-pointer → index
+    /// into <see cref="LodLevel.VertexPools"/>.</param>
     private static void ReadMeshArray(BinaryReader reader, LodLevel lod, long datBase, uint segmentBase, long datSize,
-        ushort meshBaseOffset)
+        ushort meshBaseOffset, Dictionary<ushort, int> poolIndexByOffset)
     {
         if (lod.MeshCount == 0 || meshBaseOffset == 0)
             return;
@@ -307,7 +313,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         {
             long meshPos = datBase + segmentBase + meshBaseOffset + meshIndex * 14L;
             if (meshPos + 14 > datBase + datSize) break;
-            lod.Meshes.Add(ParseMeshRecord(reader, meshPos, datBase, segmentBase, datSize));
+            lod.Meshes.Add(ParseMeshRecord(reader, meshPos, datBase, segmentBase, datSize, lod, poolIndexByOffset));
         }
     }
 
@@ -315,7 +321,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     /// Parse a single 14-byte mesh record + its vertex array, mesh-face array, and child mesh records.
     /// </summary>
     private static MeshRecord ParseMeshRecord(BinaryReader reader, long meshPos, long datBase, uint segmentBase,
-        long datSize)
+        long datSize, LodLevel lod, Dictionary<ushort, int> poolIndexByOffset)
     {
         reader.BaseStream.Seek(meshPos, SeekOrigin.Begin);
         var mesh = new MeshRecord();
@@ -330,7 +336,8 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         var pChildren = reader.ReadUInt16();
 
         if (pVertexArray != 0 && mesh.VertexCount > 0)
-            ReadVertices(reader, mesh, datBase, segmentBase, datSize, pVertexArray);
+            mesh.VertexPoolIndex = ResolveVertexPool(reader, datBase, segmentBase, datSize, pVertexArray,
+                mesh.VertexCount, lod, poolIndexByOffset);
 
         if (pMeshFaceData != 0 && mesh.MeshFaceCount > 0)
             ReadMeshFaces(reader, mesh, datBase, segmentBase, datSize, pMeshFaceData);
@@ -341,29 +348,54 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             {
                 long childPos = datBase + segmentBase + pChildren + childIndex * 14L;
                 if (childPos + 14 > datBase + datSize) break;
-                mesh.Children.Add(ParseMeshRecord(reader, childPos, datBase, segmentBase, datSize));
+                mesh.Children.Add(ParseMeshRecord(reader, childPos, datBase, segmentBase, datSize, lod, poolIndexByOffset));
             }
         }
 
         return mesh;
     }
 
-    private static void ReadVertices(BinaryReader reader, MeshRecord mesh, long datBase, uint segmentBase, long datSize,
-        ushort pVertexArray)
+    /// <summary>
+    /// Return the index of the vertex pool at <paramref name="pVertexArray"/> in
+    /// <paramref name="lod"/>, creating it on first sight. Returns -1 if the pool would
+    /// extend past the DAT section's end.
+    /// </summary>
+    private static int ResolveVertexPool(BinaryReader reader, long datBase, uint segmentBase, long datSize,
+        ushort pVertexArray, byte vertexCount, LodLevel lod, Dictionary<ushort, int> poolIndexByOffset)
     {
+        if (poolIndexByOffset.TryGetValue(pVertexArray, out int existing))
+        {
+            // Empirically (all 12 shipped zones), meshes sharing a pVertexArray also share
+            // VertexCount. If that ever breaks, dedup would silently truncate or over-read
+            // a later mesh — surface it instead of guessing.
+            int existingCount = lod.VertexPools[existing].Count;
+            if (existingCount != vertexCount)
+                throw new InvalidDataException(
+                    $"Vertex pool dedup mismatch at pVertexArray=0x{pVertexArray:X4}: " +
+                    $"existing count {existingCount} != new mesh count {vertexCount}");
+            return existing;
+        }
+
         long vertexPos = datBase + segmentBase + pVertexArray;
-        if (vertexPos + mesh.VertexCount * 6L > datBase + datSize) return;
+        if (vertexPos + vertexCount * 6L > datBase + datSize)
+            return -1;
 
         reader.BaseStream.Seek(vertexPos, SeekOrigin.Begin);
-        for (int v = 0; v < mesh.VertexCount; v++)
+        var pool = new List<Position3DShort>(vertexCount);
+        for (int v = 0; v < vertexCount; v++)
         {
-            mesh.Vertices.Add(new Position3DShort
+            pool.Add(new Position3DShort
             {
                 X = reader.ReadInt16(),
                 Y = reader.ReadInt16(),
                 Z = reader.ReadInt16()
             });
         }
+
+        int newIndex = lod.VertexPools.Count;
+        lod.VertexPools.Add(pool);
+        poolIndexByOffset[pVertexArray] = newIndex;
+        return newIndex;
     }
 
     private static void ReadMeshFaces(BinaryReader reader, MeshRecord mesh, long datBase, uint segmentBase,
