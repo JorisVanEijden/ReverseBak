@@ -14,6 +14,7 @@ public class ZoneTable : IResource
     public ResourceType Type => ResourceType.TBL;
     public string Id { get; }
     public List<ZoneTableEntry> Entries { get; set; } = new();
+    public MapSection MapSection { get; set; }
 }
 
 /// <summary>
@@ -25,6 +26,14 @@ public class ZoneTableEntry
     public string Name { get; set; } = "";
     public TableDatInfo Dat { get; set; } = new();
     public TableGidInfo Gid { get; set; } = new();
+}
+
+
+public record MapSection
+{
+    public List<string> Names { get; set; }
+    public ushort Unknown0 { get; set; }
+    public ushort UnknownTail { get; set; }
 }
 
 /// <summary>
@@ -46,10 +55,14 @@ public class TableDatInfo
     ///        LOD records follow immediately). When CLEAR, the 12-byte bbox is present at
     ///        +0x0E..+0x18 and computeEntityViewExtent (0x238d7) uses it for view-extent
     ///        culling. Read at IDA 0x238e3 (`and al, 20h`).
-    ///   0x40 EF_2D_OBJECT — when SET, sub_seg027_2BB (0x2a3bb) takes the rotated-cull
-    ///        path: it interprets the entity's mesh records' +1/+2 bytes as vertex indices
-    ///        used to construct orientation-rotation vectors for the cull dot product.
-    ///        Read at IDA 0x2a425 (`test byte ptr es:[bx], 40h`).
+    ///   0x40 EF_DEPTH_SORTED — when SET, cullEntityForRender (0x2a3bb) takes the
+    ///        depth-sort path: per mesh it computes `dot(rotation1, rotation2)` where
+    ///        rotation2 = pVertexArray[<see cref="MeshRecord.SortNormalVertex"/>] and
+    ///        rotation1 = (pVertexArray[<see cref="MeshRecord.SortAnchorVertex"/>] &gt;&gt; shift) + global_anchor
+    ///        (or just global_anchor when SortAnchorVertex == 0xFF), then SORTS the mesh
+    ///        list by dot product descending (painter's algorithm). When CLEAR, the
+    ///        simpler cull-only path is taken and the +1/+2 bytes are unread (always
+    ///        0xFF in shipped data on non-flagged entities). Read at IDA 0x2a425.
     /// Other bits (0x01, 0x02, 0x04, 0x08, 0x10, 0x80) — no readers found; never set in
     /// shipped data (only observed values: 0x00, 0x40, 0x60).</summary>
     public byte EntityFlags { get; set; }
@@ -76,10 +89,6 @@ public class TableDatInfo
 
     /// <summary>+0x08. Number of LOD records at LodArrayOffset.</summary>
     public ushort LodCount { get; set; }
-
-    /// <summary>+0x0A. Segment-relative offset to the LOD record array. Resolve as
-    /// <c>fileOffset = datSectionBase + segmentBase + LodArrayOffset</c>.</summary>
-    public ushort LodArrayOffset { get; set; }
 
     /// <summary>+0x0C. Signed entity extent (RenderWorldItem 0x2a948: <c>movsx eax</c>),
     /// then shifted left by VertexScale → world-space extent for distance culling.</summary>
@@ -116,10 +125,6 @@ public class LodLevel
     /// <summary>+0x02. Number of 14-byte mesh records at MeshBaseOffset.</summary>
     public ushort MeshCount { get; set; }
 
-    /// <summary>+0x04. Segment-relative offset to the contiguous mesh-record array
-    /// (stride = 14). Resolve as <c>fileOffset = datSectionBase + segmentBase + MeshBaseOffset</c>.</summary>
-    public ushort MeshBaseOffset { get; set; }
-
     /// <summary>Resolved mesh records (length = MeshCount).</summary>
     public List<MeshRecord> Meshes { get; set; } = new();
 }
@@ -137,41 +142,42 @@ public class MeshRecord
     /// the active mesh-face record.</summary>
     public byte RuntimeFlagsIndex { get; set; }
 
-    /// <summary>+0x01. Entity-type tag (carried through from the mesh hierarchy).</summary>
-    public byte EntityType { get; set; }
+    /// <summary>+0x01. Index into this mesh's <see cref="Vertices"/> pool, used as the
+    /// direction reference (rotation2) for the per-mesh depth-sort dot product computed
+    /// by cullEntityForRender at 0x2a54f. Only consumed when the entity has
+    /// <c>EntityFlags &amp; 0x40</c> (EF_DEPTH_SORTED) set; non-flagged entities never
+    /// read this byte and pin it to 0xFF in shipped data. 0xFF on a flagged entity =
+    /// skip this mesh's sort contribution (rotationDotProduct forced to 0).
+    /// Empirical: 100% of in-range values fit `&lt; VertexCount` across 12 zones.</summary>
+    public byte SortNormalVertex { get; set; }
 
-    /// <summary>+0x02. Terrain-type tag.</summary>
-    public byte TerrainType { get; set; }
+    /// <summary>+0x02. Index into this mesh's <see cref="Vertices"/> pool, used as the
+    /// anchor reference (rotation1, combined with a camera-related global offset) for
+    /// the per-mesh depth-sort dot product. Read by cullEntityForRender at 0x2a4fa.
+    /// Only consumed when the entity has <c>EntityFlags &amp; 0x40</c> set; non-flagged
+    /// entities pin this to 0xFF. 0xFF on a flagged entity = use the global default
+    /// anchor (stru_seg024_37DD) without per-vertex offset.</summary>
+    public byte SortAnchorVertex { get; set; }
 
     /// <summary>+0x03. Number of vertices in <see cref="Vertices"/>. Used as <c>rep stosw</c>
     /// count to clear the per-mesh vertex-visited array (one word per vertex) at 0x23a77 etc.</summary>
     public byte VertexCount { get; set; }
 
-    /// <summary>+0x04. Segment-relative pointer to vertex array (6 bytes per vertex). 0 if none.</summary>
-    public ushort PVertexArray { get; set; }
-
     /// <summary>+0x06. Number of 8-byte mesh-face records at PMeshFaceData. Modulus for the
     /// runtime-flag → record index mapping.</summary>
     public ushort MeshFaceCount { get; set; }
 
-    /// <summary>+0x08. Segment-relative pointer to the mesh-face record array. 0 if none.</summary>
-    public ushort PMeshFaceData { get; set; }
-
     /// <summary>+0x0A. Number of 14-byte child mesh records at PChildren. 0 = leaf.</summary>
     public ushort ChildCount { get; set; }
 
-    /// <summary>+0x0C. Segment-relative pointer to a contiguous array of child mesh records
-    /// (stride = 14, like sub_seg027_5D9). 0 if leaf.</summary>
-    public ushort PChildren { get; set; }
-
     /// <summary>Resolved vertex array (length = VertexCount).</summary>
-    public List<Position3DShort> Vertices { get; set; } = new();
+    public List<Position3DShort> Vertices { get; set; } = [];
 
     /// <summary>Resolved mesh-face record array (length = MeshFaceCount). Tagged union by RenderType.</summary>
-    public List<MeshFaceRecord> MeshFaces { get; set; } = new();
+    public List<MeshFaceRecord> MeshFaces { get; set; } = [];
 
     /// <summary>Resolved child mesh records (length = ChildCount, recursive).</summary>
-    public List<MeshRecord> Children { get; set; } = new();
+    public List<MeshRecord> Children { get; set; } = [];
 }
 
 /// <summary>
@@ -190,7 +196,7 @@ public abstract class MeshFaceRecord
 
     /// <summary>+0x01. Not read by dispatcher or any handler prolog. Possibly padding;
     /// preserved verbatim so we never silently drop bytes.</summary>
-    public byte Padding01 { get; set; }
+    public byte Unknown01 { get; set; }
 }
 
 /// <summary>RenderType == 0. Handled by processEntityFaces (0x23a48).</summary>
@@ -199,11 +205,8 @@ public class PolygonMeshFace : MeshFaceRecord
     /// <summary>+0x02. Number of polygon face records at PFaceArray.</summary>
     public ushort FaceCount { get; set; }
 
-    /// <summary>+0x04. Segment-relative pointer to PolygonFace[] array.</summary>
-    public ushort PFaceArray { get; set; }
-
     /// <summary>+0x06. Not directly read on the polygon path. Possibly bounding-box seed (TO VERIFY).</summary>
-    public ushort Reserved06 { get; set; }
+    public ushort Unknown06 { get; set; }
 
     /// <summary>Resolved polygon face array (length = FaceCount).</summary>
     public List<PolygonFace> Faces { get; set; } = new();
@@ -225,7 +228,7 @@ public class SpriteAMeshFace : MeshFaceRecord
     public byte ColorVga { get; set; }
 
     /// <summary>+0x07. Not read by handler prolog.</summary>
-    public byte Reserved07 { get; set; }
+    public byte Unknown07 { get; set; }
 }
 
 /// <summary>RenderType &gt;= 2. Handled by renderSprite2 (0x23031). Bitmap-anchored billboard.</summary>
@@ -235,13 +238,13 @@ public class SpriteBMeshFace : MeshFaceRecord
     public ushort BitmapIndex { get; set; }
 
     /// <summary>+0x04. Not directly read by handler prolog.</summary>
-    public byte Reserved04 { get; set; }
+    public byte Unknown04 { get; set; }
 
     /// <summary>+0x05. Not directly read by handler prolog.</summary>
-    public byte Reserved05 { get; set; }
+    public byte Unknown05 { get; set; }
 
     /// <summary>+0x06. Not directly read by handler prolog.</summary>
-    public byte Reserved06 { get; set; }
+    public byte Unknown06 { get; set; }
 
     /// <summary>+0x07. Vertex used as billboard anchor.</summary>
     public byte VertexIndex { get; set; }
@@ -276,9 +279,6 @@ public class PolygonFace
     /// <summary>+0x05. Vertex index used for face-normal direction (backface cull).</summary>
     public byte NormalVertexIndex { get; set; }
 
-    /// <summary>+0x06. Segment-relative pointer to 0xFF-terminated vertex-index list (winding order).</summary>
-    public ushort PVertexIndexList { get; set; }
-
     /// <summary>Resolved vertex-index list (terminator stripped).</summary>
     public List<int> VertexIndices { get; set; } = new();
 }
@@ -293,6 +293,9 @@ public class TableGidInfo
     public ushort Flags { get; set; }
     public List<TableGidCoord> TextureCoords { get; set; } = new();
     public List<TableGidCoord> OtherCoords { get; set; } = new();
+    public ushort Unknown06 { get; set; }
+    public byte Unknown09 { get; set; }
+    public ushort Unknown0A { get; set; }
 }
 
 public class TableGidCoord
