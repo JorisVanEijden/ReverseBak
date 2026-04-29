@@ -29,11 +29,39 @@ public class ZoneTableEntry
 }
 
 
+/// <summary>
+/// MAP section of a Z##.TBL — author-time list of entity-type names (one per type).
+/// The runtime engine never reads this section: KRONDOR.EXE contains only "GID:" and
+/// "DAT:" tag literals, and the only callers of <c>LoadZoneTableTag</c> (0x31acb) are
+/// <c>LoadZoneTableGidTag</c> (0x29ac9) and <c>LoadZoneTableDatTag</c> (0x31503). The
+/// MAP layout therefore reflects the editor that produced the file, not the game.
+///
+/// On-disk layout (verified across all 16 shipped TBL files, 2026-04-28):
+/// <code>
+///   +0x00 char[4]                tag = "MAP:"
+///   +0x04 u32                    sectionSize
+///   +0x08 u16                    Capacity         (always == NumItems in shipped data)
+///   +0x0A u16                    NumItems
+///   +0x0C u16[NumItems]          offsets[]        (byte offsets into the string pool)
+///   +0x0C+2*NumItems  u16        StringPoolSize   (= offsets[NumItems] sentinel)
+///   +0x0E+2*NumItems  byte[StringPoolSize] strings (NUL-terminated, packed)
+/// </code>
+/// </summary>
 public record MapSection
 {
     public List<string> Names { get; set; }
-    public ushort Unknown0 { get; set; }
-    public ushort UnknownTail { get; set; }
+
+    /// <summary>+0x00 of section data. Always equal to <see cref="NumItems"/> in shipped
+    /// data — likely an editor-side capacity / max-count paired with a separate used-count.
+    /// Preserved verbatim so a write-path could round-trip the file unchanged.</summary>
+    public ushort Capacity { get; set; }
+
+    /// <summary>End-of-string-pool sentinel: byte length of the string-data region that
+    /// follows. Functionally equivalent to <c>offsets[NumItems]</c> — the runtime would
+    /// compute the last string's length the same way as any other (offsets[i+1]-offsets[i]).
+    /// Cross-file invariant: <c>sectionSize == 6 + 2*NumItems + StringPoolSize</c> in every
+    /// shipped TBL.</summary>
+    public ushort StringPoolSize { get; set; }
 }
 
 /// <summary>
@@ -296,24 +324,139 @@ public class PolygonFace
 }
 
 /// <summary>
-/// GID section entry — grid/collision info for a world item type.
+/// GID section entry — collision and elevation grid for a world item type.
+/// Consumed at runtime by <c>CheckMoveDestination</c> (0x72333) via the chain
+/// <c>sub_seg026_92 → sub_seg026_108 → sub_seg026_228 → sub_seg026_419 / sub_seg026_59D</c>.
+/// See <c>docs/FileFormats/ZoneTable-DAT.md §0b</c>.
+///
+/// On-disk header (8 bytes), followed by <see cref="Regions"/> immediately at gid+8:
+///   +0x00 i16 XRadius   — half-extent on local X (rotated bbox check)
+///   +0x02 i16 YRadius   — half-extent on local Y
+///   +0x04 u8  Flags     — bit 0x01 = "shortcut" hit-test (never set in shipped data)
+///                          bit 0x02 = sloped regions (region stride 10 vs 6)
+///   +0x05 u8  regionCount (= <c>Regions.Count</c>)
+///   +0x06 u16 pRegions   — segment-relative pointer; in shipped data always (segOfs+8)
 /// </summary>
 public class TableGidInfo
 {
-    public ushort XRadius { get; set; }
-    public ushort YRadius { get; set; }
-    public ushort Flags { get; set; }
-    public List<TableGidCoord> TextureCoords { get; set; } = new();
-    public List<TableGidCoord> OtherCoords { get; set; } = new();
-    public ushort Unknown06 { get; set; }
-    public byte Unknown09 { get; set; }
-    public ushort Unknown0A { get; set; }
+    /// <summary>+0x00. Half-extent on local X. Bbox-rejects the rotated query point. Read at IDA 0x29d7e.</summary>
+    public short XRadius { get; set; }
+
+    /// <summary>+0x02. Half-extent on local Y. Read at IDA 0x29d8a.</summary>
+    public short YRadius { get; set; }
+
+    /// <summary>+0x04. Flag bits: <c>0x01</c> = shortcut hit-test (skip per-region polygon walk
+    /// and reuse previous frame's matched region; tested at 0x29dc5; never set in shipped data).
+    /// <c>0x02</c> = sloped regions (stride 10, with slope-correction; tested at 0x29daa).
+    /// Bits 0x04..0x80 have no readers and are never set in shipped data.</summary>
+    public byte Flags { get; set; }
+
+    /// <summary>Resolved region records (length = on-disk regionCount at +0x05).
+    /// Each region is a convex polygon with one elevation; the first region whose polygon
+    /// contains the query point wins. See <see cref="GidRegion"/>.</summary>
+    public List<GidRegion> Regions { get; set; } = new();
 }
 
-public class TableGidCoord
+/// <summary>
+/// Single convex polygon at one elevation. On-disk size depends on
+/// <c>TableGidInfo.Flags &amp; 0x02</c>:
+///
+/// Flat region (6 bytes):
+///   +0x00 u16 pSubedges
+///   +0x02 u8  subedgeCount
+///   +0x03 u8  _pad        (always 0 in shipped data)
+///   +0x04 i16 BaseElevation
+///
+/// Sloped region (10 bytes):
+///   +0x00 u16 pSubedges
+///   +0x02 u8  subedgeCount
+///   +0x03 u8  SlopeShift
+///   +0x04 i16 BaseElevation
+///   +0x06 u16 pSlopePlane
+///   +0x08 u8  SlopeMagnitude (editor-computed slope-steepness summary)
+///   +0x09 u8  SlopeBearing  (binary compass angle of downhill direction, 0..255)
+/// </summary>
+public class GidRegion
 {
-    public int X { get; set; }
-    public int Y { get; set; }
+    /// <summary>+0x04 (i16). Z value at the slope's anchor when the query point lies inside
+    /// this region. Read at IDA 0x29eaa (flat) and 0x2a100 (sloped). The runtime then
+    /// shifts by <c>worldItem.shiftScale</c> and adds <c>worldItem.z</c>.</summary>
+    public short BaseElevation { get; set; }
+
+    /// <summary>+0x03 (u8). Slope-correction scale exponent. 0 = no slope contribution.
+    /// Only meaningful when the parent's <c>Flags &amp; 0x02</c>; on flat regions this byte is
+    /// padding (always 0). Read at IDA 0x2a0e5 (<c>movzx eax, byte ptr es:[bx+3]</c>).
+    /// Observed range 0..0x24.</summary>
+    public byte SlopeShift { get; set; }
+
+    /// <summary>+0x08 (u8, sloped only). Editor-computed slope-steepness summary.
+    /// Correlates with <c>slopeShift × |slope| × polygon_extent</c>; for ramps with
+    /// fixed slope=64 the value matches <c>round(slopeShift × 64 / 100)</c> exactly
+    /// (e.g. bridge ramps: shift=3→2, shift=11→7), but the polygon-dependent factor
+    /// keeps it from collapsing to a closed form across all entities.
+    /// **No runtime reader.** Preserved verbatim. <c>null</c> on flat regions.</summary>
+    public byte? SlopeMagnitude { get; set; }
+
+    /// <summary>+0x09 (u8, sloped only). Editor-computed compass bearing of this region's
+    /// downhill direction, encoded as a binary angle in `1/256` turns:
+    /// <c>bearing = round(atan2(a, -b) × 256 / 360°) mod 256</c>. Verified against all 16
+    /// shipped sloped regions: 0=south, 0x40=west, 0x80=north, 0xC0=east. Z06's
+    /// <c>bridge1</c> ships <c>0xA0</c> (NNW) instead of <c>0x80</c> (north) because its
+    /// slope plane is geometrically rotated, not because of zone-specific scripting.
+    /// **No runtime reader.** Preserved verbatim. <c>null</c> on flat regions.</summary>
+    public byte? SlopeBearing { get; set; }
+
+    /// <summary>Resolved subedge array (length = on-disk subedgeCount, ≤ 32). Each subedge
+    /// is a half-plane; the polygon containing this region is their intersection.
+    /// See <see cref="GidSubedge"/>.</summary>
+    public List<GidSubedge> Subedges { get; set; } = new();
+
+    /// <summary>Resolved slope plane (sloped regions only; <c>null</c> on flat).
+    /// See <see cref="GidSlopePlane"/>.</summary>
+    public GidSlopePlane? Slope { get; set; }
+}
+
+/// <summary>
+/// One half-plane of a region's convex polygon (6 bytes).
+/// Hit test (sub_seg026_419, 0x29ed9) treats the polygon as the intersection of
+/// every subedge's "inside" side, using sign comparisons of cross-products of
+/// <c>(Dx, Dy) × (P - Anchor)</c>.
+/// </summary>
+public class GidSubedge
+{
+    /// <summary>+0x00 (i8). Edge direction X. Typically ±100 or ±125 for unit-ish vectors.</summary>
+    public sbyte Dx { get; set; }
+
+    /// <summary>+0x01 (i8). Edge direction Y.</summary>
+    public sbyte Dy { get; set; }
+
+    /// <summary>+0x02 (i16). A point on the edge — usually a polygon vertex.</summary>
+    public short AnchorX { get; set; }
+
+    /// <summary>+0x04 (i16).</summary>
+    public short AnchorY { get; set; }
+}
+
+/// <summary>
+/// Slope plane referenced by a sloped region (6 bytes). Used by sub_seg026_59D (0x2a05d):
+/// <code>
+///   elevation(P) = BaseElevation +
+///                  ((A * (AnchorX - P.x) + B * (AnchorY - P.y)) * SlopeShift) >> 12
+/// </code>
+/// </summary>
+public class GidSlopePlane
+{
+    /// <summary>+0x00 (i8). X gradient coefficient.</summary>
+    public sbyte A { get; set; }
+
+    /// <summary>+0x01 (i8). Y gradient coefficient.</summary>
+    public sbyte B { get; set; }
+
+    /// <summary>+0x02 (i16). Reference X (slope's "zero point" on X).</summary>
+    public short AnchorX { get; set; }
+
+    /// <summary>+0x04 (i16).</summary>
+    public short AnchorY { get; set; }
 }
 
 /// <summary>

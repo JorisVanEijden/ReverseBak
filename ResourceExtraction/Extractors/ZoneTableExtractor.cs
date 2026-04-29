@@ -131,13 +131,16 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         return sections;
     }
 
+    // MAP section is editor-generated metadata never read by the runtime engine —
+    // KRONDOR.EXE has no "MAP:" tag literal and no LoadZoneTableMapTag function. See
+    // GameData/Resources/World/ZoneTable.cs MapSection for the full on-disk layout.
     private static MapSection ParseMapSection(BinaryReader reader, (long offset, uint size) section)
     {
         reader.BaseStream.Seek(section.offset, SeekOrigin.Begin);
         var mapSection = new MapSection
         {
             Names = [],
-            Unknown0 = reader.ReadUInt16()
+            Capacity = reader.ReadUInt16()
         };
 
         ushort numItems = reader.ReadUInt16();
@@ -145,7 +148,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         for (int i = 0; i < numItems; i++)
             offsets[i] = reader.ReadUInt16();
 
-        mapSection.UnknownTail = reader.ReadUInt16();
+        mapSection.StringPoolSize = reader.ReadUInt16();
         long dataStart = reader.BaseStream.Position;
 
         for (int i = 0; i < numItems; i++)
@@ -157,53 +160,136 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         return mapSection;
     }
 
+    /// <summary>
+    /// Parse the GID section. Layout (verified 2026-04-29 against IDA: LoadZoneTableGidTag
+    /// 0x29ac9, sub_seg026_92/108/228/419/59D — see docs/FileFormats/ZoneTable-DAT.md §0b):
+    ///
+    ///   1. Pointer table — same encoding as DAT: numItems × 4 bytes (lower:u16, upper:u16).
+    ///      Flat byte offset within GID = (upper &lt;&lt; 4) + (lower &amp; 0xF).
+    ///      Segment base for resolving the entity's near-pointers = (upper &lt;&lt; 4).
+    ///      Offset of the GID record within its segment = (lower &amp; 0xF).
+    ///
+    ///   2. Per typeId — gidEntityHeader (8 bytes): XRadius, YRadius, flags, regionCount, pRegions.
+    ///
+    ///   3. Region array (immediately at gid+8 in shipped data; reachable via pRegions in general):
+    ///      stride 6 when (flags &amp; 2) == 0, stride 10 when set.
+    ///
+    ///   4. Subedges and slope planes are reachable through each region's near-pointers.
+    /// </summary>
     private static List<TableGidInfo> ParseGidSection(BinaryReader reader, (long offset, uint size) section,
         int numItems)
     {
         reader.BaseStream.Seek(section.offset, SeekOrigin.Begin);
-        var items = new List<TableGidInfo>();
+        var items = new List<TableGidInfo>(numItems);
 
-        var offsets = new uint[numItems];
+        var entityFlatOffsets = new uint[numItems];
+        var entitySegmentBases = new uint[numItems];
         for (int i = 0; i < numItems; i++)
         {
             ushort lower = reader.ReadUInt16();
             ushort upper = reader.ReadUInt16();
-            offsets[i] = ((uint)upper << 4) + (uint)(lower & 0x000f);
+            entityFlatOffsets[i] = ((uint)upper << 4) + (uint)(lower & 0x000f);
+            entitySegmentBases[i] = (uint)upper << 4;
         }
 
         for (int i = 0; i < numItems; i++)
         {
-            reader.BaseStream.Seek(section.offset + offsets[i], SeekOrigin.Begin);
-            var gid = new TableGidInfo
-            {
-                XRadius = reader.ReadUInt16(),
-                YRadius = reader.ReadUInt16()
-            };
-
-            bool more = reader.ReadUInt16() > 0;
-            gid.Flags = reader.ReadUInt16();
-
-            if (more)
-            {
-                gid.Unknown06 = reader.ReadUInt16();
-                byte subItemCount = reader.ReadByte();
-                gid.Unknown09 = reader.ReadByte();
-                gid.Unknown0A = reader.ReadUInt16();
-                for (int j = 0; j < subItemCount; j++)
-                {
-                    int u = reader.ReadSByte();
-                    int v = reader.ReadSByte();
-                    int x = reader.ReadInt16();
-                    int y = reader.ReadInt16();
-                    gid.TextureCoords.Add(new TableGidCoord { X = u, Y = v });
-                    gid.OtherCoords.Add(new TableGidCoord { X = x, Y = y });
-                }
-            }
-
-            items.Add(gid);
+            items.Add(ParseGidEntity(reader, section.offset, entityFlatOffsets[i], entitySegmentBases[i],
+                section.size));
         }
 
         return items;
+    }
+
+    private static TableGidInfo ParseGidEntity(BinaryReader reader, long sectionBase, uint entityOffset,
+        uint segmentBase, uint sectionSize)
+    {
+        reader.BaseStream.Seek(sectionBase + entityOffset, SeekOrigin.Begin);
+        var gid = new TableGidInfo
+        {
+            XRadius = reader.ReadInt16(),
+            YRadius = reader.ReadInt16(),
+        };
+        gid.Flags = reader.ReadByte();
+        byte regionCount = reader.ReadByte();
+        ushort pRegions = reader.ReadUInt16();
+
+        if (regionCount == 0)
+            return gid;
+
+        bool sloped = (gid.Flags & 0x02) != 0;
+        int regionStride = sloped ? 10 : 6;
+
+        for (int r = 0; r < regionCount; r++)
+        {
+            long regionPos = sectionBase + segmentBase + pRegions + r * regionStride;
+            if (regionPos + regionStride > sectionBase + sectionSize)
+                break;
+
+            reader.BaseStream.Seek(regionPos, SeekOrigin.Begin);
+            ushort pSubedges = reader.ReadUInt16();
+            byte subedgeCount = reader.ReadByte();
+            byte slopeShiftOrPad = reader.ReadByte();
+            short baseElevation = reader.ReadInt16();
+
+            var region = new GidRegion
+            {
+                BaseElevation = baseElevation,
+                SlopeShift = sloped ? slopeShiftOrPad : (byte)0,
+            };
+
+            if (sloped)
+            {
+                ushort pSlopePlane = reader.ReadUInt16();
+                region.SlopeMagnitude = reader.ReadByte();   // +0x08
+                region.SlopeBearing = reader.ReadByte();     // +0x09
+                region.Slope = ReadSlopePlane(reader, sectionBase, segmentBase, sectionSize, pSlopePlane);
+            }
+
+            ReadSubedges(reader, region, sectionBase, segmentBase, sectionSize, pSubedges, subedgeCount);
+            gid.Regions.Add(region);
+        }
+
+        return gid;
+    }
+
+    private static void ReadSubedges(BinaryReader reader, GidRegion region, long sectionBase, uint segmentBase,
+        uint sectionSize, ushort pSubedges, byte subedgeCount)
+    {
+        if (pSubedges == 0 || subedgeCount == 0)
+            return;
+        for (int s = 0; s < subedgeCount; s++)
+        {
+            long pos = sectionBase + segmentBase + pSubedges + s * 6L;
+            if (pos + 6 > sectionBase + sectionSize)
+                break;
+            reader.BaseStream.Seek(pos, SeekOrigin.Begin);
+            region.Subedges.Add(new GidSubedge
+            {
+                Dx = reader.ReadSByte(),
+                Dy = reader.ReadSByte(),
+                AnchorX = reader.ReadInt16(),
+                AnchorY = reader.ReadInt16(),
+            });
+        }
+    }
+
+    private static GidSlopePlane? ReadSlopePlane(BinaryReader reader, long sectionBase, uint segmentBase,
+        uint sectionSize, ushort pSlopePlane)
+    {
+        if (pSlopePlane == 0)
+            return null;
+        long pos = sectionBase + segmentBase + pSlopePlane;
+        if (pos + 6 > sectionBase + sectionSize)
+            return null;
+        reader.BaseStream.Seek(pos, SeekOrigin.Begin);
+        return new GidSlopePlane
+        {
+            A = reader.ReadSByte(),
+            B = reader.ReadSByte(),
+            AnchorX = reader.ReadInt16(),
+            AnchorY = reader.ReadInt16(),
+        };
     }
 
     private static List<TableDatInfo> ParseDatSection(BinaryReader reader, (long offset, uint size) section,
