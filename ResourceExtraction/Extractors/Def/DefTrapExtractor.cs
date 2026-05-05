@@ -6,6 +6,14 @@ using System.IO;
 public class DefTrapExtractor : DefFamilyExtractorBase<DefTrapEntry> {
     protected override int PayloadSize => 409;
 
+    private static LandingPosition ReadLanding(BinaryReader reader) {
+        return new LandingPosition {
+            FineX     = reader.ReadInt32(),
+            FineY     = reader.ReadInt32(),
+            RotationZ = reader.ReadUInt16(),
+        };
+    }
+
     protected override DefTrapEntry ReadPayload(BinaryReader reader) {
         return new DefTrapEntry {
             Gap0             = reader.ReadUInt16(),
@@ -13,19 +21,11 @@ public class DefTrapExtractor : DefFamilyExtractorBase<DefTrapEntry> {
             DialogId1        = reader.ReadUInt32(),
             DialogId2        = reader.ReadUInt32(),
             GapE             = reader.ReadUInt32(),
-            Field12          = reader.ReadByte(),
-            Gap13            = reader.ReadBytes(9),
-            Field1C          = reader.ReadByte(),
-            Gap1D            = reader.ReadBytes(9),
-            Field26          = reader.ReadByte(),
-            Gap27            = reader.ReadBytes(9),
-            Field30          = reader.ReadByte(),
-            Gap31            = reader.ReadBytes(9),
-            Coordinates      = new Coordinates64k {
-                X = reader.ReadInt32(),
-                Y = reader.ReadInt32(),
-            },
-            Field42          = reader.ReadUInt16(),
+            LandingDir1      = ReadLanding(reader),
+            LandingDir2      = ReadLanding(reader),
+            LandingDir4      = ReadLanding(reader),
+            LandingDir8      = ReadLanding(reader),
+            LandingPrimary   = ReadLanding(reader),
             Struct339        = new DefTrapStruct339 {
                 Gap0     = reader.ReadByte(),
                 Field1   = reader.ReadUInt16(),

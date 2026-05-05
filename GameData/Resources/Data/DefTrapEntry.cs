@@ -1,38 +1,39 @@
 namespace GameData.Resources.Data;
 
 // One DEF_TRAP.DAT payload entry. Layout mirrors IDA's `def_trap`
-// struct (size 409). Consumer: ovr187:sub_ovr187_D74.
+// struct (size 409). The original IDA struct represents the four
+// directional landing positions as `field_<X> + gap<X+1>[9]` pairs;
+// the C# model collapses each into a `LandingPosition` (10 bytes:
+// FineX:i32 + FineY:i32 + RotationZ:u16) reflecting the actual usage.
 //
-// The handler is gameplay-critical — it gates encounter triggering
-// based on Stealth attribute, Dragon's Breath spell timer, and a
-// per-encounter cooldown read from temp.gam. See the family doc for
-// the high-level flow. Not all field semantics are confirmed; bar-D
-// runtime trace via Spice86 is deferred as follow-up work.
+// Two consumers in ovr187:
+//   sub_ovr187_C6F (pre-fire) — Scouting check; if detected, shows
+//     DialogId2 and updates Scouting attribute.
+//   sub_ovr187_D74 (main fire) — Stealth check; if not avoided,
+//     snaps player to one of the landing positions, shows DialogId1,
+//     starts the encounter via sub_stub168_2F.
+//
+// See docs/FileFormats/DEF_DAT family.md for the full pipeline writeup.
 public class DefTrapEntry {
-    public ushort Gap0 { get; set; }                    // 0
-    public uint EncounterNumber { get; set; }           // 2  — index passed to isEncounterIdWhitelisted and sub_stub168_2F
-    public uint DialogId1 { get; set; }                 // 6  — passed to dialog_Show (talkType=1) before encounter trigger
-    public uint DialogId2 { get; set; }                 // A  — IDA-named DWORD; usage in handler not visible in first 200 instructions
-    public uint GapE { get; set; }                      // E  — 4 bytes
-    public byte Field12 { get; set; }                   // 12
-    public byte[] Gap13 { get; set; } = new byte[9];    // 13
-    public byte Field1C { get; set; }                   // 1C
-    public byte[] Gap1D { get; set; } = new byte[9];    // 1D
-    public byte Field26 { get; set; }                   // 26
-    public byte[] Gap27 { get; set; } = new byte[9];    // 27
-    public byte Field30 { get; set; }                   // 30
-    public byte[] Gap31 { get; set; } = new byte[9];    // 31
-    public Coordinates64k Coordinates { get; set; } = new(); // 3A — adjusted player position when trap fires
-    public ushort Field42 { get; set; }                 // 42 — assigned to camera rotation Z when trap fires
-    public DefTrapStruct339 Struct339 { get; set; } = new(); // 44 — 339 bytes; field_1 is read as creatureType
-    public ushort Field197 { get; set; }                // 197 — bit 0 gates the "stealth check" path
+    public ushort Gap0 { get; set; }                        // 0   — IDA-marked gap; no readers (dead)
+    public uint EncounterNumber { get; set; }               // 2   — index into combat encounter table
+    public uint DialogId1 { get; set; }                     // 6   — main-fire dialog (sub_ovr187_D74 → dialog_Show)
+    public uint DialogId2 { get; set; }                     // A   — pre-fire dialog (sub_ovr187_C6F → dialog_Show)
+    public uint GapE { get; set; }                          // E   — IDA-marked gap; no readers (dead)
+    public LandingPosition LandingDir1 { get; set; } = new(); // 12 — default landing (dir 1/3/5/6/7)
+    public LandingPosition LandingDir2 { get; set; } = new(); // 1C — landing for dir 2
+    public LandingPosition LandingDir4 { get; set; } = new(); // 26 — landing for dir 4
+    public LandingPosition LandingDir8 { get; set; } = new(); // 30 — landing for dir 8
+    public LandingPosition LandingPrimary { get; set; } = new(); // 3A (= coordinates_64k + field_42) — landing for the non-directional fire path
+    public DefTrapStruct339 Struct339 { get; set; } = new(); // 44 — 339 bytes; only Field1 (creatureType) is read
+    public ushort Field197 { get; set; }                    // 197 — bit 0 gates the stealth/scouting detection path
 }
 
-// Mirrors IDA's `unknownStruct339`. Mostly opaque; field_1 is read
-// from the trap-handler as the creatureType global.
+// Mirrors IDA's `unknownStruct339`. Mostly opaque; only Field1 is read
+// (assigned to global `creatureType` when the trap fires).
 public class DefTrapStruct339 {
-    public byte Gap0 { get; set; }                      // 0
-    public ushort Field1 { get; set; }                  // 1 — assigned to global `creatureType` when trap fires
-    public byte[] Gap3 { get; set; } = new byte[335];   // 3
-    public byte Field152 { get; set; }                  // 152
+    public byte Gap0 { get; set; }                          // 0   — no readers (dead)
+    public ushort Field1 { get; set; }                      // 1   — creatureType global
+    public byte[] Gap3 { get; set; } = new byte[335];       // 3   — opaque; no individual-field readers
+    public byte Field152 { get; set; }                      // 152 — no readers (dead)
 }
