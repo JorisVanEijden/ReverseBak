@@ -755,6 +755,12 @@ internal static class Program {
         }
 
         Run("DEF_BKGR.DAT", new DefBkgrExtractor());
+        Run("DEF_ENAB.DAT", new DefEnabExtractor());
+        Run("DEF_DISA.DAT", new DefDisaExtractor());
+        Run("DEF_TOWN.DAT", new DefTownExtractor());
+        Run("DEF_BLOC.DAT", new DefBlocExtractor());
+        Run("DEF_ZONE.DAT", new DefZoneExtractor());
+        Run("DEF_DIAL.DAT", new DefDialExtractor());
     }
 
     private static void ExportObjectInfo(string[] args) {
