@@ -761,6 +761,8 @@ internal static class Program {
         Run("DEF_BLOC.DAT", new DefBlocExtractor());
         Run("DEF_ZONE.DAT", new DefZoneExtractor());
         Run("DEF_DIAL.DAT", new DefDialExtractor());
+        Run("DEF_TRAP.DAT", new DefTrapExtractor());
+        Run("DEF_COMB.DAT", new DefCombExtractor());
     }
 
     private static void ExportObjectInfo(string[] args) {
