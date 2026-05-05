@@ -18,6 +18,7 @@ using ResourceExtraction;
 using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Extractors.Animation;
+using ResourceExtraction.Extractors.Def;
 using ResourceExtraction.Providers;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
@@ -36,9 +37,9 @@ internal static class Program {
     public static void Main(string[] args) {
         // CodePagesEncodingProvider.Instance.GetEncoding(DosCodePage);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        string generatedDir = Environment.GetEnvironmentVariable("BAK_GENERATED_DIR") ?? @"D:\BaK\generated";
-        if (Directory.Exists(generatedDir))
-            Directory.SetCurrentDirectory(generatedDir);
+        string generatedDir = ResolveGeneratedDir();
+        Directory.CreateDirectory(generatedDir);
+        Directory.SetCurrentDirectory(generatedDir);
 
         if (args.Length >= 1 && args[0] == "--cutscene-data") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
@@ -61,8 +62,40 @@ internal static class Program {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractZoneData(gamePath);
             ExtractWorldTiles(gamePath);
+            ExtractTileEvents(gamePath);
             ExtractMonsterStats(gamePath);
             ExtractZoneTables(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--tile-events") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractTileEvents(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--scx") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractAllScx(gamePath, provider);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--tbl") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractZoneTables(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--sfx") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractAllSounds(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--def") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractDefDat(gamePath);
             return;
         }
 
@@ -187,30 +220,49 @@ internal static class Program {
         WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
     }
 
-    // private static void ExtractAllSounds(string filePath, ArchiveExtractor archiveExtractor) {
-    //     var soundExtractor = new SoundExtractor();
-    //     string sfxFile = Path.Join(filePath, "FRP.SX");
-    //     using var resourceStream = archiveExtractor.GetResourceStream(sfxFile);
-    //     var audioAssetList = soundExtractor.ExtractAll("frp.sx", resourceStream);
-    //     foreach (var audioResource in audioAssetList.AudioResources) {
-    //         var path = nameof(ResourceType.SND);
-    //         string resourceDirectory = Path.Combine(path, audioResource.Id + "_" + audioResource.Name);
-    //         foreach (KeyValuePair<byte, AudioDataResource> soundVariant in audioResource.Variants) {
-    //             var variantName = soundVariant.Key.ToString("X2");
-    //             if (!Directory.Exists(resourceDirectory)) {
-    //                 Directory.CreateDirectory(resourceDirectory);
-    //             }
-    //             if (soundVariant.Value.MidiData != null) {
-    //                 string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.mid");
-    //                 File.WriteAllBytes(destPath, soundVariant.Value.MidiData);
-    //             }
-    //             if (soundVariant.Value.WavData != null) {
-    //                 string destPath = Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.wav");
-    //                 File.WriteAllBytes(destPath, soundVariant.Value.WavData);
-    //             }
-    //         }
-    //     }
-    // }
+    // Dumps every sound from FRP.SX to generated/SND/{id}_{name}/{id}_{format}.{mid|wav}.
+    // soundFormat byte → driver: 00=SndBlast/AdLib, 07=GenMIDI, 0C=MT-32, 12=STD (see docs/FileFormats/FRP.SX.md).
+    private static void ExtractAllSounds(string gamePath) {
+        var provider = new AudioResourceProvider(gamePath);
+        IDictionary<string, (long, uint)> dictionary = provider.GetDictionary();
+        string root = nameof(ResourceType.SND);
+
+        foreach (KeyValuePair<string, (long, uint)> entry in dictionary) {
+            AudioResource audioResource;
+            try {
+                audioResource = provider.GetResource<AudioResource>(entry.Key);
+            } catch (Exception ex) {
+                Console.Error.WriteLine($"[SFX] {entry.Key}: skip ({ex.Message})");
+                continue;
+            }
+
+            string safeName = SanitizeFilename(audioResource.Name);
+            string resourceDirectory = Path.Combine(root, $"{audioResource.Id}_{safeName}");
+            Directory.CreateDirectory(resourceDirectory);
+
+            foreach (KeyValuePair<byte, AudioDataResource> soundVariant in audioResource.Variants) {
+                string variantName = soundVariant.Key.ToString("X2");
+                if (soundVariant.Value.MidiData != null) {
+                    File.WriteAllBytes(Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.mid"),
+                        soundVariant.Value.MidiData);
+                }
+                if (soundVariant.Value.WavData != null) {
+                    File.WriteAllBytes(Path.Combine(resourceDirectory, $"{audioResource.Id}_{variantName}.wav"),
+                        soundVariant.Value.WavData);
+                }
+            }
+            Console.WriteLine($"[SFX] {audioResource.Id} {audioResource.Name} ({audioResource.Variants.Count} variants)");
+        }
+    }
+
+    private static string SanitizeFilename(string name) {
+        if (string.IsNullOrEmpty(name)) return "_";
+        var sb = new StringBuilder(name.Length);
+        foreach (char c in name) {
+            sb.Append(Path.GetInvalidFileNameChars().Contains(c) || c == ' ' ? '_' : c);
+        }
+        return sb.ToString();
+    }
 
     private static void ExtractAllPalettes(string filePath, GeneralResourceProvider generalResourceProvider) {
         var paletteExtractor = new PaletteExtractor();
@@ -440,6 +492,25 @@ internal static class Program {
         return s;
     }
 
+    private static string ResolveGeneratedDir() {
+        string? env = Environment.GetEnvironmentVariable("BAK_GENERATED_DIR");
+        if (!string.IsNullOrEmpty(env)) return env;
+
+        string? dir = AppContext.BaseDirectory;
+        while (!string.IsNullOrEmpty(dir)) {
+            if (Directory.Exists(Path.Combine(dir, "OriginalGame")) &&
+                Directory.Exists(Path.Combine(dir, "DotNetProjects"))) {
+                return Path.Combine(dir, "generated");
+            }
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        throw new InvalidOperationException(
+            "Could not locate workspace root from " + AppContext.BaseDirectory +
+            " (no ancestor contains both OriginalGame/ and DotNetProjects/). " +
+            "Set BAK_GENERATED_DIR to override.");
+    }
+
     private static string[] GetFiles(string filePath, string searchPattern) {
         return Directory.GetFileSystemEntries(filePath, searchPattern, new EnumerationOptions {
             MatchCasing = MatchCasing.CaseInsensitive
@@ -630,6 +701,16 @@ internal static class Program {
         }
     }
 
+    private static void ExtractTileEvents(string filePath) {
+        var extractor = new TileEventExtractor();
+        foreach (string datFile in GetFiles(filePath, "T??????.DAT")) {
+            string fileName = Path.GetFileName(datFile);
+            using var stream = File.OpenRead(datFile);
+            var tile = extractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, tile.ToJson());
+        }
+    }
+
     private static void ExtractMonsterStats(string filePath) {
         var extractor = new MonsterStatsExtractor();
         foreach (string monstFile in GetFiles(filePath, "MONST*.DAT")) {
@@ -642,7 +723,7 @@ internal static class Program {
 
     private static void ExtractZoneTables(string filePath) {
         var extractor = new ZoneTableExtractor();
-        foreach (string tblFile in GetFiles(filePath, "Z??.TBL")) {
+        foreach (string tblFile in GetFiles(filePath, "*.TBL")) {
             string fileName = Path.GetFileName(tblFile);
             Console.Error.WriteLine($"[TBL] begin {fileName}"); Console.Error.Flush();
             using var stream = File.OpenRead(tblFile);
@@ -650,6 +731,30 @@ internal static class Program {
             WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
             Console.Error.WriteLine($"[TBL] done  {fileName} ({table.Entries.Count} entries)"); Console.Error.Flush();
         }
+    }
+
+    // Extracts the DEF_*.DAT family — see docs/FileFormats/DEF_DAT family.md.
+    // Three enum entries (def_comm/def_heal/def_soun) have no shipping data and
+    // are skipped. Per-format extractors are added one by one as they're written.
+    private static void ExtractDefDat(string gamePath) {
+        const string outputDir = "DEF";
+        if (!Directory.Exists(outputDir)) Directory.CreateDirectory(outputDir);
+
+        void Run<TEntry>(string fileName, DefFamilyExtractorBase<TEntry> extractor) {
+            string fullPath = Path.Combine(gamePath, fileName);
+            if (!File.Exists(fullPath)) {
+                Console.Error.WriteLine($"[DEF] missing: {fileName}");
+                return;
+            }
+            using var stream = File.OpenRead(fullPath);
+            DefFamilyFile<TEntry> file = extractor.Extract(fileName, stream);
+            string json = JsonSerializer.Serialize(file, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(Path.Combine(outputDir, Path.GetFileNameWithoutExtension(fileName) + ".json"), json);
+            int active = file.Records.Count(r => r.Status == 1);
+            Console.WriteLine($"[DEF] {fileName}: {file.Records.Count} records ({active} active)");
+        }
+
+        Run("DEF_BKGR.DAT", new DefBkgrExtractor());
     }
 
     private static void ExportObjectInfo(string[] args) {

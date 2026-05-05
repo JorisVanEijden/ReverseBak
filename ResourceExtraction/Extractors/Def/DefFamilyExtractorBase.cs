@@ -1,7 +1,6 @@
 namespace ResourceExtraction.Extractors.Def;
 
 using GameData.Resources.Data;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -14,9 +13,11 @@ using System.Text;
 //     u8 status    (1 = present; 0 = vacant — original loader returns false)
 //     payload      (PayloadSize bytes, per-format layout)
 //
-// In all surveyed shipping data, every record has status=1; the per-record
-// gate is dormant. We read the status byte, log if it's anything other than
-// 1, and always read the payload (the bytes are on disk regardless).
+// Status=0 records appear in shipping data for several formats (notably
+// DEF_COMB, DEF_BLOC, DEF_ZONE, DEF_TOWN, DEF_BKGR). Their payload bytes
+// on disk may be stale and should not be interpreted unless Status=1.
+// We read both status and payload for every record; consumers gate on
+// DefRecord.Status before treating Payload fields as meaningful.
 //
 // See docs/FileFormats/DEF_DAT family.md for the full format documentation.
 public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFile<TEntry>> {
@@ -34,15 +35,12 @@ public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFi
                 $"but body is {actualBodyLength} bytes");
         }
 
-        var entries = new List<TEntry>((int)count);
+        var records = new List<DefRecord<TEntry>>((int)count);
         for (uint i = 0; i < count; i++) {
             byte status = reader.ReadByte();
             TEntry payload = ReadPayload(reader);
-            if (status != 1) {
-                Console.Error.WriteLine($"[DEF] {id} record {i}: status = {status} (expected 1)");
-            }
-            entries.Add(payload);
+            records.Add(new DefRecord<TEntry> { Status = status, Payload = payload });
         }
-        return new DefFamilyFile<TEntry>(id, entries);
+        return new DefFamilyFile<TEntry>(id, records);
     }
 }
