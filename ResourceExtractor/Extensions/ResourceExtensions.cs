@@ -120,6 +120,10 @@ public static string ToJson(this SaveGame resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this TileEventTile resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this MonsterStats resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
