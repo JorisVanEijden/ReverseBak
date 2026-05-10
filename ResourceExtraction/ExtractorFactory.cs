@@ -1,3 +1,4 @@
+using GameData.Resources.Dialog;
 using GameData.Resources.World;
 
 namespace ResourceExtraction;
@@ -16,6 +17,7 @@ using GameData.Resources.Spells;
 using Extractors;
 using Extractors.Animation;
 using Extractors.Audio;
+using Extractors.Dialog;
 using System;
 using System.Collections.Generic;
 
@@ -65,6 +67,8 @@ public static class ExtractorFactory {
             typeof(ZoneRef), typeof(ZoneRefExtractor)
         }, {
             typeof(ZoneShape), typeof(ZoneShapeExtractor)
+        }, {
+            typeof(Dialog), typeof(DdxExtractor)
         }
     };
 

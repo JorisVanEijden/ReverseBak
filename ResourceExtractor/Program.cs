@@ -23,7 +23,7 @@ using ResourceExtraction.Providers;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
-using ResourceExtractor.Extractors.Dialog;
+using ResourceExtraction.Extractors.Dialog;
 using System.Drawing;
 using System.Text;
 using System.Text.Json;

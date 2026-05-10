@@ -1,0 +1,22 @@
+namespace ResourceExtraction.Extractors.Dialog.ActionBuilders;
+
+using GameData.Resources.Dialog.Actions;
+
+using System.IO;
+
+internal class GiveItemActionBuilder : IDialogActionBuilder {
+    public DialogActionBase Build(BinaryReader resourceReader) {
+        byte objectId = resourceReader.ReadByte();
+        byte actor = resourceReader.ReadByte();
+        ushort amount = resourceReader.ReadUInt16();
+        ushort cost = resourceReader.ReadUInt16();
+        _ = resourceReader.ReadUInt16(); // unused data
+
+        return new GiveItemAction {
+            ObjectId = objectId,
+            Actor = actor,
+            Amount = amount,
+            Cost = cost
+        };
+    }
+}
