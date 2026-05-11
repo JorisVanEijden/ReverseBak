@@ -50,6 +50,12 @@ internal static class DialogActionFactory {
             DialogActionType.Teleport, new TeleportActionBuilder()
         }, {
             DialogActionType.SubAction, new SubActionBuilder()
+        }, {
+            DialogActionType.DisposeActorFaces, new DisposeActorFacesActionBuilder()
+        }, {
+            DialogActionType.PushDialogEntry, new PushDialogEntryActionBuilder()
+        }, {
+            DialogActionType.SetReturnValue, new SetReturnValueActionBuilder()
         }
     };
 

@@ -16,10 +16,13 @@ public enum DialogActionType {
     PlayAudio = 12,
     AdvanceTime = 13,
     SetTemporaryFlag = 14,
+    DisposeActorFaces = 15,
+    PushDialogEntry = 16,
     ChangeParty = 17,
     Heal = 18,
     LearnSpell = 19,
     Teleport = 20,
+    SetReturnValue = 21,
     SetTimer = 22,
     UseItem = 23
 }

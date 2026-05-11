@@ -21,10 +21,13 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(PlayAudioAction), nameof(DialogActionType.PlayAudio))]
 [JsonDerivedType(typeof(AdvanceTimeAction), nameof(DialogActionType.AdvanceTime))]
 [JsonDerivedType(typeof(SetTemporaryFlagAction), nameof(DialogActionType.SetTemporaryFlag))]
+[JsonDerivedType(typeof(DisposeActorFacesAction), nameof(DialogActionType.DisposeActorFaces))]
+[JsonDerivedType(typeof(PushDialogEntryAction), nameof(DialogActionType.PushDialogEntry))]
 [JsonDerivedType(typeof(ChangePartyAction), nameof(DialogActionType.ChangeParty))]
 [JsonDerivedType(typeof(HealAction), nameof(DialogActionType.Heal))]
 [JsonDerivedType(typeof(LearnSpellAction), nameof(DialogActionType.LearnSpell))]
 [JsonDerivedType(typeof(TeleportAction), nameof(DialogActionType.Teleport))]
+[JsonDerivedType(typeof(SetReturnValueAction), nameof(DialogActionType.SetReturnValue))]
 [JsonDerivedType(typeof(SetTimerAction), nameof(DialogActionType.SetTimer))]
 [JsonDerivedType(typeof(UseItemAction), nameof(DialogActionType.UseItem))]
 #endif
