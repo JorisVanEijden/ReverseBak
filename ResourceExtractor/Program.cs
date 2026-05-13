@@ -99,6 +99,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--chapsong") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractChapterSongMap(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -731,6 +737,21 @@ internal static class Program {
             WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
             Console.Error.WriteLine($"[TBL] done  {fileName} ({table.Entries.Count} entries)"); Console.Error.Flush();
         }
+    }
+
+    // Extracts CHAPSONG.DAT — see docs/FileFormats/CHAPSONG.DAT.md. 36 bytes:
+    // 9 chapters × 2 × i16 song-id, loaded by open_book? at seg020:0x20d21.
+    private static void ExtractChapterSongMap(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "CHAPSONG.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[CHAPSONG] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        ChapterSongMap map = new ChapterSongMapExtractor().Extract("CHAPSONG.DAT", stream);
+        string json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("CHAPSONG.json", json);
+        Console.WriteLine($"[CHAPSONG] {map.Entries.Count} chapter entries written to CHAPSONG.json");
     }
 
     // Extracts the DEF_*.DAT family — see docs/FileFormats/DEF_DAT family.md.
