@@ -11,6 +11,7 @@ public record struct DialogStyle(
     byte FillPenColor,
     byte BorderPenColor,
     byte ShadowPenColor,
+    byte BodyTextPenColor,
     DialogArea DefaultArea
 ) {
     /// <summary>

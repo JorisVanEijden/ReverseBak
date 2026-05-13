@@ -18,27 +18,33 @@ public static class DialogStyleTable {
         null,
 
         // Row 1: source DialogType.ColoredWithoutBox, OR forced when actorNr != 0.
-        // Textured fill, pen-16 border, pen-5 shadow.
+        // field_3 = 5 → body text uses palette pen 4 (cream/gold in the
+        // typical BaK cutscene palette).
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
+            BodyTextPenColor: 0x04,
             DefaultArea: new DialogArea(8, 120, 305, 75)),
 
         // Row 2: the *default fallback*. Dispatcher returns 2 when no
         // override fires AND source byte is 0 — i.e. this is the actual
         // chrome for DialogType.Normal in the source data.
+        // field_3 = 4 → body text uses palette pen 3.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
+            BodyTextPenColor: 0x03,
             DefaultArea: new DialogArea(13, 11, 294, 101)),
 
         // Row 3: source DialogType.PlainWithoutBox.
+        // field_3 = 5 → body text uses palette pen 4.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
+            BodyTextPenColor: 0x04,
             DefaultArea: new DialogArea(8, 118, 305, 73)),
 
         // Row 4: unreachable. Identical to row 1; no source byte produces 4
@@ -47,14 +53,17 @@ public static class DialogStyleTable {
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
+            BodyTextPenColor: 0x04,
             DefaultArea: new DialogArea(8, 120, 305, 75)),
 
         // Row 5: source DialogType.NormalInGame, OR forced by the in-game
         // context flag (dialog_word_3AC96 != 0).
+        // field_3 = 4 → body text uses palette pen 3.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
+            BodyTextPenColor: 0x03,
             DefaultArea: new DialogArea(13, 11, 294, 121)),
 
         // Row 6: source DialogType.PlainFullScreen, OR forced by either
@@ -66,6 +75,7 @@ public static class DialogStyleTable {
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
+            BodyTextPenColor: 0x04,
             DefaultArea: new DialogArea(25, 21, 270, 160)),
     };
 
