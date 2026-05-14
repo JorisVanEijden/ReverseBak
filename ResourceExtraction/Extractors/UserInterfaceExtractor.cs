@@ -12,7 +12,7 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         var userInterface = new UserInterface(id);
         userInterface.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
         userInterface.IsModal = resourceReader.ReadUInt16() > 0;
-        userInterface.ColorSet = resourceReader.ReadUInt16();
+        userInterface.ColorBase = resourceReader.ReadUInt16();
         userInterface.XPosition = resourceReader.ReadUInt16();
         userInterface.YPosition = resourceReader.ReadUInt16();
         userInterface.Width = resourceReader.ReadUInt16();
@@ -30,20 +30,20 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
                 ElementType = (ElementType)resourceReader.ReadUInt16(),
                 ActionId = resourceReader.ReadInt16(),
                 Visible = resourceReader.ReadBoolean(),
-                ColorSet = resourceReader.ReadUInt16(),
-                Unknown7 = resourceReader.ReadUInt16() > 0,
-                Unknown9 = resourceReader.ReadUInt16() > 0,
+                ColorBase = resourceReader.ReadUInt16(),
+                Disabled = resourceReader.ReadUInt16(),
+                State = resourceReader.ReadUInt16(),
                 XPosition = resourceReader.ReadUInt16(),
                 YPosition = resourceReader.ReadUInt16(),
                 Width = resourceReader.ReadUInt16(),
                 Height = resourceReader.ReadUInt16(),
-                Unknown13 = resourceReader.ReadInt16(),
+                Field13Offset = resourceReader.ReadInt16(),
                 LabelOffset = resourceReader.ReadInt16(),
-                Teleport = resourceReader.ReadInt16(),
-                Icon = resourceReader.ReadInt16(),
+                LabelAltOffset = resourceReader.ReadInt16(),
+                IconBase = resourceReader.ReadInt16(),
                 Cursor = resourceReader.ReadUInt16(),
-                Unknown1D = resourceReader.ReadUInt16(),
-                Sound = resourceReader.ReadUInt16()
+                SoundFlags = resourceReader.ReadUInt16(),
+                ClickSound = resourceReader.ReadUInt16()
             };
         }
         ushort labelBufferSize = resourceReader.ReadUInt16();
@@ -51,6 +51,12 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         foreach (UiElement entry in uiElements) {
             if (entry.LabelOffset >= 0) {
                 entry.Label = GetZeroTerminatedString(stringBuffer, entry.LabelOffset);
+            }
+            if (entry.LabelAltOffset >= 0) {
+                entry.LabelAlt = GetZeroTerminatedString(stringBuffer, entry.LabelAltOffset);
+            }
+            if (entry.Field13Offset >= 0) {
+                entry.Field13 = GetZeroTerminatedString(stringBuffer, entry.Field13Offset);
             }
         }
         userInterface.Title = titleOffset >= 0 ? GetZeroTerminatedString(stringBuffer, titleOffset) : null;

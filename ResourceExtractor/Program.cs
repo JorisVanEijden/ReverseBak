@@ -25,6 +25,7 @@ using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtraction.Extractors.Dialog;
 using System.Drawing;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Color = GameData.Resources.Palette.Color;
@@ -102,6 +103,12 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--chapsong") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractChapterSongMap(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--req") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractUserInterfaces(gamePath);
             return;
         }
 
@@ -438,16 +445,30 @@ internal static class Program {
     private static void ExtractUserInterfaces(string filePath) {
         var userInterfaceExtractor = new UserInterfaceExtractor();
         var reqFiles = new List<string>();
-        reqFiles.AddRange(GetFiles(filePath, "REQ_*.DAT"));
-        reqFiles.Add("contents.dat");
-        reqFiles.Add("combat.dat");
-        reqFiles.Add("shoot.dat");
-        reqFiles.Add("spell.dat");
-        reqFiles.Add("spellreq.dat");
-        foreach (string reqFile in reqFiles) {
-            using FileStream resourceFile = File.OpenRead(Path.Combine(filePath, reqFile));
-            UserInterface userInterface = userInterfaceExtractor.Extract(Path.GetFileName(reqFile), resourceFile);
-            WriteToJsonFile(reqFile, ResourceType.REQ, userInterface.ToJson());
+        reqFiles.AddRange(GetFiles(filePath, "REQ_*.DAT").Select(Path.GetFileName)!);
+        reqFiles.Add("AROREQ.DAT");
+        reqFiles.Add("COMBAT.DAT");
+        reqFiles.Add("CONTENTS.DAT");
+        reqFiles.Add("EDITREQ.DAT");
+        reqFiles.Add("INFOREQ.DAT");
+        reqFiles.Add("POWEREQ.DAT");
+        reqFiles.Add("SHOOT.DAT");
+        reqFiles.Add("SPELL.DAT");
+        reqFiles.Add("SPELLREQ.DAT");
+
+        const string reqDir = "REQ";
+        Directory.CreateDirectory(reqDir);
+        foreach (string reqFile in reqFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
+            string fullPath = Path.Combine(filePath, reqFile);
+            if (!File.Exists(fullPath)) {
+                Console.WriteLine($"[REQ] skip {reqFile}: not found");
+                continue;
+            }
+            using FileStream resourceFile = File.OpenRead(fullPath);
+            UserInterface userInterface = userInterfaceExtractor.Extract(reqFile, resourceFile);
+            string outPath = Path.Combine(reqDir, Path.GetFileNameWithoutExtension(reqFile) + ".json");
+            File.WriteAllText(outPath, userInterface.ToJson());
+            Console.WriteLine($"[REQ] {reqFile} -> {outPath} ({userInterface.MenuEntries.Length} entries)");
         }
     }
 
