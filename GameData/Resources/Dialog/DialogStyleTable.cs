@@ -20,63 +20,69 @@ public static class DialogStyleTable {
         // Row 1: source DialogType.ColoredWithoutBox, OR forced when actorNr != 0.
         // field_3 = 5 → body text uses palette pen 4 (cream/gold in the
         // typical BaK cutscene palette).
+        // VGA (8, 120, 305, 75) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x04,
-            DefaultArea: new DialogArea(8, 120, 305, 75)),
+            DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f)),
 
         // Row 2: the *default fallback*. Dispatcher returns 2 when no
         // override fires AND source byte is 0 — i.e. this is the actual
         // chrome for DialogType.Normal in the source data.
         // field_3 = 4 → body text uses palette pen 3.
+        // VGA (13, 11, 294, 101) → percent below.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
             BodyTextPenColor: 0x03,
-            DefaultArea: new DialogArea(13, 11, 294, 101)),
+            DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 50.5f)),
 
         // Row 3: source DialogType.PlainWithoutBox.
         // field_3 = 5 → body text uses palette pen 4.
+        // VGA (8, 118, 305, 73) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x04,
-            DefaultArea: new DialogArea(8, 118, 305, 73)),
+            DefaultArea: new DialogArea(5f, 59f, 95.3125f, 36.5f)),
 
         // Row 4: unreachable. Identical to row 1; no source byte produces 4
         // and the dispatcher never assigns dx=4.
+        // VGA (8, 120, 305, 75) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x04,
-            DefaultArea: new DialogArea(8, 120, 305, 75)),
+            DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f)),
 
         // Row 5: source DialogType.NormalInGame, OR forced by the in-game
         // context flag (dialog_word_3AC96 != 0).
         // field_3 = 4 → body text uses palette pen 3.
+        // VGA (13, 11, 294, 121) → percent below.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
             BodyTextPenColor: 0x03,
-            DefaultArea: new DialogArea(13, 11, 294, 121)),
+            DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 60.5f)),
 
         // Row 6: source DialogType.PlainFullScreen, OR forced by either
         // full-screen flag (bool_word_dseg_C08, byte_dseg_FBC). The renderer
         // also draws corner-vine sprites for this row (via the
         // `dec ax; cmp ax, 5` branch at 0x4886c, which fires when
         // dialogType == 6).
+        // VGA (25, 21, 270, 160) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x04,
-            DefaultArea: new DialogArea(25, 21, 270, 160)),
+            DefaultArea: new DialogArea(7.8125f, 10.5f, 84.375f, 80f)),
     };
 
     /// <summary>

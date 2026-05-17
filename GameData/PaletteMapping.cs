@@ -31,6 +31,7 @@ public static class PaletteMapping {
             "DIALOG" => "OPTIONS.PAL",
             "ENCAMP" => "OPTIONS.PAL",
             "FCOMBAT" => "OPTIONS.PAL",
+            "FMAP_ICN" => "FULLMAP.PAL",
             "FRAME" => "OPTIONS.PAL",
             "FULLMAP" => "FULLMAP.PAL",
             "INT_BORD" => "INT_DYN.PAL",

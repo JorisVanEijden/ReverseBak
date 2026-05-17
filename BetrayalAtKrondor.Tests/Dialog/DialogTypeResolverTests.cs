@@ -151,11 +151,12 @@ public class DialogTypeResolverTests {
     [Fact]
     public void ResolveStyle_PicksTheCorrectRow() {
         // Source = Normal (0), no overrides → effective 2 → row 2's area.
+        // VGA (13, 11, 294, 101) → (4.0625, 5.5, 91.875, 50.5) percent.
         var entry = new DialogEntry { DialogType = DialogType.Normal, ActorNumber = 0 };
 
         DialogStyle style = DialogTypeResolver.ResolveStyle(DialogContext.None, entry);
 
-        Assert.Equal(new DialogArea(13, 11, 294, 101), style.DefaultArea);
+        Assert.Equal(new DialogArea(4.0625f, 5.5f, 91.875f, 50.5f), style.DefaultArea);
     }
 
     // ────────────────── Style table integrity ──────────────────
@@ -180,8 +181,8 @@ public class DialogTypeResolverTests {
         DialogStyle style = DialogStyleTable.Get(rowId);
 
         // Smoke check — defined rows must have a non-empty area.
-        Assert.True(style.DefaultArea.Width > 0);
-        Assert.True(style.DefaultArea.Height > 0);
+        Assert.True(style.DefaultArea.WidthPct > 0f);
+        Assert.True(style.DefaultArea.HeightPct > 0f);
     }
 
     [Theory]
@@ -195,10 +196,11 @@ public class DialogTypeResolverTests {
 
     [Fact]
     public void StyleTable_Row6_HasFullScreenArea() {
-        // From bytes at 0x3a8b5: actionData = (25, 21, 270, 160).
+        // From bytes at 0x3a8b5: actionData VGA (25, 21, 270, 160)
+        // → percent (7.8125, 10.5, 84.375, 80).
         DialogStyle style = DialogStyleTable.Get(6);
 
-        Assert.Equal(new DialogArea(25, 21, 270, 160), style.DefaultArea);
+        Assert.Equal(new DialogArea(7.8125f, 10.5f, 84.375f, 80f), style.DefaultArea);
     }
 
     [Fact]

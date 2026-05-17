@@ -1,18 +1,12 @@
 namespace BetrayalAtKrondor.Mcp;
 
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using ModelContextProtocol.Server;
-using SkiaSharp;
-using Spice86.Core.Emulator.CPU;
-using Spice86.Core.Emulator.CPU.CfgCpu.Ast.Builder;
 using Spice86.Core.Emulator.CPU.CfgCpu.Ast.Instruction;
 using Spice86.Core.Emulator.CPU.CfgCpu.InstructionRenderer;
 using Spice86.Core.Emulator.CPU.CfgCpu.Parser;
 using Spice86.Core.Emulator.CPU.CfgCpu.ParsedInstruction;
-using Spice86.Core.Emulator.Devices.Input.Keyboard;
 using Spice86.Core.Emulator.Mcp;
-using Spice86.Core.Emulator.VM;
 using Spice86.Core.Emulator.VM.Breakpoint;
 using Spice86.Shared.Emulator.Memory;
 using Spice86.Shared.Emulator.VM.Breakpoint;
@@ -209,7 +203,6 @@ public sealed class BakMcpTools {
             SegmentedAddress current = new(segment, offset);
 
             InstructionParser parser = new(_emulator.Memory, _emulator.State);
-            AstBuilder astBuilder = new();
             AstInstructionRenderer renderer = new(AsmRenderingConfig.CreateSpice86Style());
             List<object> lines = new();
             uint memoryLength = (uint)_emulator.Memory.Length;
@@ -226,7 +219,7 @@ public sealed class BakMcpTools {
                     break;
                 }
 
-                InstructionNode ast = instruction.ToInstructionAst(astBuilder);
+                InstructionNode ast = instruction.DisplayAst;
                 string assembly = ast.Accept(renderer);
                 byte[] bytes = _emulator.Memory.ReadRam(instruction.Length, physAddr);
                 lines.Add(new {
@@ -234,7 +227,7 @@ public sealed class BakMcpTools {
                     bytes = Convert.ToHexString(bytes),
                     assembly
                 });
-                current = instruction.NextInMemoryAddress;
+                current = instruction.NextInMemoryAddress32.ToSegmentedAddress();
             }
 
             return new {
@@ -295,41 +288,6 @@ public sealed class BakMcpTools {
                 is_loaded = true
             };
         }
-    }
-
-    [McpServerTool(Name = "bak_press_key")]
-    [Description("Press and release a keyboard key in one call. " +
-        "Posts key-down then key-up through the emulator input queue, resumes execution " +
-        "long enough for the game's INT 9 ISR to run, then returns. " +
-        "Use PcKeyboardKey enum names: Escape, Enter, A-Z, Up, Down, Left, Right, F1-F12, " +
-        "Space, Tab, Backspace, Delete, Home, End, PageUp, PageDown.")]
-    public object PressKey(
-        [Description("Key name from PcKeyboardKey enum (e.g. 'Enter', 'Escape', 'Down')")] string key) {
-        Intel8042Controller? controller = _emulator.Intel8042Controller;
-        if (controller == null) {
-            return new { error = "PS/2 controller is not available" };
-        }
-
-        InputEventHub? hub = _emulator.InputEventHub;
-        if (hub == null) {
-            return new { error = "InputEventHub is not wired" };
-        }
-
-        if (!Enum.TryParse(key, true, out PcKeyboardKey parsedKey)) {
-            return new { error = $"Invalid key name: '{key}'. Use PcKeyboardKey enum names." };
-        }
-
-        hub.PostToEmulatorThread(() => controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, true));
-        hub.PostToEmulatorThread(() => controller.KeyboardDevice.EnqueueKeyEvent(parsedKey, false));
-
-        _emulator.PauseHandler.Resume();
-        Thread.Sleep(150);
-
-        return new {
-            success = true,
-            key = parsedKey.ToString(),
-            message = $"Key pressed and released: {parsedKey}"
-        };
     }
 
     [McpServerTool(Name = "bak_run_to_ida")]
@@ -462,45 +420,6 @@ public sealed class BakMcpTools {
             y,
             button,
             message = $"Mouse {button}-clicked at ({x}, {y})"
-        };
-    }
-
-    private const string ScreenshotPath = "/tmp/spice86-screenshot.png";
-
-    [McpServerTool(Name = "bak_screenshot")]
-    [Description("Take a screenshot and save to /tmp/spice86-screenshot.png. " +
-        "Returns the file path — use Read tool on it to view the image. " +
-        "Much simpler than the base screenshot tool for CLI workflows.")]
-    public object BakScreenshot() {
-        int width = _emulator.VgaRenderer.Width;
-        int height = _emulator.VgaRenderer.Height;
-        if (width <= 0 || height <= 0) {
-            return new { error = "No frame available yet" };
-        }
-
-        uint[] buffer = new uint[width * height];
-        _emulator.VgaRenderer.CopyLastFrame(buffer);
-
-        byte[] bytes = new byte[buffer.Length * 4];
-        Buffer.BlockCopy(buffer, 0, bytes, 0, bytes.Length);
-
-        SKImageInfo imageInfo = new(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
-        using SKBitmap bitmap = new(imageInfo);
-        Marshal.Copy(bytes, 0, bitmap.GetPixels(), bytes.Length);
-
-        using SKImage image = SKImage.FromBitmap(bitmap);
-        using SKData pngData = image.Encode(SKEncodedImageFormat.Png, 100);
-        if (pngData == null) {
-            return new { error = "Failed to encode PNG" };
-        }
-
-        using FileStream fs = File.Open(ScreenshotPath, FileMode.Create, FileAccess.Write, FileShare.Read);
-        pngData.SaveTo(fs);
-
-        return new {
-            path = ScreenshotPath,
-            width,
-            height
         };
     }
 
