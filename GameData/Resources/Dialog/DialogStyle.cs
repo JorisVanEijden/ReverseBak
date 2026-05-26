@@ -27,13 +27,29 @@ namespace GameData.Resources.Dialog;
 /// deliberate: the same style renders different colours under different scene
 /// palettes, exactly as the original indexed renderer did.
 /// </summary>
+/// <param name="TextPadLeftPct">
+/// Left text inset as a percentage (0..100) of the panel width. The original
+/// <c>RenderDialogText</c> (0x48d7b) shrinks the panel rect into a text rect
+/// before laying out / wrapping the body text: <c>X += field_9</c> and
+/// <c>Width -= field_9 + field_A</c> at 0x49043‑0x4905f. <c>field_9</c> is the
+/// left inset in VGA pixels; this field stores it normalised against the
+/// row's <c>DefaultArea</c> width so consumers never see VGA pixels. Without
+/// it, wrapped text runs flush to the panel border.
+/// </param>
+/// <param name="TextPadRightPct">
+/// Right text inset as a percentage (0..100) of the panel width — the
+/// original's <c>field_A</c> (0x4905f), normalised against the row's
+/// <c>DefaultArea</c> width. Bounds the right edge of the wrap region.
+/// </param>
 public record struct DialogStyle(
     byte FillPenColor,
     byte BorderPenColor,
     byte ShadowPenColor,
     byte BodyTextPenColor,
     byte TextShadowPenSource,
-    DialogArea DefaultArea
+    DialogArea DefaultArea,
+    float TextPadLeftPct = 0f,
+    float TextPadRightPct = 0f
 ) {
     /// <summary>
     /// True → renderer overdraws the panel with a stripe-textured fill (via
