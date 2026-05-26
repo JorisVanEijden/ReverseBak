@@ -6,6 +6,11 @@ namespace GameData.Resources.Dialog;
 /// (<c>GetDialogTypeData</c> at 0x4856c) writes back to
 /// <c>dialogEntry.dialogType</c> — i.e. the *effective* style id, which is
 /// not necessarily the source byte from the DDX file.
+///
+/// Each row's pen fields come straight from the raw table bytes:
+/// <c>field_1</c>=Fill, <c>field_2</c>=BodyText, <c>field_3</c>=TextShadow
+/// source, <c>field_4</c>=Border, <c>field_5</c>=chrome bevel. See
+/// <see cref="DialogStyle"/> for how each field is consumed.
 /// </summary>
 public static class DialogStyleTable {
     /// <summary>Number of rows in the original table.</summary>
@@ -18,37 +23,48 @@ public static class DialogStyleTable {
         null,
 
         // Row 1: source DialogType.ColoredWithoutBox, OR forced when actorNr != 0.
-        // field_3 = 5 → body text uses palette pen 4 (cream/gold in the
-        // typical BaK cutscene palette).
+        // Raw bytes (0x3a845): field_2=0x0A → body text uses palette pen 10
+        // (the bright cream/gold of the typical BaK cutscene palette, the same
+        // pen the name bubble draws with); field_3=0x02 → text drop-shadow in
+        // pen 1 (field_3-1). No chrome (fill/border/bevel all 0).
         // VGA (8, 120, 305, 75) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
-            BodyTextPenColor: 0x04,
+            BodyTextPenColor: 0x0A,
+            TextShadowPenSource: 0x02,
             DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f)),
 
         // Row 2: the *default fallback*. Dispatcher returns 2 when no
         // override fires AND source byte is 0 — i.e. this is the actual
         // chrome for DialogType.Normal in the source data.
-        // field_3 = 4 → body text uses palette pen 3.
+        // Raw bytes (0x3a859): field_2=0 → body text in pen 0 (black);
+        // field_3=0 → no text shadow. Chrome: field_1=1 (stripe fill),
+        // field_4=1 (border), field_5=4 (bevel).
         // VGA (13, 11, 294, 101) → percent below.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
-            BodyTextPenColor: 0x03,
+            BodyTextPenColor: 0x00,
+            TextShadowPenSource: 0x00,
             DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 50.5f)),
 
-        // Row 3: source DialogType.PlainWithoutBox.
-        // field_3 = 5 → body text uses palette pen 4.
-        // VGA (8, 118, 305, 73) → percent below.
+        // Row 3: source DialogType.PlainWithoutBox (cutscene narrative strip).
+        // Raw bytes (0x3a86d): field_2=0 → body text in pen 0 (black);
+        // field_3=0 → no text shadow; no chrome. The bare wooden strip in the
+        // cutscene buffer supplies all the contrast.
+        // VGA (8, 118, 305, 73) → percent below. X=8 → 8/320 = 2.5% (same as
+        // row 1); a prior transcription had 5% here, which made LeftPct+WidthPct
+        // overflow 100%.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
-            BodyTextPenColor: 0x04,
-            DefaultArea: new DialogArea(5f, 59f, 95.3125f, 36.5f)),
+            BodyTextPenColor: 0x00,
+            TextShadowPenSource: 0x00,
+            DefaultArea: new DialogArea(2.5f, 59f, 95.3125f, 36.5f)),
 
         // Row 4: unreachable. Identical to row 1; no source byte produces 4
         // and the dispatcher never assigns dx=4.
@@ -57,31 +73,36 @@ public static class DialogStyleTable {
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
-            BodyTextPenColor: 0x04,
+            BodyTextPenColor: 0x0A,
+            TextShadowPenSource: 0x02,
             DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f)),
 
         // Row 5: source DialogType.NormalInGame, OR forced by the in-game
-        // context flag (dialog_word_3AC96 != 0).
-        // field_3 = 4 → body text uses palette pen 3.
+        // context flag (dialog_word_3AC96 != 0). Identical pens to row 2.
+        // Raw bytes (0x3a895): field_2=0 → body text pen 0; field_3=0 → no
+        // text shadow; field_1=1, field_4=1, field_5=4 chrome.
         // VGA (13, 11, 294, 121) → percent below.
         new DialogStyle(
             FillPenColor: 0x01,
             BorderPenColor: 0x01,
             ShadowPenColor: 0x04,
-            BodyTextPenColor: 0x03,
+            BodyTextPenColor: 0x00,
+            TextShadowPenSource: 0x00,
             DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 60.5f)),
 
         // Row 6: source DialogType.PlainFullScreen, OR forced by either
         // full-screen flag (bool_word_dseg_C08, byte_dseg_FBC). The renderer
         // also draws corner-vine sprites for this row (via the
         // `dec ax; cmp ax, 5` branch at 0x4886c, which fires when
-        // dialogType == 6).
+        // dialogType == 6). Raw bytes (0x3a8a9): field_2=0 → body text pen 0;
+        // field_3=0 → no text shadow; no chrome pens.
         // VGA (25, 21, 270, 160) → percent below.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
-            BodyTextPenColor: 0x04,
+            BodyTextPenColor: 0x00,
+            TextShadowPenSource: 0x00,
             DefaultArea: new DialogArea(7.8125f, 10.5f, 84.375f, 80f)),
     };
 

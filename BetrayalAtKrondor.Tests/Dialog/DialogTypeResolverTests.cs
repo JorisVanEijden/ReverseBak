@@ -204,6 +204,19 @@ public class DialogTypeResolverTests {
     }
 
     [Fact]
+    public void StyleTable_Row3_HasNarrativeArea() {
+        // PlainWithoutBox (cutscene narrative strip). actionData VGA
+        // (8, 118, 305, 73) → percent (2.5, 59, 95.3125, 36.5). X is 8 (same as
+        // row 1), NOT 16 — a prior transcription used 5% and pushed
+        // LeftPct+WidthPct past 100%. Fields are (X, Y, Width, Height), per the
+        // field use in dialog_DrawChrome (0x48632).
+        DialogStyle style = DialogStyleTable.Get(3);
+
+        Assert.Equal(new DialogArea(2.5f, 59f, 95.3125f, 36.5f), style.DefaultArea);
+        Assert.True(style.DefaultArea.LeftPct + style.DefaultArea.WidthPct <= 100f);
+    }
+
+    [Fact]
     public void StyleTable_Row2_HasShadowAndBorder() {
         // From bytes at 0x3a859: field_4=0x01 (border), field_5=0x04 (shadow).
         DialogStyle style = DialogStyleTable.Get(2);
@@ -225,5 +238,60 @@ public class DialogTypeResolverTests {
             Assert.False(style.HasBorder);
             Assert.False(style.HasDropShadow);
         }
+    }
+
+    // ────────────────── Body text pen + text shadow ──────────────────
+    // RenderDialogText (0x48d7b) draws body text in dialogTypeData.field_2
+    // (every caller passes textColor = -1, so field_2 is always used, 0x490ff),
+    // with a back-shadow in pen field_3 - 1 only when field_3 != 0 (0x490bf).
+    // These are distinct from the chrome bevel pen (field_5 = ShadowPenColor).
+
+    [Fact]
+    public void StyleTable_Row1_ColoredWithoutBox_BodyPen10_ShadowPen1() {
+        // From bytes at 0x3a845: field_2=0x0A (body text = bright cream pen 10,
+        // same pen the name bubble uses), field_3=0x02 → text shadow in pen 1.
+        DialogStyle style = DialogStyleTable.Get(1);
+
+        Assert.Equal(0x0A, style.BodyTextPenColor);
+        Assert.True(style.HasTextShadow);
+        Assert.Equal(0x01, style.TextShadowPenColor);
+    }
+
+    [Fact]
+    public void StyleTable_Row4_UnreachableTwinOfRow1() {
+        // Row 4 is identical to row 1 (bytes at 0x3a881): same body/shadow pens.
+        DialogStyle style = DialogStyleTable.Get(4);
+
+        Assert.Equal(0x0A, style.BodyTextPenColor);
+        Assert.True(style.HasTextShadow);
+        Assert.Equal(0x01, style.TextShadowPenColor);
+    }
+
+    [Fact]
+    public void StyleTable_Rows_2_3_5_6_BodyPen0_NoTextShadow() {
+        // Bytes at 0x3a859 / 0x3a86d / 0x3a895 / 0x3a8a9: field_2=0 (body text
+        // = pen 0, black in every BaK palette) and field_3=0 (no text shadow).
+        // PlainWithoutBox (row 3, cutscene narrative) is therefore black text,
+        // confirmed against the original game.
+        foreach (int rowId in new[] { 2, 3, 5, 6 }) {
+            DialogStyle style = DialogStyleTable.Get(rowId);
+            Assert.Equal(0x00, style.BodyTextPenColor);
+            Assert.False(style.HasTextShadow);
+        }
+    }
+
+    [Fact]
+    public void StyleTable_TextShadow_IsDistinctFromChromeBevel() {
+        // Row 2 (Normal) has a chrome bevel (field_5=4 → HasDropShadow) but NO
+        // text shadow (field_3=0). The two must not be conflated — the text
+        // renderer keys off field_3, the chrome renderer off field_5.
+        DialogStyle row2 = DialogStyleTable.Get(2);
+        Assert.True(row2.HasDropShadow);   // chrome bevel
+        Assert.False(row2.HasTextShadow);  // text shadow
+
+        // Row 1 (ColoredWithoutBox) is the inverse: text shadow but no bevel.
+        DialogStyle row1 = DialogStyleTable.Get(1);
+        Assert.False(row1.HasDropShadow);
+        Assert.True(row1.HasTextShadow);
     }
 }
