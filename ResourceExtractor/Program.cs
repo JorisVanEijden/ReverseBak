@@ -82,6 +82,21 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--bmx") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractAllBmx(gamePath, provider);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--images") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractAllScx(gamePath, provider);
+            ExtractAllBmx(gamePath, provider);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--tbl") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractZoneTables(gamePath);
@@ -365,35 +380,18 @@ internal static class Program {
             ImageSet imageSet = bitmapExtractor.Extract(Path.GetFileName(bmxFile), resourceStream);
             var imageName = $"{Path.GetFileNameWithoutExtension(bmxFile)}";
             Color[] colors = GetColorsFromPalette(filePath, generalResourceProvider, imageName, paletteExtractor);
-            colors = ApplyRemapping("Z12.RMP", colors, 2);
             // For multiple images we create a directory and extract each image
             var path = ResourceType.BMX.ToString();
             string resourceDirectory = Path.Combine(path, imageName);
+            Directory.CreateDirectory(resourceDirectory);
             for (var i = 0; i < imageSet.Images.Count; i++) {
                 BmImage bmImage = imageSet.Images[i];
                 bmImage.Filename = $"{i}.png";
                 File.WriteAllText(Path.Combine(resourceDirectory, $"{i}.json"), bmImage.ToJson());
                 WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToBitmap(colors));
             }
+            Console.WriteLine($"[BMX] {imageName} ({imageSet.Images.Count} images)");
         }
-    }
-
-    private static Color[] ApplyRemapping(string name, Color[] colors, int id = 0) {
-        var remap = ReadFromJsonFile<RemapResource>(name);
-        var remappedColors = new Color[colors.Length];
-
-        if (!remap.Mappings.TryGetValue(id, out Dictionary<byte, byte>? mapping))
-            return colors;
-
-        for (var i = 0; i < colors.Length; i++) {
-            if (mapping.TryGetValue((byte)i, out byte index)) {
-                remappedColors[i] = colors[index];
-            } else {
-                remappedColors[i] = colors[i];
-            }
-        }
-
-        return remappedColors;
     }
 
     private static Color[] GetColorsFromPalette(string filePath, GeneralResourceProvider generalResourceProvider, string imageName, PaletteExtractor paletteExtractor) {
@@ -430,6 +428,7 @@ internal static class Program {
             var bitmap = image.ToBitmap(colors);
 
             WriteToPngFile(imageName, backgroundImage.Type.ToString(), bitmap);
+            Console.WriteLine($"[SCX] {imageName} -> {backgroundImage.Width}x{backgroundImage.Height}");
         }
     }
 

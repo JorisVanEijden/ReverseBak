@@ -4,6 +4,7 @@ using GameData.Resources.Image;
 
 using ResourceExtraction.Compression;
 using ResourceExtraction.Extensions;
+using ResourceExtraction.Imaging;
 
 using ResourceExtractor.Compression;
 
@@ -93,6 +94,13 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
             }
         }
 
+        // Tagged BMX images are stored row-major and live in 320x200 VGA space; correct to square pixels.
+        foreach (BmImage image in images) {
+            image.BitMapData = AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor: false, out int correctedWidth, out int correctedHeight);
+            image.Width = correctedWidth;
+            image.Height = correctedHeight;
+        }
+
         return images.ToList();
     }
 
@@ -172,6 +180,14 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
 
                 throw new InvalidOperationException($"Image {i} has a size of {image.BitMapData.Length} bytes but should be {image.Height} * {image.Width} = {image.Height * image.Width} bytes.");
             }
+        }
+
+        // Normal BMX images live in 320x200 VGA space; correct to square pixels, respecting storage order.
+        foreach (BmImage image in images) {
+            bool columnMajor = image.Flags.HasFlag(ImageFlags.ReversedRowColumn);
+            image.BitMapData = AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor, out int correctedWidth, out int correctedHeight);
+            image.Width = correctedWidth;
+            image.Height = correctedHeight;
         }
 
         return images.ToList();

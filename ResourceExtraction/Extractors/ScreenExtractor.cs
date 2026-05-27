@@ -2,6 +2,8 @@ namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Image;
 
+using ResourceExtraction.Imaging;
+
 using System.IO;
 using System.Text;
 
@@ -27,10 +29,22 @@ public class ScreenExtractor : ExtractorBase<BackgroundImage> {
             bitMapData = tempArray;
         }
 
+        // Correct DOS non-square pixels to square pixels. SCX data is row-major.
+        int correctedWidth;
+        int correctedHeight;
+        if (hiRes) {
+            // The only 640x350 EGA screen (BOOK.SCX): x2 horizontally, vertical resamples 350->960 for 4:3.
+            correctedWidth = 1280;
+            correctedHeight = 960;
+            bitMapData = AspectCorrection.ResampleNearest(bitMapData, 640, 350, correctedWidth, correctedHeight);
+        } else {
+            bitMapData = AspectCorrection.CorrectVga(bitMapData, 320, 200, columnMajor: false, out correctedWidth, out correctedHeight);
+        }
+
         var screen = new BackgroundImage(screenId) {
             BitMapData = bitMapData,
-            Width = hiRes ? 640 : 320,
-            Height = hiRes ? 350 : 200
+            Width = correctedWidth,
+            Height = correctedHeight
         };
 
         return screen;
