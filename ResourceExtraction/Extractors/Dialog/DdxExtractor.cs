@@ -50,27 +50,22 @@ public class DdxExtractor : ExtractorBase<Dialog> {
 
             ushort stringLength = resourceReader.ReadUInt16();
             Log($"[{resourceReader.BaseStream.Position:X8}] StringLength: {stringLength}");
+            // A ChoiceMenu entry (flag 0x0400) routes its branches through the
+            // keyword/menu path, where globalKey is a keyword-label index rather
+            // than a condition — DialogBranchFactory decodes accordingly.
+            bool isChoiceMenu = dialogEntry.Flags.HasFlag(DialogEntryFlags.ChoiceMenu);
             for (var i = 0; i < branchCount; i++) {
                 Log($"[{resourceReader.BaseStream.Position:X8}] Branch {i}:");
-                ushort unknown2 = resourceReader.ReadUInt16();
-                Log($"[{resourceReader.BaseStream.Position:X8}] Unknown2: {unknown2:X4}");
+                ushort globalKey = resourceReader.ReadUInt16();
+                Log($"[{resourceReader.BaseStream.Position:X8}] GlobalKey: {globalKey:X4}");
                 ushort unknown3 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown3: {unknown3:X4}");
-                short unknown4 = resourceReader.ReadInt16();
+                ushort unknown4 = resourceReader.ReadUInt16();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Unknown4: {unknown4:X4}");
                 long target = resourceReader.ReadUInt32();
                 Log($"[{resourceReader.BaseStream.Position:X8}] Offset: {target:X8}");
-                var branch = new DialogEntryBranch {
-                    GlobalKey = unknown2,
-                    Unknown3 = unknown3,
-                    Unknown4 = unknown4,
-                };
-                if (target >= 0x80000000) {
-                    branch.TargetId = (int)(target - 0x80000000);
-                } else {
-                    branch.TargetOffset = (int)target;
-                }
-                dialogEntry.Branches.Add(branch);
+                dialogEntry.Branches.Add(
+                    DialogBranchFactory.Build(isChoiceMenu, globalKey, unknown3, unknown4, target));
             }
             Log($"[{resourceReader.BaseStream.Position:X8}] Reading {dialogActionCount} data items");
             for (var i = 0; i < dialogActionCount; i++) {
