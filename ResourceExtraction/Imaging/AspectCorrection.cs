@@ -50,4 +50,17 @@ public static class AspectCorrection {
 
         return ResampleNearest(source, width, height, newWidth, newHeight, columnMajor);
     }
+
+    /// <summary>
+    /// Corrects an EGA (640x350-space) bitmap to square pixels. EGA pixels are 48/35 taller than
+    /// wide; doubling horizontally and resampling vertically by 96/35 yields exact 4:3 (a full
+    /// 640x350 page becomes 1280x960, matching BOOK.SCX). Book images share the 640x350 layout
+    /// space, so this keeps every book asset at one consistent square-pixel scale.
+    /// </summary>
+    public static byte[] CorrectEga(byte[] source, int width, int height, bool columnMajor, out int newWidth, out int newHeight) {
+        newWidth = width * 2;
+        newHeight = (int)System.Math.Round(height * 96.0 / 35.0);
+
+        return ResampleNearest(source, width, height, newWidth, newHeight, columnMajor);
+    }
 }

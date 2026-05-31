@@ -94,12 +94,8 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
             }
         }
 
-        // Tagged BMX images are stored row-major and live in 320x200 VGA space; correct to square pixels.
-        foreach (BmImage image in images) {
-            image.BitMapData = AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor: false, out int correctedWidth, out int correctedHeight);
-            image.Width = correctedWidth;
-            image.Height = correctedHeight;
-        }
+        // Tagged BMX images are stored row-major; correct to square pixels.
+        ApplyAspectCorrection(images, name, columnMajorPerImage: false);
 
         return images.ToList();
     }
@@ -182,15 +178,27 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
             }
         }
 
-        // Normal BMX images live in 320x200 VGA space; correct to square pixels, respecting storage order.
-        foreach (BmImage image in images) {
-            bool columnMajor = image.Flags.HasFlag(ImageFlags.ReversedRowColumn);
-            image.BitMapData = AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor, out int correctedWidth, out int correctedHeight);
-            image.Width = correctedWidth;
-            image.Height = correctedHeight;
-        }
+        // Normal BMX images may be stored column-major (ReversedRowColumn); correct to square pixels.
+        ApplyAspectCorrection(images, name, columnMajorPerImage: true);
 
         return images.ToList();
+    }
+
+    /// <summary>
+    /// Converts each image's non-square source pixels to square pixels. Book images (BOOK.BMX) live in
+    /// 640x350 EGA space and use the EGA correction so they compose at the same scale as BOOK.SCX; all
+    /// other BMX images live in 320x200 VGA space.
+    /// </summary>
+    private static void ApplyAspectCorrection(IReadOnlyList<BmImage> images, string name, bool columnMajorPerImage) {
+        bool isBook = name.StartsWith("BOOK", StringComparison.OrdinalIgnoreCase);
+        foreach (BmImage image in images) {
+            bool columnMajor = columnMajorPerImage && image.Flags.HasFlag(ImageFlags.ReversedRowColumn);
+            image.BitMapData = isBook
+                ? AspectCorrection.CorrectEga(image.BitMapData!, image.Width, image.Height, columnMajor, out int w, out int h)
+                : AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor, out w, out h);
+            image.Width = w;
+            image.Height = h;
+        }
     }
 
     public BmImage ExtractSingle(string id, Stream resourceStream) {
