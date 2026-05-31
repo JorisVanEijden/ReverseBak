@@ -40,6 +40,14 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
     private const int CombatSlotCount = 1730;
     private const int PartyActorDataSize = ActorStructSize * PartyActorCount;
 
+    // FULLMAP.SCX reference resolution; the header's worldX/worldY are pixels on it.
+    private const float FullMapWidth = 320f;
+    private const float FullMapHeight = 200f;
+    // The load path (StartGameOrLoadSave 0x208fc) adds 2 to the stored icon before drawing,
+    // and skips the marker entirely when worldX is the -1 sentinel.
+    private const int LoadedMarkerIconBias = 2;
+    private const short NoMarkerSentinel = -1;
+
     public override SaveGame Extract(string id, Stream resourceStream) {
         using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
 
@@ -69,7 +77,29 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         byte[] tempGameData = resourceReader.ReadBytes((int)remaining);
         SaveGameData? data = ParseData(tempGameData);
 
-        return new SaveGame(id, saveGameName, chapterNumber, worldX, worldY, mapIcon, version, tempGameData, data);
+        // Only files with a header carry a world-map marker; a bare TEMP.GAM has none.
+        FullMapIcon? fullMapMarker = hasHeader ? BuildFullMapMarker(worldX, worldY, mapIcon) : null;
+
+        return new SaveGame(id, saveGameName, chapterNumber, worldX, worldY, mapIcon, version, tempGameData, data, fullMapMarker);
+    }
+
+    /// <summary>
+    /// Builds the world-map marker from a save header. The header stores the party pin as
+    /// pixel coordinates on the 320x200 FULLMAP.SCX plus an icon index; the original game
+    /// adds 2 to that icon on load and hides the marker when worldX is -1
+    /// (StartGameOrLoadSave 0x20835). Output is percentages so consumers hold no VGA knowledge.
+    /// </summary>
+    public static FullMapIcon BuildFullMapMarker(short worldX, short worldY, short mapIcon) {
+        if (worldX == NoMarkerSentinel) {
+            return new FullMapIcon(visible: false, xPercent: 0f, yPercent: 0f, iconIndex: 0);
+        }
+
+        return new FullMapIcon(
+            visible: true,
+            xPercent: worldX / FullMapWidth * 100f,
+            yPercent: worldY / FullMapHeight * 100f,
+            iconIndex: mapIcon + LoadedMarkerIconBias
+        );
     }
 
     private static SaveGameData? ParseData(byte[] tempGameData) {

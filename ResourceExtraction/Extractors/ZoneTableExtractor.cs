@@ -81,6 +81,31 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     //          0xFF in shipped data on non-flagged entities).
     private const byte EF_UNBOUNDED = 0x20;
 
+    // Non-square-pixel (1.2) aspect bake. The original 320×200 mode-13h image was shown on a
+    // 4:3 CRT, so pixels were 1.2× taller than wide and the 3D renderer applied NO compensation
+    // (one focal constant for X and Y — verified in IDA: projectPoint32/perspectiveDivide32).
+    // Vertices were therefore authored to be viewed THROUGH that vertical stretch: a house meant
+    // to read as 2:1 was stored as 2.4:1 raw coords. Rendering raw coords on modern square pixels
+    // makes everything ~20% too squat, so we bake the 1.2 back into the world-up axis here.
+    //
+    // World-up is BaK Z (BakCoordinateConverter: Unity.Y = BaK.Z). Ground-plane X/Y are left
+    // literal so movement, footprint collision and pathing are untouched.
+    //
+    // This lives in the extractor on purpose: original-game models get the authored-CRT look,
+    // while mod models bypass the extractor (straight through the converter/loader in square-pixel
+    // space) and keep true proportions. See memory project-3d-aspect-camera / project-aspect-correction.
+    // NEVER do this as a viewport/screen-space stretch — the remake's camera can pitch, which would
+    // shear geometry pitch-dependently; a world-space per-vertex bake is the only faithful form.
+    private const double WorldUpAspectScale = 1.2;
+
+    private static short ScaleWorldUp(short z)
+    {
+        long scaled = (long)Math.Round(z * WorldUpAspectScale, MidpointRounding.AwayFromZero);
+        if (scaled > short.MaxValue) scaled = short.MaxValue;
+        else if (scaled < short.MinValue) scaled = short.MinValue;
+        return (short)scaled;
+    }
+
     public override ZoneTable Extract(string id, Stream resourceStream)
     {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
@@ -340,17 +365,19 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         // Bbox follows the 14-byte header iff EF_UNBOUNDED is clear. Reader is positioned at +0x0E.
         if ((dat.EntityFlags & EF_UNBOUNDED) == 0)
         {
+            // Bbox Z scaled to match the per-vertex world-up bake so view-extent culling
+            // still covers the now-20%-taller geometry.
             dat.Min = new Position3DShort
             {
                 X = reader.ReadInt16(),
                 Y = reader.ReadInt16(),
-                Z = reader.ReadInt16()
+                Z = ScaleWorldUp(reader.ReadInt16())
             };
             dat.Max = new Position3DShort
             {
                 X = reader.ReadInt16(),
                 Y = reader.ReadInt16(),
-                Z = reader.ReadInt16()
+                Z = ScaleWorldUp(reader.ReadInt16())
             };
         }
 
@@ -474,7 +501,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             {
                 X = reader.ReadInt16(),
                 Y = reader.ReadInt16(),
-                Z = reader.ReadInt16()
+                Z = ScaleWorldUp(reader.ReadInt16()) // ×1.2 world-up aspect bake (see WorldUpAspectScale)
             });
         }
 

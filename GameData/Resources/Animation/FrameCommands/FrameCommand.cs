@@ -47,7 +47,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(UnknownCommandA094), nameof(UnknownCommandA094))]
 [JsonDerivedType(typeof(GotoFrame), nameof(GotoFrame))]
 [JsonDerivedType(typeof(SetRange1), nameof(SetRange1))]
-[JsonDerivedType(typeof(UnknownCommand2402), nameof(UnknownCommand2402))]
+[JsonDerivedType(typeof(StartPaletteCycle), nameof(StartPaletteCycle))]
 [JsonDerivedType(typeof(UnknownCommand0400), nameof(UnknownCommand0400))]
 [JsonDerivedType(typeof(DrawImageRotated), nameof(DrawImageRotated))]
 [JsonDerivedType(typeof(DrawImageFlippedHorizontallyScaled), nameof(DrawImageFlippedHorizontallyScaled))]

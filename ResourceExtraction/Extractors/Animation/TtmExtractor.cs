@@ -217,9 +217,9 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
 
                 break;
             case 0x2402:
-                command = new UnknownCommand2402 {
+                command = new StartPaletteCycle {
                     Range = (Ranges)commandReader.ReadInt16(),
-                    Arg2 = commandReader.ReadInt16()
+                    Step = commandReader.ReadInt16()
                 };
 
                 break;

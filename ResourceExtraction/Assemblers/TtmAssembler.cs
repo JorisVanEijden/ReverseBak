@@ -152,9 +152,9 @@ public class TtmAssembler {
                         writer.Write((ushort)setRange3.End);
 
                         break;
-                    case UnknownCommand2402 unknownCommand2402:
-                        writer.Write((ushort)unknownCommand2402.Range);
-                        writer.Write((ushort)unknownCommand2402.Arg2);
+                    case StartPaletteCycle startPaletteCycle:
+                        writer.Write((ushort)startPaletteCycle.Range);
+                        writer.Write((ushort)startPaletteCycle.Step);
 
                         break;
                     case SetClipArea setClipArea:

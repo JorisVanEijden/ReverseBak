@@ -17,7 +17,8 @@ public class SaveGame : IResource {
         short mapIcon,
         short version,
         byte[] tempGameData,
-        SaveGameData? data
+        SaveGameData? data,
+        FullMapIcon? fullMapMarker = null
     ) {
         Id = id;
         SaveGameName = saveGameName;
@@ -28,6 +29,7 @@ public class SaveGame : IResource {
         Version = version;
         TempGameData = tempGameData ?? Array.Empty<byte>();
         Data = data;
+        FullMapMarker = fullMapMarker;
     }
 
     public string SaveGameName { get; }
@@ -44,6 +46,13 @@ public class SaveGame : IResource {
     public int TempGameDataLength { get => TempGameData.Length; }
 
     public SaveGameData? Data { get; }
+
+    /// <summary>
+    /// World-map marker restored from the save header (party pin position + icon), as
+    /// percentages of the full-map image. Null when the source didn't supply one. For a
+    /// new game this is replaced by the chapter's marker (see ChapterStartData).
+    /// </summary>
+    public FullMapIcon? FullMapMarker { get; }
 
     public ResourceType Type { get => ResourceType.DAT; }
     public string Id { get; }

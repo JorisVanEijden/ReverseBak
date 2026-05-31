@@ -7,6 +7,7 @@ using GameData.Resources;
 using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
+using GameData.Resources.Config;
 using GameData.Resources.Data;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
@@ -37,6 +38,8 @@ public static class ExtractorFactory {
             typeof(KeywordList), typeof(KeywordExtractor)
         }, {
             typeof(SaveGame), typeof(SaveGameExtractor)
+        }, {
+            typeof(ChapterStartData), typeof(ChapterDataExtractor)
         }, {
             typeof(LabelSet), typeof(LabelExtractor)
         }, {
@@ -69,6 +72,8 @@ public static class ExtractorFactory {
             typeof(ZoneShape), typeof(ZoneShapeExtractor)
         }, {
             typeof(Dialog), typeof(DdxExtractor)
+        }, {
+            typeof(Preferences), typeof(PreferencesExtractor)
         }
     };
 

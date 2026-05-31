@@ -6,6 +6,8 @@ public static class PaletteMapping {
         image = StripThreeLetterExtension(image).ToUpper();
 
         return image switch {
+            "BICONS1" => "OPTIONS.PAL",
+            "BICONS2" => "OPTIONS.PAL",
             "BLANK" => "CREDITS.PAL",
             "BOOK" => "BOOK.PAL",
             "C11" => "C11B.PAL",
