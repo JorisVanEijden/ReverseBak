@@ -94,7 +94,7 @@ public class TtmAssembler {
                     case DisposeCurrentBitmap:
                     case DisposeTargetBuffer:
                     case EndScene:
-                    case UnknownCommand0400:
+                    case ResetPalette:
                     case ObsoleteCommand0500:
                     case ObsoleteCommand0510:
 
@@ -192,32 +192,33 @@ public class TtmAssembler {
                         writer.Write((ushort)copyToCurrentBuffer.Height);
 
                         break;
-                    case UnknownCommandA014 unknownCommandA014:
-                        writer.Write((ushort)unknownCommandA014.Arg1);
-                        writer.Write((ushort)unknownCommandA014.Arg2);
-                        writer.Write((ushort)unknownCommandA014.Arg3);
-                        writer.Write((ushort)unknownCommandA014.Arg4);
+                    case ScreenTransitionInstant screenTransitionInstant:
+                        writer.Write((ushort)screenTransitionInstant.X);
+                        writer.Write((ushort)screenTransitionInstant.Y);
+                        writer.Write((ushort)screenTransitionInstant.Width);
+                        writer.Write((ushort)screenTransitionInstant.Height);
 
                         break;
-                    case UnknownCommandA034 unknownCommandA034:
-                        writer.Write((ushort)unknownCommandA034.Arg1);
-                        writer.Write((ushort)unknownCommandA034.Arg2);
-                        writer.Write((ushort)unknownCommandA034.Arg3);
-                        writer.Write((ushort)unknownCommandA034.Arg4);
+                    case ScreenTransitionBoxIn screenTransitionBoxIn:
+                        writer.Write((ushort)screenTransitionBoxIn.X);
+                        writer.Write((ushort)screenTransitionBoxIn.Y);
+                        writer.Write((ushort)screenTransitionBoxIn.Width);
+                        writer.Write((ushort)screenTransitionBoxIn.Height);
 
                         break;
-                    case UnknownCommandA094 unknownCommandA094:
-                        writer.Write((ushort)unknownCommandA094.Arg1);
-                        writer.Write((ushort)unknownCommandA094.Arg2);
-                        writer.Write((ushort)unknownCommandA094.Arg3);
-                        writer.Write((ushort)unknownCommandA094.Arg4);
+                    case ScreenTransitionBoxOut screenTransitionBoxOut:
+                        writer.Write((ushort)screenTransitionBoxOut.X);
+                        writer.Write((ushort)screenTransitionBoxOut.Y);
+                        writer.Write((ushort)screenTransitionBoxOut.Width);
+                        writer.Write((ushort)screenTransitionBoxOut.Height);
 
                         break;
-                    case UnknownCommandA0B5 unknownCommandA0B5:
-                        writer.Write((ushort)unknownCommandA0B5.Arg1);
-                        writer.Write((ushort)unknownCommandA0B5.Arg2);
-                        writer.Write((ushort)unknownCommandA0B5.Arg3);
-                        writer.Write((ushort)unknownCommandA0B5.Arg4);
+                    case ScreenTransitionInstant5 screenTransitionInstant5:
+                        writer.Write((ushort)screenTransitionInstant5.X);
+                        writer.Write((ushort)screenTransitionInstant5.Y);
+                        writer.Write((ushort)screenTransitionInstant5.Width);
+                        writer.Write((ushort)screenTransitionInstant5.Height);
+                        writer.Write((ushort)screenTransitionInstant5.Arg5);
 
                         break;
 
@@ -339,8 +340,8 @@ public class TtmAssembler {
                         writer.Write((ushort)playSound.SoundId);
 
                         break;
-                    case UnknownCommandC061 unknownCommandC061:
-                        writer.Write((ushort)unknownCommandC061.SoundId);
+                    case StopSoundPlayback stopSoundPlayback:
+                        writer.Write((ushort)stopSoundPlayback.SoundId);
 
                         break;
                     case LoadScreenResource loadScreenResource:

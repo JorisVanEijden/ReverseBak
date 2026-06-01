@@ -125,7 +125,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
 
                 break;
             case 0x0400:
-                command = new UnknownCommand0400();
+                command = new ResetPalette();
 
                 break;
             case 0x0500:
@@ -269,38 +269,38 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
 
                 break;
             case 0xA014:
-                command = new UnknownCommandA014 {
-                    Arg1 = commandReader.ReadInt16(),
-                    Arg2 = commandReader.ReadInt16(),
-                    Arg3 = commandReader.ReadInt16(),
-                    Arg4 = commandReader.ReadInt16()
+                command = new ScreenTransitionInstant {
+                    X = commandReader.ReadInt16(),
+                    Y = commandReader.ReadInt16(),
+                    Width = commandReader.ReadInt16(),
+                    Height = commandReader.ReadInt16()
                 };
 
                 break;
             case 0xA034:
-                command = new UnknownCommandA034 {
-                    Arg1 = commandReader.ReadInt16(),
-                    Arg2 = commandReader.ReadInt16(),
-                    Arg3 = commandReader.ReadInt16(),
-                    Arg4 = commandReader.ReadInt16()
+                command = new ScreenTransitionBoxIn {
+                    X = commandReader.ReadInt16(),
+                    Y = commandReader.ReadInt16(),
+                    Width = commandReader.ReadInt16(),
+                    Height = commandReader.ReadInt16()
                 };
 
                 break;
             case 0xA094:
-                command = new UnknownCommandA094 {
-                    Arg1 = commandReader.ReadInt16(),
-                    Arg2 = commandReader.ReadInt16(),
-                    Arg3 = commandReader.ReadInt16(),
-                    Arg4 = commandReader.ReadInt16()
+                command = new ScreenTransitionBoxOut {
+                    X = commandReader.ReadInt16(),
+                    Y = commandReader.ReadInt16(),
+                    Width = commandReader.ReadInt16(),
+                    Height = commandReader.ReadInt16()
                 };
 
                 break;
             case 0xA0B5:
-                command = new UnknownCommandA0B5 {
-                    Arg1 = commandReader.ReadInt16(),
-                    Arg2 = commandReader.ReadInt16(),
-                    Arg3 = commandReader.ReadInt16(),
-                    Arg4 = commandReader.ReadInt16(),
+                command = new ScreenTransitionInstant5 {
+                    X = commandReader.ReadInt16(),
+                    Y = commandReader.ReadInt16(),
+                    Width = commandReader.ReadInt16(),
+                    Height = commandReader.ReadInt16(),
                     Arg5 = commandReader.ReadInt16()
                 };
 
@@ -460,7 +460,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
                 break;
             case 0x1311:
             case 0xC061:
-                command = new UnknownCommandC061 {
+                command = new StopSoundPlayback {
                     SoundId = commandReader.ReadInt16()
                 };
 
