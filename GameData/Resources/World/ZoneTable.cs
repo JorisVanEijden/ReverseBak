@@ -303,13 +303,16 @@ public class SpriteBMeshFace : MeshFaceRecord
     /// (bitmap_flags_048E != 0, 0x231f5). Typically ≈ width/2 (horizontal centre).</summary>
     public byte AnchorX { get; set; }
 
-    /// <summary>+0x06. World-space size factor for the billboard. <c>0</c> = draw at the default
-    /// view scale; nonzero scales it: <c>cx = (SizeScale * word_seg024_380F) >> 8</c>, and the
-    /// bitmap's larger dimension is scaled to ≈ <c>2*cx</c> screen px (renderSprite2 0x230d4 →
-    /// 0x2310a). The texture's pixel dimensions only set the aspect ratio. The exact world-unit
-    /// calibration depends on the runtime value of <c>word_seg024_380F</c> (set per-frame in
-    /// updateViewTransform from view distance) — verify in Spice86 before using as an absolute.
-    /// Observed range 0–255, clustered around 100–130.</summary>
+    /// <summary>+0x06. Billboard size as a fraction of the entity's own world extent. The
+    /// sprite's larger <b>world</b> dimension is <c>SizeScale / 128 × (Extent &lt;&lt; VertexScale)</c>
+    /// (the texture's pixel dimensions only set the aspect ratio). <c>0</c> ⇒ use the entity
+    /// extent directly at 2× (equivalent to SizeScale 256).
+    ///
+    /// Derivation (renderSprite2 0x23031 + RenderWorldItem 0x2a95a): <c>cx = (SizeScale * word_380F) >> 8</c>
+    /// and the bitmap's larger dim is scaled to <c>2*cx</c> px; <c>word_380F</c> is the entity's
+    /// extent (<c>g_entityWorldExtent = Extent &lt;&lt; VertexScale</c>) projected to screen by
+    /// ComputeZoneDrawDistance, so the projection cancels and the result is depth-independent.
+    /// No runtime constant required. Observed range 0–255, clustered around 100–130.</summary>
     public byte SizeScale { get; set; }
 
     /// <summary>+0x07. Vertex used as billboard anchor (projected to screen, read at 0x230b4).</summary>
