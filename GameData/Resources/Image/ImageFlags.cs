@@ -40,9 +40,12 @@ public enum ImageFlags {
     /// subfield; not read by the engine.</summary>
     HorizontalFlip = 0x02,
 
-    /// <summary>0x04. High bit of the inventory/icon 0–7 subfield (212 images, all compressed
-    /// column-major, all in INV*/BICONS*/TELEPORT sheets). Not read by the render engine; likely
-    /// an inventory display/shape hint. Unverified beyond "non-rendering authoring metadata".</summary>
+    /// <summary>0x04. High bit of a 0–7 subfield (0x01/0x02/0x04) carried only by compressed
+    /// column-major images in the inventory/icon sheets (INVSHP1/2, BICONS1/2, INVMISC, INVLOCK,
+    /// TELEPORT). Not read by the render engine. Content analysis (2026-06-02) rules out a
+    /// size/grid-footprint meaning (each value spans wildly different dimensions); it is per-item
+    /// authoring metadata of undetermined semantics. Correlating it with item type/slots is blocked
+    /// by the extracted objinfo `Icon` field being unreliable (mostly 0) — a separate extractor issue.</summary>
     Unknown4 = 0x04,
 
     /// <summary>0x08. Never set in any shipped image — dead bit.</summary>
@@ -55,11 +58,12 @@ public enum ImageFlags {
     /// to pick the column-aware blit path.</summary>
     ReversedRowColumn = 0x20,
 
-    /// <summary>0x40. Content marker, set on ~90% of images. Present on essentially every
-    /// per-image-compressed sprite (3101/3107; the only 6 exceptions are icon images in
-    /// BICONS1/2 + INVMISC) plus 725 uncompressed sprites; absent on short opaque strips/fills
-    /// (avg height ~14px). Not read by the render engine — most consistent with "non-trivial sprite
-    /// content / has transparency", but its exact authoring meaning is unconfirmed.</summary>
+    /// <summary>0x40. "Sprite-like content" marker (~90% of images). Content analysis of all 4244
+    /// decoded images (2026-06-02) shows <c>0x40 ⇔ (image is per-image RLE-compressed OR contains
+    /// index-0/transparent pixels)</c> — a 99.4% match (4219/4244). The 25 exceptions are 19
+    /// BOOK.BMX page-art images (transparent yet authored as 0x00) and 6 tiny fully-opaque compressed
+    /// icons. So 0x40 distinguishes transparent/compressed sprites from plain opaque rectangular
+    /// fills/strips (the ~393 no-0x40 opaque images). Not read by the render engine.</summary>
     Unknown64 = 0x40,
 
     /// <summary>0x80. Per-image RLE applied AFTER the bulk decompress. Read at load (decompress)
