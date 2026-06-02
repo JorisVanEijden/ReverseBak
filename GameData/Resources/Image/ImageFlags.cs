@@ -17,12 +17,14 @@ namespace GameData.Resources.Image;
 /// dereferenced at +0/+2 (data), +6 (Width), +8 (Height) — never +4. Sprite flip comes from negative
 /// width/height arguments at call time, not stored 0x01/0x02. So 0x01/0x02/0x04/0x40 are authoring
 /// metadata, safe to ignore for rendering.
-/// <b>Closed by call-graph audit (2026-06-02):</b> the complete bitmap-consumer set — 63 functions
-/// (loader + every blitter / scaled / rotated / sprite renderer + getters + cache + all their callers)
-/// — was scanned for <c>[reg+4]</c> reads. Only the four typed readers above touch a bitmap's flags
-/// (all testing 0x20/0x80); every other +4 read traces to a non-bitmap struct (vertices, mesh records,
-/// dialog-action structs, UI rects, config). The authoring meaning of 0x40 (below) and the inventory
-/// subfield is a separate, data-side question.</para>
+/// <b>Call-graph sweep (2026-06-02) — strong evidence, NOT proof.</b> Scanning the bitmap-typed
+/// functions plus all callers of the known blitters/getters/loader/cache (63 funcs) for <c>[reg+4]</c>
+/// reads found only the four typed readers above touching a bitmap's flags (all testing 0x20/0x80);
+/// every other +4 read traced to a non-bitmap struct (vertices, mesh records, dialog-action structs,
+/// UI rects, config). <b>Caveat:</b> KRONDOR.EXE is far from fully typed/reversed (~46% still sub_*),
+/// so a bitmap handler whose pointer/locals aren't typed as <c>bitmap</c> and that doesn't route through
+/// a known blitter (a custom inline blit, or an un-RE'd helper that inspects flags) would fall outside
+/// this sweep. So 0x04/0x40 are "no consumer found, very likely unused" — not proven unused.</para>
 ///
 /// <para><b>Shipped-data distribution (4225 images across 413 files):</b> 0x08 and 0x10 are
 /// <b>never set</b>. 0x40 is set on 90.6% of images. 0x01/0x02/0x04 only ever appear together with
@@ -48,10 +50,13 @@ public enum ImageFlags {
     /// size/grid-footprint meaning (each value spans wildly different dimensions). Correlating each
     /// item's icon to its subfield — via the real mapping <c>icon!=0 ? icon : objectNumber</c>
     /// (getIconImageData 0x56185; objinfo `icon=0` is a sentinel, NOT a bug) — also shows the 0–7
-    /// value does <b>not</b> encode ObjectType, InventorySlots, or image size. Sheet-position/art-batch
-    /// is also ruled out (values are scattered — avg run ~1.3 in INVSHP1), with no clean compressed-size
-    /// correlation. <b>Terminal verdict:</b> opaque per-image authoring/tooling metadata, not engine-read,
-    /// not recoverable from the binary or shipped data (would need the original art tool).</summary>
+    /// value does <b>not</b> encode ObjectType, InventorySlots, or image size; sheet-position/art-batch
+    /// and compressed-size show no correlation either (values scattered, avg run ~1.3 in INVSHP1).
+    /// These are negative results against the data I could join — <b>not</b> a closed answer: the
+    /// inventory/icon code is largely un-reversed, so the meaning may well be recoverable by reversing
+    /// those paths (or from the original art tool/format). Current status: undetermined per-item
+    /// authoring metadata, no data-side correlation found, apparently not engine-read (same sweep
+    /// caveat as the type summary).</summary>
     Unknown4 = 0x04,
 
     /// <summary>0x08. Never set in any shipped image — dead bit.</summary>
