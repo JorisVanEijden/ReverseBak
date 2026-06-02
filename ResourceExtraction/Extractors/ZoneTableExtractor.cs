@@ -558,9 +558,9 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
                     RenderType = renderType,
                     Unknown01 = padding01,
                     BitmapIndex = reader.ReadUInt16(),
-                    Unknown04 = reader.ReadByte(),
-                    Unknown05 = reader.ReadByte(),
-                    Unknown06 = reader.ReadByte(),
+                    AnchorY = reader.ReadByte(),
+                    AnchorX = reader.ReadByte(),
+                    SizeScale = reader.ReadByte(),
                     VertexIndex = reader.ReadByte()
                 };
             }

@@ -271,22 +271,48 @@ public class SpriteAMeshFace : MeshFaceRecord
     public byte Unknown07 { get; set; }
 }
 
-/// <summary>RenderType &gt;= 2. Handled by renderSprite2 (0x23031). Bitmap-anchored billboard.</summary>
+/// <summary>RenderType &gt;= 2. Handled by renderSprite2 (0x23031). Bitmap-anchored billboard.
+///
+/// Full read trace of renderSprite2 (2026-06-02): the dispatcher passes <c>&amp;record+2</c>
+/// (renderShapeDispatcher 0x2a880: <c>add ax,2; call renderSprite2</c>), so every offset
+/// below is the on-disk struct offset. The billboard is built as:
+/// <code>
+///   cx = SizeScale != 0 ? (SizeScale * viewScale) >> 8 : viewScale   // viewScale = word_seg024_380F
+///   si = (cx << 10) / (max(texW, texH) / 2)                          // scale ratio
+///   screenW = texW * si >> 10 ;  screenH = texH * si >> 10           // larger dim → ~2*cx px
+///   xPos = proj(VertexIndex).x - (AnchorX * si >> 10)                // mirrored to (screenW-x) when bitmap h-flipped
+///   yPos = proj(VertexIndex).y - (AnchorY * si >> 10)
+/// </code>
+/// So <see cref="SizeScale"/> is the world-space size of the billboard (the bitmap's own
+/// pixel dimensions only set the aspect ratio), and (<see cref="AnchorX"/>, <see cref="AnchorY"/>)
+/// is the hotspot inside the unscaled bitmap that lands on the projected anchor vertex.</summary>
 public class SpriteBMeshFace : MeshFaceRecord
 {
-    /// <summary>+0x02. Index into pBitmapSlots[]; 0xFFFF triggers placeholder lookup.</summary>
+    /// <summary>+0x02. Index into pBitmapSlots[]; 0xFFFF triggers placeholder lookup. Read at 0x23066.</summary>
     public ushort BitmapIndex { get; set; }
 
-    /// <summary>+0x04. Not directly read by handler prolog.</summary>
-    public byte Unknown04 { get; set; }
+    /// <summary>+0x04. Anchor/hotspot <b>Y</b> in unscaled source-bitmap pixels. Scaled by the
+    /// sprite's <c>si</c> factor and subtracted from the projected anchor-vertex screen Y to get
+    /// the bitmap's top edge (renderSprite2 0x231c2 low byte → 0x23260). Typically near the
+    /// bottom of the frame (feet-on-ground); e.g. the gorath creature ships ~50–70.</summary>
+    public byte AnchorY { get; set; }
 
-    /// <summary>+0x05. Not directly read by handler prolog.</summary>
-    public byte Unknown05 { get; set; }
+    /// <summary>+0x05. Anchor/hotspot <b>X</b> in unscaled source-bitmap pixels. Scaled and
+    /// subtracted from the projected anchor-vertex screen X (renderSprite2 0x231c2 high byte →
+    /// 0x23254); mirrored to <c>screenW - x</c> when the bitmap is horizontally flipped
+    /// (bitmap_flags_048E != 0, 0x231f5). Typically ≈ width/2 (horizontal centre).</summary>
+    public byte AnchorX { get; set; }
 
-    /// <summary>+0x06. Not directly read by handler prolog.</summary>
-    public byte Unknown06 { get; set; }
+    /// <summary>+0x06. World-space size factor for the billboard. <c>0</c> = draw at the default
+    /// view scale; nonzero scales it: <c>cx = (SizeScale * word_seg024_380F) >> 8</c>, and the
+    /// bitmap's larger dimension is scaled to ≈ <c>2*cx</c> screen px (renderSprite2 0x230d4 →
+    /// 0x2310a). The texture's pixel dimensions only set the aspect ratio. The exact world-unit
+    /// calibration depends on the runtime value of <c>word_seg024_380F</c> (set per-frame in
+    /// updateViewTransform from view distance) — verify in Spice86 before using as an absolute.
+    /// Observed range 0–255, clustered around 100–130.</summary>
+    public byte SizeScale { get; set; }
 
-    /// <summary>+0x07. Vertex used as billboard anchor.</summary>
+    /// <summary>+0x07. Vertex used as billboard anchor (projected to screen, read at 0x230b4).</summary>
     public byte VertexIndex { get; set; }
 }
 
