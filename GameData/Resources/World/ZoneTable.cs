@@ -105,14 +105,18 @@ public class TableDatInfo
     /// World-space size = Extent &lt;&lt; VertexScale.</summary>
     public byte VertexScale { get; set; }
 
-    /// <summary>+0x04. Purpose TBD — not read by any rendering-pipeline function. Non-zero
-    /// only on ~20 interactive entity types (boom/gate/m_door/catapult); likely an
-    /// interaction parameter consumed elsewhere. Observed: 0/1/2.</summary>
+    /// <summary>+0x04. Purpose TBD. Verified 2026-06-02 NOT read by the render pipeline
+    /// (RenderWorldItem/ComputeZoneDrawDistance) nor by any per-type-slot consumer of
+    /// <c>pTblDataSlots</c> (load/free/swap/lookup). The 26-byte entity header is only walked by
+    /// RenderWorldItem, which ignores +4/+6 — so any reader resolves the header by a different path.
+    /// Non-zero only on ~20 <b>animated</b> entity types (boom/gate/m_door/catapult), so likely an
+    /// animation parameter; confirming needs a Spice86 memory watchpoint (no static reader found).
+    /// Observed: 0/1/2.</summary>
     public ushort Unknown04 { get; set; }
 
-    /// <summary>+0x06. Purpose TBD — not read by any rendering-pipeline function. Non-zero
-    /// only on the same ~20 interactive entities as Unknown04; small per-zone-varying
-    /// integers (likely sound/event id or interaction target tag).</summary>
+    /// <summary>+0x06. Purpose TBD. Same status as <see cref="Unknown04"/> — no static reader; non-zero
+    /// only on the same ~20 animated entities; small per-zone-varying integers (animation
+    /// speed/frame/target?). Confirm with a runtime watchpoint.</summary>
     public ushort Unknown06 { get; set; }
 
     /// <summary>+0x08. Number of LOD records at LodArrayOffset.</summary>
@@ -245,7 +249,10 @@ public class PolygonMeshFace : MeshFaceRecord
     /// <summary>+0x02. Number of polygon face records at PFaceArray.</summary>
     public ushort FaceCount { get; set; }
 
-    /// <summary>+0x06. Not directly read on the polygon path. Possibly bounding-box seed (TO VERIFY).</summary>
+    /// <summary>+0x06. Vestigial / editor-time. Verified 2026-06-02: none of the three polygon
+    /// renderers (processEntityFaces 0x23a48, processEntityFaces16 0x2505a, processEntityFaces32
+    /// 0x24e22) read it — they consume only +0x02 (FaceCount) and +0x04 (pFaceArray), then walk the
+    /// face array. No runtime reader; safe to ignore in the port (preserved verbatim).</summary>
     public ushort Unknown06 { get; set; }
 
     /// <summary>Resolved polygon face array (length = FaceCount).</summary>
