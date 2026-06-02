@@ -43,9 +43,11 @@ public enum ImageFlags {
     /// <summary>0x04. High bit of a 0–7 subfield (0x01/0x02/0x04) carried only by compressed
     /// column-major images in the inventory/icon sheets (INVSHP1/2, BICONS1/2, INVMISC, INVLOCK,
     /// TELEPORT). Not read by the render engine. Content analysis (2026-06-02) rules out a
-    /// size/grid-footprint meaning (each value spans wildly different dimensions); it is per-item
-    /// authoring metadata of undetermined semantics. Correlating it with item type/slots is blocked
-    /// by the extracted objinfo `Icon` field being unreliable (mostly 0) — a separate extractor issue.</summary>
+    /// size/grid-footprint meaning (each value spans wildly different dimensions). Correlating each
+    /// item's icon to its subfield — via the real mapping <c>icon!=0 ? icon : objectNumber</c>
+    /// (getIconImageData 0x56185; objinfo `icon=0` is a sentinel, NOT a bug) — also shows the 0–7
+    /// value does <b>not</b> encode ObjectType, InventorySlots, or image size. So it is per-item
+    /// authoring metadata of undetermined semantics (likely production-side art batching); not engine-read.</summary>
     Unknown4 = 0x04,
 
     /// <summary>0x08. Never set in any shipped image — dead bit.</summary>
