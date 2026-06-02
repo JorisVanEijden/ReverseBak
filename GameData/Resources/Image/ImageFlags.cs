@@ -3,12 +3,24 @@ namespace GameData.Resources.Image;
 /// <summary>
 /// Per-image flags from a "Normal" (sig 0x1066) BMX image-directory entry.
 ///
-/// <para><b>Engine usage (verified 2026-06-02 from KRONDOR.EXE):</b> the only bits the runtime ever
-/// reads from a loaded image's stored flags are <see cref="ReversedRowColumn"/> (0x20) and
-/// <see cref="Compressed"/> (0x80). Every consumer of the in-memory <c>bitmap.flags</c> field —
-/// the EGA planar blitter (sub_seg017_132E 0x17f7e), ApplyColorSetToBitmap (0x1657c) and
-/// anim_handle_drawing (0x52955) — tests only those two. So 0x01/0x02/0x04/0x40 are <b>not</b>
-/// consumed by rendering; they are authoring metadata and are safe to ignore in the port.</para>
+/// <para><b>Engine usage (investigated 2026-06-02 from KRONDOR.EXE — instruction-level sweep).</b>
+/// Reading the actual code, not just field-xrefs (which miss raw <c>[reg+4]</c> access): the loader
+/// <c>LoadBMPorBMX?</c> (0x1628e) stores the file's flags u16 <i>verbatim</i> into <c>bitmap.flags</c>
+/// (+4) and branches on none of the per-image bits (only the bulk-header compression). To catch
+/// untyped reads, every one of the 47 functions that touch a bitmap struct was scanned at the
+/// instruction level for <c>[reg+4]</c> memory operands, and the base register of each hit was traced:
+/// the only ones where the base actually holds a bitmap pointer are the four <c>flags</c> reads in
+/// <c>sub_seg017_132E</c> (0x17f7e), <c>ApplyColorSetToBitmap</c> (0x1657c) and <c>anim_handle_drawing</c>
+/// (0x52955) — all testing only <see cref="ReversedRowColumn"/> (0x20) and <see cref="Compressed"/>
+/// (0x80). Every other <c>[reg+4]</c> read targets a non-bitmap structure (mesh-face records, vertices,
+/// a clip rect, stack scratch, animation frame-command data). The bitmap pointer itself is only ever
+/// dereferenced at +0/+2 (data), +6 (Width), +8 (Height) — never +4. Sprite flip comes from negative
+/// width/height arguments at call time, not stored 0x01/0x02. So 0x01/0x02/0x04/0x40 are authoring
+/// metadata, safe to ignore for rendering.
+/// <b>Remaining gap:</b> a fully <i>untyped</i> bitmap consumer (no typed bitmap access at all, hence
+/// outside the 47-function set) would need a call-graph audit from the bitmap cache to exclude; none
+/// is known. And the <i>authoring</i> meaning of 0x40 / the inventory subfield is a separate question
+/// (engine non-use doesn't reveal it).</para>
 ///
 /// <para><b>Shipped-data distribution (4225 images across 413 files):</b> 0x08 and 0x10 are
 /// <b>never set</b>. 0x40 is set on 90.6% of images. 0x01/0x02/0x04 only ever appear together with
