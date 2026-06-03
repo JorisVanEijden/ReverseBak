@@ -18,6 +18,24 @@ public static class AspectCorrection {
     /// <summary>Vertical replication factor for VGA (320x200-space) pixels.</summary>
     public const int VgaScaleY = 6;
 
+    /// <summary>Horizontal replication factor for EGA (640x350-space) pixels.</summary>
+    public const int EgaScaleX = 2;
+
+    /// <summary>Scales a VGA (320x200-space) X coordinate or width into canonical 1600x1200 space.</summary>
+    public static int ScaleVgaX(int x) => x * VgaScaleX;
+
+    /// <summary>Scales a VGA (320x200-space) Y coordinate or height into canonical 1600x1200 space.</summary>
+    public static int ScaleVgaY(int y) => y * VgaScaleY;
+
+    /// <summary>Scales an EGA (640x350-space) X coordinate or width into canonical 1280x960 space.</summary>
+    public static int ScaleEgaX(int x) => x * EgaScaleX;
+
+    /// <summary>
+    /// Scales an EGA (640x350-space) Y coordinate or height into canonical 1280x960 space.
+    /// Uses the same 96/35 vertical resample as <see cref="CorrectEga"/> so coordinates and pixels align.
+    /// </summary>
+    public static int ScaleEgaY(int y) => (int)System.Math.Round(y * 96.0 / 35.0);
+
     /// <summary>
     /// Nearest-neighbour resamples an 8-bpp bitmap (one byte per palette index) to the given
     /// destination size. Operating on palette indices keeps the palette-swap shader pipeline intact.
