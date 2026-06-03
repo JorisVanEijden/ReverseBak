@@ -2,6 +2,8 @@ namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Book;
 
+using ResourceExtraction.Imaging;
+
 using System;
 using System.IO;
 using System.Text;
@@ -30,6 +32,7 @@ public class BokExtractor : ExtractorBase<BookResource> {
             book.Pages.Add(page);
         }
 
+        CanonicalSpace.Apply(book);
         return book;
     }
 

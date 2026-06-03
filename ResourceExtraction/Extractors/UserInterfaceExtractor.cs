@@ -2,6 +2,8 @@ namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Menu;
 
+using ResourceExtraction.Imaging;
+
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -62,6 +64,7 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         userInterface.Title = titleOffset >= 0 ? GetZeroTerminatedString(stringBuffer, titleOffset) : null;
         userInterface.MenuEntries = uiElements;
 
+        CanonicalSpace.Apply(userInterface);
         return userInterface;
     }
 

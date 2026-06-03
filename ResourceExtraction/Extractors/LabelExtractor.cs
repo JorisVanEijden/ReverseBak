@@ -3,6 +3,7 @@ namespace ResourceExtraction.Extractors;
 using GameData.Resources.Label;
 
 using ResourceExtraction.Extensions;
+using ResourceExtraction.Imaging;
 
 using System.IO;
 using System.Text;
@@ -30,6 +31,7 @@ public class LabelExtractor : ExtractorBase<LabelSet> {
             label.Text = resourceReader.ReadZeroTerminatedString();
         }
 
+        CanonicalSpace.Apply(labelSet);
         return labelSet;
     }
 }

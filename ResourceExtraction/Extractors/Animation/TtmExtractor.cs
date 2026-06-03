@@ -4,6 +4,7 @@ using GameData.Resources.Animation;
 using GameData.Resources.Animation.FrameCommands;
 using ResourceExtraction.Compression;
 using ResourceExtraction.Extensions;
+using ResourceExtraction.Imaging;
 using ResourceExtractor.Compression;
 using System;
 using System.Collections.Generic;
@@ -68,7 +69,9 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
         Dictionary<int, string> tags =  resourceReader.ReadTags();
         List<Frame> frames = ExtractFrames(commandBytes, id);
 
-        return new AnimationResource(id, version, tags, frames);
+        var animationResource = new AnimationResource(id, version, tags, frames);
+        CanonicalSpace.Apply(animationResource);
+        return animationResource;
     }
 
     private static List<Frame> ExtractFrames(byte[] commandBytes, string id) {
