@@ -1,5 +1,7 @@
 namespace GameData.Resources.Label;
 
+using GameData.Resources.Layout;
+
 public class Label {
     public int Offset { get; set; }
     public int XPosition { get; set; }
@@ -8,4 +10,5 @@ public class Label {
     public int ColorIndex { get; set; }
     public int ShadowColorIndex { get; set; }
     public string? Text { get; set; }
+    public LayoutHint Layout { get; set; } = new();
 }

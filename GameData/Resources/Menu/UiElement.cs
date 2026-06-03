@@ -1,5 +1,7 @@
 namespace GameData.Resources.Menu;
 
+using GameData.Resources.Layout;
+
 [Serializable]
 public class UiElement {
     public ElementType ElementType { get; set; }
@@ -22,4 +24,5 @@ public class UiElement {
     public string Label { get; set; }
     public string LabelAlt { get; set; } // alternate label; only rendered by InputField when State == 0 (the toggle-off text)
     public string Field13 { get; set; } // resolved string at Field13Offset; not displayed by any renderer
+    public LayoutHint Layout { get; set; } = new();
 }
