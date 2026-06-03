@@ -2,6 +2,8 @@ namespace ResourceExtraction.Tests.Imaging;
 
 using GameData.Resources.Animation;
 using GameData.Resources.Animation.FrameCommands;
+using GameData.Resources.Dialog;
+using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 using ResourceExtraction.Imaging;
@@ -98,6 +100,22 @@ public class CanonicalSpaceTests {
     public void ScaledAndTransitionCommands_ImplementIArea(System.Type commandType) {
         Assert.True(typeof(IArea).IsAssignableFrom(commandType),
             $"{commandType.Name} must implement IArea so CanonicalSpace scales its Width/Height.");
+    }
+
+    [Fact]
+    public void Apply_Dialog_ScalesResizeActionVga() {
+        var dialog = new Dialog("TEST.DDX");
+        var entry = new DialogEntry();
+        entry.Actions.Add(new ResizeDialogAction { Left = 13, Top = 11, Width = 294, Height = 101 });
+        dialog.Entries.Add(entry);
+
+        CanonicalSpace.Apply(dialog);
+
+        var resize = Assert.IsType<ResizeDialogAction>(dialog.Entries[0].Actions[0]);
+        Assert.Equal(65, resize.Left);
+        Assert.Equal(66, resize.Top);
+        Assert.Equal(1470, resize.Width);
+        Assert.Equal(606, resize.Height);
     }
 
     [Fact]

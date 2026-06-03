@@ -3,6 +3,8 @@ namespace ResourceExtraction.Imaging;
 using GameData.Resources.Animation;
 using GameData.Resources.Animation.FrameCommands;
 using GameData.Resources.Book;
+using GameData.Resources.Dialog;
+using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 
@@ -58,6 +60,19 @@ public static class CanonicalSpace {
                 area.Y = AspectCorrection.ScaleEgaY(area.Y);
                 area.X2 = AspectCorrection.ScaleEgaX(area.X2);
                 area.Y2 = AspectCorrection.ScaleEgaY(area.Y2);
+            }
+        }
+    }
+
+    public static void Apply(Dialog dialog) {
+        foreach (DialogEntry entry in dialog.Entries) {
+            foreach (DialogActionBase action in entry.Actions) {
+                if (action is ResizeDialogAction resize) {
+                    resize.Left = AspectCorrection.ScaleVgaX(resize.Left);
+                    resize.Top = AspectCorrection.ScaleVgaY(resize.Top);
+                    resize.Width = AspectCorrection.ScaleVgaX(resize.Width);
+                    resize.Height = AspectCorrection.ScaleVgaY(resize.Height);
+                }
             }
         }
     }

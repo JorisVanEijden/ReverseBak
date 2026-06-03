@@ -2,6 +2,7 @@ namespace ResourceExtraction.Extractors.Dialog;
 
 using GameData.Resources.Dialog;
 using GameData.Resources.Dialog.Actions;
+using ResourceExtraction.Imaging;
 
 using System.Collections.Generic;
 using System.IO;
@@ -85,6 +86,7 @@ public class DdxExtractor : ExtractorBase<Dialog> {
             dialog.Entries.Add(dialogEntry);
         }
 
+        CanonicalSpace.Apply(dialog);
         return dialog;
     }
 }
