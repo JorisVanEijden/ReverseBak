@@ -1,6 +1,8 @@
 namespace GameData.Resources.Animation.FrameCommands;
 
-public class DrawImageScaled : DrawImageBase {
+using GameData.Resources.Animation;
+
+public class DrawImageScaled : DrawImageBase, IArea {
     public int Width { get; set; }
     public int Height { get; set; }
 

@@ -1,10 +1,12 @@
 namespace GameData.Resources.Animation.FrameCommands;
 
+using GameData.Resources.Animation;
+
 // TTM 0xA0B5: 5-argument screen-transition variant over (X, Y, Width, Height).
 // Like 0xA014 it resolves to the "instant" (no visible wipe) style in
 // anim_screenTransitionEffect (IDA @ 0x53ab5); Arg5 is read from the script but
 // ignored by the engine.
-public class ScreenTransitionInstant5 : FrameCommand {
+public class ScreenTransitionInstant5 : FrameCommand, IArea {
     public int X { get; set; }
 
     public int Y { get; set; }

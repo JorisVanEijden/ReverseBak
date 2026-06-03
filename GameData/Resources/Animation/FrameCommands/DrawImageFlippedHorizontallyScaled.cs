@@ -1,6 +1,8 @@
 namespace GameData.Resources.Animation.FrameCommands;
 
-public class DrawImageFlippedHorizontallyScaled : DrawImageBase {
+using GameData.Resources.Animation;
+
+public class DrawImageFlippedHorizontallyScaled : DrawImageBase, IArea {
     public int Width { get; set; }
     public int Height { get; set; }
 

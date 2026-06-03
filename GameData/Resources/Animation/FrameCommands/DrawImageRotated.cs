@@ -1,7 +1,9 @@
 namespace GameData.Resources.Animation.FrameCommands;
 
+using GameData.Resources.Animation;
+
 // This draws images rotated at a free angle, and scaled.
-public class DrawImageRotated : DrawImageBase {
+public class DrawImageRotated : DrawImageBase, IArea {
     private int _angle;
     public int Width { get; set; }
     public int Height { get; set; }

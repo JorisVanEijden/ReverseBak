@@ -1,6 +1,8 @@
 namespace GameData.Resources.Animation.FrameCommands;
 
-public class DrawImageRotated180Scaled : DrawImageBase {
+using GameData.Resources.Animation;
+
+public class DrawImageRotated180Scaled : DrawImageBase, IArea {
     public int Width { get; set; }
     public int Height { get; set; }
 

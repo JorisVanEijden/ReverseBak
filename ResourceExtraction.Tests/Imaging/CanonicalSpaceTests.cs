@@ -1,5 +1,7 @@
 namespace ResourceExtraction.Tests.Imaging;
 
+using GameData.Resources.Animation;
+using GameData.Resources.Animation.FrameCommands;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 using ResourceExtraction.Imaging;
@@ -81,5 +83,20 @@ public class CanonicalSpaceTests {
         Assert.Equal(219, page.ReservedAreas[0].Y);
         Assert.Equal(1188, page.ReservedAreas[0].X2);  // 594 * 2
         Assert.Equal(878, page.ReservedAreas[0].Y2);   // round(320 * 96 / 35) = round(877.71)
+    }
+
+    [Theory]
+    [InlineData(typeof(DrawImageScaled))]
+    [InlineData(typeof(DrawImageRotated))]
+    [InlineData(typeof(DrawImageRotated180Scaled))]
+    [InlineData(typeof(DrawImageFlippedHorizontallyScaled))]
+    [InlineData(typeof(DrawImageFlippedVerticallyScaled))]
+    [InlineData(typeof(ScreenTransitionBoxIn))]
+    [InlineData(typeof(ScreenTransitionBoxOut))]
+    [InlineData(typeof(ScreenTransitionInstant))]
+    [InlineData(typeof(ScreenTransitionInstant5))]
+    public void ScaledAndTransitionCommands_ImplementIArea(System.Type commandType) {
+        Assert.True(typeof(IArea).IsAssignableFrom(commandType),
+            $"{commandType.Name} must implement IArea so CanonicalSpace scales its Width/Height.");
     }
 }
