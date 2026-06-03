@@ -1,5 +1,7 @@
 namespace ResourceExtraction.Imaging;
 
+using GameData.Resources.Animation;
+using GameData.Resources.Animation.FrameCommands;
 using GameData.Resources.Book;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
@@ -56,6 +58,25 @@ public static class CanonicalSpace {
                 area.Y = AspectCorrection.ScaleEgaY(area.Y);
                 area.X2 = AspectCorrection.ScaleEgaX(area.X2);
                 area.Y2 = AspectCorrection.ScaleEgaY(area.Y2);
+            }
+        }
+    }
+
+    public static void Apply(AnimationResource animation) {
+        foreach (Frame frame in animation.Frames) {
+            foreach (FrameCommand command in frame.Commands) {
+                // IArea covers area commands, scaled draws, and screen transitions: scale X/Y/Width/Height.
+                if (command is IArea area) {
+                    area.X = AspectCorrection.ScaleVgaX(area.X);
+                    area.Y = AspectCorrection.ScaleVgaY(area.Y);
+                    area.Width = AspectCorrection.ScaleVgaX(area.Width);
+                    area.Height = AspectCorrection.ScaleVgaY(area.Height);
+                }
+                // Plain image draws (no Width/Height): scale position only.
+                else if (command is DrawImageBase image) {
+                    image.X = AspectCorrection.ScaleVgaX(image.X);
+                    image.Y = AspectCorrection.ScaleVgaY(image.Y);
+                }
             }
         }
     }

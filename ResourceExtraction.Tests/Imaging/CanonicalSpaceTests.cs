@@ -99,4 +99,38 @@ public class CanonicalSpaceTests {
         Assert.True(typeof(IArea).IsAssignableFrom(commandType),
             $"{commandType.Name} must implement IArea so CanonicalSpace scales its Width/Height.");
     }
+
+    [Fact]
+    public void Apply_AnimationResource_ScalesCommandsVga() {
+        var anim = new AnimationResource("C11.TTM", "1.0", new Dictionary<int, string>(), new List<Frame> {
+            new Frame { Commands = new List<FrameCommand> {
+                new DrawImage { X = 13, Y = 11 },                           // plain: X,Y only
+                new DrawImageScaled { X = 2, Y = 3, Width = 4, Height = 5 },// scaled: X,Y,W,H
+                new FillArea { X = 1, Y = 2, Width = 3, Height = 4 },       // IArea: X,Y,W,H
+                new ScreenTransitionBoxIn { X = 10, Y = 20, Width = 30, Height = 40 }
+            } }
+        });
+
+        CanonicalSpace.Apply(anim);
+
+        var cmds = anim.Frames[0].Commands;
+        var draw = Assert.IsType<DrawImage>(cmds[0]);
+        Assert.Equal(65, draw.X);
+        Assert.Equal(66, draw.Y);
+        var scaled = Assert.IsType<DrawImageScaled>(cmds[1]);
+        Assert.Equal(10, scaled.X);
+        Assert.Equal(18, scaled.Y);
+        Assert.Equal(20, scaled.Width);
+        Assert.Equal(30, scaled.Height);
+        var fill = Assert.IsType<FillArea>(cmds[2]);
+        Assert.Equal(5, fill.X);
+        Assert.Equal(12, fill.Y);
+        Assert.Equal(15, fill.Width);
+        Assert.Equal(24, fill.Height);
+        var trans = Assert.IsType<ScreenTransitionBoxIn>(cmds[3]);
+        Assert.Equal(50, trans.X);
+        Assert.Equal(120, trans.Y);
+        Assert.Equal(150, trans.Width);
+        Assert.Equal(240, trans.Height);
+    }
 }
