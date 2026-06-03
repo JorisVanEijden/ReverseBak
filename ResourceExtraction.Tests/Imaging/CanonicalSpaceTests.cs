@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Tests.Imaging;
 
+using GameData.Resources.Label;
 using GameData.Resources.Menu;
 using ResourceExtraction.Imaging;
 using Xunit;
@@ -27,5 +28,19 @@ public class CanonicalSpaceTests {
         Assert.Equal(18, ui.MenuEntries[0].YPosition);
         Assert.Equal(20, ui.MenuEntries[0].Width);
         Assert.Equal(30, ui.MenuEntries[0].Height);
+    }
+
+    [Fact]
+    public void Apply_LabelSet_ScalesLabelPositionsVga() {
+        var set = new LabelSet("LBL_TEST.DAT") {
+            Labels = [
+                new Label { XPosition = 13, YPosition = 11 }
+            ]
+        };
+
+        CanonicalSpace.Apply(set);
+
+        Assert.Equal(65, set.Labels[0].XPosition);
+        Assert.Equal(66, set.Labels[0].YPosition);
     }
 }

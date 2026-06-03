@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Imaging;
 
+using GameData.Resources.Label;
 using GameData.Resources.Menu;
 
 /// <summary>
@@ -21,6 +22,13 @@ public static class CanonicalSpace {
             entry.YPosition = AspectCorrection.ScaleVgaY(entry.YPosition);
             entry.Width = AspectCorrection.ScaleVgaX(entry.Width);
             entry.Height = AspectCorrection.ScaleVgaY(entry.Height);
+        }
+    }
+
+    public static void Apply(LabelSet labels) {
+        foreach (Label label in labels.Labels) {
+            label.XPosition = AspectCorrection.ScaleVgaX(label.XPosition);
+            label.YPosition = AspectCorrection.ScaleVgaY(label.YPosition);
         }
     }
 }
