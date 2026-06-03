@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Imaging;
 
+using GameData.Resources.Book;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 
@@ -29,6 +30,33 @@ public static class CanonicalSpace {
         foreach (Label label in labels.Labels) {
             label.XPosition = AspectCorrection.ScaleVgaX(label.XPosition);
             label.YPosition = AspectCorrection.ScaleVgaY(label.YPosition);
+        }
+    }
+
+    public static void Apply(BookResource book) {
+        foreach (Page page in book.Pages) {
+            page.XOffset = AspectCorrection.ScaleEgaX(page.XOffset);
+            page.YOffset = AspectCorrection.ScaleEgaY(page.YOffset);
+            page.Width = AspectCorrection.ScaleEgaX(page.Width);
+            page.Height = AspectCorrection.ScaleEgaY(page.Height);
+            foreach (BookImage image in page.Images) {
+                image.X = AspectCorrection.ScaleEgaX(image.X);
+                image.Y = AspectCorrection.ScaleEgaY(image.Y);
+            }
+            foreach (Paragraph paragraph in page.Paragraphs) {
+                paragraph.XOffset = AspectCorrection.ScaleEgaX(paragraph.XOffset);
+                paragraph.YOffset = AspectCorrection.ScaleEgaY(paragraph.YOffset);
+                paragraph.Width = AspectCorrection.ScaleEgaX(paragraph.Width);
+                paragraph.StartIndent = AspectCorrection.ScaleEgaX(paragraph.StartIndent);
+                paragraph.LineSpacing = AspectCorrection.ScaleEgaY(paragraph.LineSpacing);
+                paragraph.InterParagraphSpacing = AspectCorrection.ScaleEgaY(paragraph.InterParagraphSpacing);
+            }
+            foreach (ReservedArea area in page.ReservedAreas) {
+                area.X = AspectCorrection.ScaleEgaX(area.X);
+                area.Y = AspectCorrection.ScaleEgaY(area.Y);
+                area.X2 = AspectCorrection.ScaleEgaX(area.X2);
+                area.Y2 = AspectCorrection.ScaleEgaY(area.Y2);
+            }
         }
     }
 }
