@@ -27,7 +27,7 @@ public static class DialogStyleTable {
         // (the bright cream/gold of the typical BaK cutscene palette, the same
         // pen the name bubble draws with); field_3=0x02 → text drop-shadow in
         // pen 1 (field_3-1). No chrome (fill/border/bevel all 0).
-        // VGA (8, 120, 305, 75) → percent below. Text inset field_9=field_A=8
+        // VGA (8, 120, 305, 75) → canonical below. Text inset field_9=field_A=8
         // VGA px over a 305-px-wide panel → 8/305 = 2.623 %.
         new DialogStyle(
             FillPenColor: 0x00,
@@ -35,7 +35,7 @@ public static class DialogStyleTable {
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x0A,
             TextShadowPenSource: 0x02,
-            DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f),
+            DefaultArea: new DialogArea(40, 720, 1525, 450),
             TextPadLeftPct: 2.62295f,
             TextPadRightPct: 2.62295f),
 
@@ -45,7 +45,7 @@ public static class DialogStyleTable {
         // Raw bytes (0x3a859): field_2=0 → body text in pen 0 (black);
         // field_3=0 → no text shadow. Chrome: field_1=1 (stripe fill),
         // field_4=1 (border), field_5=4 (bevel).
-        // VGA (13, 11, 294, 101) → percent below. Text inset field_9=field_A=10
+        // VGA (13, 11, 294, 101) → canonical below. Text inset field_9=field_A=10
         // VGA px over a 294-px-wide panel → 10/294 = 3.401 %.
         new DialogStyle(
             FillPenColor: 0x01,
@@ -53,7 +53,7 @@ public static class DialogStyleTable {
             ShadowPenColor: 0x04,
             BodyTextPenColor: 0x00,
             TextShadowPenSource: 0x00,
-            DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 50.5f),
+            DefaultArea: new DialogArea(65, 66, 1470, 606),
             TextPadLeftPct: 3.40136f,
             TextPadRightPct: 3.40136f),
 
@@ -61,7 +61,7 @@ public static class DialogStyleTable {
         // Raw bytes (0x3a86d): field_2=0 → body text in pen 0 (black);
         // field_3=0 → no text shadow; no chrome. The bare wooden strip in the
         // cutscene buffer supplies all the contrast.
-        // VGA (8, 118, 305, 73) → percent below. X=8 → 8/320 = 2.5% (same as
+        // VGA (8, 118, 305, 73) → canonical below. X=8 → ×5=40 (same as
         // row 1); a prior transcription had 5% here, which made LeftPct+WidthPct
         // overflow 100%.
         // Text inset field_9=field_A=8 VGA px over a 305-px-wide panel →
@@ -72,20 +72,20 @@ public static class DialogStyleTable {
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x00,
             TextShadowPenSource: 0x00,
-            DefaultArea: new DialogArea(2.5f, 59f, 95.3125f, 36.5f),
+            DefaultArea: new DialogArea(40, 708, 1525, 438),
             TextPadLeftPct: 2.62295f,
             TextPadRightPct: 2.62295f),
 
         // Row 4: unreachable. Identical to row 1; no source byte produces 4
         // and the dispatcher never assigns dx=4.
-        // VGA (8, 120, 305, 75) → percent below. Text inset as row 1.
+        // VGA (8, 120, 305, 75) → canonical below. Text inset as row 1.
         new DialogStyle(
             FillPenColor: 0x00,
             BorderPenColor: 0x00,
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x0A,
             TextShadowPenSource: 0x02,
-            DefaultArea: new DialogArea(2.5f, 60f, 95.3125f, 37.5f),
+            DefaultArea: new DialogArea(40, 720, 1525, 450),
             TextPadLeftPct: 2.62295f,
             TextPadRightPct: 2.62295f),
 
@@ -93,7 +93,7 @@ public static class DialogStyleTable {
         // context flag (dialog_word_3AC96 != 0). Identical pens to row 2.
         // Raw bytes (0x3a895): field_2=0 → body text pen 0; field_3=0 → no
         // text shadow; field_1=1, field_4=1, field_5=4 chrome.
-        // VGA (13, 11, 294, 121) → percent below. Text inset as row 2
+        // VGA (13, 11, 294, 121) → canonical below. Text inset as row 2
         // (field_9=field_A=10 over 294 → 3.401 %).
         new DialogStyle(
             FillPenColor: 0x01,
@@ -101,7 +101,7 @@ public static class DialogStyleTable {
             ShadowPenColor: 0x04,
             BodyTextPenColor: 0x00,
             TextShadowPenSource: 0x00,
-            DefaultArea: new DialogArea(4.0625f, 5.5f, 91.875f, 60.5f),
+            DefaultArea: new DialogArea(65, 66, 1470, 726),
             TextPadLeftPct: 3.40136f,
             TextPadRightPct: 3.40136f),
 
@@ -111,7 +111,7 @@ public static class DialogStyleTable {
         // `dec ax; cmp ax, 5` branch at 0x4886c, which fires when
         // dialogType == 6). Raw bytes (0x3a8a9): field_2=0 → body text pen 0;
         // field_3=0 → no text shadow; no chrome pens.
-        // VGA (25, 21, 270, 160) → percent below. Text inset field_9=field_A=1
+        // VGA (25, 21, 270, 160) → canonical below. Text inset field_9=field_A=1
         // VGA px over a 270-px-wide panel → 1/270 = 0.370 %.
         new DialogStyle(
             FillPenColor: 0x00,
@@ -119,7 +119,7 @@ public static class DialogStyleTable {
             ShadowPenColor: 0x00,
             BodyTextPenColor: 0x00,
             TextShadowPenSource: 0x00,
-            DefaultArea: new DialogArea(7.8125f, 10.5f, 84.375f, 80f),
+            DefaultArea: new DialogArea(125, 126, 1350, 960),
             TextPadLeftPct: 0.37037f,
             TextPadRightPct: 0.37037f),
     };

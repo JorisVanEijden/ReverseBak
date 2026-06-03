@@ -151,12 +151,12 @@ public class DialogTypeResolverTests {
     [Fact]
     public void ResolveStyle_PicksTheCorrectRow() {
         // Source = Normal (0), no overrides → effective 2 → row 2's area.
-        // VGA (13, 11, 294, 101) → (4.0625, 5.5, 91.875, 50.5) percent.
+        // VGA (13, 11, 294, 101) → canonical (65, 66, 1470, 606).
         var entry = new DialogEntry { DialogType = DialogType.Normal, ActorNumber = 0 };
 
         DialogStyle style = DialogTypeResolver.ResolveStyle(DialogContext.None, entry);
 
-        Assert.Equal(new DialogArea(4.0625f, 5.5f, 91.875f, 50.5f), style.DefaultArea);
+        Assert.Equal(new DialogArea(65, 66, 1470, 606), style.DefaultArea);
     }
 
     // ────────────────── Style table integrity ──────────────────
@@ -181,8 +181,8 @@ public class DialogTypeResolverTests {
         DialogStyle style = DialogStyleTable.Get(rowId);
 
         // Smoke check — defined rows must have a non-empty area.
-        Assert.True(style.DefaultArea.WidthPct > 0f);
-        Assert.True(style.DefaultArea.HeightPct > 0f);
+        Assert.True(style.DefaultArea.Width > 0);
+        Assert.True(style.DefaultArea.Height > 0);
     }
 
     [Theory]
@@ -197,23 +197,23 @@ public class DialogTypeResolverTests {
     [Fact]
     public void StyleTable_Row6_HasFullScreenArea() {
         // From bytes at 0x3a8b5: actionData VGA (25, 21, 270, 160)
-        // → percent (7.8125, 10.5, 84.375, 80).
+        // → canonical (125, 126, 1350, 960).
         DialogStyle style = DialogStyleTable.Get(6);
 
-        Assert.Equal(new DialogArea(7.8125f, 10.5f, 84.375f, 80f), style.DefaultArea);
+        Assert.Equal(new DialogArea(125, 126, 1350, 960), style.DefaultArea);
     }
 
     [Fact]
     public void StyleTable_Row3_HasNarrativeArea() {
         // PlainWithoutBox (cutscene narrative strip). actionData VGA
-        // (8, 118, 305, 73) → percent (2.5, 59, 95.3125, 36.5). X is 8 (same as
+        // (8, 118, 305, 73) → canonical (40, 708, 1525, 438). X is 8 (same as
         // row 1), NOT 16 — a prior transcription used 5% and pushed
-        // LeftPct+WidthPct past 100%. Fields are (X, Y, Width, Height), per the
+        // Left+Width past 1600. Fields are (X, Y, Width, Height), per the
         // field use in dialog_DrawChrome (0x48632).
         DialogStyle style = DialogStyleTable.Get(3);
 
-        Assert.Equal(new DialogArea(2.5f, 59f, 95.3125f, 36.5f), style.DefaultArea);
-        Assert.True(style.DefaultArea.LeftPct + style.DefaultArea.WidthPct <= 100f);
+        Assert.Equal(new DialogArea(40, 708, 1525, 438), style.DefaultArea);
+        Assert.True(style.DefaultArea.Left + style.DefaultArea.Width <= 1600);
     }
 
     [Fact]

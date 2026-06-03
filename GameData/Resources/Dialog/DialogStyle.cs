@@ -87,17 +87,16 @@ public record struct DialogStyle(
 }
 
 /// <summary>
-/// Screen rectangle for a DialogStyle, expressed as percentages (0..100) of
-/// the game viewport. The extractor converts from the original 320×200 VGA
-/// coordinates at build time (<c>X / 320 * 100</c>, <c>Y / 200 * 100</c>);
-/// downstream consumers never see VGA pixels. The 4:3 aspect-ratio
-/// "non-square pixel" correction the original game relied on falls out
-/// automatically: dividing Y by 200 (the VGA vertical resolution) and
-/// rendering into a 4:3 viewport is equivalent to the implicit ×1.2
-/// vertical stretch.
+/// Screen rectangle for a DialogStyle in the canonical 1600×1200 coordinate
+/// space (VGA 320×200 scaled ×5 horizontal / ×6 vertical). The extractor
+/// converts from the original 320×200 VGA coordinates at build time
+/// (<c>X * 5</c>, <c>Y * 6</c>); downstream consumers never see VGA pixels.
+/// The 4:3 aspect-ratio "non-square pixel" correction the original game relied
+/// on falls out automatically: the ×6 vertical factor preserves the implicit
+/// ×1.2 vertical stretch relative to the ×5 horizontal factor.
 ///
 /// Source: <c>dialogAction_ResizeDialog</c> at offset 12 of
 /// <c>dialogTypeData</c> (per style row), plus per-entry <c>ResizeDialog</c>
 /// overrides resolved by <c>dialog_getDialogArea</c> at 0x485bc.
 /// </summary>
-public record struct DialogArea(float LeftPct, float TopPct, float WidthPct, float HeightPct);
+public record struct DialogArea(int Left, int Top, int Width, int Height);
