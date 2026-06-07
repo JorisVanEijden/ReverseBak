@@ -18,16 +18,10 @@ public static class CanonicalSpace {
     public static void Apply(UserInterface ui) {
         ui.XPosition = AspectCorrection.ScaleVgaX(ui.XPosition);
         ui.YPosition = AspectCorrection.ScaleVgaY(ui.YPosition);
-        // REQ_PREF / REQ_MAIN ship Width = Height = 1 as a "no meaningful
+        // REQ_PREF / REQ_MAIN ship Width = Height = 1 as a "full screen
         // canvas size" sentinel (their entries use absolute coordinates).
-        // Scaling it to 5x6 would defeat consumers' `> 1` sentinel checks —
-        // keep it verbatim.
-        if (ui.Width > 1) {
-            ui.Width = AspectCorrection.ScaleVgaX(ui.Width);
-        }
-        if (ui.Height > 1) {
-            ui.Height = AspectCorrection.ScaleVgaY(ui.Height);
-        }
+        ui.Width = ui.Width > 1 ? AspectCorrection.ScaleVgaX(ui.Width) : 1600;
+        ui.Height = ui.Height > 1 ? AspectCorrection.ScaleVgaY(ui.Height) : 1200;
         ui.XOffset = AspectCorrection.ScaleVgaX(ui.XOffset);
         ui.YOffset = AspectCorrection.ScaleVgaY(ui.YOffset);
         foreach (UiElement entry in ui.MenuEntries) {
