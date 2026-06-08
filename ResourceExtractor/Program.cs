@@ -3,6 +3,7 @@ namespace ResourceExtractor;
 using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
+using GameData.Resources.Credits;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
 using GameData.Resources.Image;
@@ -124,6 +125,12 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--req") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractUserInterfaces(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--cred") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractCredits(gamePath);
             return;
         }
 
@@ -761,6 +768,20 @@ internal static class Program {
 
     // Extracts CHAPSONG.DAT — see docs/FileFormats/CHAPSONG.DAT.md. 36 bytes:
     // 9 chapters × 2 × i16 song-id, loaded by open_book? at seg020:0x20d21.
+    private static void ExtractCredits(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "CRED.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[CRED] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        CreditsData credits = new CredExtractor().Extract("CRED.DAT", stream);
+        Directory.CreateDirectory("DAT");
+        string json = JsonSerializer.Serialize(credits, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(Path.Combine("DAT", "CRED.json"), json);
+        Console.WriteLine($"[CRED] title \"{credits.Title}\", {credits.Lines.Count} lines written to DAT/CRED.json");
+    }
+
     private static void ExtractChapterSongMap(string gamePath) {
         string fullPath = Path.Combine(gamePath, "CHAPSONG.DAT");
         if (!File.Exists(fullPath)) {

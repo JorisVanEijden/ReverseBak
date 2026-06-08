@@ -8,6 +8,7 @@ using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
 using GameData.Resources.Config;
+using GameData.Resources.Credits;
 using GameData.Resources.Data;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
@@ -34,6 +35,8 @@ public static class ExtractorFactory {
             typeof(ImageSet), typeof(BitmapExtractor)
         }, {
             typeof(BookResource), typeof(BokExtractor)
+        }, {
+            typeof(CreditsData), typeof(CredExtractor)
         }, {
             typeof(KeywordList), typeof(KeywordExtractor)
         }, {
