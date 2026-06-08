@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, master, main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      # This repo (ReverseBak / DotNetProjects) checked out into a DotNetProjects/ subdir
+      # so the Spice86 sibling lands at the relative path the .csproj files expect
+      # (BetrayalAtKrondor.csproj references ..\..\Spice86\src\...).
+      - name: Checkout ReverseBak
+        uses: actions/checkout@v4
+        with:
+          path: DotNetProjects
+
+      # Spice86 is a build dependency (referenced via relative path, not NuGet).
+      # If the Spice86 repo is private, set a CI_PAT secret with repo read access;
+      # otherwise the default token only works for public repos.
+      - name: Checkout Spice86 (sibling dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: JorisVanEijden/Spice86
+          ref: master
+          path: Spice86
+          token: ${{ secrets.CI_PAT || github.token }}
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore DotNetProjects/BetrayalAtKrondor.sln
+
+      - name: Build
+        run: dotnet build DotNetProjects/BetrayalAtKrondor.sln -c Release --no-restore
+
+      # Game-data tests are guarded (SkippableFact / File.Exists on OriginalGame/),
+      # which is absent in CI, so they skip cleanly. ~104 tests run otherwise.
+      - name: Test
+        run: dotnet test DotNetProjects/BetrayalAtKrondor.sln -c Release --no-build --verbosity normal
