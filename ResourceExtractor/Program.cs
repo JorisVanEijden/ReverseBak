@@ -846,7 +846,7 @@ internal static class Program {
         var archiveResources = generalResourceProvider.GetDictionary();
 
         // DDX dialogs
-        string ddxDir = Path.Combine(outputDir, "DIALOGS");
+        string ddxDir = Path.Combine(outputDir, "DDX");
         if (!Directory.Exists(ddxDir)) Directory.CreateDirectory(ddxDir);
         var ddxExtractor = new DdxExtractor();
         foreach (string ddxFile in GetFiles(gamePath, "*.ddx")) {

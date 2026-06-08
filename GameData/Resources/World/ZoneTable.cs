@@ -165,14 +165,16 @@ public class LodLevel
     /// (verified: Z01 inn has 35 mesh records but only 2 unique vertex pools — one shared by
     /// 12 submeshes, one by 23). Each <see cref="MeshRecord.VertexPoolIndex"/> indexes into
     /// this list, so submeshes are face-and-sort-metadata groupings of a shared vertex pool.
-    /// Across all 12 zones: 4009 mesh records → 1122 unique pools (~1.66 MB JSON saved).</summary>
+    /// Across the 12 Z-zones (Z01–Z12): 4009 mesh records → 817 unique pools (4.9× dedup)
+    /// — verified 2026-06-08 against generated/TBL output. (All 16 TBL files incl. COMBAT +
+    /// M-variants: 4491 → 939.)</summary>
     public List<List<Position3DShort>> VertexPools { get; set; } = new();
 }
 
 /// <summary>
 /// Mesh record — 14-byte structure used inside an LOD's mesh array AND as child records
 /// inside another mesh record (recursive). Consumed by renderShapeDispatcher (0x2a70c)
-/// and built into a near-pointer array by sub_seg027_5D9 (0x2a6d9, stride 0xE).
+/// and built into a near-pointer array by create_meshPointerArray (0x2a6d9, stride 0xE).
 /// See <c>docs/FileFormats/ZoneTable-DAT.md §1b</c>.
 /// </summary>
 public class MeshRecord
