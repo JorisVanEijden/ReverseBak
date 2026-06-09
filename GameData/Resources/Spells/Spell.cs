@@ -11,10 +11,10 @@ public class Spell : IResource {
     public string Name { get; set; }
     public int MinimumCost { get; set; }
     public int MaximumCost { get; set; }
-    public bool Field6 { get; set; }
-    public int Field8 { get; set; }
-    public int FieldA { get; set; }
-    public int FieldC { get; set; }
+    public bool IsMartial { get; set; }
+    public int TargetingType { get; set; }
+    public int Color { get; set; }
+    public int AnimationEffectType { get; set; }
     public int ObjectId { get; set; }
     public SpellCalculation Calculation { get; set; }
     public int Damage { get; set; }
@@ -23,6 +23,6 @@ public class Spell : IResource {
     public ResourceType Type { get => ResourceType.DAT; }
 
     public string ToCsv() {
-        return $"{Id},{Name},{MinimumCost},{MaximumCost},{Field6},{Field8},{FieldA},{FieldC},{ObjectId},{Calculation},{Damage},{Duration}";
+        return $"{Id},{Name},{MinimumCost},{MaximumCost},{IsMartial},{TargetingType},{Color},{AnimationEffectType},{ObjectId},{Calculation},{Damage},{Duration}";
     }
 }
