@@ -15,7 +15,7 @@ using GameData.Resources.Object;
 using GameData.Resources.Palette;
 using GameData.Resources.Spells;
 using ResourceExtractor.Extractors.Container;
-using System.Drawing;
+using ResourceExtractor.Imaging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -168,39 +168,39 @@ public static string ToJson(this SaveGame resource) {
         return sb.ToString();
     }
 
-    public static Bitmap ToBitmap(this BmImage image, Color[]? palette = null) {
+    public static RawImage ToRawImage(this BmImage image, Color[]? palette = null) {
         if (image.BitMapData == null) {
             throw new ArgumentException("Image data is null");
         }
         if (palette != null) {
             palette[0].A = 0;
         }
-        var bitmap = new Bitmap(image.Width, image.Height);
+        var raw = new RawImage(image.Width, image.Height);
 
+        int index = 0;
         if (image.Flags.HasFlag(ImageFlags.ReversedRowColumn)) {
-            int index = 0;
             for (int x = 0; x < image.Width; x++) {
                 for (int y = 0; y < image.Height; y++) {
-                    byte colorIndex = image.BitMapData[index++];
-                    var color = palette != null
-                        ? System.Drawing.Color.FromArgb(palette[colorIndex].ToArgb())
-                        : System.Drawing.Color.FromArgb(colorIndex, colorIndex, colorIndex);
-                    bitmap.SetPixel(x, y, color);
+                    PutPixel(raw, x, y, image.BitMapData[index++], palette);
                 }
             }
         } else {
-            int index = 0;
             for (int y = 0; y < image.Height; y++) {
                 for (int x = 0; x < image.Width; x++) {
-                    byte colorIndex = image.BitMapData[index++];
-                    var color = palette != null
-                        ? System.Drawing.Color.FromArgb(palette[colorIndex].ToArgb())
-                        : System.Drawing.Color.FromArgb(colorIndex, colorIndex, colorIndex);
-                    bitmap.SetPixel(x, y, color);
+                    PutPixel(raw, x, y, image.BitMapData[index++], palette);
                 }
             }
         }
 
-        return bitmap;
+        return raw;
+    }
+
+    private static void PutPixel(RawImage raw, int x, int y, byte colorIndex, Color[]? palette) {
+        if (palette != null) {
+            Color c = palette[colorIndex];
+            raw.SetPixel(x, y, c.R, c.G, c.B, c.A);
+        } else {
+            raw.SetPixel(x, y, colorIndex, colorIndex, colorIndex, 255);
+        }
     }
 }

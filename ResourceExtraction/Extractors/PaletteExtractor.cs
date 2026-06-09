@@ -44,17 +44,32 @@ public class PaletteExtractor : ExtractorBase<PaletteResource> {
     /// <returns></returns>
     public static string FindPalette(string filePath, string imageName) {
         if (PaletteMapping.GetPaletteFor(imageName) is { } paletteName) {
-            return Path.Combine(filePath, paletteName);
+            return ResolveCaseInsensitive(filePath, paletteName) ?? Path.Combine(filePath, paletteName);
         }
 
         while (imageName.Length > 1) {
-            string palettePath = Path.Combine(filePath, $"{imageName}.pal");
-            if (File.Exists(palettePath)) {
+            if (ResolveCaseInsensitive(filePath, $"{imageName}.pal") is { } palettePath) {
                 return palettePath;
             }
             imageName = imageName[..^1];
         }
 
-        return Path.Combine(filePath, "options.pal"); // use options palette as default cause it goes good with bicons
+        // use options palette as default cause it goes good with bicons
+        return ResolveCaseInsensitive(filePath, "OPTIONS.PAL") ?? Path.Combine(filePath, "OPTIONS.PAL");
+    }
+
+    /// <summary>Resolves a filename within a directory case-insensitively, returning the actual on-disk
+    /// path (or null). The original game ships upper-case names (e.g. OPTIONS.PAL); this keeps palette
+    /// lookup working on case-sensitive filesystems (Linux/macOS), not just Windows.</summary>
+    private static string? ResolveCaseInsensitive(string directory, string fileName) {
+        if (!Directory.Exists(directory)) {
+            return null;
+        }
+        foreach (string path in Directory.EnumerateFiles(directory)) {
+            if (string.Equals(Path.GetFileName(path), fileName, System.StringComparison.OrdinalIgnoreCase)) {
+                return path;
+            }
+        }
+        return null;
     }
 }

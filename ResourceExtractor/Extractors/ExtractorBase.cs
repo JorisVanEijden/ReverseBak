@@ -6,9 +6,6 @@ using ResourceExtraction.Compression;
 
 using ResourceExtractor.Compression;
 
-using System.Drawing;
-using System.Drawing.Imaging;
-
 public abstract class ExtractorBase {
     internal const int FileNameLength = 13;
     private const int TagLength = 4;

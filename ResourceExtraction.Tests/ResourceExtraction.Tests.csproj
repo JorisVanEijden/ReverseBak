@@ -26,6 +26,7 @@
     <ItemGroup>
         <ProjectReference Include="..\GameData\GameData.csproj" />
         <ProjectReference Include="..\ResourceExtraction\ResourceExtraction.csproj" />
+        <ProjectReference Include="..\ResourceExtractor\ResourceExtractor.csproj" />
     </ItemGroup>
 
 </Project>

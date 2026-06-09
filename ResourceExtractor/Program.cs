@@ -25,7 +25,7 @@ using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtraction.Extractors.Dialog;
-using System.Drawing;
+using ResourceExtractor.Imaging;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -410,7 +410,7 @@ internal static class Program {
                 BmImage bmImage = imageSet.Images[i];
                 bmImage.Filename = $"{i}.png";
                 File.WriteAllText(Path.Combine(resourceDirectory, $"{i}.json"), bmImage.ToJson());
-                WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToBitmap(colors));
+                WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToRawImage(colors));
             }
             Console.WriteLine($"[BMX] {imageName} ({imageSet.Images.Count} images)");
         }
@@ -464,20 +464,20 @@ internal static class Program {
                 Height = backgroundImage.Height
             };
 
-            var bitmap = image.ToBitmap(colors);
+            var bitmap = image.ToRawImage(colors);
 
             WriteToPngFile(imageName, backgroundImage.Type.ToString(), bitmap);
             Console.WriteLine($"[SCX] {imageName} -> {backgroundImage.Width}x{backgroundImage.Height}");
         }
     }
 
-    private static void WriteToPngFile(string filename, string resourceDirectory, Image bitmap) {
+    private static void WriteToPngFile(string filename, string resourceDirectory, RawImage image) {
         if (!Directory.Exists(resourceDirectory)) {
             Directory.CreateDirectory(resourceDirectory);
         }
 
         string filePath = Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(filename) + ".png");
-        bitmap.Save(filePath);
+        PngWriter.Write(filePath, image);
     }
 
     private static void ExtractUserInterfaces(string filePath) {
