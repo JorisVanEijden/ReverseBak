@@ -70,6 +70,14 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--spells") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractSpells(provider);
+            ExtractSpellInfo(provider);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--tile-events") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractTileEvents(gamePath);
@@ -87,6 +95,13 @@ internal static class Program {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             GeneralResourceProvider provider = new(gamePath);
             ExtractAllBmx(gamePath, provider);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--cursor") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractCursors(gamePath, provider);
             return;
         }
 
@@ -398,6 +413,23 @@ internal static class Program {
                 WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToBitmap(colors));
             }
             Console.WriteLine($"[BMX] {imageName} ({imageSet.Images.Count} images)");
+        }
+    }
+
+    private static void ExtractCursors(string filePath, GeneralResourceProvider generalResourceProvider) {
+        var extractor = new CursorExtractor();
+        const string outDir = "POINTER";
+        Directory.CreateDirectory(outDir);
+        foreach (string name in new[] { "POINTER.BMX", "POINTERG.BMX" }) {
+            string full = Path.Combine(filePath, name);
+            if (!File.Exists(full)) {
+                Console.WriteLine($"[CURSOR] missing {name}");
+                continue;
+            }
+            using Stream resourceStream = generalResourceProvider.GetResourceStream(full);
+            GameData.Resources.Cursor.CursorSet set = extractor.Extract(name, resourceStream);
+            File.WriteAllText(Path.Combine(outDir, $"{Path.GetFileNameWithoutExtension(name)}.json"), set.ToJson());
+            Console.WriteLine($"[CURSOR] {name} ({set.Images.Count} images)");
         }
     }
 

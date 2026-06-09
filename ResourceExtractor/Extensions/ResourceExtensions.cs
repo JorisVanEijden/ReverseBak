@@ -2,6 +2,7 @@ namespace ResourceExtractor.Extensions;
 
 using GameData.Resources.Animation;
 using GameData.Resources.Book;
+using GameData.Resources.Cursor;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
 using GameData.Resources.Monster;
@@ -29,6 +30,10 @@ public static class ResourceExtensions {
     };
 
     public static string ToJson(this AnimatorResource resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this CursorSet resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
@@ -145,7 +150,7 @@ public static string ToJson(this SaveGame resource) {
     }
 
     public static string ToCsv(this SpellList resource) {
-        var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.Field6)},{nameof(Spell.Field8)},{nameof(Spell.FieldA)},{nameof(Spell.FieldC)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
+        var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.IsMartial)},{nameof(Spell.TargetingType)},{nameof(Spell.Color)},{nameof(Spell.AnimationEffectType)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
         foreach (Spell spell in resource.Spells.Values) {
             sb.AppendLine(spell.ToCsv());
         }
