@@ -143,6 +143,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--gds") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractGdsScenes(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--cred") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractCredits(gamePath);
@@ -229,6 +235,8 @@ internal static class Program {
         // SaveAsBitmap(image, "PUZZLE.png", colors);
 
         ExtractUserInterfaces(filePath);
+
+        ExtractGdsScenes(filePath);
 
         var ddxExtractor = new DdxExtractor();
         foreach (string ddxFile in GetFiles(filePath, "*.ddx")) {
@@ -478,6 +486,20 @@ internal static class Program {
 
         string filePath = Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(filename) + ".png");
         PngWriter.Write(filePath, image);
+    }
+
+    private static void ExtractGdsScenes(string filePath) {
+        var gdsExtractor = new GdsSceneExtractor();
+        const string gdsDir = "GDS";
+        Directory.CreateDirectory(gdsDir);
+        foreach (string gdsFile in GetFiles(filePath, "GDS*.DAT").OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
+            string name = Path.GetFileName(gdsFile);
+            using FileStream resourceFile = File.OpenRead(gdsFile);
+            GameData.Resources.Scene.GdsScene scene = gdsExtractor.Extract(name, resourceFile);
+            string outPath = Path.Combine(gdsDir, Path.GetFileNameWithoutExtension(name) + ".json");
+            File.WriteAllText(outPath, scene.ToJson());
+            Console.WriteLine($"[GDS] {name} -> {outPath} ({scene.Hotspots.Length} hotspots)");
+        }
     }
 
     private static void ExtractUserInterfaces(string filePath) {

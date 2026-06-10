@@ -13,6 +13,7 @@ using GameData.Resources.Location;
 using GameData.Resources.Menu;
 using GameData.Resources.Object;
 using GameData.Resources.Palette;
+using GameData.Resources.Scene;
 using GameData.Resources.Spells;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtractor.Imaging;
@@ -62,6 +63,10 @@ public static class ResourceExtensions {
     }
 
     public static string ToJson(this UserInterface resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this GdsScene resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 

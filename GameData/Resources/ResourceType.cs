@@ -9,6 +9,7 @@ public enum ResourceType {
     DDX,
     DEF,
     FNT,
+    GDS,
     LBL,
     MON,
     OVL,
