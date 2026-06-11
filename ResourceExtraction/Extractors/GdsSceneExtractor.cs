@@ -1,6 +1,7 @@
 namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Scene;
+using ResourceExtraction.Imaging;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -59,11 +60,16 @@ public class GdsSceneExtractor : ExtractorBase<GdsScene> {
     }
 
     private static GdsHotspot ReadHotspot(BinaryReader reader) {
+        short x = reader.ReadInt16();
+        short y = reader.ReadInt16();
+        short w = reader.ReadInt16();
+        short h = reader.ReadInt16();
+        // Raw mode-13h pixels -> canonical 1600x1200 (x5 / x6), same space as REQ/Label/TTM/DDX layout.
         var hotspot = new GdsHotspot {
-            X = reader.ReadInt16(),
-            Y = reader.ReadInt16(),
-            Width = reader.ReadInt16(),
-            Height = reader.ReadInt16(),
+            XPosition = AspectCorrection.ScaleVgaX(x),
+            YPosition = AspectCorrection.ScaleVgaY(y),
+            Width = AspectCorrection.ScaleVgaX(w),
+            Height = AspectCorrection.ScaleVgaY(h),
             ChapterHideMask = reader.ReadInt16(),
             Cursor = reader.ReadInt16(),
             ActionCode = reader.ReadByte(),

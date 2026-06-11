@@ -8,10 +8,17 @@ using System;
 /// </summary>
 [Serializable]
 public class GdsHotspot {
-    /// <summary>Click rectangle, in original 320x200 screen pixels.</summary>
-    public int X { get; set; }
-    public int Y { get; set; }
+    // --- Click rectangle in canonical 1600x1200 space (square-pixel, aspect-true). The on-disk
+    // values are raw mode-13h pixels (X,W over 320; Y,H over 200); the extractor applies the shared
+    // VGA correction (x5 / x6) so these match every other screen-layout resource — REQ UserInterface,
+    // labels, TTM/DDX coords — and a renderer can treat a GDS hotspot exactly like a REQ button. ---
+    /// <summary>Left edge in canonical 1600x1200 space.</summary>
+    public int XPosition { get; set; }
+    /// <summary>Top edge in canonical 1600x1200 space.</summary>
+    public int YPosition { get; set; }
+    /// <summary>Width in canonical 1600x1200 space.</summary>
     public int Width { get; set; }
+    /// <summary>Height in canonical 1600x1200 space.</summary>
     public int Height { get; set; }
 
     /// <summary>

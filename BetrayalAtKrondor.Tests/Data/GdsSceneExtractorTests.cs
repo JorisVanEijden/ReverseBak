@@ -92,10 +92,11 @@ public class GdsSceneExtractorTests {
     [Fact]
     public void Extract_ReadsHotspotRectAndDialogs() {
         GdsHotspot h = Extract(Sample).Hotspots[0];
-        Assert.Equal(135, h.X);
-        Assert.Equal(47, h.Y);
-        Assert.Equal(58, h.Width);
-        Assert.Equal(40, h.Height);
+        // Rect (135,47,58,40) scaled to canonical 1600x1200 (x5 / x6).
+        Assert.Equal(675, h.XPosition);
+        Assert.Equal(282, h.YPosition);
+        Assert.Equal(290, h.Width);
+        Assert.Equal(240, h.Height);
         Assert.Equal(6, h.Cursor);
         Assert.Equal(4, h.ActionCode);
         Assert.Equal(2, h.NextSceneLetter);
