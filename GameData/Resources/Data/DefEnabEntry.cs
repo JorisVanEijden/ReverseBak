@@ -1,5 +1,7 @@
 namespace GameData.Resources.Data;
 
+using GameData.Resources.GameState;
+
 // One DEF_ENAB.DAT payload entry. Layout mirrors IDA's `def_enab` struct
 // (size 7). Consumer: ovr187:sub_ovr187_12A2.
 //
@@ -15,4 +17,7 @@ public class DefEnabEntry {
     public ushort GlobalKey { get; set; } // offset 3 — flag index to set to 1 when activated
     public byte Field5 { get; set; }      // offset 5 — usage not visible in handler
     public byte Field6 { get; set; }      // offset 6 — usage not visible in handler
+
+    /// <summary>The global-state mutation this entry applies when it fires (sets the flag); null = no-op (GlobalKey 0).</summary>
+    public Effect? OnFire { get; set; }
 }

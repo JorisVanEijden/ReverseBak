@@ -1,5 +1,7 @@
 namespace GameData.Resources.Data;
 
+using GameData.Resources.GameState;
+
 // One DEF_DISA.DAT payload entry. Layout mirrors IDA's `def_disa` struct
 // (size 7). Consumer: ovr187:sub_ovr187_1230.
 //
@@ -15,4 +17,7 @@ public class DefDisaEntry {
     public ushort GlobalKey { get; set; } // offset 3 — flag index to set to 0 when activated
     public byte Field5 { get; set; }      // offset 5 — usage not visible in handler
     public byte Field6 { get; set; }      // offset 6 — usage not visible in handler
+
+    /// <summary>The global-state mutation this entry applies when it fires (clears the flag); null = no-op (GlobalKey 0).</summary>
+    public Effect? OnFire { get; set; }
 }
