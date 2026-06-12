@@ -8,7 +8,7 @@ public class ApplyConditionAction : DialogActionBase {
     /// </summary>
     public int Target { get; set; }
 
-    public Condition Condition { get; set; }
+    public ActorCondition Condition { get; set; }
     public int MinimumAmount { get; set; }
     public int MaximumAmount { get; set; }
 }

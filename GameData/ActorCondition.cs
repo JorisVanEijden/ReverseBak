@@ -1,6 +1,6 @@
 namespace GameData;
 
-public enum Condition {
+public enum ActorCondition {
     Sick,
     Plagued,
     Poisoned,
