@@ -1,0 +1,80 @@
+namespace BetrayalAtKrondor.Tests.Data;
+
+using GameData.Resources.GameState;
+
+using ResourceExtraction.Extractors.GameState;
+
+using Xunit;
+
+public class GlobalRefTests {
+    [Fact]
+    public void StoryFlagInRange_DecodesToFlagSet() {
+        Condition c = GlobalRef.DecodeCondition(456, 1, null);
+        var flag = Assert.IsType<FlagCondition>(c);
+        Assert.Equal(456, flag.Flag);
+        Assert.True(flag.Set);
+    }
+
+    [Fact]
+    public void StoryFlagClear_DecodesToFlagClear() {
+        Condition c = GlobalRef.DecodeCondition(456, 0, 0);
+        var flag = Assert.IsType<FlagCondition>(c);
+        Assert.False(flag.Set);
+    }
+
+    [Fact]
+    public void ItemCountRange_DecodesToHasItem() {
+        Condition c = GlobalRef.DecodeCondition(50137, 3, null);
+        var item = Assert.IsType<HasItemCondition>(c);
+        Assert.Equal(137, item.Item);
+        Assert.Equal(3, item.AtLeast);
+        Assert.Null(item.AtMost);
+    }
+
+    [Fact]
+    public void NoteRange_DecodesToHasNote() {
+        var note = Assert.IsType<HasNoteCondition>(GlobalRef.DecodeCondition(51021, 1, null));
+        Assert.Equal(21, note.Note);
+    }
+
+    [Fact]
+    public void SpellTimerRange_DecodesToSpellTimerActive() {
+        var t = Assert.IsType<SpellTimerActiveCondition>(GlobalRef.DecodeCondition(52003, 1, null));
+        Assert.Equal(3, t.Timer);
+    }
+
+    [Fact]
+    public void RandomRange_DecodesToRandom() {
+        var r = Assert.IsType<RandomCondition>(GlobalRef.DecodeCondition(53050, 25, null));
+        Assert.Equal(50, r.Bound);
+        Assert.Equal(25, r.Min);
+    }
+
+    [Fact]
+    public void NamedVarRange_DecodesToVar() {
+        var v = Assert.IsType<VarCondition>(GlobalRef.DecodeCondition(30016, 1, 2));
+        Assert.Equal(16, v.Var);
+        Assert.Equal(1, v.Min);
+        Assert.Equal(2, v.Max);
+    }
+
+    [Fact]
+    public void PartyRange_DecodesToParty() {
+        var p = Assert.IsType<PartyCondition>(GlobalRef.DecodeCondition(40005, 1, null));
+        Assert.Equal(5, p.Check);
+    }
+
+    [Fact]
+    public void Flags2SingleBit_DecodesToFlagWithCanonicalKey() {
+        // group 1, bit 2 -> key 56000 + 1*10 + (2+1) = 56013
+        var flag = Assert.IsType<FlagCondition>(GlobalRef.DecodeCondition(56013, 1, null));
+        Assert.Equal(56013, flag.Flag);
+        Assert.True(flag.Set);
+    }
+
+    [Fact]
+    public void UnknownDivByTenGroupKey_FallsBackToRaw() {
+        // 56010 is divisible by 10 but carries no mask here -> raw, never a guess
+        Assert.IsType<RawGlobalCondition>(GlobalRef.DecodeCondition(56010, 1, null));
+    }
+}
