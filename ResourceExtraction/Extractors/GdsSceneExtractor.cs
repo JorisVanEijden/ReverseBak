@@ -1,6 +1,7 @@
 namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Scene;
+using ResourceExtraction.Extractors.GameState;
 using ResourceExtraction.Imaging;
 using System.Collections.Generic;
 using System.IO;
@@ -65,12 +66,14 @@ public class GdsSceneExtractor : ExtractorBase<GdsScene> {
         short w = reader.ReadInt16();
         short h = reader.ReadInt16();
         // Raw mode-13h pixels -> canonical 1600x1200 (x5 / x6), same space as REQ/Label/TTM/DDX layout.
+        int chapterHideMask = reader.ReadInt16();
         var hotspot = new GdsHotspot {
             XPosition = AspectCorrection.ScaleVgaX(x),
             YPosition = AspectCorrection.ScaleVgaY(y),
             Width = AspectCorrection.ScaleVgaX(w),
             Height = AspectCorrection.ScaleVgaY(h),
-            ChapterHideMask = reader.ReadInt16(),
+            CanBeDefaultTarget = (chapterHideMask & 0x8000) != 0,
+            HiddenInChapters = GlobalRef.ChaptersFromMask(chapterHideMask & 0xFF),
             Cursor = reader.ReadInt16(),
             ActionCode = reader.ReadByte(),
         };
@@ -80,9 +83,12 @@ public class GdsSceneExtractor : ExtractorBase<GdsScene> {
         hotspot.ActionDialogId = reader.ReadInt32();
         hotspot.ExamineDialogId = reader.ReadInt32();
         reader.ReadInt32(); // hotspot resolved-dialog pointer (runtime scratch, stale in file)
-        hotspot.GlobalKey = reader.ReadInt16();
-        hotspot.GlobalMin = reader.ReadInt16();
-        hotspot.GlobalMax = reader.ReadInt16();
+        int globalKey = reader.ReadInt16();
+        int globalMin = reader.ReadInt16();
+        int globalMax = reader.ReadInt16();
+        hotspot.VisibilityGate = globalKey == 0
+            ? null
+            : GlobalRef.DecodeCondition(globalKey, globalMin, globalMax == 0xFFFF ? null : (int?)globalMax);
         return hotspot;
     }
 

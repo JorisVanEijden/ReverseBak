@@ -103,4 +103,19 @@ public static class GlobalRef {
     public static Effect DecodeTemporaryEffect(int key, uint durationTicks) {
         return new SetFlagEffect { Flag = key, Set = true, ForTicks = durationTicks };
     }
+
+    /// <summary>
+    /// Expand a per-chapter bitmask into the list of chapters whose bit is set
+    /// (chapter c -> bit c-1; bit 7 / chapter 8 also covers 9+). Never returns a
+    /// packed value.
+    /// </summary>
+    public static System.Collections.Generic.List<int> ChaptersFromMask(int chapterMask) {
+        var chapters = new System.Collections.Generic.List<int>();
+        for (var chapter = 1; chapter <= 8; chapter++) {
+            if (((chapterMask >> (chapter - 1)) & 1) != 0) {
+                chapters.Add(chapter);
+            }
+        }
+        return chapters;
+    }
 }

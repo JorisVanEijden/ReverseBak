@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.Data;
 
+using GameData.Resources.GameState;
 using GameData.Resources.Scene;
 
 using ResourceExtraction.Extractors;
@@ -109,7 +110,10 @@ public class GdsSceneExtractorTests {
         GdsHotspot h = Extract(Sample).Hotspots[1];
         Assert.Equal(0x001D0CA7, h.ActionDialogId);
         Assert.Equal(17, h.Cursor);
-        Assert.Equal(5, h.GlobalKey);
+        // globalKey=5, globalMin=0, globalMax=0 → FlagCondition(Flag=5, Set=false)
+        var gate = Assert.IsType<FlagCondition>(h.VisibilityGate);
+        Assert.Equal(5, gate.Flag);
+        Assert.False(gate.Set);
     }
 
     [Fact]

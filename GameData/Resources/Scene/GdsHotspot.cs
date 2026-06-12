@@ -1,6 +1,9 @@
 namespace GameData.Resources.Scene;
 
 using System;
+using System.Collections.Generic;
+
+using GameData.Resources.GameState;
 
 /// <summary>
 /// One clickable region in a <see cref="GdsScene"/> (the original 36-byte <c>gds_struct36</c> record).
@@ -22,11 +25,20 @@ public class GdsHotspot {
     public int Height { get; set; }
 
     /// <summary>
-    /// Per-chapter visibility bitmask (@0x08). During a full load the hotspot is HIDDEN in chapter
-    /// <c>c</c> when bit <c>(1 &lt;&lt; (c - 1))</c> is set. Bit 0x8000 additionally marks the hotspot as
-    /// eligible to be the scene's default/auto-target. 0 = visible in every chapter.
+    /// Chapters in which this hotspot is hidden during a full load (decoded from
+    /// the on-disk per-chapter bitmask; 8 also covers chapters 9+). Empty = visible
+    /// in every chapter.
     /// </summary>
-    public int ChapterHideMask { get; set; }
+    public List<int> HiddenInChapters { get; set; } = [];
+
+    /// <summary>Whether this hotspot is eligible to be the scene's default/auto-target (on-disk bit 0x8000).</summary>
+    public bool CanBeDefaultTarget { get; set; }
+
+    /// <summary>
+    /// Visibility gate on global game state, decoded to a shared <see cref="Condition"/>
+    /// (the same vocabulary as dialog branches). <c>null</c> = no gate (on-disk key 0).
+    /// </summary>
+    public Condition? VisibilityGate { get; set; }
 
     /// <summary>
     /// Mouse cursor image to show over this hotspot (@0x0A), as authored: 1-based, 0 = none.
@@ -58,11 +70,4 @@ public class GdsHotspot {
 
     /// <summary>Dialog shown on right-click ("examine"/look-at). 0 = none (@0x16).</summary>
     public int ExamineDialogId { get; set; }
-
-    // --- Conditional-visibility gate on a global game-state value (@0x1E / 0x20 / 0x22). ---
-    /// <summary>Global state key tested for visibility; 0 = no gate.</summary>
-    public int GlobalKey { get; set; }
-    /// <summary>Hotspot is shown only while global[<see cref="GlobalKey"/>] is within [Min, Max].</summary>
-    public int GlobalMin { get; set; }
-    public int GlobalMax { get; set; }
 }
