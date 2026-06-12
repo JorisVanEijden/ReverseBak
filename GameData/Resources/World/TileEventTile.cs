@@ -6,11 +6,11 @@ namespace GameData.Resources.World;
 //
 // Gating (universal, ovr187:sub_532):
 //   - Skipped if GetGlobal5200_5209() != 0 (already-handled flag).
-//   - Skipped if ForbiddenKey != 0 and GetGlobalValue(ForbiddenKey) != 0.
-//   - Required:  RequiredKey == 0  OR  GetGlobalValue(RequiredKey) != 0.
+//   - Skipped if Forbids condition holds (decoded from on-disk ForbiddenKey).
+//   - Required: Requires is null OR Requires condition holds (decoded from on-disk RequiredKey).
 //
 // On-fire (per type handler):
-//   - SetOnFireKey != 0: SetGlobalValue(SetOnFireKey, 1).
+//   - OnFire effect applied if present (decoded from on-disk SetOnFireKey).
 //   - Type-specific side-effect (LoadEntryFromDefFile + dispatch).
 public class TileEventTile : IResource
 {

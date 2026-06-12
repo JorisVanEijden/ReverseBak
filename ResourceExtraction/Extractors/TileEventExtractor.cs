@@ -1,6 +1,8 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.GameState;
 using GameData.Resources.World;
+using ResourceExtraction.Extractors.GameState;
 using System.IO;
 using System.Text;
 
@@ -44,19 +46,31 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
             var chapter = new TileEventChapter { ChapterNumber = chapterIndex + 1 };
             for (int i = 0; i < count; i++)
             {
+                var type = (TileEventType)reader.ReadUInt16();
+                byte startX = reader.ReadByte();
+                byte endY = reader.ReadByte();
+                byte endX = reader.ReadByte();
+                byte startY = reader.ReadByte();
+                uint entryNumber = reader.ReadUInt32();
+                byte fieldA = reader.ReadByte();
+                ushort requiredKey = reader.ReadUInt16();
+                ushort forbiddenKey = reader.ReadUInt16();
+                ushort setOnFireKey = reader.ReadUInt16();
+                ushort field11 = reader.ReadUInt16();
+
                 chapter.Triggers.Add(new TileEventTrigger
                 {
-                    Type = (TileEventType)reader.ReadUInt16(),
-                    StartX = reader.ReadByte(),
-                    EndY = reader.ReadByte(),
-                    EndX = reader.ReadByte(),
-                    StartY = reader.ReadByte(),
-                    EntryNumber = reader.ReadUInt32(),
-                    FieldA = reader.ReadByte(),
-                    RequiredKey = reader.ReadUInt16(),
-                    ForbiddenKey = reader.ReadUInt16(),
-                    SetOnFireKey = reader.ReadUInt16(),
-                    Field11 = reader.ReadUInt16()
+                    Type = type,
+                    StartX = startX,
+                    EndY = endY,
+                    EndX = endX,
+                    StartY = startY,
+                    EntryNumber = entryNumber,
+                    FieldA = fieldA,
+                    Requires = requiredKey == 0 ? null : GlobalRef.DecodeCondition(requiredKey, 1, null),
+                    Forbids = forbiddenKey == 0 ? null : GlobalRef.DecodeCondition(forbiddenKey, 1, null),
+                    OnFire = DefEffect.ForKey(setOnFireKey, set: true),
+                    Field11 = field11
                 });
             }
 

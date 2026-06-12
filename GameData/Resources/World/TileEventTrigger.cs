@@ -1,5 +1,7 @@
 namespace GameData.Resources.World;
 
+using GameData.Resources.GameState;
+
 // One row from a Tzzxxyy.DAT chapter block (19 bytes on disk).
 // Fires when the player is inside the sub-tile rectangle and the global-key
 // preconditions hold (see TileEventTile docs for gating semantics).
@@ -20,16 +22,17 @@ public class TileEventTrigger
     // extra cleanup step before SetGlobalFlag5200_5209.
     public byte FieldA { get; set; }
 
-    // Save-state key; trigger fires only if GetGlobalValue(RequiredKey) != 0.
-    // Zero means no requirement.
-    public ushort RequiredKey { get; set; }
+    // Gate: trigger fires only while this condition holds (decoded from the
+    // required save-state key; null = no requirement).
+    public Condition? Requires { get; set; }
 
-    // Save-state key; trigger is suppressed if GetGlobalValue(ForbiddenKey) != 0.
-    // Zero means no suppression.
-    public ushort ForbiddenKey { get; set; }
+    // Gate: trigger is suppressed while this condition holds (decoded from the
+    // forbidden save-state key; null = no suppression).
+    public Condition? Forbids { get; set; }
 
-    // Save-state key set to 1 after the trigger fires. Zero means no flag is set.
-    public ushort SetOnFireKey { get; set; }
+    // The state mutation applied when the trigger fires (decoded from the
+    // set-on-fire key; null = sets nothing).
+    public Effect? OnFire { get; set; }
 
     // Boolean in practice (0/1). Only ever set on 7 Dial records across all
     // shipping files. Dial handler: when set, returns early — skipping both
