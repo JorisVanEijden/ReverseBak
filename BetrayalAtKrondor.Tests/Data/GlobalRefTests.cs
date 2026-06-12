@@ -77,4 +77,40 @@ public class GlobalRefTests {
         // 56010 is divisible by 10 but carries no mask here -> raw, never a guess
         Assert.IsType<RawGlobalCondition>(GlobalRef.DecodeCondition(56010, 1, null));
     }
+
+    [Fact]
+    public void DirectWriteToNamedVar_DecodesToSetVar() {
+        Effect e = GlobalRef.DecodeEffect(30016, mask: 0, data: 0, value: 2);
+        var v = Assert.IsType<SetVarEffect>(e);
+        Assert.Equal(16, v.Var);
+        Assert.Equal(2, v.Value);
+    }
+
+    [Fact]
+    public void DirectWriteToStoryFlag_DecodesToSetFlag() {
+        var f = Assert.IsType<SetFlagEffect>(GlobalRef.DecodeEffect(8127, 0, 0, 1));
+        Assert.Equal(8127, f.Flag);
+        Assert.True(f.Set);
+        Assert.Null(f.ForTicks);
+    }
+
+    [Fact]
+    public void MaskedWrite_ExpandsToFlagList() {
+        // key 56010 -> group 1; mask 0b0000_0101 sets bits 0 and 2; data gives their values.
+        Effect e = GlobalRef.DecodeEffect(56010, mask: 0b0000_0101, data: 0b0000_0100, value: 0);
+        var set = Assert.IsType<SetFlagsEffect>(e);
+        Assert.Equal(2, set.Flags.Count);
+        // bit 0 -> key 56000+10+0+1 = 56011, data bit 0 = 0 -> clear
+        Assert.Contains(set.Flags, f => f.Flag == 56011 && !f.Set);
+        // bit 2 -> key 56000+10+2+1 = 56013, data bit 2 = 1 -> set
+        Assert.Contains(set.Flags, f => f.Flag == 56013 && f.Set);
+    }
+
+    [Fact]
+    public void TemporaryFlag_DecodesToSetFlagWithTicks() {
+        var f = Assert.IsType<SetFlagEffect>(GlobalRef.DecodeTemporaryEffect(7042, durationTicks: 600));
+        Assert.Equal(7042, f.Flag);
+        Assert.True(f.Set);
+        Assert.Equal(600u, f.ForTicks);
+    }
 }
