@@ -2,6 +2,8 @@ namespace ResourceExtraction.Extractors.Dialog.ActionBuilders;
 
 using GameData.Resources.Dialog.Actions;
 
+using ResourceExtraction.Extractors.GameState;
+
 using System.IO;
 
 internal class SetGlobalValueActionBuilder : IDialogActionBuilder {
@@ -9,14 +11,11 @@ internal class SetGlobalValueActionBuilder : IDialogActionBuilder {
         ushort key = resourceReader.ReadUInt16();
         byte mask = resourceReader.ReadByte();
         byte data = resourceReader.ReadByte();
-        _ = resourceReader.ReadUInt16(); // unused data, always 0
+        _ = resourceReader.ReadUInt16(); // unused, always 0
         ushort value = resourceReader.ReadUInt16();
 
-        return new SetGlobalValueAction {
-            Key = key,
-            Mask = mask,
-            Data = data,
-            Value = value
+        return new GlobalEffectAction {
+            Effect = GlobalRef.DecodeEffect(key, mask, data, value),
         };
     }
 }
