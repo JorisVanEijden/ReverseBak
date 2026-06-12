@@ -1,24 +1,29 @@
 namespace ResourceExtraction.Extractors.Dialog;
 
 using GameData.Resources.Dialog.Branches;
+using GameData.Resources.GameState;
+
+using ResourceExtraction.Extractors.GameState;
 
 using System.Collections.Generic;
 
 /// <summary>
 /// Decodes the raw branch triple (<c>globalKey</c>, <c>unknown3</c>,
-/// <c>unknown4</c>) into a semantic <see cref="DialogBranchBase"/>. All the
-/// engine's branch-evaluation knowledge lives here so consumers never see the
-/// original bit-encoding. See <c>docs/specs/dialog-system.md</c>
-/// §"Branch Evaluation" and §"global_flags2 Key Encoding".
+/// <c>unknown4</c>) into a semantic <see cref="DialogBranchBase"/>. Global-state
+/// gates become a <see cref="ConditionalBranch"/> carrying a shared
+/// <see cref="Condition"/> (via <see cref="GlobalRef"/>); the 56000+ masked form
+/// is decoded here into a composite condition because it repurposes
+/// unknown3/unknown4 as bitmasks. See <c>docs/specs/dialog-system.md</c> and
+/// <c>docs/specs/global-value-destructuring.md</c>.
 /// </summary>
 internal static class DialogBranchFactory {
-    private const ushort NoUpperBound = 0xFFFF; // engine's "-1" range sentinel
-    private const int FlagBase = 56000;         // global_flags2 key namespace
-    private const int FlagStride = 10;          // 10 decimal keys per flag byte
+    private const ushort NoUpperBound = 0xFFFF;
+    private const int FlagBase = 56000;
+    private const int FlagStride = 10;
 
     public static DialogBranchBase Build(
         bool isChoiceMenu, ushort globalKey, ushort unknown3, ushort unknown4, long rawTarget) {
-        DialogBranchBase branch = DecodeCondition(isChoiceMenu, globalKey, unknown3, unknown4);
+        DialogBranchBase branch = DecodeBranch(isChoiceMenu, globalKey, unknown3, unknown4);
 
         if (rawTarget >= 0x80000000) {
             branch.TargetId = (int)(rawTarget - 0x80000000);
@@ -28,82 +33,54 @@ internal static class DialogBranchFactory {
         return branch;
     }
 
-    private static DialogBranchBase DecodeCondition(
+    private static DialogBranchBase DecodeBranch(
         bool isChoiceMenu, ushort globalKey, ushort unknown3, ushort unknown4) {
-        // A ChoiceMenu entry routes branches through EvaluateDialogCondition;
-        // globalKey is a keyword-label index and unknown3/4 are unused.
         if (isChoiceMenu) {
             return new KeywordChoiceBranch { Keyword = globalKey };
         }
-
-        // globalKey 0 always matches (default / fall-through).
         if (globalKey == 0) {
             return new DefaultBranch();
         }
 
-        // global_flags2 namespace: key >= 56000.
-        if (globalKey >= FlagBase) {
-            int rel = globalKey - FlagBase;
-            int group = rel / FlagStride;
-            int remainder = rel % FlagStride;
-
-            // Not divisible by 10 -> single-bit read via GetGlobalValue.
-            if (remainder != 0) {
-                return new FlagBitBranch {
-                    FlagGroup = group,
-                    Bit = remainder - 1,
-                    RequiredState = BitRequiredState(unknown3, unknown4),
-                };
-            }
-
-            // Divisible by 10 -> masked bitfield test.
-            int xorMask = unknown3 & 0xFF;
-            int matchMask = (unknown3 >> 8) & 0xFF;
-            int selector = unknown4 & 0xFF;
-            int chapterMask = (unknown4 >> 8) & 0xFF;
-
-            var conditions = new List<FlagBitCondition>();
-            for (var bit = 0; bit < 8; bit++) {
-                if (((matchMask >> bit) & 1) != 0) {
-                    // After XOR, a masked bit must read 1; so the required state
-                    // of the underlying flag bit is the complement of its xor bit.
-                    conditions.Add(new FlagBitCondition {
-                        Bit = bit,
-                        Set = ((xorMask >> bit) & 1) == 0,
-                    });
-                }
-            }
-
-            return new FlagMaskBranch {
-                FlagGroup = group,
-                Match = selector != 0 ? BranchMatchMode.All : BranchMatchMode.Any,
-                Conditions = conditions,
-                Chapters = DecodeChapters(chapterMask),
-            };
+        // 56000+ divisible by 10: masked bitfield test (uses unknown3/unknown4 as masks).
+        if (globalKey >= FlagBase && (globalKey - FlagBase) % FlagStride == 0) {
+            return new ConditionalBranch { Condition = DecodeMaskedFlags(globalKey, unknown3, unknown4) };
         }
 
-        // 1..55999: inclusive range check on GetGlobalValue(globalKey).
-        return new GlobalConditionBranch {
-            GlobalKey = globalKey,
-            Min = unknown3,
-            Max = unknown4 == NoUpperBound ? null : unknown4,
-        };
+        // Everything else: a range test on a single key -> shared decoder.
+        int? max = unknown4 == NoUpperBound ? null : unknown4;
+        return new ConditionalBranch { Condition = GlobalRef.DecodeCondition(globalKey, unknown3, max) };
     }
 
-    // GetGlobalValue returns the single bit as 0 or 1, then the range
-    // [unknown3, unknown4] (unsigned; 0xFFFF = no upper bound) is checked. That
-    // reduces to a state test: the bit must be set iff 1 is in range and 0 is
-    // not. All shipped data uses (1, 0xFFFF) -> set.
-    private static bool BitRequiredState(ushort min, ushort max) {
-        int upper = max == NoUpperBound ? 0xFFFF : max;
-        bool oneMatches = min <= 1 && 1 <= upper;
-        bool zeroMatches = min == 0;
-        return oneMatches && !zeroMatches;
+    private static Condition DecodeMaskedFlags(ushort globalKey, ushort unknown3, ushort unknown4) {
+        int group = (globalKey - FlagBase) / FlagStride;
+        int xorMask = unknown3 & 0xFF;
+        int matchMask = (unknown3 >> 8) & 0xFF;
+        int selector = unknown4 & 0xFF;
+        int chapterMask = (unknown4 >> 8) & 0xFF;
+
+        var flags = new List<Condition>();
+        for (var bit = 0; bit < 8; bit++) {
+            if (((matchMask >> bit) & 1) != 0) {
+                flags.Add(new FlagCondition {
+                    Flag = FlagBase + group * FlagStride + bit + 1,
+                    Set = ((xorMask >> bit) & 1) == 0,
+                });
+            }
+        }
+
+        List<int>? chapters = DecodeChapters(chapterMask);
+        if (chapters != null) {
+            flags.Add(new InChapters { Chapters = chapters });
+        }
+
+        return selector != 0
+            ? new AllOf { Conditions = flags }
+            : new AnyOf { Conditions = flags };
     }
 
-    // chapter_mask test is `(1 << (chapter-1)) & mask`, with the chapter bit
-    // capped at 0x80 for chapter >= 9. 0xFF therefore means "any chapter";
-    // otherwise list the chapters whose bit is set (8 also covers 9+).
+    // chapter_mask test is `(1 << (chapter-1)) & mask`, chapter bit capped at 0x80
+    // for chapter >= 9. 0xFF = any chapter (null); else list set chapters (8 covers 9+).
     private static List<int>? DecodeChapters(int chapterMask) {
         if (chapterMask == 0xFF) {
             return null;

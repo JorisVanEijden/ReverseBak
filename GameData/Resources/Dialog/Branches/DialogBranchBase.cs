@@ -4,9 +4,7 @@ namespace GameData.Resources.Dialog.Branches;
 using System.Text.Json.Serialization;
 
 [JsonDerivedType(typeof(DefaultBranch), nameof(DefaultBranch))]
-[JsonDerivedType(typeof(GlobalConditionBranch), nameof(GlobalConditionBranch))]
-[JsonDerivedType(typeof(FlagBitBranch), nameof(FlagBitBranch))]
-[JsonDerivedType(typeof(FlagMaskBranch), nameof(FlagMaskBranch))]
+[JsonDerivedType(typeof(ConditionalBranch), nameof(ConditionalBranch))]
 [JsonDerivedType(typeof(KeywordChoiceBranch), nameof(KeywordChoiceBranch))]
 #endif
 
@@ -18,19 +16,14 @@ using System.Text.Json.Serialization;
 /// <c>docs/specs/dialog-system.md</c> §"Branch Evaluation".
 /// <list type="bullet">
 /// <item><see cref="DefaultBranch"/> — always taken (globalKey 0).</item>
-/// <item><see cref="GlobalConditionBranch"/> — range check on a global.</item>
-/// <item><see cref="FlagBitBranch"/> — single quest-flag bit read.</item>
-/// <item><see cref="FlagMaskBranch"/> — masked quest-flag test.</item>
+/// <item><see cref="ConditionalBranch"/> — taken when its Condition holds.</item>
 /// <item><see cref="KeywordChoiceBranch"/> — a choice-menu option.</item>
 /// </list>
 /// <para>
 /// The base carries only the destination: exactly one of
-/// <see cref="TargetOffset"/> / <see cref="TargetId"/> is non-null. The raw
-/// engine key lives only on the subtypes that need it
-/// (<see cref="GlobalConditionBranch.GlobalKey"/>,
-/// <see cref="KeywordChoiceBranch.Keyword"/>); for the flag subtypes it is fully
-/// determined by <c>FlagGroup</c>/<c>Bit</c>, and for <see cref="DefaultBranch"/>
-/// it is always 0.
+/// <see cref="TargetOffset"/> / <see cref="TargetId"/> is non-null.
+/// For <see cref="DefaultBranch"/> the key is always 0; for
+/// <see cref="KeywordChoiceBranch"/> the key is the keyword index.
 /// </para>
 /// </summary>
 public abstract class DialogBranchBase {

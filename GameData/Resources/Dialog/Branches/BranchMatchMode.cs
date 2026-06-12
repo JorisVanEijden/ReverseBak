@@ -1,7 +1,7 @@
 namespace GameData.Resources.Dialog.Branches;
 
 /// <summary>
-/// How a <see cref="FlagMaskBranch"/> combines its bit conditions. Maps to the
+/// How a masked bitfield branch combines its bit conditions. Maps to the
 /// engine's bitfield-mode sub-path selector (<c>LOW(unknown4)</c>): <c>1</c> →
 /// <see cref="All"/>, <c>0</c> → <see cref="Any"/>.
 /// </summary>
