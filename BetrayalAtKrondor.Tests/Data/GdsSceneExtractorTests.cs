@@ -123,6 +123,17 @@ public class GdsSceneExtractorTests {
         Assert.Equal("", Extract(data).AnimationResource);
     }
 
+    [Fact]
+    public void Extract_ChapterMaskWithDefaultTargetBit_SetsCanBeDefaultTargetAndHiddenInChapters() {
+        // chapterHideMask = 0x8006: bit 15 (0x8000) = CanBeDefaultTarget,
+        // low byte 0x06 = bits 1 and 2 = chapters 2 and 3 are hidden.
+        byte[] data = BuildGds("test", [0, 0, 0, 0, 0, 0, 0], 0,
+            [Hotspot(0, 0, 10, 10, unchecked((short)0x8006), 0, 0, 0, 0, 0, 0, 0, 0, 0)]);
+        GdsHotspot h = Extract(data).Hotspots[0];
+        Assert.True(h.CanBeDefaultTarget);
+        Assert.Equal(new[] { 2, 3 }, h.HiddenInChapters.ToArray());
+    }
+
     // ───────────────── Real shipped data (skips when absent) ─────────────────
 
     private static string? FindOriginalGameDir() {

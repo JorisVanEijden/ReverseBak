@@ -47,6 +47,18 @@ public class DialogBranchFactoryTests {
     }
 
     [Fact]
+    public void Flags2Masked_AnyOf_IsConditionalBranchWithAnyOfComposite() {
+        // Same setup as AllOf test but selector byte = 0 -> AnyOf.
+        // group 0 (key 56000), matchMask sets bits 0 and 1, any chapter.
+        ushort unknown3 = 0x0300; // matchMask=0x03 (high byte), xorMask=0x00 (low byte)
+        ushort unknown4 = 0xFF00; // chapterMask=0xFF (high byte=any), selector=0 (low byte=AnyOf)
+        var b = Assert.IsType<ConditionalBranch>(DialogBranchFactory.Build(false, 56000, unknown3, unknown4, 0x10));
+        var any = Assert.IsType<AnyOf>(b.Condition);
+        Assert.Equal(2, any.Conditions.Count);
+        Assert.All(any.Conditions, c => Assert.IsType<FlagCondition>(c));
+    }
+
+    [Fact]
     public void Flags2Masked_WithChapterRestriction_AddsInChapters() {
         ushort unknown3 = 0x0100; // matchMask=0x01 -> one bit
         ushort unknown4 = 0x0901; // chapterMask=0x09 (chapters 1 and 4), selector=1

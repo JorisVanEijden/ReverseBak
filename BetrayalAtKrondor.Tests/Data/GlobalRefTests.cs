@@ -113,4 +113,13 @@ public class GlobalRefTests {
         Assert.True(f.Set);
         Assert.Equal(600u, f.ForTicks);
     }
+
+    [Fact]
+    public void UnconfirmedRangeKey_FallsBackToRaw() {
+        // Keys in 8500..29999 are unconfirmed namespace -> faithful RawGlobalCondition, never a guess.
+        var raw = Assert.IsType<RawGlobalCondition>(GlobalRef.DecodeCondition(12000, 1, null));
+        Assert.Equal(12000, raw.Key);
+        Assert.Equal(1, raw.Min);
+        Assert.Null(raw.Max);
+    }
 }

@@ -1,5 +1,7 @@
 namespace ResourceExtraction.Extractors.GameState;
 
+using System.Collections.Generic;
+
 using GameData.Resources.GameState;
 
 /// <summary>
@@ -77,7 +79,7 @@ public static class GlobalRef {
     public static Effect DecodeEffect(int key, int mask, int data, int value) {
         if (mask != 0) {
             int group = (key - Flags2Base) / Flags2Stride;
-            var flags = new System.Collections.Generic.List<FlagState>();
+            var flags = new List<FlagState>();
             for (var bit = 0; bit < 8; bit++) {
                 if (((mask >> bit) & 1) != 0) {
                     flags.Add(new FlagState {
@@ -109,8 +111,8 @@ public static class GlobalRef {
     /// (chapter c -> bit c-1; bit 7 / chapter 8 also covers 9+). Never returns a
     /// packed value.
     /// </summary>
-    public static System.Collections.Generic.List<int> ChaptersFromMask(int chapterMask) {
-        var chapters = new System.Collections.Generic.List<int>();
+    public static List<int> ChaptersFromMask(int chapterMask) {
+        var chapters = new List<int>();
         for (var chapter = 1; chapter <= 8; chapter++) {
             if (((chapterMask >> (chapter - 1)) & 1) != 0) {
                 chapters.Add(chapter);
