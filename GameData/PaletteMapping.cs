@@ -45,6 +45,11 @@ public static class PaletteMapping {
             "OPTIONS0" => "OPTIONS.PAL",
             "OPTIONS1" => "OPTIONS.PAL",
             "OPTIONS2" => "OPTIONS.PAL",
+            // Mouse cursors have no dedicated palette — the original blits them with the
+            // active screen palette. Use the UI palette (same as BICONS/DIALOG/FRAME); the
+            // arrow/hourglass/label glyphs use standard indices that read correctly under it.
+            "POINTER" => "OPTIONS.PAL",
+            "POINTERG" => "OPTIONS.PAL",
             "PUZZLE" => "PUZZLE.PAL",
             "RIFTMAP" => "OPTIONS.PAL",
             "Z01L" => "Z01.PAL",
