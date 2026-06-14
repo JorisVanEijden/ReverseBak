@@ -58,6 +58,14 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this SpellSymbolLayout resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this CastRing resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this List<ObjectInfo> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }

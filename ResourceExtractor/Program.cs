@@ -155,6 +155,18 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--symbols") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractSpellSymbols(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--ring") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractCastRing(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -486,6 +498,37 @@ internal static class Program {
 
         string filePath = Path.Combine(resourceDirectory, Path.GetFileNameWithoutExtension(filename) + ".png");
         PngWriter.Write(filePath, image);
+    }
+
+    private static void ExtractSpellSymbols(string filePath) {
+        var extractor = new SpellSymbolExtractor();
+        const string outDir = "SYMBOL";
+        Directory.CreateDirectory(outDir);
+        foreach (string symbolFile in GetFiles(filePath, "SYMBOL*.DAT").OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
+            string name = Path.GetFileName(symbolFile);
+            using FileStream resourceFile = File.OpenRead(symbolFile);
+            GameData.Resources.Spells.SpellSymbolLayout layout = extractor.Extract(name, resourceFile);
+            string outPath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(name) + ".json");
+            File.WriteAllText(outPath, layout.ToJson());
+            Console.WriteLine($"[SYMBOL] {name} -> {outPath} (category {layout.Category}, {layout.Nodes.Count} nodes)");
+        }
+    }
+
+    private static void ExtractCastRing(string filePath) {
+        var extractor = new CastRingExtractor();
+        const string outDir = "SYMBOL"; // co-locate with the casting-UI layouts
+        Directory.CreateDirectory(outDir);
+        string[] files = GetFiles(filePath, "RING.DAT");
+        if (files.Length == 0) {
+            Console.WriteLine("[RING] RING.DAT not found");
+            return;
+        }
+        string name = Path.GetFileName(files[0]);
+        using FileStream resourceFile = File.OpenRead(files[0]);
+        GameData.Resources.Spells.CastRing ring = extractor.Extract(name, resourceFile);
+        string outPath = Path.Combine(outDir, "RING.json");
+        File.WriteAllText(outPath, ring.ToJson());
+        Console.WriteLine($"[RING] {name} -> {outPath} ({ring.Positions.Count} positions)");
     }
 
     private static void ExtractGdsScenes(string filePath) {
