@@ -1,7 +1,9 @@
 namespace ResourceExtraction.Imaging;
 
 using GameData.Resources.Image;
+using GameData.Resources.Palette;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 /// <summary>The creature recolor mechanism — an <b>internal implementation detail</b> of the extraction
@@ -49,5 +51,37 @@ public static class CreatureColorSet {
                 data[i] = lut[data[i]];
             }
         }
+    }
+
+    /// <summary>Resolve a creature variant to finished RGBA sprites: recolor the base set (when a colorset
+    /// LUT is given) then resolve every sub-image under <see cref="CreaturePalette"/>. This is the
+    /// "extractor emits finished sprites" step — the colorset never escapes; the caller just gets RGBA.
+    /// <paramref name="lut"/> is null for base creatures (<c>colorSet == -1</c>).</summary>
+    public static List<RgbaImage> ResolveVariant(ImageSet baseSet, byte[]? lut) {
+        if (lut != null) {
+            Apply(baseSet, lut);
+        }
+        var result = new List<RgbaImage>(baseSet.Images.Count);
+        foreach (BmImage image in baseSet.Images) {
+            result.Add(ToRgba(image, CreaturePalette.Colors));
+        }
+        return result;
+    }
+
+    /// <summary>Resolve one indexed sub-image to RGBA through <paramref name="palette"/>. BMX convention:
+    /// index 0 is transparent. An index the palette marks unused renders magenta (the tripwire).</summary>
+    public static RgbaImage ToRgba(BmImage image, Color[] palette) {
+        byte[] data = image.BitMapData ?? [];
+        var rgba = new byte[image.Width * image.Height * 4];
+        for (int i = 0; i < data.Length && i < image.Width * image.Height; i++) {
+            byte index = data[i];
+            Color c = palette[index];
+            int o = i * 4;
+            rgba[o] = c.R;
+            rgba[o + 1] = c.G;
+            rgba[o + 2] = c.B;
+            rgba[o + 3] = index == 0 ? (byte)0 : c.A;   // index 0 = transparent
+        }
+        return new RgbaImage(image.Width, image.Height, rgba);
     }
 }

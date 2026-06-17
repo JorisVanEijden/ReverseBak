@@ -132,6 +132,40 @@ public class CreatureBitmapTests {
         Assert.Equal(["MOR1_CS2", "MOR2_CS2"], mor.SpriteKeys);   // negative third number skipped
     }
 
+    // ───────────────── variant → RGBA resolution ─────────────────
+
+    [Fact]
+    public void ToRgba_Index0Transparent_UnusedIndexMagenta() {
+        var palette = new Color[256];
+        for (int i = 0; i < 256; i++) {
+            palette[i] = new Color((byte)i, 0, 0);
+        }
+        palette[7] = new Color(255, 0, 255);   // an "unused" tripwire slot
+
+        var img = new BmImage("X") { Width = 3, Height = 1, BitMapData = [0, 3, 7] };
+        RgbaImage r = CreatureColorSet.ToRgba(img, palette);
+
+        Assert.Equal(new byte[] { 0, 0, 0, 0 }, r.Rgba[0..4]);          // index 0 -> transparent
+        Assert.Equal(new byte[] { 3, 0, 0, 255 }, r.Rgba[4..8]);       // index 3 -> palette colour
+        Assert.Equal(new byte[] { 255, 0, 255, 255 }, r.Rgba[8..12]);  // index 7 -> magenta tripwire
+    }
+
+    [Fact]
+    public void ResolveVariant_AppliesRecolorThenCreaturePalette() {
+        var lut = new byte[256];
+        for (int i = 0; i < 256; i++) {
+            lut[i] = (byte)i;
+        }
+        lut[0x80] = 0x81;   // recolor 0x80 -> 0x81 (both creature-used indices)
+
+        var set = new ImageSet("X");
+        set.Images.Add(new BmImage("X#0") { Width = 1, Height = 1, BitMapData = [0x80] });
+
+        RgbaImage img = CreatureColorSet.ResolveVariant(set, lut).Single();
+        Color expected = CreaturePalette.Colors[0x81];
+        Assert.Equal(new byte[] { expected.R, expected.G, expected.B, 255 }, img.Rgba);
+    }
+
     // ───────────────── real shipped data (skips when absent) ─────────────────
 
     private static string? FindOriginalGameDir() {
@@ -227,6 +261,44 @@ public class CreatureBitmapTests {
         // Exactly these base creatures depend on index 0xFF -> they look white under the OPTIONS
         // fallback but gray-green under the correct surface palette. (RUS = heavy user.)
         Assert.Equal(["MAK1", "PAI2", "RUS1", "RUS2", "RUS3"], affected.ToArray());
+    }
+
+    [Fact]
+    public void ResolveAllVariants_ProduceFinishedRgbaWithNoMagenta() {
+        // End-to-end: every creature variant resolves to RGBA through CreaturePalette with ZERO magenta
+        // pixels -> the palette fully covers every colour creatures use (base art + every CS recolor),
+        // and the recolor never lands on an unused index. This is "the extractor emits finished sprites".
+        string? gameDir = FindOriginalGameDir();
+        if (gameDir == null) {
+            return;
+        }
+
+        var bitmapExtractor = new BitmapExtractor();
+        var lutCache = new Dictionary<int, byte[]>();
+        byte[] Lut(int cs) {
+            if (!lutCache.TryGetValue(cs, out byte[]? l)) { using var s = File.OpenRead(Path.Combine(gameDir, $"CS{cs}.DAT")); l = CreatureColorSet.ReadLut(s); lutCache[cs] = l; }
+            return l;
+        }
+
+        using FileStream bn = File.OpenRead(Path.Combine(gameDir, "BNAMES.DAT"));
+        CreatureBitmaps creatures = new BNamesExtractor().Extract("BNAMES.DAT", bn);
+        int frames = 0;
+        foreach (CreatureSprite creature in creatures.Creatures) {
+            foreach (string key in creature.SpriteKeys) {
+                (string stem, int cs) = CreatureColorSet.ParseVariantKey(key);
+                using FileStream s = File.OpenRead(Path.Combine(gameDir, stem + ".BMX"));
+                ImageSet set = bitmapExtractor.Extract(stem + ".BMX", s);
+                foreach (RgbaImage img in CreatureColorSet.ResolveVariant(set, cs >= 0 ? Lut(cs) : null)) {
+                    Assert.Equal(img.Width * img.Height * 4, img.Rgba.Length);
+                    for (int p = 0; p < img.Rgba.Length; p += 4) {
+                        bool magenta = img.Rgba[p] == 255 && img.Rgba[p + 1] == 0 && img.Rgba[p + 2] == 255 && img.Rgba[p + 3] != 0;
+                        Assert.False(magenta, $"{key} has a magenta pixel -> creature uses an index the palette marks unused");
+                    }
+                    frames++;
+                }
+            }
+        }
+        Assert.True(frames > 200, $"expected many resolved frames, got {frames}");
     }
 
     [Fact]
