@@ -4,6 +4,7 @@ public enum ResourceType {
     ADS,
     BMX,
     BOK,
+    CREATURE,
     CURSOR,
     DAT,
     DDX,
