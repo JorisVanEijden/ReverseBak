@@ -2,10 +2,12 @@ namespace BetrayalAtKrondor.Tests.Data;
 
 using GameData.Resources.Creature;
 using GameData.Resources.Image;
+using GameData.Resources.Palette;
 
 using ResourceExtraction.Extractors;
 using ResourceExtraction.Imaging;
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -171,6 +173,60 @@ public class CreatureBitmapTests {
         // exactly 28 distinct recolored variant assets
         int recolored = bitmaps.Creatures.SelectMany(c => c.SpriteKeys).Where(k => k.Contains("_CS")).Distinct().Count();
         Assert.Equal(28, recolored);
+    }
+
+    [Fact]
+    public void OptionsFallbackMiscolorsSomeCreatures_SoSurfacePaletteIsRequired() {
+        // The old image extractor resolved creatures under OPTIONS.PAL (FindPalette fallback); the
+        // in-game palette is the surface zone palette (Z01). They differ at EXACTLY one index (0xFF:
+        // white in OPTIONS, gray-green in Z01). A handful of creatures use 0xFF heavily in their base
+        // art, so the two palettes are NOT interchangeable — the variant pipeline must resolve under
+        // the surface palette, not the OPTIONS fallback the old PNG export used.
+        string? gameDir = FindOriginalGameDir();
+        if (gameDir == null) {
+            return;
+        }
+
+        var paletteExtractor = new PaletteExtractor();
+        Color[] LoadPalette(string name) {
+            using FileStream s = File.OpenRead(Path.Combine(gameDir, name));
+            return paletteExtractor.Extract(name, s).Colors;
+        }
+        Color[] options = LoadPalette("OPTIONS.PAL");
+        Color[] surface = LoadPalette("Z01.PAL");
+        int[] divergent = Enumerable.Range(0, 256).Where(i => !options[i].Equals(surface[i])).ToArray();
+        Assert.Equal([0xFF], divergent);   // OPTIONS vs Z01 differ at exactly index 255
+
+        var bitmapExtractor = new BitmapExtractor();
+        var lutCache = new Dictionary<int, byte[]>();
+        byte[] Lut(int cs) {
+            if (!lutCache.TryGetValue(cs, out byte[]? lut)) {
+                using FileStream s = File.OpenRead(Path.Combine(gameDir, $"CS{cs}.DAT"));
+                lut = CreatureColorSet.ReadLut(s);
+                lutCache[cs] = lut;
+            }
+            return lut;
+        }
+
+        using FileStream bn = File.OpenRead(Path.Combine(gameDir, "BNAMES.DAT"));
+        CreatureBitmaps creatures = new BNamesExtractor().Extract("BNAMES.DAT", bn);
+        var affected = new SortedSet<string>();
+        foreach (CreatureSprite creature in creatures.Creatures) {
+            foreach (string key in creature.SpriteKeys) {
+                (string stem, int cs) = CreatureColorSet.ParseVariantKey(key);
+                using FileStream s = File.OpenRead(Path.Combine(gameDir, stem + ".BMX"));
+                ImageSet set = bitmapExtractor.Extract(stem + ".BMX", s);
+                if (cs >= 0) {
+                    CreatureColorSet.Apply(set, Lut(cs));   // 0xFF is never recolor-introduced, only base art
+                }
+                if (set.Images.Any(img => img.BitMapData!.Contains((byte)0xFF))) {
+                    affected.Add(key);
+                }
+            }
+        }
+        // Exactly these base creatures depend on index 0xFF -> they look white under the OPTIONS
+        // fallback but gray-green under the correct surface palette. (RUS = heavy user.)
+        Assert.Equal(["MAK1", "PAI2", "RUS1", "RUS2", "RUS3"], affected.ToArray());
     }
 
     [Fact]
