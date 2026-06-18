@@ -467,20 +467,26 @@ internal static class Program {
             return lut;
         }
 
+        // ToRawImage mutates palette[0].A (index-0 transparency); clone so the shared static isn't touched.
+        Color[] palette = (Color[])CreaturePalette.Colors.Clone();
+
         foreach (string key in creatures.Creatures.SelectMany(c => c.SpriteKeys).Distinct().OrderBy(k => k)) {
             (string stem, int colorSet) = CreatureColorSet.ParseVariantKey(key);
             using Stream s = provider.GetResourceStream(Path.Combine(filePath, stem + ".BMX"));
             ImageSet set = bitmapExtractor.Extract(stem + ".BMX", s);
-            List<RgbaImage> frames = CreatureColorSet.ResolveVariant(set, LutFor(colorSet));
+
+            byte[]? lut = LutFor(colorSet);
+            if (lut != null) {
+                CreatureColorSet.Apply(set, lut);          // recolor the indices (the only new step)
+            }
 
             string dir = Path.Combine(outDir, key);
             Directory.CreateDirectory(dir);
-            for (int i = 0; i < frames.Count; i++) {
-                var raw = new RawImage(frames[i].Width, frames[i].Height);
-                Array.Copy(frames[i].Rgba, raw.Rgba, frames[i].Rgba.Length);
-                WriteToPngFile(i.ToString(), dir, raw);
+            for (int i = 0; i < set.Images.Count; i++) {
+                // reuse the normal BMX→PNG path; only the palette differs
+                WriteToPngFile(i.ToString(), dir, set.Images[i].ToRawImage(palette));
             }
-            Console.WriteLine($"[CREATURE] {key} ({frames.Count} frames)");
+            Console.WriteLine($"[CREATURE] {key} ({set.Images.Count} frames)");
         }
     }
 
