@@ -38,6 +38,10 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this GameData.Resources.Creature.CreatureBitmaps resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this AnimationResource resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }

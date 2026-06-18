@@ -15,9 +15,11 @@ using GameData.Resources.Palette;
 using GameData.Resources.Spells;
 using GameData.Resources.Monster;
 using GameData.Resources.World;
+using GameData.Resources.Creature;
 using ResourceExtraction;
 using ResourceExtraction.Assemblers;
 using ResourceExtraction.Extractors;
+using ResourceExtraction.Imaging;
 using ResourceExtraction.Extractors.Animation;
 using ResourceExtraction.Extractors.Def;
 using ResourceExtraction.Providers;
@@ -95,6 +97,14 @@ internal static class Program {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             GeneralResourceProvider provider = new(gamePath);
             ExtractAllBmx(gamePath, provider);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--creatures") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            string outDir = args.Length >= 3 ? args[2] : Path.Combine(ResolveGeneratedDir(), "Creatures");
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractCreatureSprites(gamePath, provider, outDir);
             return;
         }
 
@@ -433,6 +443,44 @@ internal static class Program {
                 WriteToPngFile(i.ToString(), resourceDirectory, bmImage.ToRawImage(colors));
             }
             Console.WriteLine($"[BMX] {imageName} ({imageSet.Images.Count} images)");
+        }
+    }
+
+    private static void ExtractCreatureSprites(string filePath, GeneralResourceProvider provider, string outDir) {
+        Directory.CreateDirectory(outDir);
+
+        using Stream bnStream = provider.GetResourceStream(Path.Combine(filePath, "BNAMES.DAT"));
+        CreatureBitmaps creatures = new BNamesExtractor().Extract("BNAMES.DAT", bnStream);
+        File.WriteAllText(Path.Combine(outDir, "creature-bitmaps.json"), creatures.ToJson());
+
+        var bitmapExtractor = new BitmapExtractor();
+        var lutCache = new Dictionary<int, byte[]>();
+        byte[]? LutFor(int colorSet) {
+            if (colorSet < 0) {
+                return null;
+            }
+            if (!lutCache.TryGetValue(colorSet, out byte[]? lut)) {
+                using Stream s = provider.GetResourceStream(Path.Combine(filePath, $"CS{colorSet}.DAT"));
+                lut = CreatureColorSet.ReadLut(s);
+                lutCache[colorSet] = lut;
+            }
+            return lut;
+        }
+
+        foreach (string key in creatures.Creatures.SelectMany(c => c.SpriteKeys).Distinct().OrderBy(k => k)) {
+            (string stem, int colorSet) = CreatureColorSet.ParseVariantKey(key);
+            using Stream s = provider.GetResourceStream(Path.Combine(filePath, stem + ".BMX"));
+            ImageSet set = bitmapExtractor.Extract(stem + ".BMX", s);
+            List<RgbaImage> frames = CreatureColorSet.ResolveVariant(set, LutFor(colorSet));
+
+            string dir = Path.Combine(outDir, key);
+            Directory.CreateDirectory(dir);
+            for (int i = 0; i < frames.Count; i++) {
+                var raw = new RawImage(frames[i].Width, frames[i].Height);
+                Array.Copy(frames[i].Rgba, raw.Rgba, frames[i].Rgba.Length);
+                WriteToPngFile(i.ToString(), dir, raw);
+            }
+            Console.WriteLine($"[CREATURE] {key} ({frames.Count} frames)");
         }
     }
 
