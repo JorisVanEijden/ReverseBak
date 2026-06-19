@@ -160,6 +160,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--onames") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractObjectNames(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
@@ -992,6 +998,19 @@ internal static class Program {
         File.WriteAllText("PARTY.json", json);
         Console.WriteLine($"[PARTY] {data.Members.Count} members: " +
                           $"{string.Join(", ", data.Members.Select(m => m.Name))} written to PARTY.json");
+    }
+
+    private static void ExtractObjectNames(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "ONAMES.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[ONAMES] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        ObjectNames data = new OnamesExtractor().Extract("ONAMES.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("ONAMES.json", json);
+        Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
     }
 
     private static void ExtractFullMap(string gamePath) {
