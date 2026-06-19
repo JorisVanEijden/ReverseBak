@@ -3,6 +3,7 @@ namespace ResourceExtractor;
 using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
+using GameData.Resources.Config;
 using GameData.Resources.Credits;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
@@ -144,6 +145,24 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--chapsong") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractChapterSongMap(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--movement") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractMovementData(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--party") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractPartyData(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--fmap") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractFullMap(gamePath);
             return;
         }
 
@@ -944,6 +963,62 @@ internal static class Program {
         string json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("CHAPSONG.json", json);
         Console.WriteLine($"[CHAPSONG] {map.Entries.Count} chapter entries written to CHAPSONG.json");
+    }
+
+    private static void ExtractMovementData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "MOVEMENT.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[MOVEMENT] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        MovementData data = new MovementExtractor().Extract("MOVEMENT.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("MOVEMENT.json", json);
+        Console.WriteLine($"[MOVEMENT] step={string.Join("/", data.StepDistances)} " +
+                          $"turn={string.Join("/", data.TurnAngles)} " +
+                          $"sec/step={string.Join("/", data.SecondsPerStep)} written to MOVEMENT.json");
+    }
+
+    private static void ExtractPartyData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "PARTY.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[PARTY] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        PartyData data = new PartyExtractor().Extract("PARTY.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("PARTY.json", json);
+        Console.WriteLine($"[PARTY] {data.Members.Count} members: " +
+                          $"{string.Join(", ", data.Members.Select(m => m.Name))} written to PARTY.json");
+    }
+
+    private static void ExtractFullMap(string gamePath) {
+        const string outputDir = "FMAP";
+        Directory.CreateDirectory(outputDir);
+        var options = new JsonSerializerOptions { WriteIndented = true };
+
+        string twnPath = Path.Combine(gamePath, "FMAP_TWN.DAT");
+        if (File.Exists(twnPath)) {
+            using var stream = File.OpenRead(twnPath);
+            FullMapTowns towns = new FullMapTownExtractor().Extract("FMAP_TWN.DAT", stream);
+            File.WriteAllText(Path.Combine(outputDir, "FMAP_TWN.json"), JsonSerializer.Serialize(towns, options));
+            Console.WriteLine($"[FMAP] {towns.Towns.Count} towns written to FMAP/FMAP_TWN.json");
+        } else {
+            Console.Error.WriteLine($"[FMAP] missing: {twnPath}");
+        }
+
+        string xyPath = Path.Combine(gamePath, "FMAP_XY.DAT");
+        if (File.Exists(xyPath)) {
+            using var stream = File.OpenRead(xyPath);
+            FullMapPositions positions = new FullMapPositionExtractor().Extract("FMAP_XY.DAT", stream);
+            File.WriteAllText(Path.Combine(outputDir, "FMAP_XY.json"), JsonSerializer.Serialize(positions, options));
+            int markers = positions.Zones.Sum(z => z.Markers.Count);
+            Console.WriteLine($"[FMAP] {positions.Zones.Count} zones, {markers} tile markers written to FMAP/FMAP_XY.json");
+        } else {
+            Console.Error.WriteLine($"[FMAP] missing: {xyPath}");
+        }
     }
 
     // Extracts the DEF_*.DAT family — see docs/FileFormats/DEF_DAT family.md.

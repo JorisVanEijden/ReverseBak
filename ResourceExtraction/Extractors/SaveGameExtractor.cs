@@ -21,7 +21,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
     private const int PartyActorCount = 6;
     private const int TimedEffectsPerActor = 8;
     private const int ActorNameLength = 10;
-    private const int ActorStructSize = 95;
+    private const int ActorStructSize = ActorRecordReader.ActorStructSize;
     private const int ActorStatusEffectsSize = 7;
     private const int TimedEffectSize = 14;
     private const int TimerCount = 20;
@@ -465,7 +465,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         using var actorReader = new BinaryReader(actorStream, Encoding.GetEncoding(DosCodePage));
 
         for (var i = 0; i < actors.Length; i++) {
-            actors[i] = ParseActor(actorReader);
+            actors[i] = ActorRecordReader.ParseActor(actorReader);
         }
 
         return actors;
@@ -477,39 +477,12 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         using var actorReader = new BinaryReader(actorStream, Encoding.GetEncoding(DosCodePage));
 
         for (var i = 0; i < actors.Length; i++) {
-            actors[i] = ParseActor(actorReader);
+            actors[i] = ActorRecordReader.ParseActor(actorReader);
         }
 
         return actors;
     }
 
-    private static SaveGameActorData ParseActor(BinaryReader reader) {
-        return new SaveGameActorData(
-            reader.ReadUInt16(),
-            reader.ReadInt16(),
-            reader.ReadInt16(),
-            reader.ReadInt16(),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            ParseAttributeValues(reader),
-            reader.ReadByte(),
-            reader.ReadUInt32(),
-            reader.ReadUInt16()
-        );
-    }
 
     private static SaveGameCombatData[] ParseCombatData(byte[] combatDataBytes) {
         var combatData = new SaveGameCombatData[CombatSlotCount];
@@ -695,16 +668,6 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             encounterData,
             timestamp,
             unknown20
-        );
-    }
-
-    private static SaveGameAttributeValuesData ParseAttributeValues(BinaryReader reader) {
-        return new SaveGameAttributeValuesData(
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte()
         );
     }
 
