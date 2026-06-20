@@ -19,7 +19,6 @@ public class Spell : IResource {
     public SpellCalculation Calculation { get; set; }
     public int Damage { get; set; }
     public int Duration { get; set; }
-    public SpellInfo Info { get; set; }
     public ResourceType Type { get => ResourceType.DAT; }
 
     public string ToCsv() {

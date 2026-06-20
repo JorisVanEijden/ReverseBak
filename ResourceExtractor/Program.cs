@@ -78,7 +78,6 @@ internal static class Program {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             GeneralResourceProvider provider = new(gamePath);
             ExtractSpells(provider);
-            ExtractSpellInfo(provider);
             return;
         }
 
@@ -343,7 +342,6 @@ internal static class Program {
 
         ExtractLabels(filePath, generalResourceProvider);
         ExtractSpells(generalResourceProvider);
-        ExtractSpellInfo(generalResourceProvider);
 
         var objectExtractor = new ObjectExtractor();
         List<ObjectInfo> objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
@@ -475,14 +473,6 @@ internal static class Program {
         SpellList spellList = spellExtractor.Extract(filename, resourceStream);
         WriteToJsonFile(filename, ResourceType.DAT, spellList.ToJson());
         WriteToCsvFile(filename, ResourceType.DAT, spellList.ToCsv());
-    }
-
-    private static void ExtractSpellInfo(GeneralResourceProvider generalResourceProvider) {
-        var spellInfoExtractor = new SpellInfoExtractor();
-        const string filename = "spelldoc.dat";
-        using Stream resourceStream = generalResourceProvider.GetResourceStream(filename);
-        SpellInfoList spellInfoList = spellInfoExtractor.Extract(filename, resourceStream);
-        WriteToJsonFile(filename, ResourceType.DAT, spellInfoList.ToJson());
     }
 
     private static void ExtractLabels(string filePath, GeneralResourceProvider generalResourceProvider) {

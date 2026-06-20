@@ -50,8 +50,6 @@ public static class ExtractorFactory {
         }, {
             typeof(SpellList), typeof(SpellExtractor)
         }, {
-            typeof(SpellInfoList), typeof(SpellInfoExtractor)
-        }, {
             typeof(PaletteResource), typeof(PaletteExtractor)
         }, {
             typeof(AudioResource), typeof(AudioExtractor)
