@@ -227,6 +227,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--grid") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractGridData(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1064,6 +1070,19 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractGridData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "GRID.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[GRID] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        GridData data = new GridExtractor().Extract("GRID.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("GRID.json", json);
+        Console.WriteLine($"[GRID] {data.ZoneBorderPens.Count} per-zone border pens written to GRID.json: {string.Join(",", data.ZoneBorderPens)}");
     }
 
     private static void ExtractEncampData(string gamePath) {
