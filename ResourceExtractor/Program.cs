@@ -221,6 +221,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--encamp") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractEncampData(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1058,6 +1064,19 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractEncampData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "ENCAMP.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[ENCAMP] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        EncampData data = new EncampExtractor().Extract("ENCAMP.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("ENCAMP.json", json);
+        Console.WriteLine($"[ENCAMP] {data.ClockEntries.Count} clock + {data.NeedleEntries.Count} needle points written to ENCAMP.json");
     }
 
     private static void ExtractTrapData(string gamePath) {
