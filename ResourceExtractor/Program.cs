@@ -239,6 +239,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--spellaffinity") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractSpellAffinities(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1076,6 +1082,23 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractSpellAffinities(string gamePath) {
+        var extractor = new SpellAffinityExtractor();
+        foreach (string fileName in new[] { "SPELLWEA.DAT", "SPELLRES.DAT" }) {
+            string fullPath = Path.Combine(gamePath, fileName);
+            if (!File.Exists(fullPath)) {
+                Console.Error.WriteLine($"[SPELLAFFINITY] missing: {fullPath}");
+                continue;
+            }
+            using FileStream stream = File.OpenRead(fullPath);
+            SpellAffinityTable data = extractor.Extract(fileName, stream);
+            string outName = Path.GetFileNameWithoutExtension(fileName) + ".json";
+            File.WriteAllText(outName, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            int withAffinity = data.Spells.Count(s => s.CreatureTypes.Count > 0);
+            Console.WriteLine($"[SPELLAFFINITY] {fileName} -> {outName} ({data.Spells.Count} spells, {withAffinity} with entries)");
+        }
     }
 
     private static void ExtractInputForms(string gamePath) {
