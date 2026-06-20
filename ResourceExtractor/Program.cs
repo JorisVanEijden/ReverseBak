@@ -233,6 +233,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--in") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractInputForms(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1070,6 +1076,20 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractInputForms(string gamePath) {
+        const string outputDir = "IN";
+        Directory.CreateDirectory(outputDir);
+        var extractor = new InExtractor();
+        foreach (string file in GetFiles(gamePath, "IN_*.DAT").OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
+            string name = Path.GetFileName(file)!;
+            using FileStream stream = File.OpenRead(file);
+            InputForm form = extractor.Extract(name, stream);
+            string outPath = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(name) + ".json");
+            File.WriteAllText(outPath, JsonSerializer.Serialize(form, new JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine($"[IN] {name} -> {outPath} ({form.Fields.Count} fields)");
+        }
     }
 
     private static void ExtractGridData(string gamePath) {
