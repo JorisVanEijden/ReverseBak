@@ -25,13 +25,28 @@ public class SpellDocExtractor : ExtractorBase<SpellDescriptions> {
         long blobStart = reader.BaseStream.Position;
         long blobLength = reader.BaseStream.Length - blobStart;
 
-        foreach (uint offset in offsets) {
-            if (offset >= blobLength) {
-                data.Descriptions.Add("");
-                continue;
+        string Line(int index) {
+            if (index >= offsets.Length || offsets[index] >= blobLength) {
+                return "";
             }
-            reader.BaseStream.Seek(blobStart + offset, SeekOrigin.Begin);
-            data.Descriptions.Add(reader.ReadZeroTerminatedString());
+            reader.BaseStream.Seek(blobStart + offsets[index], SeekOrigin.Begin);
+            return reader.ReadZeroTerminatedString();
+        }
+
+        // The UI indexes the flat offset table as 7 fixed lines per spell (base = spell*7).
+        int spellCount = count / SpellDescriptions.FieldsPerSpell;
+        for (int spell = 0; spell < spellCount; spell++) {
+            int b = spell * SpellDescriptions.FieldsPerSpell;
+            data.Spells.Add(new SpellDescription {
+                SpellNumber = spell,
+                Name = Line(b + 0),
+                Cost = Line(b + 1),
+                Damage = Line(b + 2),
+                Duration = Line(b + 3),
+                LineOfSight = Line(b + 4),
+                Effect = Line(b + 5),
+                EffectLine2 = Line(b + 6),
+            });
         }
 
         return data;

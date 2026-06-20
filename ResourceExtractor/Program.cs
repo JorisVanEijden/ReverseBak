@@ -1099,7 +1099,7 @@ internal static class Program {
         using var stream = File.OpenRead(fullPath);
         SpellDescriptions data = new SpellDocExtractor().Extract("SPELLDOC.DAT", stream);
         File.WriteAllText("SPELLDOC.json", JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
-        Console.WriteLine($"[SPELLDOC] {data.Descriptions.Count} description entries written to SPELLDOC.json");
+        Console.WriteLine($"[SPELLDOC] {data.Spells.Count} spells written to SPELLDOC.json");
     }
 
     private static void ExtractSpellAffinities(string gamePath) {

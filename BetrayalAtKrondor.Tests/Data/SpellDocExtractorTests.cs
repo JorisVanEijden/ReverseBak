@@ -4,62 +4,73 @@ using GameData.Resources.Spells;
 
 using ResourceExtraction.Extractors;
 
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
 using Xunit;
 
 /// <summary>
-/// Verifies SPELLDOC.DAT parsing: u16 count, count × u32 blob offsets, u16 declared size,
-/// then a NUL-terminated string blob (to EOF). Shared offsets resolve to the same string.
-/// See <see cref="SpellDescriptions"/> / docs/FileFormats/SPELLDOC.DAT.md.
+/// Verifies SPELLDOC.DAT parsing: u16 entryCount, entryCount × u32 blob offsets, u16
+/// declared size, then a NUL-terminated string blob (to EOF). Entries are grouped 7-per-spell
+/// into named fields; shared offsets resolve to the same string. See
+/// <see cref="SpellDescriptions"/> / docs/FileFormats/SPELLDOC.DAT.md.
 /// </summary>
 public class SpellDocExtractorTests {
 
     static SpellDocExtractorTests() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-    private static byte[] Build(string[] strings, uint[] offsetTable) {
-        // Build a blob from the distinct strings and record each string's offset.
+    // Builds a SPELLDOC.DAT from per-entry strings (one offset per entry; identical strings
+    // share an offset, mirroring the shipped file's shared empty separator).
+    private static byte[] Build(params string[] entries) {
         var blob = new MemoryStream();
-        var offsetOf = new System.Collections.Generic.Dictionary<string, uint>();
-        foreach (string sv in strings) {
-            if (offsetOf.ContainsKey(sv)) {
-                continue;
+        var offsetOf = new Dictionary<string, uint>();
+        var offsets = new uint[entries.Length];
+        for (int i = 0; i < entries.Length; i++) {
+            if (!offsetOf.TryGetValue(entries[i], out uint off)) {
+                off = (uint)blob.Position;
+                offsetOf[entries[i]] = off;
+                byte[] bytes = Encoding.ASCII.GetBytes(entries[i]);
+                blob.Write(bytes, 0, bytes.Length);
+                blob.WriteByte(0);
             }
-            offsetOf[sv] = (uint)blob.Position;
-            byte[] bytes = Encoding.ASCII.GetBytes(sv);
-            blob.Write(bytes, 0, bytes.Length);
-            blob.WriteByte(0);
+            offsets[i] = off;
         }
-        byte[] blobBytes = blob.ToArray();
 
         var ms = new MemoryStream();
         var w = new BinaryWriter(ms);
-        w.Write((ushort)offsetTable.Length);
-        foreach (uint off in offsetTable) {
+        w.Write((ushort)entries.Length);
+        foreach (uint off in offsets) {
             w.Write(off);
         }
         w.Write((ushort)0); // declared size — ignored by the extractor (blob runs to EOF)
-        w.Write(blobBytes);
+        w.Write(blob.ToArray());
         return ms.ToArray();
     }
 
     [Fact]
-    public void Extract_ResolvesOffsetsIncludingSharedEmptyString() {
-        // strings present in the blob: "Dragon's Breath", "Cost: 5", "" (shared separator)
-        string[] distinct = { "Dragon's Breath", "Cost: 5", "" };
-        // offsets: name@0, cost@16, empty@24 (computed below to keep the test robust)
-        uint nameOff = 0;
-        uint costOff = (uint)("Dragon's Breath".Length + 1);
-        uint emptyOff = costOff + (uint)("Cost: 5".Length + 1);
+    public void Extract_GroupsSevenFieldsPerSpell() {
+        SpellDescriptions doc = new SpellDocExtractor().Extract("SPELLDOC.DAT", new MemoryStream(Build(
+            // spell 0 — note the shared blank entries
+            "Flamecast", "Cost: 1-20 Health/Stamina", "Damage: 3 x Cost", "", "Line of sight: Yes", "Area fire damage", "",
+            // spell 1 — two-line effect
+            "Strength Drain", "Cost: 2", "Damage: None", "", "", "Drains strength from victim and", "gives to caster.")));
 
-        byte[] file = Build(distinct, new[] { nameOff, costOff, emptyOff, emptyOff });
-        SpellDescriptions doc = new SpellDocExtractor().Extract("SPELLDOC.DAT", new MemoryStream(file));
+        Assert.Equal(2, doc.Spells.Count);
 
-        Assert.Equal(4, doc.Descriptions.Count);
-        Assert.Equal("Dragon's Breath", doc.Descriptions[0]);
-        Assert.Equal("Cost: 5", doc.Descriptions[1]);
-        Assert.Equal("", doc.Descriptions[2]);
-        Assert.Equal("", doc.Descriptions[3]); // shared empty-string offset
+        SpellDescription s0 = doc.Spells[0];
+        Assert.Equal(0, s0.SpellNumber);
+        Assert.Equal("Flamecast", s0.Name);
+        Assert.Equal("Cost: 1-20 Health/Stamina", s0.Cost);
+        Assert.Equal("Damage: 3 x Cost", s0.Damage);
+        Assert.Equal("", s0.Duration);
+        Assert.Equal("Line of sight: Yes", s0.LineOfSight);
+        Assert.Equal("Area fire damage", s0.Effect);
+        Assert.Equal("", s0.EffectLine2);
+
+        SpellDescription s1 = doc.Spells[1];
+        Assert.Equal("Strength Drain", s1.Name);
+        Assert.Equal("Drains strength from victim and", s1.Effect);
+        Assert.Equal("gives to caster.", s1.EffectLine2);
     }
 }
