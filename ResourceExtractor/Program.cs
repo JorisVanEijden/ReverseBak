@@ -245,6 +245,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--spelldoc") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractSpellDescriptions(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1082,6 +1088,18 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractSpellDescriptions(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "SPELLDOC.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[SPELLDOC] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        SpellDescriptions data = new SpellDocExtractor().Extract("SPELLDOC.DAT", stream);
+        File.WriteAllText("SPELLDOC.json", JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"[SPELLDOC] {data.Descriptions.Count} description entries written to SPELLDOC.json");
     }
 
     private static void ExtractSpellAffinities(string gamePath) {
