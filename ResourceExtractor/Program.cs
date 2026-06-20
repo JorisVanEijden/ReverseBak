@@ -3,6 +3,7 @@ namespace ResourceExtractor;
 using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
+using GameData.Resources.Combat;
 using GameData.Resources.Config;
 using GameData.Resources.Credits;
 using GameData.Resources.Data;
@@ -211,6 +212,12 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--detect") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractDetectData(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--traps") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractTrapData(gamePath);
             return;
         }
 
@@ -1051,6 +1058,20 @@ internal static class Program {
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
+    }
+
+    private static void ExtractTrapData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "TRAPS.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[TRAPS] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        TrapData data = new TrapExtractor().Extract("TRAPS.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("TRAPS.json", json);
+        int active = data.Encounters.Count(e => e.Elements.Count > 0);
+        Console.WriteLine($"[TRAPS] {data.Encounters.Count} encounter records ({active} non-empty) written to TRAPS.json");
     }
 
     private static void ExtractFullMap(string gamePath) {
