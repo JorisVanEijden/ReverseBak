@@ -18,7 +18,7 @@ namespace GameData.Resources.Data;
 // Plus DEF_COMB.Field3A is read by ovr188:sub_ovr188_1E9 (combat
 // initialization), purpose TBD.
 public class DefCombEntry {
-    public ushort Field0 { get; set; }                      // 0   — IDA-named int; no readers (dead in trigger path)
+    public ushort Field0 { get; set; }                      // 0   — verified unread 2026-06-20 (all 3 consumers traced: combTrigger_phase1 0x73f98, combTrigger_phase2 0x7409d, sub_ovr187_3C5 0x73d15); editor metadata
     public uint EncounterNumber { get; set; }               // 2   — index into combat encounter table
     public uint DialogId1 { get; set; }                     // 6   — multi-trigger dispatcher AND main-fire dialog
     public uint DialogId2 { get; set; }                     // A   — pre-fire dialog (sub_ovr187_648 → dialog_Show)
