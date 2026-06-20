@@ -29,19 +29,19 @@ internal class ObjectExtractor : ExtractorBase {
                 SoundId = resourceReader.ReadByte(),
                 SoundRepeat = resourceReader.ReadByte(),
                 MaxAmount = resourceReader.ReadByte(),
-                Field37 = resourceReader.ReadByte(),
+                MaxCharges = resourceReader.ReadByte(),               // +0x37 limited-use max charges
                 Race = (Race)resourceReader.ReadUInt16(),
                 ShopType = resourceReader.ReadUInt16(),
                 ObjectType = (ObjectType)resourceReader.ReadUInt16(),
-                Attributes = (ActorAttributeFlag)resourceReader.ReadUInt16(),
-                Field40 = resourceReader.ReadUInt16(),
-                Field42 = resourceReader.ReadUInt16(),
-                Book1Potion8 = resourceReader.ReadUInt16(),
-                CanEffect = resourceReader.ReadInt16(),
-                Field48 = resourceReader.ReadUInt16(),
-                Field4A = resourceReader.ReadUInt16(),
-                Field4C = resourceReader.ReadUInt16(),
-                Field4E = resourceReader.ReadUInt16()
+                Attributes = (ActorAttributeFlag)resourceReader.ReadUInt16(), // +0x3E use-effect flags / tool target
+                UseEffectAttributeMask = resourceReader.ReadUInt16(), // +0x40 affected-attribute bitmask
+                UseEffectAmount = resourceReader.ReadUInt16(),        // +0x42 effect magnitude
+                EffectDurationHours = resourceReader.ReadUInt16(),    // +0x44 timed-effect duration (hours)
+                EquipAttributeMask = resourceReader.ReadUInt16(),     // +0x46 passive-modifier attribute mask
+                EquipModifierAmount = resourceReader.ReadInt16(),     // +0x48 passive-modifier amount (signed)
+                DegradeChancePercent = resourceReader.ReadUInt16(),   // +0x4A
+                MaxWearPerDegrade = resourceReader.ReadUInt16(),      // +0x4C
+                MinimumQuality = resourceReader.ReadUInt16()          // +0x4E
             };
 
             objectInfoList.Add(objectInfo);
