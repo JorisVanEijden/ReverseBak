@@ -202,6 +202,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--filter") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractFilterData(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1011,6 +1017,20 @@ internal static class Program {
         string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("ONAMES.json", json);
         Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
+    }
+
+    private static void ExtractFilterData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "FILTER.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[FILTER] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        FilterData data = new FilterExtractor().Extract("FILTER.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("FILTER.json", json);
+        Console.WriteLine($"[FILTER] {data.DetailLevels.Count} detail-level blocks × " +
+                          $"{FilterData.EntityTypeCount} entity-type draw distances written to FILTER.json");
     }
 
     private static void ExtractFullMap(string gamePath) {
