@@ -208,6 +208,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--detect") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractDetectData(gamePath);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -1031,6 +1037,20 @@ internal static class Program {
         File.WriteAllText("FILTER.json", json);
         Console.WriteLine($"[FILTER] {data.DetailLevels.Count} detail-level blocks × " +
                           $"{FilterData.EntityTypeCount} entity-type draw distances written to FILTER.json");
+    }
+
+    private static void ExtractDetectData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "DETECT.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[DETECT] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        DetectData data = new DetectExtractor().Extract("DETECT.DAT", stream);
+        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("DETECT.json", json);
+        Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
+                          $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
     }
 
     private static void ExtractFullMap(string gamePath) {
