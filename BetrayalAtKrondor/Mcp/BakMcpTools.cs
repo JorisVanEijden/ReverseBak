@@ -22,6 +22,7 @@ public sealed class BakMcpTools {
     private readonly OverlayAddressTranslator _translator;
     private readonly EmulatorMcpServices _emulator;
     private readonly Lock _lock = new();
+    private readonly SequentialIdAllocator _idAllocator = new();
 
     public BakMcpTools(OverlayAddressTranslator translator, EmulatorMcpServices emulator) {
         _translator = translator;
@@ -202,7 +203,7 @@ public sealed class BakMcpTools {
             ushort offset = (ushort)(resolved.PhysicalAddress & 0xF);
             SegmentedAddress current = new(segment, offset);
 
-            InstructionParser parser = new(_emulator.Memory, _emulator.State);
+            InstructionParser parser = new(_emulator.Memory, _emulator.State, _idAllocator);
             AstInstructionRenderer renderer = new(AsmRenderingConfig.CreateSpice86Style());
             List<object> lines = new();
             uint memoryLength = (uint)_emulator.Memory.Length;

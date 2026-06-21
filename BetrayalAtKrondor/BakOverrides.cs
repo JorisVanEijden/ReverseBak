@@ -41,8 +41,8 @@ public class BakOverrides : CSharpOverrideHelper {
         _translator = translator;
         _globalSettings = new GlobalSettings(machine.Memory);
         _gameEngine = new GameEngine(machine.MouseDriver);
-        _gameEngine.DataPath = configuration.Exe is null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(configuration.Exe);
-        _ = new StdIO(functionsInformation, machine, loggerService.WithLogLevel(LogEventLevel.Information), configuration);
+        _gameEngine.DataPath = Path.GetDirectoryName(configuration.Exe);
+        _ = new StdIO(functionsInformation, machine, loggerService, configuration);
         _args = new ArgumentFetcher(machine.Stack, machine.CpuState, machine.Memory);
         _pauseHandler = machine.PauseHandler;
         DefineFunctions();
