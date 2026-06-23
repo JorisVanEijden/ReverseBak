@@ -2,8 +2,16 @@ namespace GameData;
 
 public static class PaletteMapping {
 
-    public static string? GetPaletteFor(string image) {
+    public static string? GetPaletteFor(string image, int subImage = -1) {
         image = StripThreeLetterExtension(image).ToUpper();
+
+        // Sub-image-specific overrides: a few BICONS icons are authored for a screen-specific palette
+        // rather than the shared OPTIONS UI palette. The Contents-screen Exit button graphic — normal
+        // frame BICONS1 #66, hover frame BICONS2 #66 — is drawn under CONTENTS.PAL in the original
+        // (icons render under the active screen palette, which is CONTENTS.PAL on that screen).
+        if (subImage == 66 && (image == "BICONS1" || image == "BICONS2")) {
+            return "CONTENTS.PAL";
+        }
 
         return image switch {
             "BICONS1" => "OPTIONS.PAL",
