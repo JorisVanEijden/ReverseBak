@@ -10,7 +10,6 @@ using System.IO;
 using System.Text;
 
 public class SaveGameExtractor : ExtractorBase<SaveGame> {
-    private const int SaveGameNameLength = 90;
     private const int StateDataSize = 2775;
     private const int WorldDataSize = 34320;
     private const int ActorDataSize = 164350;
@@ -49,21 +48,20 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
     private const short NoMarkerSentinel = -1;
 
     public override SaveGame Extract(string id, Stream resourceStream) {
-        using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
-
-        long streamLength = resourceReader.BaseStream.Length;
+        long streamLength = resourceStream.Length;
         bool hasHeader = streamLength > TempGameDataSize;
 
         string saveGameName;
         short chapterNumber, worldX, worldY, mapIcon, version;
 
         if (hasHeader) {
-            saveGameName = new string(resourceReader.ReadChars(SaveGameNameLength)).TrimEnd('\0');
-            chapterNumber = resourceReader.ReadInt16();
-            worldX = resourceReader.ReadInt16();
-            worldY = resourceReader.ReadInt16();
-            mapIcon = resourceReader.ReadInt16();
-            version = resourceReader.ReadInt16();
+            SaveGameHeader header = ReadHeader(resourceStream);
+            saveGameName = header.Name;
+            chapterNumber = header.ChapterNumber;
+            worldX = header.WorldX;
+            worldY = header.WorldY;
+            mapIcon = header.MapIcon;
+            version = header.Version;
         } else {
             saveGameName = string.Empty;
             chapterNumber = 0;
@@ -73,7 +71,8 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             version = SaveGame.SupportedVersion;
         }
 
-        long remaining = resourceReader.BaseStream.Length - resourceReader.BaseStream.Position;
+        using var resourceReader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
+        long remaining = resourceStream.Length - resourceStream.Position;
         byte[] tempGameData = resourceReader.ReadBytes((int)remaining);
         SaveGameData? data = ParseData(tempGameData);
 
@@ -81,6 +80,23 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         FullMapIcon? fullMapMarker = hasHeader ? BuildFullMapMarker(worldX, worldY, mapIcon) : null;
 
         return new SaveGame(id, saveGameName, chapterNumber, worldX, worldY, mapIcon, version, tempGameData, data, fullMapMarker);
+    }
+
+    /// <summary>
+    /// Reads just the 100-byte slot header from the start of <paramref name="resourceStream"/>,
+    /// leaving the stream positioned immediately after it. Cheap alternative to
+    /// <see cref="Extract"/> for save-slot listing — does not parse the ~300 KB body. Does not
+    /// validate the version; consult <see cref="SaveGameHeader.IsSupportedVersion"/>.
+    /// </summary>
+    public static SaveGameHeader ReadHeader(Stream resourceStream) {
+        using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage), leaveOpen: true);
+        string name = new string(reader.ReadChars(SaveGameHeader.NameLength)).TrimEnd('\0');
+        short chapterNumber = reader.ReadInt16();
+        short worldX = reader.ReadInt16();
+        short worldY = reader.ReadInt16();
+        short mapIcon = reader.ReadInt16();
+        short version = reader.ReadInt16();
+        return new SaveGameHeader(name, chapterNumber, worldX, worldY, mapIcon, version);
     }
 
     /// <summary>
