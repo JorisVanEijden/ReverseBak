@@ -35,6 +35,9 @@ public static class PaletteMapping {
             "CAST" => "OPTIONS.PAL",
             "CFRAME" => "OPTIONS.PAL",
             "CHAPTER" => "CHAPTER.PAL",
+            // Travel compass strip — drawn in the FRAME chrome's compass slot, so it shares the
+            // travel-HUD UI palette (same as FRAME). COMPASS.PAL does not exist in the archive.
+            "COMPASS" => "OPTIONS.PAL",
             "CONT2" => "CONTENTS.PAL",
             "CONTENTS" => "CONTENTS.PAL",
             "CREDITS" => "CREDITS.PAL",

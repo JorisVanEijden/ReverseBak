@@ -27,6 +27,14 @@ public class PaletteMappingTests {
     }
 
     [Fact]
+    public void Compass_UsesTravelHudUiPalette() {
+        // The travel compass strip (COMPASS.BMX) has no COMPASS.PAL in the archive; it shares the
+        // travel-HUD UI palette with the FRAME chrome it sits in.
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("COMPASS.BMX"));
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("COMPASS.BMX", 0));
+    }
+
+    [Fact]
     public void NonBiconsSubImage_FallsBackToFileMapping() {
         // A sub-image index on a non-overridden file resolves by filename as before.
         Assert.Equal("CONTENTS.PAL", PaletteMapping.GetPaletteFor("CONTENTS.SCX", 0));
