@@ -40,6 +40,8 @@ public static class ExtractorFactory {
         }, {
             typeof(KeywordList), typeof(KeywordExtractor)
         }, {
+            typeof(MovementData), typeof(MovementExtractor)
+        }, {
             typeof(SaveGame), typeof(SaveGameExtractor)
         }, {
             typeof(ChapterStartData), typeof(ChapterDataExtractor)
