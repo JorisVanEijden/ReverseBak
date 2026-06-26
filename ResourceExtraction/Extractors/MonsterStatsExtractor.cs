@@ -24,9 +24,9 @@ public class MonsterStatsExtractor : ExtractorBase<MonsterStats>
         stats.AccuracyMelee = ReadStatRange(reader);
         stats.AccuracyCasting = ReadStatRange(reader);
         stats.Defense = ReadStatRange(reader);
-        stats.AttackPattern = ReadStatRange(reader);
-        stats.DefensePattern = ReadStatRange(reader);
-        stats.MovementPattern = ReadStatRange(reader);
+        stats.SpellcastPattern = ReadStatRange(reader);   // caster AI personality (gated by canCastSpells)
+        stats.CrossbowPattern = ReadStatRange(reader);     // ranged AI personality (gated by combat_canShootCrossbow)
+        stats.MeleeMovePattern = ReadStatRange(reader);    // default melee/move AI personality
         stats.FleeThreshold = ReadStatRange(reader);
 
         return stats;
