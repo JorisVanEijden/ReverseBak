@@ -25,15 +25,6 @@ public class DefTrapEntry {
     public LandingPosition LandingDir4 { get; set; } = new(); // 26 — landing for dir 4
     public LandingPosition LandingDir8 { get; set; } = new(); // 30 — landing for dir 8
     public LandingPosition LandingPrimary { get; set; } = new(); // 3A (= coordinates_64k + field_42) — landing for the non-directional fire path
-    public DefTrapStruct339 Struct339 { get; set; } = new(); // 44 — 339 bytes; only Field1 (creatureType) is read
+    public EncounterActorSetup EnemySetup { get; set; } = new(); // 44 — 339-byte actor-placement block (slotCount + 7×EnemySlot + trailer); identical layout to DEF_COMB's
     public ushort Field197 { get; set; }                    // 197 — bit 0 gates the stealth/scouting detection path
-}
-
-// Mirrors IDA's `unknownStruct339`. Mostly opaque; only Field1 is read
-// (assigned to global `creatureType` when the trap fires).
-public class DefTrapStruct339 {
-    public byte Gap0 { get; set; }                          // 0   — no readers (dead)
-    public ushort Field1 { get; set; }                      // 1   — creatureType global
-    public byte[] Gap3 { get; set; } = new byte[335];       // 3   — opaque; no individual-field readers
-    public byte Field152 { get; set; }                      // 152 — no readers (dead)
 }

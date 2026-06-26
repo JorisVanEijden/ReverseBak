@@ -9,10 +9,14 @@ public class ObjectInfo : IResource {
 
     public string Name { get; set; }
 
-    /// <summary>+0x1E. <b>Unknown — no reader found.</b> The 80-byte <c>objectInfo</c> struct is
-    /// indexed all over the engine, but a field-level xref sweep finds no code reading +0x1E.
-    /// Only two values ship: 0 (121 items) and 0x1F80 (17 items), so it is likely a vestigial
-    /// editor flag. Preserved verbatim.</summary>
+    /// <summary>+0x1E. <b>Editor-side melee-weapon/armor group marker — no runtime reader.</b>
+    /// Ships exactly two values: <c>0x1F80</c> on the 17 <c>Sword</c>+<c>Armor</c> items, and
+    /// <c>0</c> on all 121 others. The set is precisely <c>ObjectType ∈ {Sword, Armor}</c> —
+    /// note it <i>excludes</i> Crossbows (objects 30–35), which degrade yet carry 0 here, so it is
+    /// NOT a "degradable equipment" flag. A field-level xref sweep finds no code reading +0x1E
+    /// (the 80-byte <c>objectInfo</c> struct is indexed widely but nothing dereferences this
+    /// offset). Redundant with <see cref="ObjectType"/>; vestigial at runtime. Preserved verbatim.
+    /// Verified 2026-06-26.</summary>
     public int Field1E { get; set; }
 
     public ObjectFlags Flags { get; set; }

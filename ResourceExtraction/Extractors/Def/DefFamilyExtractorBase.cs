@@ -24,6 +24,37 @@ public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFi
     protected abstract int PayloadSize { get; }
     protected abstract TEntry ReadPayload(BinaryReader reader);
 
+    // 10-byte directional landing position, shared by DEF_COMB and DEF_TRAP.
+    protected static LandingPosition ReadLanding(BinaryReader reader) {
+        return new LandingPosition {
+            FineX     = reader.ReadInt32(),
+            FineY     = reader.ReadInt32(),
+            RotationZ = reader.ReadUInt16(),
+        };
+    }
+
+    // 339-byte encounter actor-placement block, shared by DEF_COMB (offset
+    // 0x3A) and DEF_TRAP (offset 0x44): slotCount + 7×48-byte EnemySlot +
+    // 2-byte trailer. See EncounterActorSetup / docs/FileFormats/DEF_DAT family.md.
+    protected static EncounterActorSetup ReadEnemySetup(BinaryReader reader) {
+        var setup = new EncounterActorSetup { SlotCount = reader.ReadByte() };
+        for (int s = 0; s < 7; s++) {
+            setup.Slots[s] = new EnemySlot {
+                CreatureNumber   = reader.ReadUInt16(),
+                MovementPattern  = reader.ReadUInt16(),
+                PrimarySpawnX    = reader.ReadInt32(),
+                PrimarySpawnY    = reader.ReadInt32(),
+                PrimaryRotationZ = reader.ReadInt16(),
+                AltSpawnX        = new[] { reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32() },
+                AltSpawnY        = new[] { reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32() },
+                Field2E          = reader.ReadByte(),
+                Field2F          = reader.ReadSByte(),
+            };
+        }
+        setup.Trailer = reader.ReadUInt16();
+        return setup;
+    }
+
     public override DefFamilyFile<TEntry> Extract(string id, Stream resourceStream) {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
         uint count = reader.ReadUInt32();

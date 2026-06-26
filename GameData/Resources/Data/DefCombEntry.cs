@@ -15,8 +15,12 @@ namespace GameData.Resources.Data;
 //     snaps player to a directional landing, shows DialogId1,
 //     starts the encounter via sub_stub168_2F.
 //
-// Plus DEF_COMB.Field3A is read by ovr188:sub_ovr188_1E9 (combat
-// initialization), purpose TBD.
+// EnemySetup (offset 0x3A) is the 339-byte encounter actor-placement
+// block — see EncounterActorSetup. placeEncounterActors (ovr188 @0x75359)
+// SCOPYs it into p5times339bytes and the combat engine positions/animates
+// each enemy from it. (IDA models the same bytes as field_3A:slotCount +
+// the leading creatureNumber + a 336-byte tail.)
+// See docs/FileFormats/DEF_DAT family.md.
 public class DefCombEntry {
     public ushort Field0 { get; set; }                      // 0   — verified unread 2026-06-20 (all 3 consumers traced: combTrigger_phase1 0x73f98, combTrigger_phase2 0x7409d, sub_ovr187_3C5 0x73d15); editor metadata
     public uint EncounterNumber { get; set; }               // 2   — index into combat encounter table
@@ -29,8 +33,6 @@ public class DefCombEntry {
     public LandingPosition LandingDir2 { get; set; } = new(); // 1C — landing for dir 2
     public LandingPosition LandingDir4 { get; set; } = new(); // 26 — landing for dir 4
     public LandingPosition LandingDir8 { get; set; } = new(); // 30 — landing for dir 8
-    public byte Field3A { get; set; }                       // 3A  — read by ovr188:sub_ovr188_1E9 (combat init); purpose TBD
-    public ushort MonsterNumber { get; set; }               // 3B  — assigned to creatureType global on fire
-    public byte[] Gap3D { get; set; } = new byte[336];      // 3D  — 336 bytes opaque; no individual-field readers in trigger path
+    public EncounterActorSetup EnemySetup { get; set; } = new(); // 3A — 339-byte actor-placement block (slotCount + 7×EnemySlot + trailer)
     public ushort Field18D { get; set; }                    // 18D — bit 0 gates the stealth/scouting detection path
 }

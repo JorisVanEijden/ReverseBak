@@ -6,14 +6,6 @@ using System.IO;
 public class DefCombExtractor : DefFamilyExtractorBase<DefCombEntry> {
     protected override int PayloadSize => 399;
 
-    private static LandingPosition ReadLanding(BinaryReader reader) {
-        return new LandingPosition {
-            FineX     = reader.ReadInt32(),
-            FineY     = reader.ReadInt32(),
-            RotationZ = reader.ReadUInt16(),
-        };
-    }
-
     protected override DefCombEntry ReadPayload(BinaryReader reader) {
         return new DefCombEntry {
             Field0          = reader.ReadUInt16(),
@@ -27,9 +19,7 @@ public class DefCombExtractor : DefFamilyExtractorBase<DefCombEntry> {
             LandingDir2     = ReadLanding(reader),
             LandingDir4     = ReadLanding(reader),
             LandingDir8     = ReadLanding(reader),
-            Field3A         = reader.ReadByte(),
-            MonsterNumber   = reader.ReadUInt16(),
-            Gap3D           = reader.ReadBytes(336),
+            EnemySetup      = ReadEnemySetup(reader),
             Field18D        = reader.ReadUInt16(),
         };
     }
