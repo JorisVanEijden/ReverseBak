@@ -18,6 +18,9 @@ public static class PaletteMapping {
             "BICONS2" => "OPTIONS.PAL",
             "BLANK" => "CREDITS.PAL",
             "BOOK" => "BOOK.PAL",
+            // Synthesized parchment variants (even = BOOK.SCX, odd = vertically flipped) share BOOK.PAL.
+            "BOOK_EVEN" => "BOOK.PAL",
+            "BOOK_ODD" => "BOOK.PAL",
             "C11" => "C11B.PAL",
             "C11A1" => "C11A.PAL",
             "C11A2" => "C11A.PAL",

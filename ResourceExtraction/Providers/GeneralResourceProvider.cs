@@ -1,6 +1,7 @@
 namespace ResourceExtraction.Providers;
 
 using GameData.Resources;
+using GameData.Resources.Image;
 using ResourceExtraction.Extensions;
 using System;
 using System.Collections.Generic;
@@ -48,6 +49,11 @@ public class GeneralResourceProvider : IResourceProvider {
     }
 
     public bool CanProvideResource(string resourceId) {
+        // Derived book-parchment variants (BOOK_EVEN.SCX / BOOK_ODD.SCX) are synthesized from
+        // BOOK.SCX, so we can provide them whenever the source is available.
+        if (BookParchment.IsVariant(resourceId)) {
+            return CanProvideResource(BookParchment.Source);
+        }
         string filePath = Path.Combine(Path.GetDirectoryName(_resourceFilePath)!, resourceId);
         return File.Exists(filePath) || _dictionary.ContainsKey(resourceId.ToUpper());
     }
@@ -83,6 +89,14 @@ public class GeneralResourceProvider : IResourceProvider {
     }
 
     public T GetResource<T>(string resourceId) where T : IResource {
+        // Derived book-parchment variants: even = BOOK.SCX as-is, odd = vertically flipped
+        // (mirrors the DOS bok_DrawPage page-parity behaviour). Synthesized from the source
+        // image rather than read from the archive. See BookParchment.
+        if (BookParchment.IsVariant(resourceId)) {
+            BackgroundImage source = GetResource<BackgroundImage>(BookParchment.Source);
+            return (T)(IResource)BookParchment.Build(resourceId, source);
+        }
+
         // Get the extractor for the requested resource type
         var extractor = ExtractorFactory.GetExtractor<T>();
 
