@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Tests.Extractors;
 
+using GameData.Resources.World;
 using ResourceExtraction.Extractors;
 using Xunit;
 
@@ -37,7 +38,7 @@ public class ZoneDefExtractorTests
         Assert.Equal((short)2, result.ZoneLocation);
         Assert.Equal(0xAABBCCDDu, result.DefaultCameraZ);
         Assert.Equal((ushort)0x05, result.DefaultCameraPitch);
-        Assert.Equal((ushort)0x01, result.Flags);
+        Assert.Equal(ZoneFlags.NoHorizon, result.Flags);  // 0x01
         Assert.Equal((byte)0x0A, result.SkyColor);
         Assert.Equal((byte)0x0B, result.GroundColor);
         Assert.Equal(100u, result.MapMinZ);

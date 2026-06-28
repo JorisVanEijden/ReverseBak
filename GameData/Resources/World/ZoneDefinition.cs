@@ -7,7 +7,7 @@ public class ZoneDefinition : IResource
     public short ZonePointer { get; set; }
     public uint DefaultCameraZ { get; set; }
     public ushort DefaultCameraPitch { get; set; }
-    public ushort Flags { get; set; }
+    public ZoneFlags Flags { get; set; }
     public byte SkyColor { get; set; }
     public byte GroundColor { get; set; }
     public uint MapMinZ { get; set; }

@@ -15,7 +15,7 @@ public class ZoneDefExtractor : ExtractorBase<ZoneDefinition>
             ZonePointer = reader.ReadInt16(),
             DefaultCameraZ = reader.ReadUInt32(),
             DefaultCameraPitch = reader.ReadUInt16(),
-            Flags = reader.ReadUInt16(),
+            Flags = (ZoneFlags)reader.ReadUInt16(),
             SkyColor = reader.ReadByte(),
             GroundColor = reader.ReadByte(),
             MapMinZ = reader.ReadUInt32(),
