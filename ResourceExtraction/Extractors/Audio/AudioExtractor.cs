@@ -25,12 +25,14 @@ public class AudioExtractor : ExtractorBase<AudioResource> {
         ushort soundId = resourceReader.ReadUInt16();
         audioResource.AudioType = soundId >= 1000 ? AudioType.Music : AudioType.SoundEffect;
         // Log($"Sound ID: {soundId} (0x{soundId:X4})");
-        byte unknownByte2 = resourceReader.ReadByte();
-        // Log($"Unknown byte 2: {unknownByte2} (0x{unknownByte2:X2})");
-        byte unknownByte3 = resourceReader.ReadByte();
-        // Log($"Unknown byte 3: {unknownByte3} (0x{unknownByte3:X2})");
+        byte fieldC = resourceReader.ReadByte();
+        // Per-sound flags (RE audio_playSound_sub_seg067_D @0x35e6d): 0x01 = music, 0x02 = looping,
+        // 0x10 = runtime "active looping" state (not stored in data). The original keeps a sound
+        // looping while its 0x02 bit is set — that's how the intro theme repeats through the credits.
+        byte field12Flag = resourceReader.ReadByte();
+        audioResource.IsLooping = (field12Flag & 0x02) != 0;
 
-        Log($"SoundId: {soundId} field_C: {unknownByte2:X2} field_12_flag: {unknownByte3:X2}");
+        Log($"SoundId: {soundId} field_C: {fieldC:X2} field_12_flag: {field12Flag:X2}");
         byte dataTypeAndFlags = resourceReader.ReadByte(); // always 00
         uint uncompressedSize = resourceReader.ReadUInt32();
         byte magicByte = resourceReader.ReadByte();
