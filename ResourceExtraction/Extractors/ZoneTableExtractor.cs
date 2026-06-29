@@ -30,7 +30,7 @@ using System.Text;
 ///   2. Top-level entity (14 bytes) — TableDatInfo:
 ///        +0x00 u8  entityFlags       (bit 0x20 EF_UNBOUNDED → no bbox; bit 0x40 EF_DEPTH_SORTED → per-mesh painter's-algorithm sort)
 ///        +0x01 u8  entityType
-///        +0x02 u8  terrainType
+///        +0x02 u8  drawPriority      (painter's-sort layer; renamed from misnomer terrainType)
 ///        +0x03 u8  vertexScale       (shift count for vertex coords + extent)
 ///        +0x04 u16 unknown04         (interaction param? non-zero only on ~20 interactive entities)
 ///        +0x06 u16 unknown06         (interaction param? same)
@@ -354,7 +354,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         var dat = new TableDatInfo();
         dat.EntityFlags = reader.ReadByte();
         dat.EntityType = reader.ReadByte();
-        dat.TerrainType = reader.ReadByte();
+        dat.DrawPriority = reader.ReadByte();
         dat.VertexScale = reader.ReadByte();
         dat.Unknown04 = reader.ReadUInt16();
         dat.Unknown06 = reader.ReadUInt16();

@@ -98,8 +98,11 @@ public class TableDatInfo
     /// <summary>+0x01. Entity-type tag.</summary>
     public byte EntityType { get; set; }
 
-    /// <summary>+0x02. Terrain-type tag.</summary>
-    public byte TerrainType { get; set; }
+    /// <summary>+0x02. Painter's-sort draw priority — the original's ONLY reader is the world-item
+    /// depth sort (<c>depthSortVisibleItems</c>), not any movement/collision/terrain-surface logic
+    /// (verified in IDA 2026-06-29). 8=ground/base, 7=road/path, 6=river, 0=non-terrain object;
+    /// higher = painted first/under. Renamed from the misnomer <c>TerrainType</c>.</summary>
+    public byte DrawPriority { get; set; }
 
     /// <summary>+0x03. Shift count for vertex coords (RenderWorldItem 0x2a939 → g_vertexScale).
     /// World-space size = Extent &lt;&lt; VertexScale.</summary>
