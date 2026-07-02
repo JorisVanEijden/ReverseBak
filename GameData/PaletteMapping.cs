@@ -50,6 +50,10 @@ public static class PaletteMapping {
             "FMAP_ICN" => "FULLMAP.PAL",
             "FRAME" => "OPTIONS.PAL",
             "FULLMAP" => "FULLMAP.PAL",
+            // Party portrait heads — stamped onto the FRAME chrome (frame.scx) by addHeads in the
+            // original, so they share the travel-HUD UI palette (same as FRAME/COMPASS). HEADS.PAL
+            // does not exist in the archive.
+            "HEADS" => "OPTIONS.PAL",
             "INT_BORD" => "INT_DYN.PAL",
             "INT_BOOK" => "INT_TITL.PAL",
             "INT_BUNT" => "INT_DYN.PAL",

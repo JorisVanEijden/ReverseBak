@@ -35,6 +35,14 @@ public class PaletteMappingTests {
     }
 
     [Fact]
+    public void Heads_UsesTravelHudUiPalette() {
+        // Party portrait heads (HEADS.BMX) have no HEADS.PAL in the archive; addHeads stamps them
+        // onto the FRAME chrome, so they share the travel-HUD UI palette with FRAME/COMPASS.
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("HEADS.BMX"));
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("HEADS.BMX", 0));
+    }
+
+    [Fact]
     public void NonBiconsSubImage_FallsBackToFileMapping() {
         // A sub-image index on a non-overridden file resolves by filename as before.
         Assert.Equal("CONTENTS.PAL", PaletteMapping.GetPaletteFor("CONTENTS.SCX", 0));
