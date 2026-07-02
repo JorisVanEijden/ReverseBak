@@ -4,6 +4,7 @@ using GameData.Resources.Menu;
 
 using ResourceExtraction.Imaging;
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -62,10 +63,32 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
             }
         }
         userInterface.Title = titleOffset >= 0 ? GetZeroTerminatedString(stringBuffer, titleOffset) : null;
-        userInterface.MenuEntries = uiElements;
+        userInterface.MenuEntries = AppendCompassWindowIfMain(id, uiElements);
 
         CanonicalSpace.Apply(userInterface);
         return userInterface;
+    }
+
+    // REQ_MAIN ships no compass element, but the travel HUD's scrolling compass needs a window
+    // rect. Synthesize a data-only marker at the fixed FRAME.SCR compass window (drawCompass @
+    // KRONDOR.EXE 0x4691f: renderView VGA 144,121..175,131 => x144,y121,w31,h10). ElementType.Unknown
+    // so no renderer draws it; added here (VGA coords) so CanonicalSpace.Apply scales it like the rest.
+    private static UiElement[] AppendCompassWindowIfMain(string id, UiElement[] uiElements) {
+        if (id == null || id.IndexOf("REQ_MAIN", StringComparison.OrdinalIgnoreCase) < 0) {
+            return uiElements;
+        }
+        var withCompass = new UiElement[uiElements.Length + 1];
+        uiElements.CopyTo(withCompass, 0);
+        withCompass[^1] = new UiElement {
+            ElementType = ElementType.Unknown,
+            ActionId = UserInterface.CompassWindowActionId,
+            Visible = false,
+            XPosition = 144,
+            YPosition = 121,
+            Width = 31,
+            Height = 10,
+        };
+        return withCompass;
     }
 
     private static string GetZeroTerminatedString(IReadOnlyList<char> stringBuffer, short offset) {
