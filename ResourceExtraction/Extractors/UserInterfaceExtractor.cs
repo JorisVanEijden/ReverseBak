@@ -66,7 +66,30 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         userInterface.MenuEntries = AppendCompassWindowIfMain(id, uiElements);
 
         CanonicalSpace.Apply(userInterface);
+        AdjustNavArrowClickBoxesIfMain(id, userInterface);
         return userInterface;
+    }
+
+    // REQ_MAIN's four travel nav-arrow click boxes are authored at TWICE the arrow's extent along
+    // their long axis — the horizontal forward/back boxes are double width, the vertical turn-left/
+    // right boxes are double height — so clicks register far beyond the arrow icon (the original's
+    // hit-test uses the whole box; the extra area is dead space right of / below each arrow). Halve
+    // that offending dimension, then nudge it back up (width +10% / height +25%, calibrated in-Editor)
+    // so the box sits snugly on the arrow. Only the halved dimension is touched; the other stays.
+    // Done in canonical space (post-scale). ActionIds are the DOS arrow scancodes:
+    //   72 = forward (0x48), 80 = back (0x50)          -> horizontal, Width  = round(Width/2 * 1.10)
+    //   75 = turn-left (0x4B), 77 = turn-right (0x4D)   -> vertical,   Height = round(Height/2 * 1.25)
+    private static void AdjustNavArrowClickBoxesIfMain(string id, UserInterface ui) {
+        if (id == null || id.IndexOf("REQ_MAIN", StringComparison.OrdinalIgnoreCase) < 0) {
+            return;
+        }
+        foreach (UiElement e in ui.MenuEntries) {
+            if (e.ActionId is 72 or 80) {
+                e.Width = (int)Math.Round(e.Width / 2.0 * 1.10);
+            } else if (e.ActionId is 75 or 77) {
+                e.Height = (int)Math.Round(e.Height / 2.0 * 1.25);
+            }
+        }
     }
 
     // REQ_MAIN ships no compass element, but the travel HUD's scrolling compass needs a window
