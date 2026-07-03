@@ -30,6 +30,10 @@ public static class ResourceExtensions {
         }
     };
 
+    public static string ToJson(this ChapterCatalog resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this AnimatorResource resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
