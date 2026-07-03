@@ -1,6 +1,7 @@
 namespace ResourceExtraction.Providers;
 
 using GameData.Resources;
+using GameData.Resources.Data;
 using GameData.Resources.Image;
 using ResourceExtraction.Extensions;
 using System;
@@ -49,6 +50,10 @@ public class GeneralResourceProvider : IResourceProvider {
     }
 
     public bool CanProvideResource(string resourceId) {
+        // Synthesized (not an archive member) — provided whenever asked, like BookParchment.
+        if (string.Equals(resourceId, ChapterCatalog.ResourceId, System.StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
         // Derived book-parchment variants (BOOK_EVEN.SCX / BOOK_ODD.SCX) are synthesized from
         // BOOK.SCX, so we can provide them whenever the source is available.
         if (BookParchment.IsVariant(resourceId)) {
@@ -89,6 +94,11 @@ public class GeneralResourceProvider : IResourceProvider {
     }
 
     public T GetResource<T>(string resourceId) where T : IResource {
+        // Synthesized chapter catalog: probe the archive for each chapter's parts (see ChapterCatalogBuilder).
+        if (typeof(T) == typeof(ChapterCatalog)) {
+            return (T)(IResource)ChapterCatalogBuilder.Build(resourceId, this);
+        }
+
         // Derived book-parchment variants: even = BOOK.SCX as-is, odd = vertically flipped
         // (mirrors the DOS bok_DrawPage page-parity behaviour). Synthesized from the source
         // image rather than read from the archive. See BookParchment.

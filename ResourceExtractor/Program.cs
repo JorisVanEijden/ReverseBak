@@ -64,6 +64,14 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--chapters") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            IResourceProvider provider = ResourceProviderFactory.CreateResourceProvider(gamePath);
+            ChapterCatalog catalog = provider.GetResource<ChapterCatalog>(ChapterCatalog.ResourceId);
+            WriteToJsonFile("CHAPTERS.DAT", ResourceType.DAT, catalog.ToJson());
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--world") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractZoneData(gamePath);
