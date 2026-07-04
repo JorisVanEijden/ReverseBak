@@ -90,7 +90,10 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
     /// </summary>
     public static SaveGameHeader ReadHeader(Stream resourceStream) {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage), leaveOpen: true);
-        string name = new string(reader.ReadChars(SaveGameHeader.NameLength)).TrimEnd('\0');
+        // DOS save names are null-terminated C-strings in a fixed 90-byte field. Truncate at the
+        // first NUL (via the shared reader) rather than only trimming trailing NULs — otherwise a
+        // leading/embedded NUL (e.g. a corrupt save with a zeroed char) leaks into the display name.
+        string name = ReadFixedLengthString(reader.ReadBytes(SaveGameHeader.NameLength));
         short chapterNumber = reader.ReadInt16();
         short worldX = reader.ReadInt16();
         short worldY = reader.ReadInt16();

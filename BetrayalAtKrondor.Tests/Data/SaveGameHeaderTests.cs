@@ -56,6 +56,33 @@ public class SaveGameHeaderTests {
     }
 
     [Fact]
+    public void ReadHeader_NameWithEmbeddedNull_TruncatesAtFirstNull() {
+        // DOS save names are null-terminated C-strings: bytes at/after the first NUL are padding,
+        // not part of the name. A corrupt save can have a char zeroed mid-name ("dungeon\0ight");
+        // ReadHeader must return "dungeon", not a string still carrying the embedded NUL.
+        using MemoryStream stream = BuildHeader(
+            "dungeon\0ight", chapter: 1, worldX: 0, worldY: 0, mapIcon: 0, version: SaveGame.SupportedVersion);
+
+        SaveGameHeader header = SaveGameExtractor.ReadHeader(stream);
+
+        Assert.Equal("dungeon", header.Name);
+        // Must still consume exactly the 100-byte header (fixed 90-byte name field).
+        Assert.Equal(SaveGameHeader.Size, stream.Position);
+    }
+
+    [Fact]
+    public void ReadHeader_NameWithLeadingNull_IsEmpty() {
+        // Leading NUL ("\0ookmark") => empty name (the C-string is zero-length). The listing layer
+        // falls back to the file name for an empty display name.
+        using MemoryStream stream = BuildHeader(
+            "\0ookmark", chapter: 1, worldX: 0, worldY: 0, mapIcon: 0, version: SaveGame.SupportedVersion);
+
+        SaveGameHeader header = SaveGameExtractor.ReadHeader(stream);
+
+        Assert.Equal(string.Empty, header.Name);
+    }
+
+    [Fact]
     public void ReadHeader_WrongVersion_IsNotSupported() {
         using MemoryStream stream = BuildHeader(
             "Old", chapter: 1, worldX: 0, worldY: 0, mapIcon: 0, version: 0x15);
