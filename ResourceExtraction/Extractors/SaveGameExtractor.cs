@@ -10,13 +10,8 @@ using System.IO;
 using System.Text;
 
 public class SaveGameExtractor : ExtractorBase<SaveGame> {
-    private const int StateDataSize = 2775;
-    private const int WorldDataSize = 34320;
-    private const int ActorDataSize = 164350;
-    private const int CombatDataSize = 38060;
-    private const int ZoneContainerDataSize = 95000;
-    private const int ZoneContainerSectionStartOffset = StateDataSize + WorldDataSize + ActorDataSize + CombatDataSize;
-    private const int TempGameDataSize = StateDataSize + WorldDataSize + ActorDataSize + CombatDataSize + ZoneContainerDataSize;
+    private const int ZoneContainerSectionStartOffset =
+        SaveGameOffsets.StateDataSize + SaveGameOffsets.WorldDataSize + SaveGameOffsets.ActorDataSize + SaveGameOffsets.CombatDataSize;
     private const int PartyActorCount = 6;
     private const int TimedEffectsPerActor = 8;
     private const int ActorNameLength = 10;
@@ -49,7 +44,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
 
     public override SaveGame Extract(string id, Stream resourceStream) {
         long streamLength = resourceStream.Length;
-        bool hasHeader = streamLength > TempGameDataSize;
+        bool hasHeader = streamLength > SaveGameOffsets.BodySize;
 
         string saveGameName;
         short chapterNumber, worldX, worldY, mapIcon, version;
@@ -122,26 +117,26 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
     }
 
     private static SaveGameData? ParseData(byte[] tempGameData) {
-        if (tempGameData.Length < TempGameDataSize) {
+        if (tempGameData.Length < SaveGameOffsets.BodySize) {
             return null;
         }
 
-        byte[] stateDataBytes = new byte[StateDataSize];
-        byte[] worldDataBytes = new byte[WorldDataSize];
-        byte[] actorDataBytes = new byte[ActorDataSize];
-        byte[] combatDataBytes = new byte[CombatDataSize];
-        byte[] zoneContainerDataBytes = new byte[ZoneContainerDataSize];
+        byte[] stateDataBytes = new byte[SaveGameOffsets.StateDataSize];
+        byte[] worldDataBytes = new byte[SaveGameOffsets.WorldDataSize];
+        byte[] actorDataBytes = new byte[SaveGameOffsets.ActorDataSize];
+        byte[] combatDataBytes = new byte[SaveGameOffsets.CombatDataSize];
+        byte[] zoneContainerDataBytes = new byte[SaveGameOffsets.ZoneContainerDataSize];
 
         int offset = 0;
-        Buffer.BlockCopy(tempGameData, offset, stateDataBytes, 0, StateDataSize);
-        offset += StateDataSize;
-        Buffer.BlockCopy(tempGameData, offset, worldDataBytes, 0, WorldDataSize);
-        offset += WorldDataSize;
-        Buffer.BlockCopy(tempGameData, offset, actorDataBytes, 0, ActorDataSize);
-        offset += ActorDataSize;
-        Buffer.BlockCopy(tempGameData, offset, combatDataBytes, 0, CombatDataSize);
-        offset += CombatDataSize;
-        Buffer.BlockCopy(tempGameData, offset, zoneContainerDataBytes, 0, ZoneContainerDataSize);
+        Buffer.BlockCopy(tempGameData, offset, stateDataBytes, 0, SaveGameOffsets.StateDataSize);
+        offset += SaveGameOffsets.StateDataSize;
+        Buffer.BlockCopy(tempGameData, offset, worldDataBytes, 0, SaveGameOffsets.WorldDataSize);
+        offset += SaveGameOffsets.WorldDataSize;
+        Buffer.BlockCopy(tempGameData, offset, actorDataBytes, 0, SaveGameOffsets.ActorDataSize);
+        offset += SaveGameOffsets.ActorDataSize;
+        Buffer.BlockCopy(tempGameData, offset, combatDataBytes, 0, SaveGameOffsets.CombatDataSize);
+        offset += SaveGameOffsets.CombatDataSize;
+        Buffer.BlockCopy(tempGameData, offset, zoneContainerDataBytes, 0, SaveGameOffsets.ZoneContainerDataSize);
 
         SaveGameStateData stateData = ParseStateData(stateDataBytes);
         SaveGameWorldData worldStateData = ParseWorldData(worldDataBytes);
