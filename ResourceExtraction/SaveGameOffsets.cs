@@ -29,12 +29,13 @@ public static class SaveGameOffsets {
     public const int Rotation = 33;    // Int16 (currentZRotation)
 
     // 100-byte slot header field offsets (within the header, which precedes the body on disk).
+    // Name length + total size are the reader's (SaveGameHeader) — one source of truth.
     public const int HeaderName = 0;
-    public const int HeaderNameLength = 90;
+    public const int HeaderNameLength = GameData.Resources.Data.SaveGameHeader.NameLength; // 90
     public const int HeaderChapter = 90;   // Int16
     public const int HeaderWorldX = 92;    // Int16 (FULLMAP pixel)
     public const int HeaderWorldY = 94;    // Int16
     public const int HeaderMapIcon = 96;   // Int16
     public const int HeaderVersion = 98;   // Int16
-    public const int HeaderSize = 100;
+    public const int HeaderSize = GameData.Resources.Data.SaveGameHeader.Size;            // 100
 }
