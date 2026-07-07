@@ -117,6 +117,13 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--in") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            string outDir = args.Length >= 3 ? args[2] : Path.Combine(ResolveGeneratedDir(), "IN");
+            ExtractInputForms(gamePath, outDir);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--cursor") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             GeneralResourceProvider provider = new(gamePath);
@@ -1117,8 +1124,7 @@ internal static class Program {
         }
     }
 
-    private static void ExtractInputForms(string gamePath) {
-        const string outputDir = "IN";
+    private static void ExtractInputForms(string gamePath, string outputDir = "IN") {
         Directory.CreateDirectory(outputDir);
         var extractor = new InExtractor();
         foreach (string file in GetFiles(gamePath, "IN_*.DAT").OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
