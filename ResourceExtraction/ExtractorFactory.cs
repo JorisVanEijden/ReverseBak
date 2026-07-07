@@ -48,6 +48,8 @@ public static class ExtractorFactory {
         }, {
             typeof(LabelSet), typeof(LabelExtractor)
         }, {
+            typeof(InputForm), typeof(InExtractor)
+        }, {
             typeof(BackgroundImage), typeof(ScreenExtractor)
         }, {
             typeof(SpellList), typeof(SpellExtractor)
