@@ -61,7 +61,11 @@ public class InExtractorTests {
         Assert.Equal(25 * 5, zone.Width);
         Assert.Equal(12 * 5, zone.LabelX);
         Assert.Equal(139 * 6, zone.LabelY);
-        Assert.Equal(new[] { 14, 1, 1, 0, 10 }, zone.StyleBytes);
+        Assert.Equal(14, zone.BackgroundPen);
+        Assert.Equal(1, zone.BorderPen);
+        Assert.Equal(1, zone.CaretPen);
+        Assert.Equal(0, zone.TextPen);
+        Assert.Equal(10, zone.SelectionPen);
 
         Assert.Equal("TileX", form.Fields[1].Label);
     }

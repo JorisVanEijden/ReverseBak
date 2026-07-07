@@ -15,7 +15,6 @@ using System.Text;
 /// into the canonical 1600×1200 space (×5 / ×6), like the other UI coordinate formats.
 /// </summary>
 public class InExtractor : ExtractorBase<InputForm> {
-    private const int StyleByteCount = 5;
 
     public override InputForm Extract(string id, Stream resourceStream) {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
@@ -31,10 +30,13 @@ public class InExtractor : ExtractorBase<InputForm> {
                 X = AspectCorrection.ScaleVgaX(reader.ReadUInt16()),
                 Y = AspectCorrection.ScaleVgaY(reader.ReadUInt16()),
                 Width = AspectCorrection.ScaleVgaX(reader.ReadUInt16()),
+                // The 5 colour pens, in on-disk order (= runtime struct +0x18..+0x1C).
+                BackgroundPen = reader.ReadByte(),
+                BorderPen = reader.ReadByte(),
+                CaretPen = reader.ReadByte(),
+                TextPen = reader.ReadByte(),
+                SelectionPen = reader.ReadByte(),
             };
-            for (int s = 0; s < StyleByteCount; s++) {
-                field.StyleBytes.Add(reader.ReadByte());
-            }
             ushort labelOffset = reader.ReadUInt16();
             field.Label = labelOffset == 0xFFFF ? "" : ReadPoolString(pool, labelOffset);
             field.LabelX = AspectCorrection.ScaleVgaX(reader.ReadUInt16());
