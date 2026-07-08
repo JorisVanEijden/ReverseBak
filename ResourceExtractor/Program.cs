@@ -699,20 +699,20 @@ internal static class Program {
         reqFiles.Add("SPELL.DAT");
         reqFiles.Add("SPELLREQ.DAT");
 
-        // Editor / build-time REQ screens — never loaded by the shipped game, so excluded from the
-        // JSON export. Identified by their editor CRUD labels (e.g. "Enter Dialogue", "% Chance",
-        // "Enable Game Element", "Movement Style", "Name/Loc/Music/ADS", "Get: Items"): the tile-event
-        // level editor (REQ_TE1..15, REQ_TE_*), the location/game editor (REQ_GE*), the zone editor,
-        // the build-time debug give-menu (REQ_DBUG), and the colourset-7 config popups (ARO/POWEREQ).
-        // NB: REQ_TELE (player temple-teleport) and the in-game cheat menus REQ_CHET/REQ_KNOC DO ship,
-        // so they are deliberately kept.
-        var editorOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-            "REQ_TE1", "REQ_TE2", "REQ_TE3", "REQ_TE4", "REQ_TE5", "REQ_TE6", "REQ_TE7", "REQ_TE8",
-            "REQ_TE9", "REQ_TE10", "REQ_TE11", "REQ_TE12", "REQ_TE13", "REQ_TE14", "REQ_TE15",
-            "REQ_TE_A", "REQ_TE_C", "REQ_TE_E", "REQ_TE_L", "REQ_TE_O", "REQ_TE_P", "REQ_TE_S",
-            "REQ_GE", "REQ_GE2", "REQ_GE3", "EDITREQ", "REQ_ZONE", "REQ_DBUG", "AROREQ", "POWEREQ",
+        // Export only the REQ screens the shipped game actually loads — each is referenced by name
+        // (lowercase) in KRONDOR.EXE. Everything else in the archive is editor / content-authoring
+        // tooling (the tile-event & location editors, the book/spell/keyword content editors, the
+        // zone editor, the build-time debug menu, the colourset-7 config popups) and is excluded.
+        // The "referenced by name" test is authoritative: every known player screen is present —
+        // including REQ_OPT1 (in-game menu), REQ_PUZL (riddle), REQ_TELE (temple teleport) and the
+        // shipped cheat menus REQ_CHET/REQ_KNOC — while none of the authoring tools are.
+        var gameLoaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "COMBAT", "CONTENTS", "SHOOT", "SPELL",
+            "REQ_CAMP", "REQ_CAST", "REQ_CHET", "REQ_CMAP", "REQ_FMAP", "REQ_GDS", "REQ_HEAL",
+            "REQ_INFO", "REQ_INV", "REQ_INV2", "REQ_KNOC", "REQ_LOAD", "REQ_MAIN", "REQ_MAP",
+            "REQ_OPT0", "REQ_OPT1", "REQ_PREF", "REQ_PUZL", "REQ_SAVE", "REQ_TELE",
         };
-        reqFiles.RemoveAll(f => editorOnly.Contains(Path.GetFileNameWithoutExtension(f)!));
+        reqFiles.RemoveAll(f => !gameLoaded.Contains(Path.GetFileNameWithoutExtension(f)!));
 
         const string reqDir = "REQ";
         Directory.CreateDirectory(reqDir);
