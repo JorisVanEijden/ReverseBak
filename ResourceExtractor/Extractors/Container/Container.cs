@@ -22,7 +22,7 @@ public class Container : IResource {
     public ShopData? ShopData { get; set; }
     public EncounterData? EncounterData { get; set; }
     public uint Timestamp { get; set; }
-    public int Unknown20 { get; set; }
+    public int GlobalStateIndex { get; set; }
     public ResourceType Type { get => ResourceType.DAT; }
     public string Id { get; }
 }

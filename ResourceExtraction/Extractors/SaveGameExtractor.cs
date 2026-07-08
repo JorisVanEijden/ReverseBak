@@ -664,9 +664,9 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             timestamp = reader.ReadInt32();
         }
 
-        short? unknown20 = null;
-        if (dataTypes.HasFlag(SaveGameContainerDataType.Unknown20)) {
-            unknown20 = reader.ReadInt16();
+        short? globalStateIndex = null;
+        if (dataTypes.HasFlag(SaveGameContainerDataType.GlobalState)) {
+            globalStateIndex = reader.ReadInt16();
         }
 
         return new SaveGameContainerData(
@@ -681,7 +681,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             shopData,
             encounterData,
             timestamp,
-            unknown20
+            globalStateIndex
         );
     }
 

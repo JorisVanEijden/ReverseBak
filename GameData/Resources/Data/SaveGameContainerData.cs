@@ -15,7 +15,7 @@ public class SaveGameContainerData {
         SaveGameContainerShopData? shopData,
         SaveGameContainerEncounterData? encounterData,
         int? timestamp,
-        short? unknown20
+        short? globalStateIndex
     ) {
         Location = location;
         ContainerType = containerType;
@@ -28,7 +28,7 @@ public class SaveGameContainerData {
         ShopData = shopData;
         EncounterData = encounterData;
         Timestamp = timestamp;
-        Unknown20 = unknown20;
+        GlobalStateIndex = globalStateIndex;
     }
 
     public SaveGameContainerLocationData Location { get; }
@@ -42,7 +42,12 @@ public class SaveGameContainerData {
     public SaveGameContainerShopData? ShopData { get; }
     public SaveGameContainerEncounterData? EncounterData { get; }
     public int? Timestamp { get; }
-    public short? Unknown20 { get; }
+
+    // Present when DataTypes has the (legacy-named) Unknown20 flag. For two-state world objects
+    // (containerType 6, typeId 92<->93 e.g. lever/switch): sub_ovr192_20 (0x79830) reads
+    // GetGlobalValue(GlobalStateIndex + 7000) as the object's on/off state and flips typeId
+    // 92/93 accordingly. (IDA: containerData_unknown20.globalStateIndex.)
+    public short? GlobalStateIndex { get; }
 
     public bool IsActorInventoryContainer {
         get => ContainerType == SaveGameContainerType.Inventory;

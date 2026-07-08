@@ -6,7 +6,7 @@ public class SaveGameContainerEncounterData {
         short globalDataKey2,
         byte gdsNumber,
         byte gdsLetter,
-        byte field6,
+        byte firesTrapEncounter,
         byte x,
         byte y
     ) {
@@ -14,7 +14,7 @@ public class SaveGameContainerEncounterData {
         GlobalDataKey2 = globalDataKey2;
         GdsNumber = gdsNumber;
         GdsLetter = gdsLetter;
-        Field6 = field6;
+        FiresTrapEncounter = firesTrapEncounter;
         X = x;
         Y = y;
     }
@@ -23,12 +23,17 @@ public class SaveGameContainerEncounterData {
     public short GlobalDataKey2 { get; }
     public byte GdsNumber { get; }
     public byte GdsLetter { get; }
-    public byte Field6 { get; }
+
+    // 0x06. When nonzero, this location has a positioned trap/ambush: handle_Building (0x76b39),
+    // handle_Tunnel, handle_Grave require the player on the exact tile, then fire the tile's
+    // DEF_TRAP encounter at (X, Y) via sub_stub187_34(def_trap_dat, X, Y) before the GDS/dialog
+    // flow. 0 = plain GDS-scene/dialog location. (IDA: containerData_encounter.firesTrapEncounter.)
+    public byte FiresTrapEncounter { get; }
     public byte X { get; }
     public byte Y { get; }
 
-    public bool IsField6Set {
-        get => Field6 != 0;
+    public bool IsFiresTrapEncounterSet {
+        get => FiresTrapEncounter != 0;
     }
 
     public string? GdsFilename {

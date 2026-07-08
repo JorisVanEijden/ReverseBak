@@ -57,8 +57,8 @@ public class ObjFixedExtractor : ExtractorBase {
                 }
                 if (dataTypes.HasFlag(ContainerDataType.Dialog)) {
                     container.DialogData = new DialogData {
-                        Field_0 = reader.ReadByte(),
-                        Field_1 = reader.ReadByte(),
+                        ExamineMessageIndex = reader.ReadByte(),
+                        Flags = reader.ReadByte(),
                         DialogId = reader.ReadUInt32()
                     };
                 }
@@ -87,7 +87,7 @@ public class ObjFixedExtractor : ExtractorBase {
                         GlobalDataKey2 = reader.ReadUInt16(),
                         GdsNumber = reader.ReadByte(),
                         GdsLetter = reader.ReadByte(),
-                        Field_6 = reader.ReadByte() > 0,
+                        FiresTrapEncounter = reader.ReadByte() > 0,
                         X = reader.ReadByte(),
                         Y = reader.ReadByte()
                     };
@@ -95,8 +95,8 @@ public class ObjFixedExtractor : ExtractorBase {
                 if (dataTypes.HasFlag(ContainerDataType.Timestamp)) {
                     container.Timestamp = reader.ReadUInt32();
                 }
-                if (dataTypes.HasFlag(ContainerDataType.Unknown20)) {
-                    container.Unknown20 = reader.ReadUInt16();
+                if (dataTypes.HasFlag(ContainerDataType.GlobalState)) {
+                    container.GlobalStateIndex = reader.ReadUInt16();
                 }
 
                 containerList.Add(container);

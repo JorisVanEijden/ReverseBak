@@ -12,7 +12,7 @@ public class EncounterData {
     [JsonIgnore]
     public int GdsLetter { get; set; }
 
-    public bool Field_6 { get; set; }
+    public bool FiresTrapEncounter { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
 
