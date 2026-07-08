@@ -19,7 +19,7 @@ public class DefTrapExtractor : DefFamilyExtractorBase<DefTrapEntry> {
             LandingDir8      = ReadLanding(reader),
             LandingPrimary   = ReadLanding(reader),
             EnemySetup       = ReadEnemySetup(reader),
-            Field197         = reader.ReadUInt16(),
+            Avoidable        = (reader.ReadUInt16() & 1) != 0,   // bit 0: Stealth/Scouting roll active
         };
     }
 }

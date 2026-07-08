@@ -26,5 +26,10 @@ public class DefTrapEntry {
     public LandingPosition LandingDir8 { get; set; } = new(); // 30 — landing for dir 8
     public LandingPosition LandingPrimary { get; set; } = new(); // 3A (= coordinates_64k + field_42) — landing for the non-directional fire path
     public EncounterActorSetup EnemySetup { get; set; } = new(); // 44 — 339-byte actor-placement block (slotCount + 7×EnemySlot + trailer); identical layout to DEF_COMB's
-    public ushort Field197 { get; set; }                    // 197 — bit 0 gates the stealth/scouting detection path
+    // 0x197 (bit 0 of a u16): the trap is Stealth-avoidable / Scouting-detectable. When true the
+    // party rolls Stealth to evade the trap (and Scouting to detect it in the pre-fire phase);
+    // when false the trap fires unconditionally — only an active Dragon's Breath spell can still
+    // stealth past it. Gate in trapTrigger_phase2 @0x746c4 / trapTrigger_phase1 @0x745bf; the same
+    // bit-0 toggle is DEF_COMB's field_18D. Higher bits are always 0 in shipping data.
+    public bool Avoidable { get; set; }
 }
