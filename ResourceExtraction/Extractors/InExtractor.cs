@@ -30,13 +30,14 @@ public class InExtractor : ExtractorBase<InputForm> {
                 X = AspectCorrection.ScaleVgaX(reader.ReadUInt16()),
                 Y = AspectCorrection.ScaleVgaY(reader.ReadUInt16()),
                 Width = AspectCorrection.ScaleVgaX(reader.ReadUInt16()),
-                // The 5 colour pens, in on-disk order (= runtime struct +0x18..+0x1C).
-                BackgroundPen = reader.ReadByte(),
-                BorderPen = reader.ReadByte(),
-                CaretPen = reader.ReadByte(),
-                TextPen = reader.ReadByte(),
-                SelectionPen = reader.ReadByte(),
             };
+            // The 5 colour pens (on-disk order = runtime struct +0x18..+0x1C) are a Unity theme
+            // concern, not game data — read and discard to keep the stream position correct.
+            reader.ReadByte();
+            reader.ReadByte();
+            reader.ReadByte();
+            reader.ReadByte();
+            reader.ReadByte();
             ushort labelOffset = reader.ReadUInt16();
             field.Label = labelOffset == 0xFFFF ? "" : ReadPoolString(pool, labelOffset);
             field.LabelX = AspectCorrection.ScaleVgaX(reader.ReadUInt16());

@@ -23,7 +23,7 @@ public class UserInterface : IResource {
     public int Height { get; set; }
     public int XOffset { get; set; }
     public int YOffset { get; set; }
-    public int ColorBase { get; set; } // base index into the 7-color palette range used by the renderer; 169 = default fullscreen-menu set
+    public Colorset Colorset { get; set; } // semantic selector for the screen's palette range; the Unity theme maps this to actual colours
     public UiElement[] MenuEntries { get; set; } = [];
 
     public ResourceType Type {

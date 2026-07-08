@@ -1,5 +1,7 @@
 namespace ResourceExtraction.Tests.Extractors;
 
+using GameData.Resources.Menu;
+
 using ResourceExtraction.Extractors;
 using Xunit;
 
@@ -26,7 +28,7 @@ public class UserInterfaceExtractorTests {
             writer.Write((ushort)0);    // ElementType
             writer.Write((short)0);     // ActionId
             writer.Write(true);         // Visible (1 byte)
-            writer.Write((ushort)0);    // ColorBase
+            writer.Write((ushort)0);    // ColorBase (per-element; discarded by the extractor)
             writer.Write((ushort)0);    // Disabled
             writer.Write((ushort)0);    // State
             writer.Write((ushort)2);    // XPosition -> 10
@@ -46,6 +48,7 @@ public class UserInterfaceExtractorTests {
 
         var result = new UserInterfaceExtractor().Extract("REQ_TEST.DAT", stream);
 
+        Assert.Equal(Colorset.Menu, result.Colorset);
         Assert.Equal(65, result.XPosition);
         Assert.Equal(66, result.YPosition);
         Assert.Equal(1600, result.Width);
@@ -56,5 +59,39 @@ public class UserInterfaceExtractorTests {
         Assert.Equal(18, result.MenuEntries[0].YPosition);
         Assert.Equal(20, result.MenuEntries[0].Width);
         Assert.Equal(30, result.MenuEntries[0].Height);
+    }
+
+    [Theory]
+    [InlineData(0, Colorset.Plain)]
+    [InlineData(4, Colorset.EditorA)]
+    [InlineData(7, Colorset.EditorB)]
+    [InlineData(32, Colorset.Overlay)]
+    [InlineData(144, Colorset.Picker)]
+    [InlineData(169, Colorset.Menu)]
+    [InlineData(255, Colorset.Menu)] // unrecognized raw value -> defaults to Menu
+    public void Extract_MapsColorBaseByteToColorset(int rawColorBase, Colorset expected) {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.ASCII, leaveOpen: true)) {
+            writer.Write((ushort)0);              // UserInterfaceType
+            writer.Write((ushort)0);              // IsModal
+            writer.Write((ushort)rawColorBase);   // ColorBase
+            writer.Write((ushort)0);              // XPosition
+            writer.Write((ushort)0);              // YPosition
+            writer.Write((ushort)0);              // Width
+            writer.Write((ushort)0);              // Height
+            writer.Write((ushort)0);              // entry count placeholder
+            writer.Write((ushort)0);              // entry pointer placeholder
+            writer.Write((short)-1);              // titleOffset (none)
+            writer.Write((short)0);               // XOffset
+            writer.Write((short)0);               // YOffset
+            writer.Write((uint)0);                // bitmap pointer placeholder
+            writer.Write((ushort)0);              // numberOfElements
+            writer.Write((ushort)0);              // labelBufferSize (no string bytes follow)
+        }
+        stream.Position = 0;
+
+        var result = new UserInterfaceExtractor().Extract("REQ_TEST.DAT", stream);
+
+        Assert.Equal(expected, result.Colorset);
     }
 }

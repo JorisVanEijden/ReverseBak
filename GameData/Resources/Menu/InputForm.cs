@@ -50,25 +50,9 @@ public class InputField {
 
     // +0x08..+0x0C (5 × u8): the field's colour pens, copied at load time to the runtime
     // widget struct +0x18..+0x1C and consumed by the field-draw routine sub_ovr140_A73
-    // (@0x47463). Palette pen indices (OPTIONS.PAL). IN_SAVE uses (14, 1, 1, 0, 10).
-
-    /// <summary>+0x08 → runtime +0x18. Box background pen (fill behind the text; drawn @0x474a5).
-    /// IN_SAVE = 14.</summary>
-    public int BackgroundPen { get; set; }
-
-    /// <summary>+0x09 → runtime +0x19. Border pen. IN_SAVE = 1.</summary>
-    public int BorderPen { get; set; }
-
-    /// <summary>+0x0A → runtime +0x1A. Caret pen — the blinking vertical line drawn on the active
-    /// field when the selection is collapsed (@0x4758f). IN_SAVE = 1.</summary>
-    public int CaretPen { get; set; }
-
-    /// <summary>+0x0B → runtime +0x1B. Text pen. IN_SAVE = 0.</summary>
-    public int TextPen { get; set; }
-
-    /// <summary>+0x0C → runtime +0x1C. Selection-highlight background pen — the rect drawn over the
-    /// selected substring on the active field (@0x475f6). IN_SAVE = 10.</summary>
-    public int SelectionPen { get; set; }
+    // (@0x47463). Palette pen indices (OPTIONS.PAL); IN_SAVE uses (14, 1, 1, 0, 10). Colour is
+    // now a Unity theme concern, not game data — the extractor reads and discards these bytes
+    // to keep the stream position correct, and this model no longer exposes them.
 
     /// <summary>Caption text (resolved from the +0x0D u16 string-pool offset; empty if -1).</summary>
     public string Label { get; set; } = "";

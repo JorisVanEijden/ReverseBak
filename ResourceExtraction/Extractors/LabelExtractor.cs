@@ -19,9 +19,10 @@ public class LabelExtractor : ExtractorBase<LabelSet> {
                 XPosition = resourceReader.ReadInt16(),
                 YPosition = resourceReader.ReadInt16(),
                 Attributes = (LabelAttributes)resourceReader.ReadInt16(),
-                ColorIndex = resourceReader.ReadByte(),
-                ShadowColorIndex = resourceReader.ReadByte()
             };
+            int colorIndex = resourceReader.ReadByte();
+            _ = resourceReader.ReadByte(); // shadow colour index — Unity theme concern now, discarded
+            label.Role = colorIndex == 10 ? LabelRole.Title : LabelRole.Caption;
             labelSet.Labels.Add(label);
         }
         ushort stringBufferSize = resourceReader.ReadUInt16();

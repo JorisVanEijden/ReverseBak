@@ -7,7 +7,6 @@ public class UiElement {
     public ElementType ElementType { get; set; }
     public int ActionId { get; set; }
     public bool Visible { get; set; } // 0 = skipped by menu_drawEntry? (hit-test still runs). Hit-only zones backed by an SCX background, e.g. CONTENTS chapter rows, set this 0.
-    public int ColorBase { get; set; } // base index into the 7-color palette range used by the renderer (base..base+6); 169 is the default fullscreen-menu set
     public int Disabled { get; set; } // 0 = interactive, non-zero = disabled (sub_seg030_97F skips hit-test; menu_type_6_8 dims text; menu_type_3_4 swaps to icon 0x32). FilePicker runtime-overload: the scrollable item count (always 0 in shipped files; the engine sets it when populating).
     public int State { get; set; } // current widget state: Toggle on/off; InputField alt-label switch (state==0 ⇒ LabelAlt); FilePicker scroll position; Preferences value
     public int XPosition { get; set; }

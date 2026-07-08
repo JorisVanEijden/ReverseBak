@@ -15,7 +15,7 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         var userInterface = new UserInterface(id);
         userInterface.UserInterfaceType = (UserInterfaceType)resourceReader.ReadUInt16();
         userInterface.IsModal = resourceReader.ReadUInt16() > 0;
-        userInterface.ColorBase = resourceReader.ReadUInt16();
+        userInterface.Colorset = ToColorset(resourceReader.ReadUInt16());
         userInterface.XPosition = resourceReader.ReadUInt16();
         userInterface.YPosition = resourceReader.ReadUInt16();
         userInterface.Width = resourceReader.ReadUInt16();
@@ -29,11 +29,14 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         ushort numberOfElements = resourceReader.ReadUInt16();
         var uiElements = new UiElement[numberOfElements];
         for (var i = 0; i < numberOfElements; i++) {
+            var elementType = (ElementType)resourceReader.ReadUInt16();
+            var actionId = resourceReader.ReadInt16();
+            var visible = resourceReader.ReadBoolean();
+            _ = resourceReader.ReadUInt16(); // Per-element colour base pen — Unity theme concern now, discarded.
             uiElements[i] = new UiElement {
-                ElementType = (ElementType)resourceReader.ReadUInt16(),
-                ActionId = resourceReader.ReadInt16(),
-                Visible = resourceReader.ReadBoolean(),
-                ColorBase = resourceReader.ReadUInt16(),
+                ElementType = elementType,
+                ActionId = actionId,
+                Visible = visible,
                 Disabled = resourceReader.ReadUInt16(),
                 State = resourceReader.ReadUInt16(),
                 XPosition = resourceReader.ReadUInt16(),
@@ -112,6 +115,14 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
             Height = 10,
         };
         return withCompass;
+    }
+
+    // The on-disk colorBase byte is the screen-level base index into the renderer's 7-colour
+    // palette range (base..base+6); observed shipped values are 0, 4, 7, 32, 144, 169. Map it
+    // straight onto the semantic Colorset selector; anything unrecognized falls back to Menu
+    // (the default fullscreen-menu set) rather than an undefined enum value.
+    private static Colorset ToColorset(int rawColorBase) {
+        return Enum.IsDefined(typeof(Colorset), rawColorBase) ? (Colorset)rawColorBase : Colorset.Menu;
     }
 
     private static string GetZeroTerminatedString(IReadOnlyList<char> stringBuffer, short offset) {
