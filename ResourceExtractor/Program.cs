@@ -193,6 +193,13 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--lbl") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider provider = new(gamePath);
+            ExtractLabels(gamePath, provider);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--gds") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractGdsScenes(gamePath);
