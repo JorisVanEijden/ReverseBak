@@ -52,7 +52,7 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
                 byte endX = reader.ReadByte();
                 byte startY = reader.ReadByte();
                 uint entryNumber = reader.ReadUInt32();
-                byte fieldA = reader.ReadByte();
+                byte fireOnce = reader.ReadByte();
                 ushort requiredKey = reader.ReadUInt16();
                 ushort forbiddenKey = reader.ReadUInt16();
                 ushort setOnFireKey = reader.ReadUInt16();
@@ -66,7 +66,7 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
                     EndX = endX,
                     StartY = startY,
                     EntryNumber = entryNumber,
-                    FieldA = fieldA,
+                    FireOnce = fireOnce,
                     Requires = requiredKey == 0 ? null : GlobalRef.DecodeCondition(requiredKey, 1, null),
                     Forbids = forbiddenKey == 0 ? null : GlobalRef.DecodeCondition(forbiddenKey, 1, null),
                     OnFire = DefEffect.ForKey(setOnFireKey, set: true),

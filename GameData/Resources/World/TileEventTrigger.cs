@@ -17,10 +17,12 @@ public class TileEventTrigger
 
     public uint EntryNumber { get; set; }
 
-    // Boolean in practice (0/1). Only set on Dial records (~30%) and 2 Comb
-    // records across all shipping files. Dial handler: when set, runs an
-    // extra cleanup step before SetGlobalFlag5200_5209.
-    public byte FieldA { get; set; }
+    // One-shot flag (0/1). When set, firing this trigger writes a persistent per-(zone,tile,def)
+    // save-state flag (markTriggerFired @0x74dbb: SetGlobalValue(400*zone + 10*tile + defFileNr, 1));
+    // hasTriggerFired reads that same key inside isTriggerEnabled, so the trigger never fires again.
+    // When 0 the trigger re-fires on every tile entry. All trigger handlers honour it; in the
+    // shipping data authors only set it on ~30% of Dial records and 2 Comb records.
+    public byte FireOnce { get; set; }
 
     // Gate: trigger fires only while this condition holds (decoded from the
     // required save-state key; null = no requirement).
@@ -34,8 +36,8 @@ public class TileEventTrigger
     // set-on-fire key; null = sets nothing).
     public Effect? OnFire { get; set; }
 
-    // Boolean in practice (0/1). Only ever set on 7 Dial records across all
-    // shipping files. Dial handler: when set, returns early — skipping both
-    // the FieldA cleanup and SetGlobalFlag5200_5209.
+    // Boolean in practice (0/1). Only ever set on 7 Dial records across all shipping files.
+    // Dial handler: when set, returns early — skipping both the FireOnce marking
+    // (markTriggerFired) and SetGlobalFlag5200_5209.
     public ushort Field11 { get; set; }
 }

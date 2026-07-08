@@ -24,7 +24,7 @@ public class TileEventExtractorTests {
         bw.Write(type);
         bw.Write((byte)0); bw.Write((byte)0); bw.Write((byte)0); bw.Write((byte)0); // StartX/EndY/EndX/StartY
         bw.Write(entry);          // EntryNumber (u32)
-        bw.Write((byte)0);        // FieldA
+        bw.Write((byte)0);        // fireOnce
         bw.Write(requiredKey);
         bw.Write(forbiddenKey);
         bw.Write(setOnFireKey);
