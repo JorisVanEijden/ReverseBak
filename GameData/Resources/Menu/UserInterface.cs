@@ -6,7 +6,7 @@ public class UserInterface : IResource {
     /// ActionId of a synthesized, data-only marker element the extractor adds to REQ_MAIN for the
     /// travel-HUD compass window. The original REQ_MAIN has no compass element — the window is a
     /// fixed FRAME.SCR design rect (drawCompass @ KRONDOR.EXE 0x4691f: VGA 144,121,31,10). Emitting it
-    /// as a REQ element (ElementType.Unknown, so no renderer touches it) lets the Unity CompassView
+    /// as a REQ element (ElementType.CompassWindow, so no renderer touches it) lets the Unity CompassView
     /// read its canonical rect via the normal REQ path, keeping VGA knowledge in the extractor only.
     /// </summary>
     public const int CompassWindowActionId = 1000;
