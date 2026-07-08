@@ -36,8 +36,11 @@ public class TileEventTrigger
     // set-on-fire key; null = sets nothing).
     public Effect? OnFire { get; set; }
 
-    // Boolean in practice (0/1). Only ever set on 7 Dial records across all shipping files.
-    // Dial handler: when set, returns early — skipping both the FireOnce marking
-    // (markTriggerFired) and SetGlobalFlag5200_5209.
-    public ushort Field11 { get; set; }
+    // Boolean in practice (0/1). The transient counterpart to FireOnce. When set, the handler
+    // returns early after firing — skipping both the FireOnce marking (markTriggerFired) and
+    // SetGlobalFlag5200_5209 (the transient per-slot "already fired" suppressor that isTriggerEnabled
+    // reads to debounce a trigger after it fires). A normal trigger self-suppresses on fire; a
+    // Repeatable one does not, so it stays fireable. Only ever set on 7 Dial records (all FireOnce=0)
+    // in the shipping data. Stored as u16 on disk.
+    public ushort Repeatable { get; set; }
 }

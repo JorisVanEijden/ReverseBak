@@ -28,7 +28,7 @@ public class TileEventExtractorTests {
         bw.Write(requiredKey);
         bw.Write(forbiddenKey);
         bw.Write(setOnFireKey);
-        bw.Write((ushort)0);      // Field11
+        bw.Write((ushort)0);      // Repeatable
         return ms.ToArray();      // 19 bytes
     }
 

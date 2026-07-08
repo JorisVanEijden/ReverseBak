@@ -56,7 +56,7 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
                 ushort requiredKey = reader.ReadUInt16();
                 ushort forbiddenKey = reader.ReadUInt16();
                 ushort setOnFireKey = reader.ReadUInt16();
-                ushort field11 = reader.ReadUInt16();
+                ushort repeatable = reader.ReadUInt16();
 
                 chapter.Triggers.Add(new TileEventTrigger
                 {
@@ -70,7 +70,7 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
                     Requires = requiredKey == 0 ? null : GlobalRef.DecodeCondition(requiredKey, 1, null),
                     Forbids = forbiddenKey == 0 ? null : GlobalRef.DecodeCondition(forbiddenKey, 1, null),
                     OnFire = DefEffect.ForKey(setOnFireKey, set: true),
-                    Field11 = field11
+                    Repeatable = repeatable
                 });
             }
 
