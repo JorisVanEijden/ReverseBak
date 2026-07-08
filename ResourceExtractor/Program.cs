@@ -699,6 +699,21 @@ internal static class Program {
         reqFiles.Add("SPELL.DAT");
         reqFiles.Add("SPELLREQ.DAT");
 
+        // Editor / build-time REQ screens — never loaded by the shipped game, so excluded from the
+        // JSON export. Identified by their editor CRUD labels (e.g. "Enter Dialogue", "% Chance",
+        // "Enable Game Element", "Movement Style", "Name/Loc/Music/ADS", "Get: Items"): the tile-event
+        // level editor (REQ_TE1..15, REQ_TE_*), the location/game editor (REQ_GE*), the zone editor,
+        // the build-time debug give-menu (REQ_DBUG), and the colourset-7 config popups (ARO/POWEREQ).
+        // NB: REQ_TELE (player temple-teleport) and the in-game cheat menus REQ_CHET/REQ_KNOC DO ship,
+        // so they are deliberately kept.
+        var editorOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "REQ_TE1", "REQ_TE2", "REQ_TE3", "REQ_TE4", "REQ_TE5", "REQ_TE6", "REQ_TE7", "REQ_TE8",
+            "REQ_TE9", "REQ_TE10", "REQ_TE11", "REQ_TE12", "REQ_TE13", "REQ_TE14", "REQ_TE15",
+            "REQ_TE_A", "REQ_TE_C", "REQ_TE_E", "REQ_TE_L", "REQ_TE_O", "REQ_TE_P", "REQ_TE_S",
+            "REQ_GE", "REQ_GE2", "REQ_GE3", "EDITREQ", "REQ_ZONE", "REQ_DBUG", "AROREQ", "POWEREQ",
+        };
+        reqFiles.RemoveAll(f => editorOnly.Contains(Path.GetFileNameWithoutExtension(f)!));
+
         const string reqDir = "REQ";
         Directory.CreateDirectory(reqDir);
         foreach (string reqFile in reqFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase)) {
