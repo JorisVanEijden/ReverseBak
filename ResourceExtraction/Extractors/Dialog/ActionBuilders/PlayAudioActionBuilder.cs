@@ -7,13 +7,13 @@ using System.IO;
 internal class PlayAudioActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {
         ushort audioId = resourceReader.ReadUInt16();
-        ushort unknown = resourceReader.ReadUInt16();
+        ushort timing = resourceReader.ReadUInt16();
 
-        _ = resourceReader.ReadUInt32(); // unused data
+        _ = resourceReader.ReadUInt32(); // unused (dialogAction_PlayAudio field_4 + field_6)
 
         return new PlayAudioAction {
             AudioId = audioId,
-            Unknown = unknown
+            Timing = (PlayAudioTiming)timing
         };
     }
 }
