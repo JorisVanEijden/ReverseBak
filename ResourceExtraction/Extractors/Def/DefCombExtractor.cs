@@ -20,7 +20,7 @@ public class DefCombExtractor : DefFamilyExtractorBase<DefCombEntry> {
             LandingDir4     = ReadLanding(reader),
             LandingDir8     = ReadLanding(reader),
             EnemySetup      = ReadEnemySetup(reader),
-            Field18D        = reader.ReadUInt16(),
+            Avoidable       = (reader.ReadUInt16() & 1) != 0,   // bit 0: Stealth/Scouting roll active
         };
     }
 }

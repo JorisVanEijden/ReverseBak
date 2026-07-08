@@ -34,5 +34,9 @@ public class DefCombEntry {
     public LandingPosition LandingDir4 { get; set; } = new(); // 26 — landing for dir 4
     public LandingPosition LandingDir8 { get; set; } = new(); // 30 — landing for dir 8
     public EncounterActorSetup EnemySetup { get; set; } = new(); // 3A — 339-byte actor-placement block (slotCount + 7×EnemySlot + trailer)
-    public ushort Field18D { get; set; }                    // 18D — bit 0 gates the stealth/scouting detection path
+    // 0x18D (bit 0 of a u16): the encounter is Stealth-avoidable / Scouting-detectable — the same
+    // gate as DEF_TRAP's Avoidable (+0x197). When true the party rolls Stealth to evade (and
+    // Scouting to detect); when false it fires unconditionally (only Dragon's Breath can still
+    // stealth past it). combTrigger_phase2 @0x7409d. Higher bits are always 0 in shipping data.
+    public bool Avoidable { get; set; }
 }
