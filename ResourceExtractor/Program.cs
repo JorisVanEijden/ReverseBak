@@ -272,6 +272,16 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 2 && args[0] == "--savegame") {
+            string gamPath = args[1];
+            string outJson = args.Length >= 3
+                ? args[2]
+                : Path.Combine(ResolveGeneratedDir(),
+                    Path.GetFileNameWithoutExtension(gamPath) + ".savegame.json");
+            ExtractSaveGame(gamPath, outJson);
+            return;
+        }
+
         if (args.Length == 1 && args[0].EndsWith(".GAM", StringComparison.OrdinalIgnoreCase)) {
             ExtractGamFile(args[0]);
             return;
@@ -896,6 +906,16 @@ internal static class Program {
     private static SaveGame ExtractSaveGame(string savePath, SaveGameExtractor extractor) {
         using FileStream saveStream = File.OpenRead(savePath);
         return extractor.Extract(Path.GetFileName(savePath), saveStream);
+    }
+
+    private static void ExtractSaveGame(string gamPath, string outJson) {
+        var extractor = new SaveGameExtractor();
+        using FileStream stream = File.OpenRead(gamPath);
+        SaveGame saveGame = extractor.Extract(Path.GetFileName(gamPath), stream);
+        Directory.CreateDirectory(Path.GetDirectoryName(outJson)!);
+        File.WriteAllText(outJson, saveGame.ToJson());
+        Console.WriteLine($"Decoded {saveGame.Id} -> {outJson} " +
+            $"(chapter {saveGame.ChapterNumber}, {saveGame.TempGameDataLength} body bytes)");
     }
 
     private static List<FlagBitChange> GetFlagBitChanges(byte[] before, byte[] after, int? keyBase) {
