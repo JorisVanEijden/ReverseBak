@@ -6,10 +6,13 @@ namespace GameData.Resources.Data;
 //
 // When an encounter is initialised, placeEncounterActors (ovr188 @0x75359)
 // SCOPYs this whole block into the runtime buffer `p5times339bytes` and walks
-// the slot array to position each enemy in the world. Seven consumers read
-// the buffer; between them they touch CreatureNumber, MovementPattern,
-// PrimarySpawn*, and AltSpawn*. The remaining bytes (each slot's Field2E/2F
-// and the block Trailer) are verified dead — no reader in the binary.
+// the slot array to position each enemy in the world. Exactly seven functions
+// reference the buffer (complete, non-truncated xref set); reading all seven at
+// the instruction level, the only slot bytes any consumer touches are
+// CreatureNumber (0x00), MovementPattern (0x02), PrimarySpawn* (0x04/0x08/0x0C)
+// and AltSpawn* (0x0E..0x2D) — the highest byte read is AltSpawnY[3] ending at
+// 0x2D. Each slot's AuthoringWord (0x2E) and the block Trailer (0x151) are
+// therefore verified dead: no reader in the binary consumes them.
 //
 // See docs/FileFormats/DEF_DAT family.md ("Encounter actor placement").
 public class EncounterActorSetup {
@@ -36,6 +39,12 @@ public class EnemySlot {
         = new int[4];
     public int[] AltSpawnY { get; set; }                // 0x1E — i32[4] tile-relative Y of 4 alternate spawns / patrol waypoints
         = new int[4];
-    public byte Field2E { get; set; }                   // 0x2E — DEAD (no readers; unstructured editor-side bytes)
-    public sbyte Field2F { get; set; }                  // 0x2F — DEAD (no readers; unstructured editor-side bytes)
+    public ushort AuthoringWord { get; set; }           // 0x2E — DEAD to the runtime (no reader among the 7 p5times339bytes
+                                                        //          consumers, verified at the instruction level). On disk the
+                                                        //          two bytes behave as one 16-bit LE value: 0xFFFF sentinel
+                                                        //          (once per record on avg), recurring clusters (0x4B00, 0x2147),
+                                                        //          frequently identical across a record's populated slots. So it
+                                                        //          is *structured* authoring data, not uninitialised filler —
+                                                        //          but its authoring purpose is undetermined (no correlation with
+                                                        //          MovementPattern/CreatureNumber, and no runtime consumer to anchor it).
 }

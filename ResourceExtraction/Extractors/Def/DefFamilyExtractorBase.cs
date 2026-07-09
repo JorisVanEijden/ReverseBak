@@ -47,8 +47,7 @@ public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFi
                 PrimaryRotationZ = reader.ReadInt16(),
                 AltSpawnX        = new[] { reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32() },
                 AltSpawnY        = new[] { reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32() },
-                Field2E          = reader.ReadByte(),
-                Field2F          = reader.ReadSByte(),
+                AuthoringWord    = reader.ReadUInt16(),  // 0x2E — runtime-dead structured authoring word (see EnemySlot)
             };
         }
         setup.Trailer = reader.ReadUInt16();
