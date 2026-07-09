@@ -14,12 +14,14 @@ using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 using GameData.Resources.Monster;
+using GameData.Resources.Object;
 using GameData.Resources.Palette;
 using GameData.Resources.Spells;
 using Extractors;
 using Extractors.Animation;
 using Extractors.Audio;
 using Extractors.Dialog;
+using Extractors.Object;
 using System;
 using System.Collections.Generic;
 
@@ -79,6 +81,8 @@ public static class ExtractorFactory {
             typeof(Dialog), typeof(DdxExtractor)
         }, {
             typeof(Preferences), typeof(PreferencesExtractor)
+        }, {
+            typeof(ObjectInfoSet), typeof(ObjectInfoSetExtractor)
         }
     };
 
