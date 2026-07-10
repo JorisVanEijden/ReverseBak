@@ -55,6 +55,8 @@ public static class PaletteMapping {
             // does not exist in the archive.
             "HEADS" => "OPTIONS.PAL",
             "INT_BORD" => "INT_DYN.PAL",
+            "INVSHP1" => "INVENTOR.PAL",
+            "INVSHP2" => "INVENTOR.PAL",
             "INT_BOOK" => "INT_TITL.PAL",
             "INT_BUNT" => "INT_DYN.PAL",
             "INT_LGHT" => "INT_DYN.PAL",
