@@ -57,6 +57,9 @@ public static class PaletteMapping {
             "INT_BORD" => "INT_DYN.PAL",
             "INVSHP1" => "INVENTOR.PAL",
             "INVSHP2" => "INVENTOR.PAL",
+            // Container-type images (dead body / chest / etc.) drawn in the loot screen's detail
+            // window under the inventory palette (sub_ovr158_3D0 @0x56420).
+            "INVMISC" => "INVENTOR.PAL",
             "INT_BOOK" => "INT_TITL.PAL",
             "INT_BUNT" => "INT_DYN.PAL",
             "INT_LGHT" => "INT_DYN.PAL",
