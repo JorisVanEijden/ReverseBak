@@ -1,6 +1,7 @@
 namespace ResourceExtraction;
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using GameData.Resources.Data;
 
@@ -17,7 +18,8 @@ public static class SaveGameWriter {
 
     public static SaveGameWriteResult Write(
         byte[] backingBody, in SaveGameFields fields,
-        string name, short headerWorldX, short headerWorldY, short mapIcon) {
+        string name, short headerWorldX, short headerWorldY, short mapIcon,
+        IReadOnlyList<DirtyContainerEdit> containerEdits = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -54,6 +56,16 @@ public static class SaveGameWriter {
         PatchI32(SaveGameOffsets.PositionY, fields.PositionY);
         PatchI32(SaveGameOffsets.PositionZ, fields.PositionZ);
         PatchI16(SaveGameOffsets.Rotation, fields.Rotation);
+
+        if (containerEdits != null) {
+            foreach (DirtyContainerEdit edit in containerEdits) {
+                PatchU8(edit.BodyOffset + ContainerGeometry.NumberOfItemsOffset, edit.NumberOfItems);
+                int arrayOff = edit.BodyOffset + ContainerGeometry.ItemArrayOffset;
+                for (int i = 0; i < edit.LiveItemBytes.Length; i++) {
+                    PatchU8(arrayOff + i, edit.LiveItemBytes[i]);
+                }
+            }
+        }
 
         // 100-byte header, then the patched body.
         byte[] output = new byte[SaveGameOffsets.HeaderSize + SaveGameOffsets.BodySize];
