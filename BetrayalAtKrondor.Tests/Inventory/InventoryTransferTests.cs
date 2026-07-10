@@ -55,4 +55,29 @@ public class InventoryTransferTests {
         Assert.Equal(InventoryTransfer.Result.DoesNotFit, r);
         Assert.Single(src.Items); // unchanged
     }
+
+    // Regression: the old single-sum-with-slack CanFit allowed 20+1 <= 20+4, over-filling a
+    // character inventory. The real two-pass rule requires pass-2 total (all footprints, no
+    // slack) <= budget, so a 21st single-slot item must be rejected even though capacity (25)
+    // and the old slack check both had room.
+    [Fact] public void DoesNotFit_WhenSlotBudgetExceeded_NoSlackOnPass2() {
+        var objList = new List<ObjectInfo>();
+        var items = new RuntimeItem[20];
+        for (int i = 0; i < 20; i++) {
+            byte id = (byte)(100 + i);
+            objList.Add(new ObjectInfo("x" + i) { Number = id, Name = "Trinket" + i, InventorySlots = 1, MaxAmount = 1 });
+            items[i] = new RuntimeItem(id, 1, 0);
+        }
+        // Incoming 21st single-slot item, distinct object id so it can't stack with any of the 20.
+        objList.Add(new ObjectInfo("x20") { Number = 120, Name = "Trinket20", InventorySlots = 1, MaxAmount = 1 });
+        var objs = new ObjectInfoSet("O", objList);
+
+        var dst = C(25, 1, items); // character inventory, capacity 25, already holding 20 single-slot items
+        var src = C(4, 5, new RuntimeItem(120, 1, 0));
+        int gold = 0;
+        var r = InventoryTransfer.Move(src, 0, dst, objs, ref gold);
+        Assert.Equal(InventoryTransfer.Result.DoesNotFit, r);
+        Assert.Single(src.Items); // unchanged
+        Assert.Equal(20, dst.Items.Count); // unchanged
+    }
 }

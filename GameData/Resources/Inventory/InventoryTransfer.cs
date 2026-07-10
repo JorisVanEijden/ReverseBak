@@ -57,13 +57,31 @@ public static class InventoryTransfer {
         return Result.Moved;
     }
 
-    // canItemFitInContainer @0x551ec: per-container count cap + slot-footprint budget.
+    // item_equipped (DOS ItemFlags bit 0x40, see GameData.ItemFlags.Equipped): equipped gear is
+    // excluded from a character's slot-footprint sums by canItemFitInContainer.
+    private const ushort ItemEquippedFlag = (ushort)GameData.ItemFlags.Equipped;
+
+    // canItemFitInContainer @0x551ec: per-container count cap + a two-pass slot-footprint budget.
+    // Pass 1 sums only multi-slot (footprint > 1) items, incl. the incoming item, and requires
+    // multiSlotSum + 4 <= budget. Pass 2 sums ALL items' footprints, incl. the incoming item, and
+    // requires total <= budget (no slack). Both passes must pass. For a character inventory
+    // (ContainerType == 1) currently-equipped items are excluded from both sums.
     public static bool CanFit(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
         if (target.Items.Count >= target.Capacity) { return false; }
-        int budget = target.ContainerType == ContainerTypeCharacterInventory ? CharSlotBudget : OtherSlotBudget;
-        int used = 0;
-        foreach (RuntimeItem t in target.Items) { used += Slots(t, objects); }
-        return used + Slots(item, objects) <= budget + 4; // +4 slack (multi-slot pass allowance)
+        bool isChar = target.ContainerType == ContainerTypeCharacterInventory;
+        int budget = isChar ? CharSlotBudget : OtherSlotBudget;
+        int multiSlot = 0, total = 0;
+        foreach (RuntimeItem t in target.Items) {
+            if (isChar && (t.ItemFlags & ItemEquippedFlag) != 0) { continue; } // equipped excluded from footprint
+            int s = Slots(t, objects);
+            total += s;
+            if (s > 1) { multiSlot += s; }
+        }
+        int inc = Slots(item, objects);
+        total += inc;
+        if (inc > 1) { multiSlot += inc; }
+        if (multiSlot + 4 > budget) { return false; } // pass 1: multi-slot footprints
+        return total <= budget;                        // pass 2: all footprints, no slack
     }
 
     private static int Slots(RuntimeItem it, ObjectInfoSet objects) {
