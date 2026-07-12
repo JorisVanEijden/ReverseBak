@@ -1,13 +1,22 @@
 namespace BetrayalAtKrondor.Tests.Dialog;
 using GameData.Resources.Dialog;
+using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Dialog.Branches;
 using GameData.Resources.GameState;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 public class DialogBranchWalkerTests {
     private static DialogEntry E(int offset, string text, params DialogBranchBase[] br) =>
         new DialogEntry { Offset = offset, Text = text, Branches = new List<DialogBranchBase>(br) };
+
+    private static DialogEntry EA(int offset, IEnumerable<DialogActionBase> actions, params DialogBranchBase[] br) =>
+        new DialogEntry {
+            Offset = offset,
+            Actions = new List<DialogActionBase>(actions),
+            Branches = new List<DialogBranchBase>(br),
+        };
 
     private static Dialog Dlg(params DialogEntry[] es) {
         var d = new Dialog("T"); d.Entries.AddRange(es); return d;
@@ -38,5 +47,54 @@ public class DialogBranchWalkerTests {
         var mid  = E(400, null, new DefaultBranch { TargetOffset = 500 });
         var root = E(78, null, new DefaultBranch { TargetOffset = 400 });
         Assert.Same(leaf, DialogBranchWalker.WalkToLeaf(Dlg(root, mid, leaf), root, _ => 0));
+    }
+
+    [Fact] public void VarCondition_TakenWhenChapterInRange() {
+        // Var 7 = global key 30007 = chapter number.
+        var ch1 = E(671, "chapter one");
+        var root = E(223, null,
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 1 }, TargetOffset = 671 },
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 2, Max = 2 }, TargetOffset = 999 });
+        Assert.Same(ch1, DialogBranchWalker.WalkToLeaf(Dlg(root, ch1), root, k => k == 30007 ? 1 : 0));
+        // Chapter 2 -> the first (chapter-1) branch must NOT be taken.
+        Assert.Same(root, DialogBranchWalker.WalkToLeaf(Dlg(root, ch1), root, k => k == 30007 ? 2 : 0));
+    }
+
+    // Mirrors the chapter-setup dialog DIAL_Z20 #2000023: entry pushes a branch node (Var-7 chapter
+    // switch) whose selected chapter leaf carries the ChangeParty action. The default branch targets a
+    // cross-file id (unresolvable in-file), so traversal must fall back to the PushDialogEntry.
+    [Fact] public void ExecuteActions_FollowsPushThenChapterBranch_AppliesLeafActions() {
+        var change = new ChangePartyAction { PartySize = 3, Member1 = 0, Member2 = 2, Member3 = 1 };
+        var leaf = EA(671, new DialogActionBase[] { change });
+        var branchNode = E(223,
+            null,
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 1 }, TargetOffset = 671 });
+        var root = EA(194,
+            new DialogActionBase[] { new PushDialogEntryAction { Offset = 223 } },
+            new DefaultBranch { TargetOffset = null }); // cross-file return in the real data
+
+        var applied = new List<DialogActionBase>();
+        DialogBranchWalker.ExecuteActions(
+            Dlg(root, branchNode, leaf), root, k => k == 30007 ? 1 : 0, applied.Add);
+
+        var change2 = applied.OfType<ChangePartyAction>().Single();
+        Assert.Equal(3, change2.PartySize);
+        Assert.Equal(new[] { 0, 2, 1 }, new[] { change2.Member1, change2.Member2, change2.Member3 });
+    }
+
+    [Fact] public void ExecuteActions_WrongChapterBranch_DoesNotReachLeaf() {
+        var leaf = EA(671, new DialogActionBase[] { new ChangePartyAction { PartySize = 3 } });
+        var branchNode = E(223,
+            null,
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 1 }, TargetOffset = 671 });
+        var root = EA(194,
+            new DialogActionBase[] { new PushDialogEntryAction { Offset = 223 } },
+            new DefaultBranch { TargetOffset = null });
+
+        var applied = new List<DialogActionBase>();
+        DialogBranchWalker.ExecuteActions(
+            Dlg(root, branchNode, leaf), root, k => k == 30007 ? 2 : 0, applied.Add); // chapter 2
+
+        Assert.Empty(applied.OfType<ChangePartyAction>());
     }
 }
