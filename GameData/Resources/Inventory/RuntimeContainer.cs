@@ -10,14 +10,14 @@ using System.Collections.Generic;
 public sealed class RuntimeContainer {
     public List<RuntimeItem> Items { get; } = new List<RuntimeItem>();
     public int Capacity;
-    public int ContainerType;
+    public SaveGameContainerType ContainerType;
     public short OwnerActorNumber;
     public bool Dirty;
 
     public static RuntimeContainer FromSnapshot(SaveGameContainerData snap) {
         var rc = new RuntimeContainer {
             Capacity = snap.Capacity,
-            ContainerType = (int)snap.ContainerType,
+            ContainerType = snap.ContainerType,
             OwnerActorNumber = snap.Location.ActorNumber,
         };
         foreach (SaveGameInventoryItemData it in snap.Items) {

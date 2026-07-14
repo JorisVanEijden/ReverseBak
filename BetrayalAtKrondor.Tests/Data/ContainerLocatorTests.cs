@@ -20,7 +20,7 @@ public class ContainerLocatorTests {
 
     [Fact]
     public void FindsExactCoordMatchInChapterRange() {
-        var corpse = Container(1, 670423, 1059778, minCh: 1, maxCh: 9, SaveGameContainerType.FixedObject);
+        var corpse = Container(1, 670423, 1059778, minCh: 1, maxCh: 9, SaveGameContainerType.FixedWorldItem);
         var state = State(corpse);
 
         SaveGameContainerData? hit = ContainerLocator.FindContainerAtLocation(state, zone: 1, x: 670423, y: 1059778, chapter: 1);
@@ -30,19 +30,19 @@ public class ContainerLocatorTests {
 
     [Fact]
     public void ReturnsNullWhenCoordsDiffer() {
-        var state = State(Container(1, 670423, 1059778, 1, 9, SaveGameContainerType.FixedObject));
+        var state = State(Container(1, 670423, 1059778, 1, 9, SaveGameContainerType.FixedWorldItem));
         Assert.Null(ContainerLocator.FindContainerAtLocation(state, 1, 670423, 1059779, 1));
     }
 
     [Fact]
     public void ReturnsNullWhenChapterOutOfRange() {
-        var state = State(Container(1, 670423, 1059778, minCh: 3, maxCh: 5, SaveGameContainerType.FixedObject));
+        var state = State(Container(1, 670423, 1059778, minCh: 3, maxCh: 5, SaveGameContainerType.FixedWorldItem));
         Assert.Null(ContainerLocator.FindContainerAtLocation(state, 1, 670423, 1059778, chapter: 1));
     }
 
     [Fact]
     public void ReturnsNullWhenZoneMissing() {
-        var state = State(Container(1, 670423, 1059778, 1, 9, SaveGameContainerType.FixedObject));
+        var state = State(Container(1, 670423, 1059778, 1, 9, SaveGameContainerType.FixedWorldItem));
         Assert.Null(ContainerLocator.FindContainerAtLocation(state, zone: 2, x: 670423, y: 1059778, chapter: 1));
     }
 }

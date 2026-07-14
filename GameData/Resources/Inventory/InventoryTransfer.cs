@@ -1,5 +1,6 @@
 namespace GameData.Resources.Inventory;
 
+using GameData.Resources.Data;
 using GameData.Resources.Object;
 
 /// <summary>
@@ -15,7 +16,6 @@ public static class InventoryTransfer {
     public const int SilverRoyalId = 54;
     private const int CharSlotBudget = 20;
     private const int OtherSlotBudget = 28;
-    private const int ContainerTypeCharacterInventory = 1;
 
     public static Result Move(RuntimeContainer source, int itemIndex, RuntimeContainer target,
         ObjectInfoSet objects, ref int partyGold) {
@@ -65,10 +65,11 @@ public static class InventoryTransfer {
     // Pass 1 sums only multi-slot (footprint > 1) items, incl. the incoming item, and requires
     // multiSlotSum + 4 <= budget. Pass 2 sums ALL items' footprints, incl. the incoming item, and
     // requires total <= budget (no slack). Both passes must pass. For a character inventory
-    // (ContainerType == 1) currently-equipped items are excluded from both sums.
+    // (ContainerType == SaveGameContainerType.Inventory) currently-equipped items are excluded
+    // from both sums.
     public static bool CanFit(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
         if (target.Items.Count >= target.Capacity) { return false; }
-        bool isChar = target.ContainerType == ContainerTypeCharacterInventory;
+        bool isChar = target.ContainerType == SaveGameContainerType.Inventory;
         int budget = isChar ? CharSlotBudget : OtherSlotBudget;
         int multiSlot = 0, total = 0;
         foreach (RuntimeItem t in target.Items) {
