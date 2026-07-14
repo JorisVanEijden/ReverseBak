@@ -2,6 +2,7 @@ using System;
 
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Data;
 using GameData.Resources.World;
 using Extensions;
 using System.Collections.Generic;
@@ -137,7 +138,21 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             });
         }
 
+        StampInteraction(table);
+
         return table;
+    }
+
+    /// <summary>Stamp each entry's semantic Behavior + InteractionProfile from its
+    /// EntityType byte (InteractionProfileTable). Runs in both the offline extractor and the
+    /// Unity runtime load, since both call Extract.</summary>
+    public static void StampInteraction(ZoneTable table) {
+        foreach (ZoneTableEntry entry in table.Entries) {
+            if (InteractionProfileTable.TryGet(entry.Dat.EntityType, out string behavior, out InteractionProfile profile)) {
+                entry.Behavior = behavior;
+                entry.Interaction = profile;
+            }
+        }
     }
 
     private static Dictionary<string, (long offset, uint size)> ParseSectionHeaders(BinaryReader reader)

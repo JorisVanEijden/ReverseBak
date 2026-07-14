@@ -1,5 +1,7 @@
 namespace GameData.Resources.World;
 
+using GameData.Resources.Data;
+
 #if JSON_SERIALIZE
 using System.Text.Json.Serialization;
 #endif
@@ -26,6 +28,13 @@ public class ZoneTableEntry
     public string Name { get; set; } = "";
     public TableDatInfo Dat { get; set; } = new();
     public TableGidInfo Gid { get; set; } = new();
+
+    /// <summary>Semantic interaction behavior key (null = non-interactable). Resolved from
+    /// <see cref="TableDatInfo.EntityType"/> by ResourceExtraction.InteractionProfileTable.</summary>
+    public string? Behavior { get; set; }
+
+    /// <summary>Data-driven interaction profile (null = non-interactable).</summary>
+    public InteractionProfile? Interaction { get; set; }
 }
 
 
