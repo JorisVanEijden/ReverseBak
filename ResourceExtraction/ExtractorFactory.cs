@@ -83,6 +83,8 @@ public static class ExtractorFactory {
             typeof(Preferences), typeof(PreferencesExtractor)
         }, {
             typeof(ObjectInfoSet), typeof(ObjectInfoSetExtractor)
+        }, {
+            typeof(DetectData), typeof(DetectExtractor)
         }
     };
 
