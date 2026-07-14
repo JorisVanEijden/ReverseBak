@@ -1,13 +1,14 @@
 namespace BetrayalAtKrondor.Tests.Data;
 
 using GameData.Resources.Data;
+using GameData.Resources.World;
 using ResourceExtraction;
 using Xunit;
 
 public class InteractionProfileTableTests {
     [Fact]
     public void Corpse16_ResolvesToContainerBehaviorAndProfile() {
-        Assert.True(InteractionProfileTable.TryGet(16, out string behavior, out InteractionProfile p));
+        Assert.True(InteractionProfileTable.TryGet(WorldEntityType.Corpse, out string behavior, out InteractionProfile p));
         Assert.Equal("container", behavior);
         Assert.Equal(new InteractionRange(7000, 2500), p.Range);
         Assert.Contains(SaveGameContainerType.Corpse, p.ActionableContainerTypes);
@@ -21,5 +22,5 @@ public class InteractionProfileTableTests {
 
     [Fact]
     public void UnknownType_ReturnsFalse() =>
-        Assert.False(InteractionProfileTable.TryGet(99, out _, out _));
+        Assert.False(InteractionProfileTable.TryGet(WorldEntityType.Well, out _, out _));
 }

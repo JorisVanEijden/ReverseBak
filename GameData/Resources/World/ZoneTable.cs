@@ -105,7 +105,7 @@ public class TableDatInfo
     public byte EntityFlags { get; set; }
 
     /// <summary>+0x01. Entity-type tag.</summary>
-    public byte EntityType { get; set; }
+    public WorldEntityType EntityType { get; set; }
 
     /// <summary>+0x02. Painter's-sort draw priority — the original's ONLY reader is the world-item
     /// depth sort (<c>depthSortVisibleItems</c>), not any movement/collision/terrain-surface logic

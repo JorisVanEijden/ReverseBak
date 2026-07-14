@@ -368,7 +368,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         reader.BaseStream.Seek(datBase + entityOffset, SeekOrigin.Begin);
         var dat = new TableDatInfo();
         dat.EntityFlags = reader.ReadByte();
-        dat.EntityType = reader.ReadByte();
+        dat.EntityType = (WorldEntityType)reader.ReadByte();
         dat.DrawPriority = reader.ReadByte();
         dat.VertexScale = reader.ReadByte();
         dat.Unknown04 = reader.ReadUInt16();
