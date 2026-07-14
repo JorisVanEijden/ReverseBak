@@ -1,3 +1,5 @@
+using GameData.Resources.World;
+
 namespace GameData.Resources.Config;
 
 /// <summary>
@@ -41,6 +43,18 @@ public class DetectData : IResource {
 
     /// <summary>One entry per location class (index 0 = aboveground, 1 = underground).</summary>
     public List<DetectLocationRanges> Locations { get; set; } = new();
+
+    /// <summary>An entity type is interactable in a location when its DETECT.DAT range is &gt; 0.
+    /// underground = false selects Locations[0] (Aboveground), true selects Locations[1].</summary>
+    public bool IsInteractable(WorldEntityType type, bool underground) {
+        int block = underground ? 1 : 0;
+        if (block >= Locations.Count) {
+            return false;
+        }
+        int[] ranges = Locations[block].DetectRanges;
+        int idx = (byte)type;
+        return idx < ranges.Length && ranges[idx] > 0;
+    }
 }
 
 /// <summary>
