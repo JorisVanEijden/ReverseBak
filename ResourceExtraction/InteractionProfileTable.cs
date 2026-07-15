@@ -23,6 +23,16 @@ public static class InteractionProfileTable {
             OpensLoot = true,
             HasLock = false,
         }),
+        // byte 6 = container/chest (HandleEnvironmentInteraction @0x76573 case 6).
+        [WorldEntityType.Container] = ("container", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = new[] { SaveGameContainerType.Chest, SaveGameContainerType.ScriptedLoot },
+            ExamineDialogId = 0,          // chest dialogs are lock-state-driven in the handler (not this resolver)
+            ActionDialogId = 0,
+            NotActionableDialogId = 154,
+            OpensLoot = true,
+            HasLock = true,
+        }),
     };
 
     public static bool TryGet(WorldEntityType entityType, out string behavior, out InteractionProfile profile) {

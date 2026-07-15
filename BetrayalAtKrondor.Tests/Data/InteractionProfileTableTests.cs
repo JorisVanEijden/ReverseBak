@@ -23,4 +23,16 @@ public class InteractionProfileTableTests {
     [Fact]
     public void UnknownType_ReturnsFalse() =>
         Assert.False(InteractionProfileTable.TryGet(WorldEntityType.Well, out _, out _));
+
+    [Fact]
+    public void Container6_ResolvesToChestProfile() {
+        Assert.True(InteractionProfileTable.TryGet(WorldEntityType.Container,
+            out string behavior, out InteractionProfile p));
+        Assert.Equal("container", behavior);
+        Assert.Contains(SaveGameContainerType.Chest, p.ActionableContainerTypes);
+        Assert.Contains(SaveGameContainerType.ScriptedLoot, p.ActionableContainerTypes);
+        Assert.True(p.OpensLoot);
+        Assert.True(p.HasLock);
+        Assert.Null(p.Range);
+    }
 }
