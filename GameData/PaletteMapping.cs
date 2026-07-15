@@ -13,6 +13,14 @@ public static class PaletteMapping {
             return "CONTENTS.PAL";
         }
 
+        // Zone slot bitmaps (Z##SLOT#.BMX — the object/wall textures sampled by Flags&0x10 faces)
+        // render under the zone palette, like the Z##L terrain atlas. They have no per-slot .PAL, so
+        // the default same-name lookup fails. (RE: resource_loadZoneDataFiles @0x7313b loads them per zone.)
+        if (image.Length > 4 && image[0] == 'Z' && char.IsDigit(image[1]) && char.IsDigit(image[2])
+            && image.Substring(3).StartsWith("SLOT")) {
+            return image.Substring(0, 3) + ".PAL";
+        }
+
         return image switch {
             "BICONS1" => "OPTIONS.PAL",
             "BICONS2" => "OPTIONS.PAL",

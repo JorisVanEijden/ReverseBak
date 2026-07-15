@@ -43,6 +43,23 @@ public class PaletteMappingTests {
     }
 
     [Fact]
+    public void ZoneSlotBitmaps_UseZonePalette() {
+        // Z##SLOT#.BMX (object/wall textures for Flags&0x10 faces) have no per-slot .PAL; they render
+        // under the zone palette, like the Z##L atlas. Covers single- and double-digit zone numbers.
+        Assert.Equal("Z01.PAL", PaletteMapping.GetPaletteFor("Z01SLOT3.BMX"));
+        Assert.Equal("Z01.PAL", PaletteMapping.GetPaletteFor("Z01SLOT0.BMX", 8));
+        Assert.Equal("Z02.PAL", PaletteMapping.GetPaletteFor("Z02SLOT4.BMX"));
+        Assert.Equal("Z12.PAL", PaletteMapping.GetPaletteFor("Z12SLOT2.BMX"));
+    }
+
+    [Fact]
+    public void ZoneAtlas_And_NonSlotZoneNames_Unaffected() {
+        // The Z##L atlas rule is unchanged, and a non-SLOT Z-name still falls through to the switch/default.
+        Assert.Equal("Z01.PAL", PaletteMapping.GetPaletteFor("Z01L.SCX"));
+        Assert.Null(PaletteMapping.GetPaletteFor("Z01.TBL"));
+    }
+
+    [Fact]
     public void NonBiconsSubImage_FallsBackToFileMapping() {
         // A sub-image index on a non-overridden file resolves by filename as before.
         Assert.Equal("CONTENTS.PAL", PaletteMapping.GetPaletteFor("CONTENTS.SCX", 0));
