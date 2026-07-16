@@ -104,6 +104,15 @@ public class TableDatInfo
     /// shipped data (only observed values: 0x00, 0x40, 0x60).</summary>
     public byte EntityFlags { get; set; }
 
+    /// <summary>Decoded <see cref="EntityFlags"/> 0x20 (EF_UNBOUNDED): the 12-byte bbox is omitted.
+    /// The bit meaning is documented on <see cref="EntityFlags"/>; decoded here once so consumers never
+    /// re-mask it.</summary>
+    public bool IsUnbounded => (EntityFlags & 0x20) != 0;
+
+    /// <summary>Decoded <see cref="EntityFlags"/> 0x40 (EF_DEPTH_SORTED): the entity takes the
+    /// painter's-algorithm depth-sort render path.</summary>
+    public bool IsDepthSorted => (EntityFlags & 0x40) != 0;
+
     /// <summary>+0x01. Entity-type tag.</summary>
     public WorldEntityType EntityType { get; set; }
 
