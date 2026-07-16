@@ -338,6 +338,11 @@ public class SpriteBMeshFace : MeshFaceRecord
 
     /// <summary>+0x07. Vertex used as billboard anchor (projected to screen, read at 0x230b4).</summary>
     public byte VertexIndex { get; set; }
+
+    /// <summary>Resolved, self-describing texture reference baked at extraction: the resource key
+    /// (e.g. "Z01SLOT3.BMX#8") for this billboard's bitmap (<see cref="BitmapIndex"/> resolved against
+    /// the zone's concatenated slot bitmaps), or <c>null</c> when out of range.</summary>
+    public string? TextureBitmap { get; set; }
 }
 
 /// <summary>
@@ -371,6 +376,12 @@ public class PolygonFace
 
     /// <summary>Resolved vertex-index list (terminator stripped).</summary>
     public List<int> VertexIndices { get; set; } = new();
+
+    /// <summary>Resolved, self-describing texture reference baked at extraction: the resource key
+    /// (e.g. "Z01SLOT3.BMX#8") of the slot bitmap this textured quad uses, or <c>null</c> when the
+    /// face is flat/terrain (not a Flags&amp;0x10 quad, or the index is out of range). Decouples model
+    /// texturing from the zone's runtime bitmap load order (see the 2026-07-16 design doc).</summary>
+    public string? TextureBitmap { get; set; }
 }
 
 /// <summary>

@@ -4,6 +4,7 @@ namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Data;
 using GameData.Resources.World;
+using ResourceExtraction.World;
 using Extensions;
 using System.Collections.Generic;
 using System.IO;
@@ -154,6 +155,44 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             }
         }
     }
+
+    /// <summary>Bake a self-describing texture resource key onto every textured face, replacing the
+    /// raw global bitmap index with a stable "Z##SLOT#.BMX#i" reference. Polygon quads use the
+    /// Flags&amp;0x10 + quad rule (<see cref="SlotFaceResolver"/>); sprite-B faces resolve their raw
+    /// BitmapIndex directly (same concatenation, no gate). Out-of-range / flat / non-quad ⇒ null.
+    /// Mirrors <see cref="StampInteraction"/> as a post-parse pass so Extract stays single-stream.</summary>
+    public static void StampTextureKeys(ZoneTable table, int zoneNumber, IReadOnlyList<int> slotImageCounts) {
+        var index = new ZoneSlotBitmapIndex(slotImageCounts);
+        foreach (var entry in table.Entries) {
+            var dat = entry.Dat;
+            if (dat?.Lods == null) continue;
+            foreach (var lod in dat.Lods)
+                foreach (var mesh in lod.Meshes)
+                    StampMesh(mesh, zoneNumber, index);
+        }
+    }
+
+    private static void StampMesh(MeshRecord mesh, int zoneNumber, ZoneSlotBitmapIndex index) {
+        foreach (var mf in mesh.MeshFaces) {
+            switch (mf) {
+                case PolygonMeshFace poly:
+                    foreach (var face in poly.Faces) {
+                        SlotBitmapRef? r = SlotFaceResolver.Resolve(
+                            face.Flags, face.VgaColor, face.VertexIndices.Count, index);
+                        face.TextureBitmap = r.HasValue ? FormatSlotKey(zoneNumber, r.Value) : null;
+                    }
+                    break;
+                case SpriteBMeshFace sprite:
+                    sprite.TextureBitmap = index.TryResolve(sprite.BitmapIndex, out var sr)
+                        ? FormatSlotKey(zoneNumber, sr) : null;
+                    break;
+            }
+        }
+        foreach (var child in mesh.Children) StampMesh(child, zoneNumber, index);
+    }
+
+    private static string FormatSlotKey(int zoneNumber, SlotBitmapRef r) =>
+        $"Z{zoneNumber:D2}SLOT{r.SlotFile}.BMX#{r.LocalImage}";
 
     private static Dictionary<string, (long offset, uint size)> ParseSectionHeaders(BinaryReader reader)
     {
