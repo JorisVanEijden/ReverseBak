@@ -8,6 +8,37 @@ public class StampTextureKeysTests {
     // Z01 slot image counts (bases 0,6,22,26,39).
     private static readonly int[] Z01Counts = { 6, 16, 4, 13, 14 };
 
+    // Fake IResourceProvider: only GetResource<T> is exercised by StampTextureKeys; everything
+    // else throws (mirrors the minimal-fake pattern in ChapterCatalogBuilderTests).
+    private sealed class FakeSlotProvider : global::ResourceExtraction.IResourceProvider {
+        private readonly int[] _counts;
+        public FakeSlotProvider(int[] counts) { _counts = counts; }
+        public global::ResourceExtraction.ResourceType ResourceType => global::ResourceExtraction.ResourceType.General;
+        public bool CanProvideResource(string resourceId) => SlotOf(resourceId) < _counts.Length;
+        private static int SlotOf(string resourceId) =>
+            int.Parse(resourceId.Substring(resourceId.IndexOf("SLOT") + 4, 1));
+        public System.IO.Stream GetResourceStream(string resourceId) => throw new System.NotSupportedException();
+        public System.Collections.Generic.IDictionary<string, (long, uint)> GetDictionary(
+            global::ResourceExtraction.ResourceType? type = null) => throw new System.NotSupportedException();
+        public T GetResource<T>(string resourceId) where T : global::GameData.Resources.IResource {
+            // "Z01SLOT3.BMX" → slot 3
+            int slot = SlotOf(resourceId);
+            if (slot >= _counts.Length) throw new System.IO.FileNotFoundException(resourceId);
+            var set = new global::GameData.Resources.Image.ImageSet(resourceId);
+            for (int i = 0; i < _counts[slot]; i++) set.Images.Add(new global::GameData.Resources.Image.BmImage("img"));
+            return (T)(object)set;
+        }
+    }
+
+    [Fact]
+    public void Provider_overload_gathers_counts_and_stamps() {
+        var quad = new PolygonMeshFace { Faces = { new PolygonFace {
+            Flags = 0x91, VgaColor = 34, VertexIndices = { 0, 1, 2, 3 } } } };
+        var table = TableWith(quad);
+        ZoneTableExtractor.StampTextureKeys(table, "Z01.TBL", new FakeSlotProvider(Z01Counts));
+        Assert.Equal("Z01SLOT3.BMX#8", quad.Faces[0].TextureBitmap);
+    }
+
     private static ZoneTable TableWith(params MeshFaceRecord[] faces) {
         var mesh = new MeshRecord();
         foreach (var f in faces) mesh.MeshFaces.Add(f);

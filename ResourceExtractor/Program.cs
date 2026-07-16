@@ -1038,7 +1038,7 @@ internal static class Program {
             // Bake self-describing texture keys: resolve each face's raw slot-bitmap index against
             // this zone's actual Z##SLOT#.BMX image counts. Non-Z tables (COMBAT.TBL) and zones with
             // no slot files get no keys (all faces stay flat/null).
-            int? zone = ParseZoneNumber(fileName);
+            int? zone = ZoneTableExtractor.ParseZoneNumber(fileName);
             if (zone is int zoneNumber) {
                 var counts = GatherSlotImageCounts(filePath, zoneNumber, bitmapExtractor);
                 ZoneTableExtractor.StampTextureKeys(table, zoneNumber, counts);
@@ -1047,14 +1047,6 @@ internal static class Program {
             WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
             Console.Error.WriteLine($"[TBL] done  {fileName} ({table.Entries.Count} entries)"); Console.Error.Flush();
         }
-    }
-
-    /// <summary>Parse the leading zone number from a TBL filename ("Z01.TBL" → 1, "Z10M.TBL" → 10).
-    /// Returns null for non-zone tables (e.g. COMBAT.TBL).</summary>
-    private static int? ParseZoneNumber(string fileName) {
-        var m = System.Text.RegularExpressions.Regex.Match(
-            fileName, @"^Z(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        return m.Success ? int.Parse(m.Groups[1].Value) : (int?)null;
     }
 
     /// <summary>Read each Z##SLOT#.BMX image count in ascending file order until one is missing

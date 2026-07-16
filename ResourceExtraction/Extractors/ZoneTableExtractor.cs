@@ -3,6 +3,7 @@ using System;
 namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Data;
+using GameData.Resources.Image;
 using GameData.Resources.World;
 using ResourceExtraction.World;
 using Extensions;
@@ -193,6 +194,34 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
     private static string FormatSlotKey(int zoneNumber, SlotBitmapRef r) =>
         $"Z{zoneNumber:D2}SLOT{r.SlotFile}.BMX#{r.LocalImage}";
+
+    /// <summary>Runtime overload: gather the zone's slot-bitmap image counts from a resource provider
+    /// (pass the BASE archive so keys are frozen against the original bitmaps — override BMX must not
+    /// shift them) and stamp texture keys. Mirrors the CLI path but reads counts from the archive.</summary>
+    public static void StampTextureKeys(ZoneTable table, string zoneTableId, IResourceProvider slotBitmapProvider) {
+        if (ParseZoneNumber(zoneTableId) is not int zone) return;
+        var counts = new List<int>();
+        for (int slot = 0; slot < 7; slot++) {
+            // Probe existence first (matches the CLI's ascending-until-missing load loop and
+            // ChapterCatalogBuilder's CanProvideResource style). A genuine parse/IO error on a slot
+            // that DOES exist then propagates instead of being swallowed — silent count truncation
+            // would mis-texture with no log, the exact failure this task exists to fix.
+            string slotId = $"Z{zone:D2}SLOT{slot}.BMX";
+            if (!slotBitmapProvider.CanProvideResource(slotId)) break;   // no more slot files for this zone
+            var set = slotBitmapProvider.GetResource<ImageSet>(slotId);
+            if (set?.Images == null) break;
+            counts.Add(set.Images.Count);
+        }
+        StampTextureKeys(table, zone, counts);
+    }
+
+    /// <summary>Leading zone number of a TBL id ("Z01.TBL"/"Z01" → 1, "Z10M.TBL" → 10); null for non-zone
+    /// tables (COMBAT.TBL).</summary>
+    public static int? ParseZoneNumber(string fileName) {
+        var m = System.Text.RegularExpressions.Regex.Match(
+            fileName, @"^Z(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return m.Success ? int.Parse(m.Groups[1].Value) : (int?)null;
+    }
 
     private static Dictionary<string, (long offset, uint size)> ParseSectionHeaders(BinaryReader reader)
     {
