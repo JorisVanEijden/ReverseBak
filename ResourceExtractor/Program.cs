@@ -1028,14 +1028,48 @@ internal static class Program {
 
     private static void ExtractZoneTables(string filePath) {
         var extractor = new ZoneTableExtractor();
+        var bitmapExtractor = new BitmapExtractor();
         foreach (string tblFile in GetFiles(filePath, "*.TBL")) {
             string fileName = Path.GetFileName(tblFile);
             Console.Error.WriteLine($"[TBL] begin {fileName}"); Console.Error.Flush();
             using var stream = File.OpenRead(tblFile);
             var table = extractor.Extract(fileName, stream);
+
+            // Bake self-describing texture keys: resolve each face's raw slot-bitmap index against
+            // this zone's actual Z##SLOT#.BMX image counts. Non-Z tables (COMBAT.TBL) and zones with
+            // no slot files get no keys (all faces stay flat/null).
+            int? zone = ParseZoneNumber(fileName);
+            if (zone is int zoneNumber) {
+                var counts = GatherSlotImageCounts(filePath, zoneNumber, bitmapExtractor);
+                ZoneTableExtractor.StampTextureKeys(table, zoneNumber, counts);
+            }
+
             WriteToJsonFile(fileName, ResourceType.TBL, table.ToJson());
             Console.Error.WriteLine($"[TBL] done  {fileName} ({table.Entries.Count} entries)"); Console.Error.Flush();
         }
+    }
+
+    /// <summary>Parse the leading zone number from a TBL filename ("Z01.TBL" → 1, "Z10M.TBL" → 10).
+    /// Returns null for non-zone tables (e.g. COMBAT.TBL).</summary>
+    private static int? ParseZoneNumber(string fileName) {
+        var m = System.Text.RegularExpressions.Regex.Match(
+            fileName, @"^Z(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return m.Success ? int.Parse(m.Groups[1].Value) : (int?)null;
+    }
+
+    /// <summary>Read each Z##SLOT#.BMX image count in ascending file order until one is missing
+    /// (matches the runtime's slots-0..6 load loop). Case-insensitive (fopen names are lowercase).</summary>
+    private static List<int> GatherSlotImageCounts(string filePath, int zoneNumber, BitmapExtractor bitmapExtractor) {
+        var counts = new List<int>();
+        for (int slot = 0; slot < 7; slot++) {
+            string pattern = $"Z{zoneNumber:D2}SLOT{slot}.BMX";
+            string[] matches = Directory.GetFiles(filePath, pattern,
+                new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive });
+            if (matches.Length == 0) break;
+            using var s = File.OpenRead(matches[0]);
+            counts.Add(bitmapExtractor.Extract(Path.GetFileName(matches[0]), s).Images.Count);
+        }
+        return counts;
     }
 
     // Extracts CHAPSONG.DAT — see docs/FileFormats/CHAPSONG.DAT.md. 36 bytes:
