@@ -368,8 +368,19 @@ public class PolygonFace
 {
     /// <summary>+0x00. bits 0-1 = type (0=double-sided, 1/3=single-sided cull, 2=skip),
     /// bit 4 (0x10) = underground shadow highlight, bit 5 (0x20) = enable shading,
-    /// bit 7 (0x80) = force flat drawColor=1 / skip shading. See ZoneTable-DAT.md §4.</summary>
+    /// bit 7 (0x80) = force flat drawColor=1 / skip shading. See ZoneTable-DAT.md §4.
+    /// Prefer <see cref="CullMode"/> over re-masking this byte.</summary>
     public byte Flags { get; set; }
+
+    /// <summary>Bits 0-1 of <see cref="Flags"/> as a semantic value, so consumers never mask the
+    /// raw byte. Bits 1 and 3 both mean single-sided; the remaining flag bits are unrelated
+    /// (texturing/shading) and are deliberately ignored here.</summary>
+    public FaceCullMode CullMode => (Flags & 0x03) switch
+    {
+        0 => FaceCullMode.DoubleSided,
+        2 => FaceCullMode.Skip,
+        _ => FaceCullMode.SingleSided,
+    };
 
     /// <summary>+0x01. Pen color used when VGA_byte_dseg_20DF == 0 (VGA mode).</summary>
     public byte VgaColor { get; set; }
@@ -421,8 +432,13 @@ public class TableGidInfo
     /// <summary>+0x04. Flag bits: <c>0x01</c> = shortcut hit-test (skip per-region polygon walk
     /// and reuse previous frame's matched region; tested at 0x29dc5; never set in shipped data).
     /// <c>0x02</c> = sloped regions (stride 10, with slope-correction; tested at 0x29daa).
-    /// Bits 0x04..0x80 have no readers and are never set in shipped data.</summary>
+    /// Bits 0x04..0x80 have no readers and are never set in shipped data.
+    /// Prefer <see cref="IsSloped"/> over re-masking this byte.</summary>
     public byte Flags { get; set; }
+
+    /// <summary>Bit 1 (<c>0x02</c>) of <see cref="Flags"/>: this entity's regions carry slope
+    /// planes and use the 10-byte stride rather than the flat 6-byte one.</summary>
+    public bool IsSloped => (Flags & 0x02) != 0;
 
     /// <summary>Resolved region records (length = on-disk regionCount at +0x05).
     /// Each region is a convex polygon with one elevation; the first region whose polygon

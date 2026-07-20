@@ -343,7 +343,7 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         if (regionCount == 0)
             return gid;
 
-        bool sloped = (gid.Flags & 0x02) != 0;
+        bool sloped = gid.IsSloped;
         int regionStride = sloped ? 10 : 6;
 
         for (int r = 0; r < regionCount; r++)
