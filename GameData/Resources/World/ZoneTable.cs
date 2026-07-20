@@ -122,8 +122,13 @@ public class TableDatInfo
     /// higher = painted first/under. Renamed from the misnomer <c>TerrainType</c>.</summary>
     public byte DrawPriority { get; set; }
 
-    /// <summary>+0x03. Shift count for vertex coords (RenderWorldItem 0x2a939 → g_vertexScale).
-    /// World-space size = Extent &lt;&lt; VertexScale.</summary>
+    /// <summary>+0x03. On-disk shift count for vertex coords (RenderWorldItem 0x2a939 →
+    /// g_vertexScale) — the format's 16-bit compression exponent.
+    /// <b>Provenance only: do not apply it.</b> As of 2026-07-20 the extractor bakes this shift
+    /// into <see cref="LodLevel.VertexPools"/>, <see cref="Min"/>/<see cref="Max"/> and
+    /// <see cref="Extent"/>, so those ship in plain model space. Retained so a write-path can
+    /// re-compress and so the original encoding stays legible. Note GID region coordinates are
+    /// NOT baked — they keep their own space.</summary>
     public byte VertexScale { get; set; }
 
     /// <summary>+0x04. Purpose TBD. Verified 2026-06-02 NOT read by the render pipeline
@@ -143,23 +148,24 @@ public class TableDatInfo
     /// <summary>+0x08. Number of LOD records at LodArrayOffset.</summary>
     public ushort LodCount { get; set; }
 
-    /// <summary>+0x0C. Signed entity extent (RenderWorldItem 0x2a948: <c>movsx eax</c>),
-    /// then shifted left by VertexScale → world-space extent for distance culling.</summary>
-    public short Extent { get; set; }
+    /// <summary>+0x0C. Signed world-space entity extent for distance culling — the engine's
+    /// <c>dword_3803</c> (RenderWorldItem 0x2a948: <c>movsx eax</c>, then shifted left by
+    /// VertexScale). Stored pre-shifted (2026-07-20), hence 32-bit: consumers use it directly.</summary>
+    public int Extent { get; set; }
 
     /// <summary>+0x0E..+0x13 (only when (EntityFlags &amp; 0x20) == 0 — bbox present).
     /// 3 i16: minX, minY, minZ. Read by computeEntityViewExtent (0x238d7).</summary>
 #if JSON_SERIALIZE
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 #endif
-    public Position3DShort? Min { get; set; }
+    public Position3DInt? Min { get; set; }
 
     /// <summary>+0x14..+0x19 (only when (EntityFlags &amp; 0x20) == 0 — bbox present).
     /// 3 i16: maxX, maxY, maxZ. Read by computeEntityViewExtent (0x238d7).</summary>
 #if JSON_SERIALIZE
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 #endif
-    public Position3DShort? Max { get; set; }
+    public Position3DInt? Max { get; set; }
 
     /// <summary>Resolved LOD records (length = LodCount).</summary>
     public List<LodLevel> Lods { get; set; } = new();
@@ -189,7 +195,7 @@ public class LodLevel
     /// Across the 12 Z-zones (Z01–Z12): 4009 mesh records → 817 unique pools (4.9× dedup)
     /// — verified 2026-06-08 against generated/TBL output. (All 16 TBL files incl. COMBAT +
     /// M-variants: 4491 → 939.)</summary>
-    public List<List<Position3DShort>> VertexPools { get; set; } = new();
+    public List<List<Position3DInt>> VertexPools { get; set; } = new();
 }
 
 /// <summary>
@@ -560,9 +566,15 @@ public class GidSlopePlane
 /// <summary>
 /// Short (16-bit signed) 3D position, used for TBL vertices.
 /// </summary>
-public class Position3DShort
+/// <summary>
+/// A model-space coordinate triple from the TBL DAT section. 32-bit rather than 16-bit because
+/// the extractor bakes the per-entity VertexScale exponent into the stored values (2026-07-20):
+/// that exponent is the format's own 16-bit compression, so decompressed coordinates do not fit
+/// in a short — 64 shipped axis-values exceed it, peaking at 51200.
+/// </summary>
+public class Position3DInt
 {
-    public short X { get; set; }
-    public short Y { get; set; }
-    public short Z { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Z { get; set; }
 }

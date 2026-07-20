@@ -84,6 +84,100 @@ public class ZoneTableExtractorTests {
         Assert.Equal(GidSlopeBearing, region.SlopeBearing);
     }
 
+    // Geometry fixture: VertexScale 2 → factor 4. Raw values chosen so the baked results are
+    // unambiguous and the Z bake (×1.2, applied after the shift) lands exactly.
+    private const byte GeomVertexScale = 2;
+    private const short GeomVertexX = 100;   // → 400
+    private const short GeomVertexY = 200;   // → 800
+    private const short GeomVertexZ = 300;   // → 300 × 4 × 1.2 = 1440
+    private const short GeomExtent = 1000;   // → 4000
+    private const short GeomBboxMinZ = -50;  // → -50 × 4 × 1.2 = -240
+
+    [Fact]
+    public void Vertex_pool_is_stored_pre_scaled_by_the_vertex_scale_exponent() {
+        var dat = Extract(BuildTblWithGeometry()).Entries[0].Dat;
+
+        // VertexScale is a DOS storage-compression exponent. Baking it here means no consumer
+        // has to know it exists — and none can forget to apply it.
+        var v = Assert.Single(dat.Lods[0].VertexPools[0]);
+        Assert.Equal(GeomVertexX << GeomVertexScale, v.X);
+        Assert.Equal(GeomVertexY << GeomVertexScale, v.Y);
+        Assert.Equal(1440, v.Z);   // shift first, then the ×1.2 world-up bake
+    }
+
+    [Fact]
+    public void Bounding_box_is_scaled_the_same_way_as_the_vertices_it_bounds() {
+        var dat = Extract(BuildTblWithGeometry()).Entries[0].Dat;
+
+        Assert.Equal(-240, dat.Min!.Z);
+    }
+
+    [Fact]
+    public void Extent_is_stored_pre_scaled() {
+        var dat = Extract(BuildTblWithGeometry()).Entries[0].Dat;
+
+        // The engine's dword_3803 = Extent << VertexScale; ship that value, not the operands.
+        Assert.Equal(GeomExtent << GeomVertexScale, dat.Extent);
+    }
+
+    /// <summary>
+    /// One bounded entity carrying a bbox and a single-vertex pool, so the vertex-scale bake is
+    /// observable on vertices, bbox and extent. DAT-relative layout (segmentBase = 0x10):
+    ///   0x10 entity header 14 bytes (EF_UNBOUNDED clear → bbox follows)
+    ///   0x1E bbox          12 bytes
+    ///   0x30 LOD record     6 bytes
+    ///   0x40 mesh record   14 bytes
+    ///   0x50 vertex array   6 bytes
+    /// </summary>
+    private static byte[] BuildTblWithGeometry() {
+        var map = new MemoryStream();
+        var m = new BinaryWriter(map);
+        m.Write((ushort)1); m.Write((ushort)1); m.Write((ushort)0); m.Write((ushort)5);
+        m.Write(Encoding.ASCII.GetBytes("test\0"));
+
+        var dat = new MemoryStream();
+        var d = new BinaryWriter(dat);
+        d.Write((ushort)0);                  // pointer lower
+        d.Write((ushort)1);                  // pointer upper → segmentBase 0x10
+        Pad(d, 0x10);
+
+        d.Write((byte)0x00);                 // EntityFlags: bounded → bbox present
+        d.Write((byte)0);                    // EntityType
+        d.Write((byte)0);                    // DrawPriority
+        d.Write(GeomVertexScale);            // VertexScale
+        d.Write((ushort)0);                  // Unknown04
+        d.Write((ushort)0);                  // Unknown06
+        d.Write((ushort)1);                  // LodCount
+        d.Write((ushort)0x20);               // lodArrayOffset (near) → 0x30
+        d.Write(GeomExtent);
+        // bbox at +0x0E
+        d.Write((short)0); d.Write((short)0); d.Write(GeomBboxMinZ);   // Min
+        d.Write((short)0); d.Write((short)0); d.Write((short)0);       // Max
+        Pad(d, 0x30);
+
+        d.Write((ushort)0);                  // LOD Threshold
+        d.Write((ushort)1);                  // LOD MeshCount
+        d.Write((ushort)0x30);               // meshBaseOffset (near) → 0x40
+        Pad(d, 0x40);
+
+        d.Write((byte)0); d.Write((byte)0); d.Write((byte)0);
+        d.Write((byte)1);                    // VertexCount = 1
+        d.Write((ushort)0x40);               // pVertexArray (near) → 0x50
+        d.Write((ushort)0);                  // MeshFaceCount
+        d.Write((ushort)0);                  // pMeshFaceData
+        d.Write((ushort)0);                  // ChildCount
+        d.Write((ushort)0);                  // pChildren
+        Pad(d, 0x50);
+
+        d.Write(GeomVertexX); d.Write(GeomVertexY); d.Write(GeomVertexZ);
+
+        var file = new MemoryStream();
+        var f = new BinaryWriter(file);
+        WriteSection(f, "MAP:", map.ToArray());
+        WriteSection(f, "DAT:", dat.ToArray());
+        return file.ToArray();
+    }
+
     private static ZoneTable Extract(byte[] tbl) {
         using var stream = new MemoryStream(tbl);
         return new ZoneTableExtractor().Extract("Z99.TBL", stream);

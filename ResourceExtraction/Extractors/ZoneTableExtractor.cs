@@ -101,12 +101,36 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
     // shear geometry pitch-dependently; a world-space per-vertex bake is the only faithful form.
     private const double WorldUpAspectScale = 1.2;
 
-    private static short ScaleWorldUp(short z)
+    private static int ScaleWorldUp(int z)
     {
         long scaled = (long)Math.Round(z * WorldUpAspectScale, MidpointRounding.AwayFromZero);
-        if (scaled > short.MaxValue) scaled = short.MaxValue;
-        else if (scaled < short.MinValue) scaled = short.MinValue;
-        return (short)scaled;
+        if (scaled > int.MaxValue) scaled = int.MaxValue;
+        else if (scaled < int.MinValue) scaled = int.MinValue;
+        return (int)scaled;
+    }
+
+    /// <summary>
+    /// Bake the per-entity VertexScale exponent into a model-space coordinate triple, then apply
+    /// the world-up aspect scale to Z. The shift is applied FIRST so the ×1.2 rounds once, on the
+    /// final magnitude, rather than compounding a rounding error already taken at raw scale.
+    /// Baking here means <see cref="TableDatInfo.VertexScale"/> is provenance only — no consumer
+    /// needs to know the format stored coordinates compressed.
+    /// </summary>
+    /// <summary>Read three consecutive on-disk i16 coordinates, unbaked.</summary>
+    private static Position3DInt ReadRawTriple(BinaryReader reader) => new()
+    {
+        X = reader.ReadInt16(),
+        Y = reader.ReadInt16(),
+        Z = reader.ReadInt16(),
+    };
+
+    private static Position3DInt BakeModelSpace(Position3DInt raw, byte vertexScale)
+    {
+        int factor = 1 << vertexScale;
+        raw.X *= factor;
+        raw.Y *= factor;
+        raw.Z = ScaleWorldUp(raw.Z * factor);
+        return raw;
     }
 
     /// <summary>
@@ -362,7 +386,9 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             {
                 // ×1.2 world-up aspect bake, matching the per-vertex/bbox bake (WorldUpAspectScale).
                 // GID elevations describe the same world-up axis as the geometry they sit under.
-                BaseElevation = ScaleWorldUp(baseElevation),
+                // Cast is safe: elevations are ground-height values, not vertex-scaled — the
+                // largest shipped |BaseElevation| is 250, so ×1.2 stays far inside short range.
+                BaseElevation = (short)ScaleWorldUp(baseElevation),
                 SlopeShift = sloped ? slopeShiftOrPad : (byte)0,
             };
 
@@ -465,25 +491,16 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         dat.Unknown06 = reader.ReadUInt16();
         dat.LodCount = reader.ReadUInt16();
         var lodArrayOffset = reader.ReadUInt16();
-        dat.Extent = reader.ReadInt16();
+        // Engine's dword_3803 == Extent << VertexScale; ship that, not the operands.
+        dat.Extent = reader.ReadInt16() << dat.VertexScale;
 
         // Bbox follows the 14-byte header iff EF_UNBOUNDED is clear. Reader is positioned at +0x0E.
         if ((dat.EntityFlags & EF_UNBOUNDED) == 0)
         {
-            // Bbox Z scaled to match the per-vertex world-up bake so view-extent culling
-            // still covers the now-20%-taller geometry.
-            dat.Min = new Position3DShort
-            {
-                X = reader.ReadInt16(),
-                Y = reader.ReadInt16(),
-                Z = ScaleWorldUp(reader.ReadInt16())
-            };
-            dat.Max = new Position3DShort
-            {
-                X = reader.ReadInt16(),
-                Y = reader.ReadInt16(),
-                Z = ScaleWorldUp(reader.ReadInt16())
-            };
+            // Baked identically to the vertices it bounds, so view-extent culling still covers
+            // the geometry after both the vertex-scale and world-up bakes.
+            dat.Min = BakeModelSpace(ReadRawTriple(reader), dat.VertexScale);
+            dat.Max = BakeModelSpace(ReadRawTriple(reader), dat.VertexScale);
         }
 
         if (dat.LodCount > 0 && lodArrayOffset != 0)
@@ -507,6 +524,13 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
                 dat.Lods.Add(lod);
             }
         }
+
+        // Bake every pool exactly once. Pools are deduped per LOD, so each shared pool is visited
+        // a single time and cannot be double-scaled.
+        foreach (var lod in dat.Lods)
+            foreach (var pool in lod.VertexPools)
+                foreach (var vertex in pool)
+                    BakeModelSpace(vertex, dat.VertexScale);
 
         return dat;
     }
@@ -599,15 +623,13 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
             return -1;
 
         reader.BaseStream.Seek(vertexPos, SeekOrigin.Begin);
-        var pool = new List<Position3DShort>(vertexCount);
+        // Stored RAW here: the per-entity VertexScale isn't in scope this deep, and threading it
+        // through ReadMeshArray/ParseMeshRecord would add an eighth parameter to an already
+        // over-threaded chain. ParseEntity bakes every pool once, after the LOD walk.
+        var pool = new List<Position3DInt>(vertexCount);
         for (int v = 0; v < vertexCount; v++)
         {
-            pool.Add(new Position3DShort
-            {
-                X = reader.ReadInt16(),
-                Y = reader.ReadInt16(),
-                Z = ScaleWorldUp(reader.ReadInt16()) // ×1.2 world-up aspect bake (see WorldUpAspectScale)
-            });
+            pool.Add(ReadRawTriple(reader));
         }
 
         int newIndex = lod.VertexPools.Count;
