@@ -272,10 +272,13 @@ public class PolygonMeshFace : MeshFaceRecord
     /// <summary>+0x02. Number of polygon face records at PFaceArray.</summary>
     public ushort FaceCount { get; set; }
 
-    /// <summary>+0x06. Vestigial / editor-time. Verified 2026-06-02: none of the three polygon
+    /// <summary>+0x06. Structure padding. Verified 2026-06-02: none of the three polygon
     /// renderers (processEntityFaces 0x23a48, processEntityFaces16 0x2505a, processEntityFaces32
     /// 0x24e22) read it — they consume only +0x02 (FaceCount) and +0x04 (pFaceArray), then walk the
-    /// face array. No runtime reader; safe to ignore in the port (preserved verbatim).</summary>
+    /// face array. No runtime reader; safe to ignore in the port (preserved verbatim).
+    /// Verified 2026-07-20: zero in all 3887 polygon mesh-face records across all 12 shipped
+    /// zones, i.e. padding rather than an unknown field. Values previously extracted here were
+    /// an artefact of reading +0x06 after the face-array walk had moved the shared cursor.</summary>
     public ushort Unknown06 { get; set; }
 
     /// <summary>Resolved polygon face array (length = FaceCount).</summary>
@@ -450,7 +453,11 @@ public class GidRegion
 {
     /// <summary>+0x04 (i16). Z value at the slope's anchor when the query point lies inside
     /// this region. Read at IDA 0x29eaa (flat) and 0x2a100 (sloped). The runtime then
-    /// shifts by <c>worldItem.shiftScale</c> and adds <c>worldItem.z</c>.</summary>
+    /// shifts by <c>worldItem.shiftScale</c> and adds <c>worldItem.z</c>.
+    /// Extracted value carries the ×1.2 world-up aspect bake applied to DAT vertices and bboxes
+    /// (see ZoneTableExtractor.WorldUpAspectScale) — this is a world-up Z, so it must stretch with
+    /// the geometry it describes. Added 2026-07-20; previously shipped unscaled, leaving every
+    /// elevation 20% below its own surface.</summary>
     public short BaseElevation { get; set; }
 
     /// <summary>+0x03 (u8). Slope-correction scale exponent. 0 = no slope contribution.
@@ -516,10 +523,15 @@ public class GidSubedge
 /// </summary>
 public class GidSlopePlane
 {
-    /// <summary>+0x00 (i8). X gradient coefficient.</summary>
+    /// <summary>+0x00 (i8). X gradient coefficient. Carries the ×1.2 world-up aspect bake
+    /// (2026-07-20): the gradient term is a Z value like BaseElevation, so scaling only the base
+    /// would pivot the ramp about its anchor instead of stretching it. Quantisation across the 95
+    /// shipped sloped regions is ≤1.5%.</summary>
     public sbyte A { get; set; }
 
-    /// <summary>+0x01 (i8). Y gradient coefficient.</summary>
+    /// <summary>+0x01 (i8). Y gradient coefficient. Scaled with <see cref="A"/>; scaling both
+    /// preserves their ratio, so the verbatim SlopeBearing stays consistent (worst drift 0.40°,
+    /// below the bearing byte's own 1.4° resolution).</summary>
     public sbyte B { get; set; }
 
     /// <summary>+0x02 (i16). Reference X (slope's "zero point" on X).</summary>

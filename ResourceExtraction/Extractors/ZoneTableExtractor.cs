@@ -109,6 +109,24 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         return (short)scaled;
     }
 
+    /// <summary>
+    /// World-up bake for a GID slope-plane gradient coefficient. The elevation of a sloped region
+    /// is <c>Base + ((A·dx + B·dy) · SlopeShift) &gt;&gt; 12</c> — the gradient term is a Z value like
+    /// Base, so both must be scaled or the ramp pivots about its anchor instead of stretching.
+    /// A/B are scaled (rather than SlopeShift) because they carry far more headroom: across the 95
+    /// shipped sloped regions this quantises the slope by ≤1.5%, versus ≤11.1% via SlopeShift.
+    /// Scaling both coefficients keeps their ratio, so the verbatim SlopeBearing (atan2(A, −B))
+    /// stays consistent — measured worst-case drift 0.40°, below the 1.4° resolution of the
+    /// byte-encoded bearing itself.
+    /// </summary>
+    private static sbyte ScaleWorldUp(sbyte gradient)
+    {
+        long scaled = (long)Math.Round(gradient * WorldUpAspectScale, MidpointRounding.AwayFromZero);
+        if (scaled > sbyte.MaxValue) scaled = sbyte.MaxValue;
+        else if (scaled < sbyte.MinValue) scaled = sbyte.MinValue;
+        return (sbyte)scaled;
+    }
+
     public override ZoneTable Extract(string id, Stream resourceStream)
     {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
@@ -342,7 +360,9 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
 
             var region = new GidRegion
             {
-                BaseElevation = baseElevation,
+                // ×1.2 world-up aspect bake, matching the per-vertex/bbox bake (WorldUpAspectScale).
+                // GID elevations describe the same world-up axis as the geometry they sit under.
+                BaseElevation = ScaleWorldUp(baseElevation),
                 SlopeShift = sloped ? slopeShiftOrPad : (byte)0,
             };
 
@@ -393,8 +413,10 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         reader.BaseStream.Seek(pos, SeekOrigin.Begin);
         return new GidSlopePlane
         {
-            A = reader.ReadSByte(),
-            B = reader.ReadSByte(),
+            // Gradient scaled with BaseElevation — see the sbyte ScaleWorldUp overload.
+            // AnchorX/Y are ground-plane coordinates and are deliberately left literal.
+            A = ScaleWorldUp(reader.ReadSByte()),
+            B = ScaleWorldUp(reader.ReadSByte()),
             AnchorX = reader.ReadInt16(),
             AnchorY = reader.ReadInt16(),
         };
@@ -616,9 +638,12 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
                     FaceCount = reader.ReadUInt16()
                 };
                 var pFaceArray = reader.ReadUInt16();
+                // Read +0x06 BEFORE walking the face array: ReadPolygonFaces seeks the shared
+                // reader across the DAT section and does not restore position, so any field
+                // read after it returns comes from wherever the walk stopped, not this record.
+                poly.Unknown06 = reader.ReadUInt16();
                 if (pFaceArray != 0 && poly.FaceCount > 0)
                     ReadPolygonFaces(reader, poly, datBase, segmentBase, datSize, pFaceArray);
-                poly.Unknown06 = reader.ReadUInt16();
                 record = poly;
             }
             else if (renderType == 1)
