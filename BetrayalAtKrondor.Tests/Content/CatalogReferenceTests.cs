@@ -67,12 +67,12 @@ public class CatalogReferenceTests {
     }
 
     /// <summary>#9 (affinity tables) — SPELLWEA (weaknesses) and SPELLRES (resistances) are parallel
-    /// positional tables keyed by spell number. NOTE (documented in docs/work-todo.md): both declare a
-    /// 64-slot spell keyspace, wider than the 45 player-castable spells in spells.dat — the tail
-    /// (45..63) carries real creature-affinity data (e.g. SPELLRES #58 spans all 48 creature types).
-    /// So they do NOT resolve into the 45-spell catalog; the enforceable invariant is that the two
-    /// tables stay structurally aligned (same count, same spell-number set). Keying spells must adopt
-    /// the 64-slot keyspace, not the 45 from spells.dat.</summary>
+    /// positional tables. Both self-declare 64 records while the real spell count is 45. RESOLVED (IDA,
+    /// docs/work-todo.md): the spell keyspace is <b>45</b>; the 64 is over-allocation and slots 45..63
+    /// are never read at runtime (dead authoring data — <c>Cast_Spell</c> indexes the 45-record
+    /// spell-data array with the same spellNumber, so spellNumber is always 0..44). Records 0..44 are
+    /// the real per-spell affinity data; only their alignment is worth enforcing here — the two tables
+    /// must stay structurally aligned (same 64-count, same spell-number set).</summary>
     [Fact]
     public void SpellAffinityTables_ShareTheSameSpellKeyspace() {
         string? gen = GeneratedCorpus.FindDir("SPELLWEA.json", "SPELLRES.json");
