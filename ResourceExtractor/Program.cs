@@ -187,6 +187,18 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--rmp") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractAllRemappings(gamePath, new GeneralResourceProvider(gamePath));
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--books") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractBooks(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
