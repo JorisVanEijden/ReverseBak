@@ -2,6 +2,7 @@ namespace ResourceExtraction.Extractors.Animation;
 
 using GameData.Resources.Animation;
 using GameData.Resources.Animation.FrameCommands;
+using GameData.Resources.Content;
 using ResourceExtraction.Compression;
 using ResourceExtraction.Extensions;
 using ResourceExtraction.Imaging;
@@ -71,7 +72,35 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
 
         var animationResource = new AnimationResource(id, version, tags, frames);
         CanonicalSpace.Apply(animationResource);
+        StampTtmKeys(animationResource);
         return animationResource;
+    }
+
+    private const int DialogIdBase = 1600000;
+
+    /// <summary>Post-parse pass (mirrors the TBL/dialog stamping pattern): de-index the TTM's two
+    /// cross-references. A <see cref="GotoFrame"/> jumps to a frame by <b>tag</b> (not index — the
+    /// runtime matches <see cref="Frame.Tag"/>), so each tagged frame gets a
+    /// <c>base:ttm:&lt;file&gt;:tag:&lt;tag&gt;</c> key and each goto a matching <c>TargetKey</c> (#6).
+    /// A <see cref="DialogCommand"/> with <c>Dialog16Id &gt; 0</c> references DDX dialog
+    /// <c>Dialog16Id + 1600000</c> → <c>base:dialog:&lt;id&gt;</c> (#5); 0/-1 are draw commands, no key.</summary>
+    private static void StampTtmKeys(AnimationResource anim) {
+        string file = Path.GetFileNameWithoutExtension(anim.Id).ToLowerInvariant();
+        foreach (Frame frame in anim.Frames) {
+            if (frame.Tag is int tag) {
+                frame.Key = ContentKey.ForBase($"ttm:{file}:tag", tag);
+            }
+            foreach (FrameCommand command in frame.Commands) {
+                switch (command) {
+                    case GotoFrame g:
+                        g.TargetKey = ContentKey.ForBase($"ttm:{file}:tag", g.NextFrame);
+                        break;
+                    case DialogCommand d when d.Dialog16Id > 0:
+                        d.TargetKey = ContentKey.ForBase("dialog", d.Dialog16Id + DialogIdBase);
+                        break;
+                }
+            }
+        }
     }
 
     private static List<Frame> ExtractFrames(byte[] commandBytes, string id) {

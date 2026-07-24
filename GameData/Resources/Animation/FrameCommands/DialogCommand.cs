@@ -4,6 +4,12 @@ public class DialogCommand : FrameCommand {
     public int Dialog16Id { get; set; }
     public int Arg2 { get; set; }
 
+    /// <summary>De-indexed dialog target when this command shows a dialog (<see cref="Dialog16Id"/> &gt; 0):
+    /// <c>base:dialog:&lt;Dialog16Id + 1600000&gt;</c>, resolving into the global DDX dialog-id catalog.
+    /// Null when <see cref="Dialog16Id"/> is 0 or -1 (a draw/blit command, not a dialog reference). See
+    /// docs/re-notes/reference-inventory.md #5.</summary>
+    public string? TargetKey { get; set; }
+
     public override string ToString() {
         return $"{nameof(DialogCommand)}({Dialog16Id}, {Arg2});";
     }
