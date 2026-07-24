@@ -29,4 +29,11 @@ using System.Text.Json.Serialization;
 public abstract class DialogBranchBase {
     public int? TargetOffset { get; set; }
     public int? TargetId { get; set; }
+
+    /// <summary>De-indexed destination: the stable content-graph key of the target entry.
+    /// <c>base:ddx:&lt;file&gt;:&lt;offset&gt;</c> for a same-DDX <see cref="TargetOffset"/>,
+    /// <c>base:dialog:&lt;id&gt;</c> for a global <see cref="TargetId"/>. Null when the target is the
+    /// sentinel offset 0 ("no continuation"). Replaces the raw offset/id for additive-merge-safe
+    /// navigation. See docs/re-notes/reference-inventory.md #3.</summary>
+    public string? TargetKey { get; set; }
 }

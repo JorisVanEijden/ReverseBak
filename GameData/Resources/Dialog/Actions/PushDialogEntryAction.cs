@@ -14,6 +14,13 @@ namespace GameData.Resources.Dialog.Actions;
 /// </summary>
 public class PushDialogEntryAction : DialogActionBase {
     public int Offset { get; set; }
+
+    /// <summary>De-indexed continuation target: the stable content-graph key the raw
+    /// <see cref="Offset"/> encodes. <c>base:ddx:&lt;file&gt;:&lt;offset&gt;</c> when bit 31 is clear
+    /// (file offset), <c>base:dialog:&lt;id&gt;</c> when set (entry id). Null for the sentinel 0. See
+    /// docs/re-notes/reference-inventory.md #4.</summary>
+    public string? TargetKey { get; set; }
+
     public int Field4 { get; set; }
     public int Field6 { get; set; }
 }

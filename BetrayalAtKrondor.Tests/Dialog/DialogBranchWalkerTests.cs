@@ -1,4 +1,5 @@
 namespace BetrayalAtKrondor.Tests.Dialog;
+using GameData.Resources.Content;
 using GameData.Resources.Dialog;
 using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Dialog.Branches;
@@ -19,7 +20,29 @@ public class DialogBranchWalkerTests {
         };
 
     private static Dialog Dlg(params DialogEntry[] es) {
-        var d = new Dialog("T"); d.Entries.AddRange(es); return d;
+        var d = new Dialog("T"); d.Entries.AddRange(es); StampKeys(d); return d;
+    }
+
+    // Mirrors DdxExtractor.StampDialogKeys so the synthetic dialogs the walker consumes carry the
+    // same de-indexed keys the real extractor emits (entry Key + branch/push TargetKey). Dialog id
+    // "T" → file segment "t", so entry keys are base:ddx:t:<offset>.
+    private static void StampKeys(Dialog d) {
+        const long idBit = 0x80000000;
+        foreach (DialogEntry e in d.Entries) {
+            e.Key = ContentKey.ForBase("ddx:t", e.Offset);
+            foreach (DialogBranchBase b in e.Branches) {
+                if (b.TargetOffset is int off) {
+                    b.TargetKey = off == 0 ? null : ContentKey.ForBase("ddx:t", off);
+                } else if (b.TargetId is int id) {
+                    b.TargetKey = ContentKey.ForBase("dialog", id);
+                }
+            }
+            foreach (PushDialogEntryAction push in e.Actions.OfType<PushDialogEntryAction>()) {
+                uint raw = (uint)push.Offset;
+                push.TargetKey = raw >= idBit ? ContentKey.ForBase("dialog", (int)(raw - idBit))
+                    : raw == 0 ? null : ContentKey.ForBase("ddx:t", (int)raw);
+            }
+        }
     }
 
     [Fact] public void LeafWithText_ReturnedAsIs() {

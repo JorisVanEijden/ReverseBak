@@ -22,10 +22,7 @@ public static class DialogBranchWalker {
         if (dialog == null || start == null) {
             return start;
         }
-        var byOffset = new Dictionary<int, DialogEntry>();
-        foreach (DialogEntry e in dialog.Entries) {
-            byOffset[e.Offset] = e;
-        }
+        Dictionary<string, DialogEntry> byKey = BuildKeyIndex(dialog);
         DialogEntry current = start;
         for (int hop = 0; hop < MaxHops; hop++) {
             ApplyEffects(current, applyEffect);
@@ -33,12 +30,24 @@ public static class DialogBranchWalker {
                 return current; // leaf
             }
             DialogBranchBase chosen = ChooseBranch(current, getGlobal);
-            if (chosen?.TargetOffset == null || !byOffset.TryGetValue(chosen.TargetOffset.Value, out DialogEntry next)) {
-                return current; // dead end (incl. sentinel offset 0 / cross-file TargetId)
+            if (chosen?.TargetKey == null || !byKey.TryGetValue(chosen.TargetKey, out DialogEntry next)) {
+                return current; // dead end (incl. sentinel target / cross-file id key)
             }
             current = next;
         }
         return current;
+    }
+
+    // De-indexed entry index: entries keyed by their stable content key (base:ddx:<file>:<offset>).
+    // A branch/push TargetKey resolves here only for same-file offset targets; a cross-file
+    // base:dialog:<id> key is absent (that DialogEntry lives in another DDX) and reads as a dead end,
+    // matching the original engine's in-file traversal.
+    private static Dictionary<string, DialogEntry> BuildKeyIndex(Dialog dialog) {
+        var byKey = new Dictionary<string, DialogEntry>();
+        foreach (DialogEntry e in dialog.Entries) {
+            byKey[e.Key] = e;
+        }
+        return byKey;
     }
 
     private static void ApplyEffects(DialogEntry entry, Action<Effect> applyEffect) {
@@ -68,16 +77,13 @@ public static class DialogBranchWalker {
         if (dialog == null || start == null || apply == null) {
             return;
         }
-        var byOffset = new Dictionary<int, DialogEntry>();
-        foreach (DialogEntry e in dialog.Entries) {
-            byOffset[e.Offset] = e;
-        }
+        Dictionary<string, DialogEntry> byKey = BuildKeyIndex(dialog);
         DialogEntry current = start;
         for (int hop = 0; hop < MaxHops && current != null; hop++) {
             foreach (DialogActionBase action in current.Actions) {
                 apply(action);
             }
-            current = ResolveContinuation(current, getGlobal, byOffset);
+            current = ResolveContinuation(current, getGlobal, byKey);
         }
     }
 
@@ -85,16 +91,17 @@ public static class DialogBranchWalker {
     // fall back to a PushDialogEntry continuation (the engine's LIFO — popped when the current tree
     // returns via a cross-file/return branch target, as entry 2000023's default branch does).
     private static DialogEntry ResolveContinuation(DialogEntry entry, Func<int, int?> getGlobal,
-        Dictionary<int, DialogEntry> byOffset) {
+        Dictionary<string, DialogEntry> byKey) {
         DialogBranchBase chosen = ChooseBranch(entry, getGlobal);
-        if (chosen?.TargetOffset is int off && byOffset.TryGetValue(off, out DialogEntry viaBranch)) {
+        if (chosen?.TargetKey != null && byKey.TryGetValue(chosen.TargetKey, out DialogEntry viaBranch)) {
             return viaBranch;
         }
         foreach (DialogActionBase action in entry.Actions) {
-            // Bit 31 set = entry-Id reference (cross-file); cleared = raw in-file offset.
+            // A same-file offset push resolves here; a cross-file base:dialog:<id> key (or null
+            // sentinel) is absent from byKey and is skipped, matching the original.
             if (action is PushDialogEntryAction push
-                && (push.Offset & unchecked((int)0x80000000)) == 0
-                && byOffset.TryGetValue(push.Offset, out DialogEntry viaPush)) {
+                && push.TargetKey != null
+                && byKey.TryGetValue(push.TargetKey, out DialogEntry viaPush)) {
                 return viaPush;
             }
         }

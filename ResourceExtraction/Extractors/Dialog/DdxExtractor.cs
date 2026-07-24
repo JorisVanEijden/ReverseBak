@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors.Dialog;
 
+using GameData.Resources.Content;
 using GameData.Resources.Dialog;
 using GameData.Resources.Dialog.Actions;
 using ResourceExtraction.Imaging;
@@ -87,6 +88,43 @@ public class DdxExtractor : ExtractorBase<Dialog> {
         }
 
         CanonicalSpace.Apply(dialog);
+        StampDialogKeys(dialog);
         return dialog;
+    }
+
+    private const long IdBit = 0x80000000;
+
+    /// <summary>Post-parse pass (mirrors the TBL <c>StampContentKeys</c> pattern): give every entry a
+    /// stable <c>base:ddx:&lt;file&gt;:&lt;offset&gt;</c> key and de-index every branch/push target from
+    /// a raw offset/id into that key space. A same-DDX offset → the target entry's offset key; a
+    /// bit-31 global id → <c>base:dialog:&lt;id&gt;</c>; the sentinel 0 → null (no continuation).
+    /// De-indexes references #3 (branch <c>TargetOffset</c>) and #4 (<c>PushDialogEntry.Offset</c>).</summary>
+    private static void StampDialogKeys(Dialog dialog) {
+        string file = Path.GetFileNameWithoutExtension(dialog.Id).ToLowerInvariant();
+
+        foreach (DialogEntry entry in dialog.Entries) {
+            entry.Key = ContentKey.ForBase($"ddx:{file}", entry.Offset);
+
+            foreach (var branch in entry.Branches) {
+                if (branch.TargetOffset is int off) {
+                    branch.TargetKey = off == 0 ? null : ContentKey.ForBase($"ddx:{file}", off);
+                } else if (branch.TargetId is int bid) {
+                    branch.TargetKey = ContentKey.ForBase("dialog", bid);
+                }
+            }
+
+            foreach (PushDialogEntryAction push in System.Linq.Enumerable.OfType<PushDialogEntryAction>(entry.Actions)) {
+                push.TargetKey = TargetKeyForRaw((uint)push.Offset, file);
+            }
+        }
+    }
+
+    // Same 32-bit encoding as a branch target: bit 31 set → global entry id; else raw file offset
+    // (0 = sentinel "no continuation").
+    private static string? TargetKeyForRaw(uint raw, string file) {
+        if (raw >= IdBit) {
+            return ContentKey.ForBase("dialog", (int)(raw - IdBit));
+        }
+        return raw == 0 ? null : ContentKey.ForBase($"ddx:{file}", (int)raw);
     }
 }
