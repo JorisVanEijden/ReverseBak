@@ -17,6 +17,11 @@ namespace GameData.Resources.Data;
 public class DefTrapEntry {
     public ushort Gap0 { get; set; }                        // 0   — IDA-marked gap; no readers (dead)
     public uint EncounterNumber { get; set; }               // 2   — index into combat encounter table
+
+    /// <summary>De-indexed <see cref="EncounterNumber"/>: <c>base:traps:&lt;EncounterNumber&gt;</c>,
+    /// the TRAPS encounter this trap record fires. See docs/re-notes/reference-inventory.md #14.</summary>
+    public string EncounterKey { get; set; } = "";
+
     public uint DialogId1 { get; set; }                     // 6   — main-fire dialog (sub_ovr187_D74 → dialog_Show)
     public uint DialogId2 { get; set; }                     // A   — pre-fire dialog (sub_ovr187_C6F → dialog_Show)
     public uint GapE { get; set; }                          // E   — IDA-marked gap; no readers (dead)

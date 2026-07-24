@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors.Def;
 
+using GameData.Resources.Content;
 using GameData.Resources.Data;
 using System.IO;
 
@@ -7,7 +8,7 @@ public class DefCombExtractor : DefFamilyExtractorBase<DefCombEntry> {
     protected override int PayloadSize => 399;
 
     protected override DefCombEntry ReadPayload(BinaryReader reader) {
-        return new DefCombEntry {
+        var entry = new DefCombEntry {
             Field0          = reader.ReadUInt16(),
             EncounterNumber = reader.ReadUInt32(),
             DialogId1       = reader.ReadUInt32(),
@@ -22,5 +23,7 @@ public class DefCombExtractor : DefFamilyExtractorBase<DefCombEntry> {
             EnemySetup      = ReadEnemySetup(reader),
             Avoidable       = (reader.ReadUInt16() & 1) != 0,   // bit 0: Stealth/Scouting roll active
         };
+        entry.EncounterKey = ContentKey.ForBase("traps", (int)entry.EncounterNumber); // #14
+        return entry;
     }
 }

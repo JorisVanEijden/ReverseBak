@@ -25,7 +25,11 @@ public class TrapExtractor : ExtractorBase<TrapData> {
             reader.BaseStream.Seek(recordStart, SeekOrigin.Begin);
 
             short rawCount = reader.ReadInt16();
-            var encounter = new TrapEncounter { Index = r, RawCount = rawCount };
+            var encounter = new TrapEncounter {
+                Index = r,
+                Key = GameData.Resources.Content.ContentKey.ForBase("traps", r),
+                RawCount = rawCount,
+            };
 
             int active = Math.Clamp((int)rawCount, 0, TrapData.SlotsPerEncounter);
             for (int e = 0; e < active; e++) {

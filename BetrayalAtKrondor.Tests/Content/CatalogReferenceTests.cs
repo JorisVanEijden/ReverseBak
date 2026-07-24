@@ -141,7 +141,7 @@ public class CatalogReferenceTests {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "TRAPS.json")));
         var keys = new HashSet<string>();
         foreach (JsonElement enc in doc.RootElement.GetProperty("Encounters").EnumerateArray()) {
-            keys.Add(enc.GetProperty("Index").GetInt32().ToString());
+            keys.Add(enc.GetProperty("Key").GetString()!);
         }
         return keys;
     }
@@ -170,8 +170,8 @@ public class CatalogReferenceTests {
         foreach (JsonElement rec in doc.RootElement.GetProperty("Records").EnumerateArray()) {
             if (rec.TryGetProperty("Payload", out JsonElement payload)
                 && payload.ValueKind == JsonValueKind.Object
-                && payload.TryGetProperty("EncounterNumber", out JsonElement enc)) {
-                refs.Add(new ContentReference($"base:{fromPrefix}:{idx}", "traps", enc.GetInt32().ToString()));
+                && payload.TryGetProperty("EncounterKey", out JsonElement enc)) {
+                refs.Add(new ContentReference($"base:{fromPrefix}:{idx}", "traps", enc.GetString()!));
             }
             idx++;
         }

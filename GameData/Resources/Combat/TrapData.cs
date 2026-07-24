@@ -44,6 +44,11 @@ public class TrapEncounter {
     /// <summary>Encounter number = this record's index in the file.</summary>
     public int Index { get; set; }
 
+    /// <summary>Stable content-graph key of this encounter: <c>base:traps:&lt;Index&gt;</c>. The
+    /// de-indexed target that DEF combat/trap records reference via their EncounterNumber. See
+    /// docs/re-notes/reference-inventory.md #14.</summary>
+    public string Key { get; set; } = "";
+
     /// <summary>Raw 16-bit element count from the record header. The engine compares it
     /// signed, so values ≤ 0 (e.g. the stray 0xFFEE) yield no active elements; the few
     /// records with a count &gt; 15 are unused/garbage slots. <see cref="Elements"/> holds
