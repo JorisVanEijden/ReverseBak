@@ -181,6 +181,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--keyword") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractKeywords(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
@@ -379,10 +385,7 @@ internal static class Program {
         List<ObjectInfo> objectInfo = objectExtractor.Extract(Path.Combine(filePath, "objinfo.dat"));
         WriteToCsvFile("objinfo.dat", ResourceType.DAT, objectInfo.ToCsv());
 
-        var keywordExtractor = new KeywordExtractor();
-        using Stream resourceStream = generalResourceProvider.GetResourceStream("keyword.dat");
-        KeywordList keywordList = keywordExtractor.Extract("globalKeywords", resourceStream);
-        WriteToJsonFile("keywords.dat", keywordList.Type, keywordList.ToJson());
+        ExtractKeywords(filePath);
 
         IEnumerable<string> mNames = MNamesExtractor.Extract(Path.Combine(filePath, "mnames.dat"));
         WriteToCsvFile("mnames.dat", ResourceType.DAT, string.Join("\r\n", mNames));
@@ -1133,6 +1136,18 @@ internal static class Program {
         string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("ONAMES.json", json);
         Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
+    }
+
+    /// <summary>Extracts KEYWORD.DAT (the global menu-label / dialog-keyword table) to
+    /// <c>DAT/keywords.json</c>. This is the target catalog for the <c>KeywordChoiceBranch.Keyword</c>
+    /// reference (dialog menu labels index the keyword list at <c>Keyword - 1</c>, 1-based). Read via
+    /// the resource provider because keyword.dat lives inside the resource archive, not as a loose file.</summary>
+    private static void ExtractKeywords(string gamePath) {
+        GeneralResourceProvider provider = new(gamePath);
+        using Stream stream = provider.GetResourceStream("keyword.dat");
+        KeywordList keywordList = new KeywordExtractor().Extract("globalKeywords", stream);
+        WriteToJsonFile("keywords.dat", keywordList.Type, keywordList.ToJson());
+        Console.WriteLine($"[KEYWORD] {keywordList.Keywords.Count} keywords written to DAT/keywords.json");
     }
 
     private static void ExtractFilterData(string gamePath) {
