@@ -37,7 +37,7 @@ public class KeywordReferenceTests {
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(ddxPath));
             string ddx = Path.GetFileNameWithoutExtension(ddxPath);
             int i = 0;
-            foreach (int keyword in CollectKeywordChoices(doc.RootElement)) {
+            foreach (int keyword in DdxActionCollector.CollectIntFieldByType(doc.RootElement, "KeywordChoiceBranch", "Keyword")) {
                 refs.Add(new ContentReference($"base:ddx:{ddx}:kwchoice:{i}", "keyword", (keyword - 1).ToString()));
                 i++;
             }
@@ -52,33 +52,5 @@ public class KeywordReferenceTests {
         // Guard against a silently-empty corpus (e.g. the branch type stops serializing its field):
         // KeywordChoiceBranch is known to be present (159 in DIAL_Z20), so zero references is a bug.
         Assert.True(refs.Count > 0, "Found no KeywordChoiceBranch references — expected 159 in DIAL_Z20.");
-    }
-
-    /// <summary>Yields the <c>Keyword</c> value of every <c>KeywordChoiceBranch</c> anywhere in the
-    /// JSON tree (identified by its <c>$type</c> polymorphic discriminator).</summary>
-    private static IEnumerable<int> CollectKeywordChoices(JsonElement element) {
-        switch (element.ValueKind) {
-            case JsonValueKind.Object:
-                if (element.TryGetProperty("$type", out JsonElement type)
-                    && type.ValueKind == JsonValueKind.String
-                    && type.GetString() == "KeywordChoiceBranch"
-                    && element.TryGetProperty("Keyword", out JsonElement kw)
-                    && kw.ValueKind == JsonValueKind.Number) {
-                    yield return kw.GetInt32();
-                }
-                foreach (JsonProperty prop in element.EnumerateObject()) {
-                    foreach (int v in CollectKeywordChoices(prop.Value)) {
-                        yield return v;
-                    }
-                }
-                break;
-            case JsonValueKind.Array:
-                foreach (JsonElement item in element.EnumerateArray()) {
-                    foreach (int v in CollectKeywordChoices(item)) {
-                        yield return v;
-                    }
-                }
-                break;
-        }
     }
 }

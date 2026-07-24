@@ -199,6 +199,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--teleport") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractTeleportDestinations(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
@@ -1148,6 +1154,22 @@ internal static class Program {
         string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("ONAMES.json", json);
         Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
+    }
+
+    /// <summary>Extracts TELEPORT.DAT (the temple/teleport destination table) to
+    /// <c>DAT/teleport.json</c>. This is the target catalog for the dialog <c>TeleportAction.DestinationId</c>
+    /// reference (reference-inventory §B): destinations are id'd 0..N by position. Each destination is a
+    /// world <c>Location</c> (zone + tile + offset + rotation) plus the GDS scene it opens onto
+    /// (<c>GdsNumber</c>/<c>GdsLetter</c>). File name resolved case-insensitively (TELEPORT.DAT on disk).</summary>
+    private static void ExtractTeleportDestinations(string gamePath) {
+        string[] files = GetFiles(gamePath, "teleport.dat");
+        if (files.Length == 0) {
+            Console.Error.WriteLine($"[TELEPORT] missing: {Path.Combine(gamePath, "TELEPORT.DAT")}");
+            return;
+        }
+        List<TeleportDestination> destinations = TeleportExtractor.Extract(files[0]);
+        WriteToJsonFile("teleport.dat", ResourceType.DAT, destinations.ToJson());
+        Console.WriteLine($"[TELEPORT] {destinations.Count} destinations written to DAT/teleport.json");
     }
 
     /// <summary>Extracts KEYWORD.DAT (the global menu-label / dialog-keyword table) to
