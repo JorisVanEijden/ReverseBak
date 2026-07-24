@@ -9,56 +9,38 @@ using GameData.Resources.Content;
 using Xunit;
 
 /// <summary>Integration enforcement of reference #1 (WLD <c>TypeId</c> → zone TBL entity) over the
-/// committed <c>generated/</c> corpus, via <see cref="ReferenceValidator"/>. Runs in "index
-/// in-bounds" mode today (target keys are the entity indices); after the extractor de-indexes
-/// <c>TypeId</c>→key, the same check enforces key resolution. Skip-if-absent, like the game-data
-/// tests. See docs/re-notes/reference-inventory.md row 1.</summary>
+/// committed <c>generated/</c> corpus, via <see cref="ReferenceValidator"/>. As of the de-index shape
+/// change this runs in <b>key mode</b>: every <c>WorldItem.EntityKey</c> (<c>base:tbl:z&lt;zone&gt;:&lt;id&gt;</c>)
+/// must resolve to a <c>ZoneTableEntry.Key</c> in the global <c>tbl</c> catalog — no index arithmetic,
+/// no zone-mapping assumption in the test (both sides emit the same stable string). Skip-if-absent.
+/// See docs/re-notes/reference-inventory.md row 1.</summary>
 public class WldTblReferenceTests {
-    private static string? FindGeneratedDir() {
-        DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null) {
-            string candidate = Path.Combine(dir.FullName, "generated");
-            if (Directory.Exists(Path.Combine(candidate, "WLD")) &&
-                Directory.Exists(Path.Combine(candidate, "TBL"))) {
-                return candidate;
-            }
-            dir = dir.Parent;
-        }
-        return null;
-    }
-
     [Fact]
     public void EveryWorldItem_ReferencesAValidZoneTblEntity() {
-        string? gen = FindGeneratedDir();
+        string? gen = GeneratedCorpus.FindDir("WLD", "TBL");
         if (gen == null) {
             return; // generated/ not present (e.g. CI without game data) — skip, don't fail.
         }
 
-        // Catalogs: tbl:z01 → { "0" .. "<entryCount-1>" } (index-as-key today).
-        var catalogs = new Dictionary<string, ISet<string>>();
+        // Catalog: the set of every TBL entity key across all zone tables (base:tbl:<table>:<index>).
+        var tblKeys = new HashSet<string>();
         foreach (string tblPath in Directory.GetFiles(Path.Combine(gen, "TBL"), "Z*.json")) {
-            string name = Path.GetFileNameWithoutExtension(tblPath).ToLowerInvariant(); // z01, z10m, …
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(tblPath));
-            int count = doc.RootElement.GetProperty("Entries").GetArrayLength();
-            var keys = new HashSet<string>();
-            for (int i = 0; i < count; i++) {
-                keys.Add(i.ToString());
+            foreach (JsonElement entry in doc.RootElement.GetProperty("Entries").EnumerateArray()) {
+                tblKeys.Add(entry.GetProperty("Key").GetString()!);
             }
-            catalogs["tbl:" + name] = keys;
         }
+        var catalogs = new Dictionary<string, ISet<string>> { ["tbl"] = tblKeys };
 
-        // References: each WorldItem.TypeId → its zone's TBL catalog.
+        // References: each WorldItem's EntityKey → the tbl catalog.
         var refs = new List<ContentReference>();
         foreach (string wldPath in Directory.GetFiles(Path.Combine(gen, "WLD"), "T*.json")) {
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(wldPath));
-            JsonElement root = doc.RootElement;
-            int zone = root.GetProperty("ZoneNumber").GetInt32();
-            string cat = $"tbl:z{zone:D2}";
             string tile = Path.GetFileNameWithoutExtension(wldPath);
             int idx = 0;
-            foreach (JsonElement item in root.GetProperty("Items").EnumerateArray()) {
-                int typeId = item.GetProperty("TypeId").GetInt32();
-                refs.Add(new ContentReference($"base:wld:{tile}:{idx}", cat, typeId.ToString()));
+            foreach (JsonElement item in doc.RootElement.GetProperty("Items").EnumerateArray()) {
+                string entityKey = item.GetProperty("EntityKey").GetString()!;
+                refs.Add(new ContentReference($"base:wld:{tile}:{idx}", "tbl", entityKey));
                 idx++;
             }
         }
@@ -67,19 +49,28 @@ public class WldTblReferenceTests {
 
         // Known pre-existing extraction anomaly: WorldItemExtractor mis-parses a mid-file section of
         // tile T091011 into ~7 garbage records with impossible (>=1000) TypeIds — a WLD-format bug
-        // logged in docs/work-todo.md ("WLD extraction anomaly — T091011"). Baseline it so this gate
-        // catches genuine linking regressions (a real TypeId just past a zone's entry count) while
-        // tolerating that documented cluster. Every unresolved reference must be one of those garbage
-        // records; anything else — a plausible-magnitude index that doesn't resolve, or breakage in
-        // another tile — fails the test.
+        // logged in docs/work-todo.md ("WLD extraction anomaly — T091011"). Their EntityKeys
+        // (base:tbl:z09:<garbage>) don't resolve. Baseline that cluster so this gate catches genuine
+        // linking regressions (a plausible-magnitude id that stops resolving) while tolerating the
+        // documented garbage. Every unresolved reference must be one of those records.
         var unexpected = broken
             .Where(b => !(b.FromKey.StartsWith("base:wld:T091011:", StringComparison.Ordinal)
-                          && int.Parse(b.TargetKey) >= 1000))
+                          && ParsedIndex(b.TargetKey) >= 1000))
             .ToList();
 
         Assert.True(unexpected.Count == 0,
             $"{unexpected.Count} unexpected WorldItem→TBL references do not resolve " +
             $"(outside the known T091011 garbage cluster). First few: " +
             string.Join("; ", unexpected.Take(5).Select(b => $"{b.FromKey} → {b.TargetCatalog}:{b.TargetKey}")));
+
+        // Non-empty guard: the corpus has tens of thousands of world items.
+        Assert.True(refs.Count > 0, "Found no WorldItem references — the WLD corpus should be non-empty.");
+    }
+
+    /// <summary>Parses the trailing index from a <c>base:tbl:z&lt;zone&gt;:&lt;index&gt;</c> key
+    /// (−1 if malformed), used only to classify the T091011 garbage cluster.</summary>
+    private static int ParsedIndex(string key) {
+        int colon = key.LastIndexOf(':');
+        return colon >= 0 && int.TryParse(key.AsSpan(colon + 1), out int i) ? i : -1;
     }
 }

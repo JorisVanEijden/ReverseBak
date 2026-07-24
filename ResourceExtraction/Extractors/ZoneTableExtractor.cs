@@ -2,6 +2,7 @@ using System;
 
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.Data;
 using GameData.Resources.Image;
 using GameData.Resources.World;
@@ -183,8 +184,22 @@ public class ZoneTableExtractor : ExtractorBase<ZoneTable>
         }
 
         StampInteraction(table);
+        StampContentKeys(table);
 
         return table;
+    }
+
+    /// <summary>Stamp each entry's stable content-graph key (<c>base:tbl:&lt;table&gt;:&lt;index&gt;</c>).
+    /// The table segment is the TBL id without extension, lowercased (<c>Z10M.TBL</c> → <c>z10m</c>), so
+    /// same-zone variants stay distinct. Index-derived identity (see <see cref="ZoneTableEntry.Key"/>).
+    /// Post-parse pass like <see cref="StampInteraction"/>, so both the offline extractor and the Unity
+    /// runtime load (both call <see cref="Extract"/>) get keys. De-indexes reference #1
+    /// (WorldItem.TypeId → TBL entity); see docs/re-notes/reference-inventory.md.</summary>
+    public static void StampContentKeys(ZoneTable table) {
+        string tableId = Path.GetFileNameWithoutExtension(table.Id).ToLowerInvariant();
+        foreach (ZoneTableEntry entry in table.Entries) {
+            entry.Key = ContentKey.ForBase($"tbl:{tableId}", entry.Index);
+        }
     }
 
     /// <summary>Stamp each entry's semantic Behavior + InteractionProfile from its

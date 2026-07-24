@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.World;
 using System.IO;
 using System.Text;
@@ -27,9 +28,11 @@ public class WorldItemExtractor : ExtractorBase<WorldTile>
 
         for (int i = 0; i < itemCount; i++)
         {
+            ushort typeId = reader.ReadUInt16();
             tile.Items.Add(new WorldItem
             {
-                TypeId = reader.ReadUInt16(),
+                TypeId = typeId,
+                EntityKey = ContentKey.ForBase($"tbl:z{tile.ZoneNumber:D2}", typeId),
                 Rotation = new Rotation3D
                 {
                     X = reader.ReadUInt16(),

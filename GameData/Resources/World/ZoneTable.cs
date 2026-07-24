@@ -25,6 +25,14 @@ public class ZoneTable : IResource
 public class ZoneTableEntry
 {
     public int Index { get; set; }
+
+    /// <summary>Stable content-graph key: <c>base:tbl:&lt;table&gt;:&lt;index&gt;</c> (e.g.
+    /// <c>base:tbl:z01:5</c>). Table-scoped so <c>z10</c>/<c>z10m</c> stay distinct, and index-derived
+    /// because base data never reorders (index is stable identity; MAP <see cref="Name"/> is
+    /// editor-only metadata and not unique per zone). This is the de-indexed target that
+    /// <c>WorldItem.EntityKey</c> resolves to. See docs/re-notes/reference-inventory.md #1.</summary>
+    public string Key { get; set; } = "";
+
     public string Name { get; set; } = "";
     public TableDatInfo Dat { get; set; } = new();
     public TableGidInfo Gid { get; set; } = new();
