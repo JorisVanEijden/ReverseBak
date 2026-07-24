@@ -24,6 +24,10 @@ public class SpellSymbolNode {
     /// <summary>Index into the spell table (SPELLS.DAT); selects which spell this node casts.</summary>
     public int SpellId { get; set; }
 
+    /// <summary>De-indexed <see cref="SpellId"/>: <c>base:spell:&lt;SpellId&gt;</c>, the spell this node
+    /// casts. See docs/re-notes/reference-inventory.md #9.</summary>
+    public string SpellKey { get; set; } = "";
+
     /// <summary>X of the glyph centre, in the canonical 1600x1200 display space (scaled from 320x200 VGA).</summary>
     public int X { get; set; }
 

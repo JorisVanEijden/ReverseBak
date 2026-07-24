@@ -42,6 +42,10 @@ public class SpellDescription {
     /// <summary>Spell number (this entry's index).</summary>
     public int SpellNumber { get; set; }
 
+    /// <summary>De-indexed reference to the spell this describes: <c>base:spell:&lt;SpellNumber&gt;</c>.
+    /// See docs/re-notes/reference-inventory.md #9.</summary>
+    public string SpellKey { get; set; } = "";
+
     /// <summary>Field 0 — spell name (centred panel title).</summary>
     public string Name { get; set; } = "";
 

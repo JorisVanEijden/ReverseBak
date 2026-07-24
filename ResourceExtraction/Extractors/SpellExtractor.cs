@@ -1,6 +1,7 @@
 namespace ResourceExtraction.Extractors;
 
 using GameData;
+using GameData.Resources.Content;
 using GameData.Resources.Spells;
 
 using ResourceExtraction.Extensions;
@@ -20,6 +21,7 @@ public class SpellExtractor : ExtractorBase<SpellList> {
         for (var i = 0; i < numberOfEntries; i++) {
             spellNameOffsets[i] = resourceReader.ReadInt16();
             var spell = new Spell($"{i}") {
+                Key = ContentKey.ForBase("spell", i),
                 MinimumCost = resourceReader.ReadInt16(),
                 MaximumCost = resourceReader.ReadInt16(),
                 IsMartial = resourceReader.ReadInt16() == 1,
@@ -31,6 +33,8 @@ public class SpellExtractor : ExtractorBase<SpellList> {
                 Damage = resourceReader.ReadInt16(),
                 Duration = resourceReader.ReadInt16()
             };
+            // #8: de-index ObjectId → objinfo key (ObjectId -1 = no associated inventory object).
+            spell.ObjectKey = spell.ObjectId >= 0 ? ContentKey.ForBase("objinfo", spell.ObjectId) : null;
             spellList.Spells[i] = spell;
         }
         // Read spell name block

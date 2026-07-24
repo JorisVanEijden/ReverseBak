@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.Spells;
 using System.IO;
 using System.Text;
@@ -35,6 +36,7 @@ public class SpellSymbolExtractor : ExtractorBase<SpellSymbolLayout> {
             byte character = reader.ReadByte();
             layout.Nodes.Add(new SpellSymbolNode {
                 SpellId = spellId,
+                SpellKey = ContentKey.ForBase("spell", spellId),
                 X = x * ScaleX,
                 Y = y * ScaleY,
                 FontGlyph = character + 1, // engine does character++ at load

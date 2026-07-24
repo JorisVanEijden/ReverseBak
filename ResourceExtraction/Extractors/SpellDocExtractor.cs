@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.Spells;
 using ResourceExtraction.Extensions;
 using System.IO;
@@ -39,6 +40,7 @@ public class SpellDocExtractor : ExtractorBase<SpellDescriptions> {
             int b = spell * SpellDescriptions.FieldsPerSpell;
             data.Spells.Add(new SpellDescription {
                 SpellNumber = spell,
+                SpellKey = ContentKey.ForBase("spell", spell),
                 Name = Line(b + 0),
                 Cost = Line(b + 1),
                 Damage = Line(b + 2),

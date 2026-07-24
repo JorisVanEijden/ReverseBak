@@ -13,12 +13,13 @@ using Xunit;
 /// the target list's indices/ids); after the extractors de-index each reference to a real key, the
 /// same declarations enforce key resolution unchanged. Skip-if-absent (see <see cref="GeneratedCorpus"/>).
 ///
-/// References covered here:
-///  #8  Spell.ObjectId → ObjectInfo item (.Number), sentinel -1 = "no object"
-///  #9  SPELLDOC.SpellNumber / SPELLWEA.SpellNumber → Spell (.Id)
+/// References covered here (all in <b>key mode</b> after the spell de-index shape change):
+///  #8  Spell.ObjectKey → ObjectInfo item (base:objinfo:&lt;Number&gt;), null = "no object"
+///  #9  SPELLDOC.SpellKey / SpellSymbolNode.SpellKey → Spell (base:spell:&lt;id&gt;)
 ///  #14 DEF_COMB / DEF_TRAP EncounterNumber → TRAPS encounter (.Index)</summary>
 public class CatalogReferenceTests {
-    /// <summary>#8 — every spell that names an object points at a live ObjectInfo entry.</summary>
+    /// <summary>#8 — every spell that names an object resolves to a live ObjectInfo entry via its
+    /// de-indexed <c>ObjectKey</c>.</summary>
     [Fact]
     public void EverySpellObjectId_ReferencesAValidObjectInfoEntry() {
         string? gen = GeneratedCorpus.FindDir(Path.Combine("DAT", "spells.json"),
@@ -34,22 +35,20 @@ public class CatalogReferenceTests {
         var refs = new List<ContentReference>();
         using JsonDocument spells = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "DAT", "spells.json")));
         foreach (JsonProperty spell in spells.RootElement.GetProperty("Spells").EnumerateObject()) {
-            int objectId = spell.Value.GetProperty("ObjectId").GetInt32();
-            if (objectId < 0) {
-                continue; // sentinel: -1 = spell has no associated object.
+            if (spell.Value.TryGetProperty("ObjectKey", out JsonElement ok) && ok.ValueKind == JsonValueKind.String) {
+                refs.Add(new ContentReference(spell.Value.GetProperty("Key").GetString()!, "objinfo", ok.GetString()!));
             }
-            refs.Add(new ContentReference($"base:spell:{spell.Name}", "objinfo", objectId.ToString()));
+            // ObjectKey null => sentinel -1 (no associated object); nothing to resolve.
         }
 
         AssertAllResolve(catalogs, refs);
     }
 
-    /// <summary>#9 — every SPELLDOC entry points at a live spell. SPELLDOC is the human-readable spell
-    /// description table; it is 1:1 with the player-castable spell catalog (both 45), so this is the
-    /// clean reference gate.</summary>
+    /// <summary>#9 — every SPELLDOC entry and every spell-symbol node resolve to a live spell via their
+    /// de-indexed <c>SpellKey</c>.</summary>
     [Fact]
-    public void EverySpellDoc_ReferencesAValidSpell() {
-        string? gen = GeneratedCorpus.FindDir(Path.Combine("DAT", "spells.json"), "SPELLDOC.json");
+    public void EverySpellDocAndSymbol_ReferenceAValidSpell() {
+        string? gen = GeneratedCorpus.FindDir(Path.Combine("DAT", "spells.json"), "SPELLDOC.json", "SYMBOL");
         if (gen == null) {
             return;
         }
@@ -59,7 +58,10 @@ public class CatalogReferenceTests {
         };
 
         var refs = new List<ContentReference>();
-        AddSpellNumberRefs(refs, Path.Combine(gen, "SPELLDOC.json"), "spelldoc");
+        AddSpellKeyRefs(refs, Path.Combine(gen, "SPELLDOC.json"), "Spells", "spelldoc");
+        foreach (string symbolPath in Directory.GetFiles(Path.Combine(gen, "SYMBOL"), "SYMBOL*.json")) {
+            AddSpellKeyRefs(refs, symbolPath, "Nodes", Path.GetFileNameWithoutExtension(symbolPath).ToLowerInvariant());
+        }
 
         AssertAllResolve(catalogs, refs);
     }
@@ -114,20 +116,23 @@ public class CatalogReferenceTests {
         AssertAllResolve(catalogs, refs);
     }
 
+    // objinfo catalog: canonical base:objinfo:<Number> keys (matches ObjectInfoContentSource; the
+    // objinfo entry's stable identity is its Number, so keys are Number-derived).
     private static HashSet<string> ObjectInfoKeys(string gen) {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "ObjectInfo", "objinfo.json")));
         var keys = new HashSet<string>();
         foreach (JsonElement o in doc.RootElement.EnumerateArray()) {
-            keys.Add(o.GetProperty("Number").GetInt32().ToString());
+            keys.Add(ContentKey.ForBase("objinfo", o.GetProperty("Number").GetInt32()));
         }
         return keys;
     }
 
+    // spell catalog: the emitted Spell.Key values (base:spell:<id>).
     private static HashSet<string> SpellKeys(string gen) {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "DAT", "spells.json")));
         var keys = new HashSet<string>();
         foreach (JsonProperty spell in doc.RootElement.GetProperty("Spells").EnumerateObject()) {
-            keys.Add(spell.Name); // key = spell id ("0".."44")
+            keys.Add(spell.Value.GetProperty("Key").GetString()!);
         }
         return keys;
     }
@@ -150,11 +155,12 @@ public class CatalogReferenceTests {
         return keys;
     }
 
-    private static void AddSpellNumberRefs(List<ContentReference> refs, string path, string fromPrefix) {
+    // Collect SpellKey references from a list of entries (SPELLDOC "Spells" or SYMBOL "Nodes").
+    private static void AddSpellKeyRefs(List<ContentReference> refs, string path, string listProp, string fromPrefix) {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));
-        foreach (JsonElement e in doc.RootElement.GetProperty("Spells").EnumerateArray()) {
-            int n = e.GetProperty("SpellNumber").GetInt32();
-            refs.Add(new ContentReference($"base:{fromPrefix}:{n}", "spell", n.ToString()));
+        int i = 0;
+        foreach (JsonElement e in doc.RootElement.GetProperty(listProp).EnumerateArray()) {
+            refs.Add(new ContentReference($"base:{fromPrefix}:{i++}", "spell", e.GetProperty("SpellKey").GetString()!));
         }
     }
 
