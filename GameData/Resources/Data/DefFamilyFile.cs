@@ -23,6 +23,13 @@ public class DefFamilyFile<TEntry> : IResource {
 // Payload is always read regardless of Status; consumers should check
 // Status before treating Payload fields as meaningful.
 public class DefRecord<TEntry> {
+    /// <summary>Stable content-graph key: <c>base:def_&lt;family&gt;:&lt;index&gt;</c> (e.g.
+    /// <c>base:def_dial:5</c>). Family segment is the DEF file's 4-letter suffix, lowercased; index is
+    /// the record's positional slot (base data never reorders → stable identity). This is the
+    /// de-indexed target that <c>TileEventTrigger.EntryKey</c> resolves to. See
+    /// docs/re-notes/reference-inventory.md #2.</summary>
+    public string Key { get; set; } = "";
+
     public byte Status { get; set; }
     public TEntry Payload { get; set; } = default!;
 }

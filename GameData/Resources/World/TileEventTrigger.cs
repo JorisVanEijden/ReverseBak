@@ -17,6 +17,14 @@ public class TileEventTrigger
 
     public uint EntryNumber { get; set; }
 
+    /// <summary>Stable content-graph key of the DEF record this trigger fires:
+    /// <c>base:def_&lt;type&gt;:&lt;EntryNumber&gt;</c> (e.g. <c>base:def_dial:5</c>), where
+    /// <c>&lt;type&gt;</c> is <see cref="Type"/> lowercased. De-indexes the raw <see cref="EntryNumber"/>
+    /// (a positional index into the type-selected <c>def_&lt;Type&gt;.dat</c>) into a reference that
+    /// survives mods reordering/extending that DEF family. Resolves to <c>DefRecord.Key</c>. See
+    /// docs/re-notes/reference-inventory.md #2.</summary>
+    public string EntryKey { get; set; } = "";
+
     // One-shot flag (0/1). When set, firing this trigger writes a persistent per-(zone,tile,def)
     // save-state flag (markTriggerFired @0x74dbb: SetGlobalValue(400*zone + 10*tile + defFileNr, 1));
     // hasTriggerFired reads that same key inside isTriggerEnabled, so the trigger never fires again.

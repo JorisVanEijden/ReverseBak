@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.GameState;
 using GameData.Resources.World;
 using ResourceExtraction.Extractors.GameState;
@@ -66,6 +67,7 @@ public class TileEventExtractor : ExtractorBase<TileEventTile>
                     EndX = endX,
                     StartY = startY,
                     EntryNumber = entryNumber,
+                    EntryKey = ContentKey.ForBase($"def_{type.ToString().ToLowerInvariant()}", (int)entryNumber),
                     FireOnce = fireOnce,
                     Requires = requiredKey == 0 ? null : GlobalRef.DecodeCondition(requiredKey, 1, null),
                     Forbids = forbiddenKey == 0 ? null : GlobalRef.DecodeCondition(forbiddenKey, 1, null),

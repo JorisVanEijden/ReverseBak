@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors.Def;
 
+using GameData.Resources.Content;
 using GameData.Resources.Data;
 using System.Collections.Generic;
 using System.IO;
@@ -65,12 +66,27 @@ public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFi
                 $"but body is {actualBodyLength} bytes");
         }
 
+        string family = DefFamilySegment(id);
         var records = new List<DefRecord<TEntry>>((int)count);
         for (uint i = 0; i < count; i++) {
             byte status = reader.ReadByte();
             TEntry payload = ReadPayload(reader);
-            records.Add(new DefRecord<TEntry> { Status = status, Payload = payload });
+            records.Add(new DefRecord<TEntry> {
+                Key = ContentKey.ForBase($"def_{family}", (int)i),
+                Status = status,
+                Payload = payload,
+            });
         }
         return new DefFamilyFile<TEntry>(id, records);
+    }
+
+    // "DEF_DIAL.DAT" → "dial"; the de-indexed family segment of a DEF record's content key.
+    // Falls back to the whole (lowercased) stem if the id lacks the DEF_ prefix.
+    private static string DefFamilySegment(string id) {
+        string stem = Path.GetFileNameWithoutExtension(id);
+        if (stem.StartsWith("DEF_", System.StringComparison.OrdinalIgnoreCase)) {
+            stem = stem.Substring(4);
+        }
+        return stem.ToLowerInvariant();
     }
 }
