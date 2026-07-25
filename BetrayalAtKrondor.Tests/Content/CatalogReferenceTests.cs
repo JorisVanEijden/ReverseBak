@@ -95,6 +95,40 @@ public class CatalogReferenceTests {
         AssertAllResolve(catalogs, refs);
     }
 
+    /// <summary>#10 — every spell-affinity creature-type (SPELLWEA/SPELLRES) resolves to a live
+    /// creature via its de-indexed <c>CreatureKey</c>. The creature-type index is the mnames creature
+    /// number (resolved: the three creature-numbering schemes are one — inventory caveat 1).</summary>
+    [Fact]
+    public void EveryAffinityCreatureType_ReferencesAValidCreature() {
+        string? gen = GeneratedCorpus.FindDir(Path.Combine("DAT", "mnames.json"), "SPELLWEA.json", "SPELLRES.json");
+        if (gen == null) {
+            return;
+        }
+
+        var mnamesKeys = new HashSet<string>();
+        using (JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "DAT", "mnames.json")))) {
+            foreach (JsonElement c in doc.RootElement.GetProperty("Creatures").EnumerateArray()) {
+                mnamesKeys.Add(c.GetProperty("Key").GetString()!);
+            }
+        }
+        var catalogs = new Dictionary<string, ISet<string>> { ["mnames"] = mnamesKeys };
+
+        var refs = new List<ContentReference>();
+        foreach (string table in new[] { "SPELLWEA.json", "SPELLRES.json" }) {
+            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, table)));
+            string from = Path.GetFileNameWithoutExtension(table).ToLowerInvariant();
+            foreach (JsonElement spell in doc.RootElement.GetProperty("Spells").EnumerateArray()) {
+                int n = spell.GetProperty("SpellNumber").GetInt32();
+                foreach (JsonElement ck in spell.GetProperty("CreatureKeys").EnumerateArray()) {
+                    refs.Add(new ContentReference($"base:{from}:{n}", "mnames", ck.GetString()!));
+                }
+            }
+        }
+
+        AssertAllResolve(catalogs, refs);
+        Assert.True(refs.Count > 0, "Found no affinity creature-type references.");
+    }
+
     /// <summary>#14 — every DEF_COMB / DEF_TRAP record's EncounterNumber points at a live TRAPS encounter.</summary>
     [Fact]
     public void EveryDefEncounterNumber_ReferencesAValidTrapsEncounter() {

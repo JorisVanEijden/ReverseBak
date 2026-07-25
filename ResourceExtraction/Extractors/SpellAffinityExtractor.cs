@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.Spells;
 using System.IO;
 
@@ -25,7 +26,9 @@ public class SpellAffinityExtractor : ExtractorBase<SpellAffinityTable> {
                 ushort mask = reader.ReadUInt16();
                 for (int bit = 0; bit < 16; bit++) {
                     if ((mask & (1 << bit)) != 0) {
-                        affinity.CreatureTypes.Add(word * 16 + bit);
+                        int creatureType = word * 16 + bit;
+                        affinity.CreatureTypes.Add(creatureType);
+                        affinity.CreatureKeys.Add(ContentKey.ForBase("mnames", creatureType)); // #10
                     }
                 }
             }

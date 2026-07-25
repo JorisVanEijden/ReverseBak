@@ -47,4 +47,9 @@ public class SpellAffinity {
 
     /// <summary>Creature-type indices (0..47) whose bit is set in this spell's mask.</summary>
     public List<int> CreatureTypes { get; set; } = new();
+
+    /// <summary>De-indexed <see cref="CreatureTypes"/>: <c>base:mnames:&lt;type&gt;</c> per affected
+    /// creature, parallel to <see cref="CreatureTypes"/>. The creature-type index is the mnames
+    /// creature number (see docs/re-notes/reference-inventory.md caveat 1). Reference #10.</summary>
+    public List<string> CreatureKeys { get; set; } = new();
 }
