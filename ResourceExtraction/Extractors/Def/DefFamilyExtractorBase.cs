@@ -50,6 +50,7 @@ public abstract class DefFamilyExtractorBase<TEntry> : ExtractorBase<DefFamilyFi
                 AltSpawnY        = new[] { reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32() },
                 AuthoringWord    = reader.ReadUInt16(),  // 0x2E — runtime-dead structured authoring word (see EnemySlot)
             };
+            setup.Slots[s].CreatureKey = ContentKey.ForBase("mnames", setup.Slots[s].CreatureNumber); // #15
         }
         setup.Trailer = reader.ReadUInt16();
         return setup;

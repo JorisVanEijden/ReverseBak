@@ -205,6 +205,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--mnames") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractCreatureNames(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
@@ -1154,6 +1160,22 @@ internal static class Program {
         string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText("ONAMES.json", json);
         Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
+    }
+
+    /// <summary>Extracts MNAMES.DAT (the creature-name table / <c>mnames</c> id space) to
+    /// <c>DAT/mnames.json</c>. The de-indexed target catalog for encounter <c>EnemySlot.CreatureNumber</c>
+    /// (reference-inventory #15). File name resolved case-insensitively.</summary>
+    private static void ExtractCreatureNames(string gamePath) {
+        string[] files = GetFiles(gamePath, "mnames.dat");
+        if (files.Length == 0) {
+            Console.Error.WriteLine($"[MNAMES] missing: {Path.Combine(gamePath, "MNAMES.DAT")}");
+            return;
+        }
+        using FileStream stream = File.OpenRead(files[0]);
+        GameData.Resources.Creature.CreatureNames data = new MnamesExtractor().Extract("mnames.dat", stream);
+        WriteToJsonFile("mnames.dat", data.Type,
+            JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"[MNAMES] {data.Creatures.Count} creatures written to DAT/mnames.json");
     }
 
     /// <summary>Extracts TELEPORT.DAT (the temple/teleport destination table) to

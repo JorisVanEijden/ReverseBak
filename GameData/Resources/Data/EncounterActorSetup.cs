@@ -26,6 +26,11 @@ public class EncounterActorSetup {
 // IDA's `encounterEnemy` struct.
 public class EnemySlot {
     public ushort CreatureNumber { get; set; }          // 0x00 — `mnames` enum. Slot 0's value is assigned to the `creatureType` global when the encounter fires.
+
+    /// <summary>De-indexed <see cref="CreatureNumber"/>: <c>base:mnames:&lt;CreatureNumber&gt;</c>, the
+    /// creature this slot spawns. Resolves to a <c>CreatureName.Key</c>. See
+    /// docs/re-notes/reference-inventory.md #15.</summary>
+    public string CreatureKey { get; set; } = "";
     public ushort MovementPattern { get; set; }         // 0x02 — Roaming-enemy patrol selector, read by updateRoamingEncounterActors (ovr188 @0x7600b). Domain {0..4}:
                                                         //          0 = stationary
                                                         //          1 = ping-pong between AltSpawn[0..1] (180° about-face on reach)
