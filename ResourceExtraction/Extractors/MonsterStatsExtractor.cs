@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Content;
 using GameData.Resources.Monster;
 using System.IO;
 using System.Text;
@@ -15,6 +16,7 @@ public class MonsterStatsExtractor : ExtractorBase<MonsterStats>
         var match = Regex.Match(id, @"(\d+)", RegexOptions.IgnoreCase);
         if (match.Success)
             stats.CreatureId = int.Parse(match.Groups[1].Value);
+        stats.CreatureKey = ContentKey.ForBase("mnames", stats.CreatureId); // -> base:mnames:<n> (same space as EnemySlot/affinity)
 
         stats.Health = ReadStatRange(reader);
         stats.Stamina = ReadStatRange(reader);

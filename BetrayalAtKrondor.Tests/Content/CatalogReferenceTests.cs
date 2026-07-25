@@ -95,6 +95,35 @@ public class CatalogReferenceTests {
         AssertAllResolve(catalogs, refs);
     }
 
+    /// <summary>Creature-graph closure — every MONSTxx stats file's <c>CreatureKey</c> resolves to a
+    /// live creature. The MONST file number IS the mnames creature number (inventory caveat 1), so
+    /// MonsterStats, EnemySlot, and SpellAffinity all key to the one <c>base:mnames</c> catalog.</summary>
+    [Fact]
+    public void EveryMonsterStats_ReferencesAValidCreature() {
+        string? gen = GeneratedCorpus.FindDir(Path.Combine("DAT", "mnames.json"), "DAT");
+        if (gen == null) {
+            return;
+        }
+
+        var mnamesKeys = new HashSet<string>();
+        using (JsonDocument doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(gen, "DAT", "mnames.json")))) {
+            foreach (JsonElement c in doc.RootElement.GetProperty("Creatures").EnumerateArray()) {
+                mnamesKeys.Add(c.GetProperty("Key").GetString()!);
+            }
+        }
+        var catalogs = new Dictionary<string, ISet<string>> { ["mnames"] = mnamesKeys };
+
+        var refs = new List<ContentReference>();
+        foreach (string monstPath in Directory.GetFiles(Path.Combine(gen, "DAT"), "MONST*.json")) {
+            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(monstPath));
+            refs.Add(new ContentReference($"base:monst:{Path.GetFileNameWithoutExtension(monstPath)}",
+                "mnames", doc.RootElement.GetProperty("CreatureKey").GetString()!));
+        }
+
+        AssertAllResolve(catalogs, refs);
+        Assert.True(refs.Count > 0, "Found no MONSTxx stats files.");
+    }
+
     /// <summary>#10 — every spell-affinity creature-type (SPELLWEA/SPELLRES) resolves to a live
     /// creature via its de-indexed <c>CreatureKey</c>. The creature-type index is the mnames creature
     /// number (resolved: the three creature-numbering schemes are one — inventory caveat 1).</summary>

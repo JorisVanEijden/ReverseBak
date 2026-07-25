@@ -6,6 +6,13 @@ public class MonsterStats : IResource
 {
     public MonsterStats(string id) { Id = id; }
     public int CreatureId { get; set; }
+
+    /// <summary>Stable content-graph key of the creature these stats belong to:
+    /// <c>base:mnames:&lt;CreatureId&gt;</c>. The MONST file number IS the mnames creature number (the
+    /// three creature-numbering schemes are one — see docs/re-notes/reference-inventory.md caveat 1),
+    /// so this resolves to the same <c>CreatureName.Key</c> that <c>EnemySlot.CreatureKey</c> and
+    /// <c>SpellAffinity.CreatureKeys</c> use.</summary>
+    public string CreatureKey { get; set; } = "";
     public StatRange Health { get; set; } = new();
     public StatRange Stamina { get; set; } = new();
     public StatRange Speed { get; set; } = new();
