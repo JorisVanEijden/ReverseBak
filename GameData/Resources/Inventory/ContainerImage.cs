@@ -21,6 +21,11 @@ public static class ContainerImage {
     /// <summary>INVMISC.BMX#4 — the dead-body sprite (a corpse).</summary>
     public const int DeadBodyIndex = 4;
 
+    /// <summary>INVMISC.BMX#11 — the default member-inventory image, shown in the detail window when
+    /// the screen is opened on a party member with no loot container (the containerType special case
+    /// resolved before the world-item-type switch).</summary>
+    public const int MemberInventoryIndex = 11;
+
     /// <summary>
     /// The INVMISC.BMX index for a world item of the given type, per <c>sub_ovr158_59E</c>'s
     /// 30-case jump table (@0x566bd). Unmapped/terrain types fall through to the original's default 0.
