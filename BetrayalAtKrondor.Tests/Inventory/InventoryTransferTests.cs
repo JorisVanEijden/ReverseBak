@@ -7,7 +7,9 @@ using Xunit;
 
 public class InventoryTransferTests {
     private static ObjectInfoSet Objs() => new ObjectInfoSet("O", new List<ObjectInfo> {
-        new ObjectInfo("p") { Number = 80, Name = "Picklocks", InventorySlots = 1, MaxAmount = 5 },
+        // 0x800: stackable — merging is flag-driven in the original (consolidate/can_stack
+        // check wFlags, not MaxAmount), so the fake needs the flag for merge tests.
+        new ObjectInfo("p") { Number = 80, Name = "Picklocks", InventorySlots = 1, MaxAmount = 5, Flags = (ObjectFlags)0x800 },
         new ObjectInfo("g") { Number = 53, Name = "Gold Sovereigns", InventorySlots = 1, MaxAmount = 1000 },
     });
     private static RuntimeContainer C(int cap, SaveGameContainerType type, params RuntimeItem[] items) {
