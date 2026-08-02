@@ -14,11 +14,20 @@ public sealed class RuntimeContainer {
     public short OwnerActorNumber;
     public bool Dirty;
 
+    /// <summary>
+    /// This container carries a shop sub-record — the DOS
+    /// <c>container_GetOffsetToData(container, dataType_Shop) != NULL</c> test that several screens
+    /// branch on (e.g. <c>sub_ovr157_4E3</c> @0x549BA suppresses the inventory's More Info menu for
+    /// a shop). Only the presence of the record is modelled; its contents are task-39.
+    /// </summary>
+    public bool IsShop;
+
     public static RuntimeContainer FromSnapshot(SaveGameContainerData snap) {
         var rc = new RuntimeContainer {
             Capacity = snap.Capacity,
             ContainerType = snap.ContainerType,
             OwnerActorNumber = snap.Location.ActorNumber,
+            IsShop = snap.ShopData != null,
         };
         foreach (SaveGameInventoryItemData it in snap.Items) {
             // Only the first NumberOfItems are live; the rest are trailing capacity slots.

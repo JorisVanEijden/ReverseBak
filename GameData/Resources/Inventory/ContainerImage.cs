@@ -21,10 +21,17 @@ public static class ContainerImage {
     /// <summary>INVMISC.BMX#4 — the dead-body sprite (a corpse).</summary>
     public const int DeadBodyIndex = 4;
 
-    /// <summary>INVMISC.BMX#11 — the default member-inventory image, shown in the detail window when
-    /// the screen is opened on a party member with no loot container (the containerType special case
-    /// resolved before the world-item-type switch).</summary>
+    /// <summary>INVMISC.BMX#11 — the member-inventory image shown while NOTHING is selected: a ring
+    /// of keys. <c>invui_actor_inventory_kind</c> (@0x565EE) returns 0xB only when its caller passes
+    /// <c>flag == 0</c>, and the caller computes that flag as <c>highlight_slot != -1</c> — i.e. the
+    /// keys are the no-selection state.</summary>
     public const int MemberInventoryIndex = 11;
+
+    /// <summary>INVMISC.BMX#0 — the member-inventory image shown while an item IS selected: a bag.
+    /// With <c>flag != 0</c> the selector falls past the 0xB branch and, for a party slot with no
+    /// second inventory actor, returns 0. So the detail window swaps keys → bag on selection and
+    /// back again when the selection clears.</summary>
+    public const int MemberInventorySelectedIndex = 0;
 
     /// <summary>
     /// The INVMISC.BMX index for a world item of the given type, per <c>sub_ovr158_59E</c>'s
