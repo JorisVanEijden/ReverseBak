@@ -2,6 +2,7 @@ namespace ResourceExtractor.Extensions;
 
 using GameData.Resources.Animation;
 using GameData.Resources.Book;
+using GameData.Resources.Credits;
 using GameData.Resources.Cursor;
 using GameData.Resources.Data;
 using GameData.Resources.Dialog;
@@ -31,6 +32,10 @@ public static class ResourceExtensions {
     };
 
     public static string ToJson(this ChapterCatalog resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
+    public static string ToJson(this CreditsData resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 

@@ -1102,7 +1102,7 @@ internal static class Program {
         using var stream = File.OpenRead(fullPath);
         CreditsData credits = new CredExtractor().Extract("CRED.DAT", stream);
         Directory.CreateDirectory("DAT");
-        string json = JsonSerializer.Serialize(credits, new JsonSerializerOptions { WriteIndented = true });
+        string json = credits.ToJson();
         File.WriteAllText(Path.Combine("DAT", "CRED.json"), json);
         Console.WriteLine($"[CRED] title \"{credits.Title}\", {credits.Lines.Count} lines written to DAT/CRED.json");
     }
