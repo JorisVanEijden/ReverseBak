@@ -1,5 +1,6 @@
 namespace GameData.Resources.Menu;
 
+using GameData.Resources.Inventory;
 using GameData.Resources.Layout;
 
 [Serializable]
@@ -35,6 +36,16 @@ public class UserInterface : IResource {
     /// Populated by the extractor from AspectCorrection.CanonicalWidth/Height.
     /// </summary>
     public DesignFrame Frame { get; set; } = new();
+
+    /// <summary>
+    /// Loot/inventory grid + paperdoll geometry (<see cref="Resources.Inventory.InventoryLayout"/>).
+    /// Null for every REQ except <c>REQ_INV</c> — it is the only screen with a fixed-cell item
+    /// grid; <c>REQ_INV2</c> is a distinct screen and does not get one. Populated by
+    /// <c>UserInterfaceExtractor</c>, not read from the REQ_INV.DAT bytes (the geometry is
+    /// transcribed from immediate operands in the original routine — see
+    /// <see cref="Resources.Inventory.InventoryLayout"/> for provenance).
+    /// </summary>
+    public InventoryLayout? Inventory { get; set; }
 
     public ResourceType Type {
         get => ResourceType.REQ;

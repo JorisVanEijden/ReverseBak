@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Extractors;
 
+using GameData.Resources.Inventory;
 using GameData.Resources.Menu;
 
 using ResourceExtraction.Imaging;
@@ -70,7 +71,19 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
 
         CanonicalSpace.Apply(userInterface);
         AdjustNavArrowClickBoxesIfMain(id, userInterface);
+        ApplyInventoryLayoutIfReqInv(id, userInterface);
         return userInterface;
+    }
+
+    // REQ_INV's grid/paperdoll geometry is not read from the REQ_INV.DAT bytes — it is
+    // transcribed from immediate operands in sub_ovr157_0 @0x54210 (see InventoryLayout for the
+    // full provenance), exactly like the credits screen's geometry. Exact-filename match, not a
+    // substring test: REQ_INV2 is a distinct screen (no fixed-cell grid) and must not match.
+    private static void ApplyInventoryLayoutIfReqInv(string id, UserInterface ui) {
+        if (!string.Equals(id, "REQ_INV.DAT", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+        ui.Inventory = new InventoryLayout();
     }
 
     // REQ_MAIN's four travel nav-arrow click boxes are authored at TWICE the arrow's extent along
