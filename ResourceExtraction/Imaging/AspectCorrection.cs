@@ -21,6 +21,19 @@ public static class AspectCorrection {
     /// <summary>Horizontal replication factor for EGA (640x350-space) pixels.</summary>
     public const int EgaScaleX = 2;
 
+    /// <summary>Width of the original VGA mode 13h framebuffer.</summary>
+    public const int VgaWidth = 320;
+
+    /// <summary>Height of the original VGA mode 13h framebuffer.</summary>
+    public const int VgaHeight = 200;
+
+    /// <summary>Canonical frame width — derived from the mode and the aspect factor, never
+    /// written as a literal, so changing a factor changes every consumer coherently.</summary>
+    public static int CanonicalWidth => VgaWidth * VgaScaleX;
+
+    /// <summary>Canonical frame height. See <see cref="CanonicalWidth"/>.</summary>
+    public static int CanonicalHeight => VgaHeight * VgaScaleY;
+
     /// <summary>Scales a VGA (320x200-space) X coordinate or width into canonical 1600x1200 space.</summary>
     public static int ScaleVgaX(int x) => x * VgaScaleX;
 
