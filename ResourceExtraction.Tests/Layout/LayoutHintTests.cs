@@ -1,5 +1,6 @@
 namespace ResourceExtraction.Tests.Layout;
 
+using System.Text.Json;
 using GameData.Resources.Layout;
 using GameData.Resources.Menu;
 using GameData.Resources.Label;
@@ -42,5 +43,48 @@ public class LayoutHintTests {
     [Fact]
     public void Label_HasClassicDefaultLayout() {
         Assert.Equal(LayoutAnchor.TopLeft, new Label().Layout.Anchor);
+    }
+
+    [Fact]
+    public void RoundTripsThroughJson_WithFlowAndAspectPopulated() {
+        var original = new LayoutHint {
+            Anchor = LayoutAnchor.BottomRight,
+            Slice = new NineSlice(12, 10, 12, 14),
+            Width = LayoutLength.Percent(50f),
+            Height = LayoutLength.Px(180f),
+            AspectRatio = new LayoutAspectRatio(10f, 9f),
+            Flow = new LayoutFlow {
+                Direction = LayoutFlowDirection.Column,
+                Wrap = false,
+                Justify = LayoutFlowJustify.SpaceBetween,
+                Align = LayoutFlowAlign.Stretch,
+                Gap = LayoutLength.Px(20f)
+            }
+        };
+
+        string json = JsonSerializer.Serialize(original);
+        LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(json)!;
+
+        Assert.Equal(LayoutAnchor.BottomRight, restored.Anchor);
+        Assert.Equal(new NineSlice(12, 10, 12, 14), restored.Slice);
+        Assert.Equal(LayoutLength.Percent(50f), restored.Width);
+        Assert.Equal(LayoutLength.Px(180f), restored.Height);
+        Assert.Equal(new LayoutAspectRatio(10f, 9f), restored.AspectRatio);
+        Assert.NotNull(restored.Flow);
+        Assert.Equal(LayoutFlowDirection.Column, restored.Flow!.Direction);
+        Assert.False(restored.Flow.Wrap);
+        Assert.Equal(LayoutFlowJustify.SpaceBetween, restored.Flow.Justify);
+        Assert.Equal(LayoutFlowAlign.Stretch, restored.Flow.Align);
+        Assert.Equal(LayoutLength.Px(20f), restored.Flow.Gap);
+    }
+
+    [Fact]
+    public void RoundTripsThroughJson_WithNullsPreserved() {
+        var original = new LayoutHint();
+        LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(JsonSerializer.Serialize(original))!;
+        Assert.Null(restored.AspectRatio);
+        Assert.Null(restored.Flow);
+        Assert.Equal(LayoutLength.Auto, restored.Width);
+        Assert.Equal(LayoutLength.Auto, restored.Height);
     }
 }
