@@ -1,6 +1,7 @@
 namespace GameData.Resources.Layout;
 
 using System;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json.Serialization;
 
@@ -11,6 +12,7 @@ using System.Text.Json.Serialization;
 /// different units, so painted art sized purely in percent would otherwise stretch.
 /// </summary>
 [JsonConverter(typeof(LayoutAspectRatioJsonConverter))]
+[TypeConverter(typeof(LayoutAspectRatioTypeConverter))]
 public readonly record struct LayoutAspectRatio {
     public LayoutAspectRatio(float width, float height) {
         if (!IsUsable(width) || !IsUsable(height)) {

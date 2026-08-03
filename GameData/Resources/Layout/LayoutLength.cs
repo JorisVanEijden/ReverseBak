@@ -1,6 +1,7 @@
 namespace GameData.Resources.Layout;
 
 using System;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json.Serialization;
 
@@ -24,8 +25,13 @@ public enum LayoutLengthUnit {
 /// <c>"12.5%"</c>, <c>"auto"</c>. Extractors emit <see cref="LayoutLengthUnit.Px"/> in
 /// design-frame units so extracted layout reproduces the original exactly; override
 /// authors use <see cref="LayoutLengthUnit.Percent"/> where content should reflow.
+///
+/// <para>Negative values are accepted deliberately — they are valid offsets (e.g. pulling an
+/// element left/up past its anchor) — unlike <see cref="LayoutAspectRatio"/>, which rejects
+/// non-positive components because a ratio has no sensible negative form.</para>
 /// </summary>
 [JsonConverter(typeof(LayoutLengthJsonConverter))]
+[TypeConverter(typeof(LayoutLengthTypeConverter))]
 public readonly record struct LayoutLength(float Value, LayoutLengthUnit Unit) {
     public static LayoutLength Auto => new(0f, LayoutLengthUnit.Auto);
 

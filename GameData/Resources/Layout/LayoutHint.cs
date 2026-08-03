@@ -23,8 +23,9 @@ public class LayoutHint {
 
     /// <summary>Optional proportion to preserve. Meaningful when a size is given in percent —
     /// percent-of-width and percent-of-height are different units, so painted art needs this
-    /// to avoid stretching. Ignored (with a warning) when both Width and Height are explicit,
-    /// since that over-constrains the element.</summary>
+    /// to avoid stretching. Applied via <c>LayoutApplier.ApplyAspectRatio</c> (native UI Toolkit
+    /// <c>style.aspectRatio</c>); ignored (with a warning) when both Width and Height are
+    /// explicit, since that over-constrains the element.</summary>
     public LayoutAspectRatio? AspectRatio { get; set; }
 
     /// <summary>Non-null makes this element a flowing container. Null = absolute placement.</summary>

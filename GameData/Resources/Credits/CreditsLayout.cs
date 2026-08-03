@@ -43,7 +43,10 @@ public class CreditsLayout {
     /// <summary>Height of the fade band at the bottom of the window. VGA 17.</summary>
     public LayoutLength FadeBottomBand { get; set; } = LayoutLength.Px(102f);
 
-    /// <summary>Credits glyph size. VGA cell height 8.</summary>
+    /// <summary>Credits glyph size. VGA cell height 8. Only <see cref="LayoutLengthUnit.Px"/> is
+    /// meaningful here — <c>Percent</c>/<c>Auto</c> on a font size are untested and probably
+    /// nonsense (UI Toolkit's <c>fontSize</c> style takes a length, not a percentage of a
+    /// meaningful parent axis).</summary>
     public LayoutLength FontSize { get; set; } = LayoutLength.Px(48f);
 
     /// <summary>Spacing between dots of the leader that joins role to name. The original
