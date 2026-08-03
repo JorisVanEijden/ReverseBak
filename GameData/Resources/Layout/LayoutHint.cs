@@ -7,6 +7,13 @@ namespace GameData.Resources.Layout;
 /// exactly; overrides use percentages and <see cref="Flow"/> to reflow.
 /// </summary>
 public class LayoutHint {
+    /// <summary>How this element itself is placed in its parent. Defaults to
+    /// <see cref="LayoutPosition.Absolute"/> — every extracted hint keeps behaving exactly as
+    /// it does today. Independent of <see cref="Flow"/>: an absolutely-placed element can
+    /// still be a flow container for its own children (e.g. the credits row — pinned at
+    /// fixed insets in the scroller, but a flex row for its role/leader/name children).</summary>
+    public LayoutPosition Position { get; set; } = LayoutPosition.Absolute;
+
     /// <summary>Which point of the container the element binds to once the stage fills
     /// (rather than pillarboxes) its frame.</summary>
     public LayoutAnchor Anchor { get; set; } = LayoutAnchor.TopLeft;
@@ -42,6 +49,9 @@ public class LayoutHint {
     /// explicit, since that over-constrains the element.</summary>
     public LayoutAspectRatio? AspectRatio { get; set; }
 
-    /// <summary>Non-null makes this element a flowing container. Null = absolute placement.</summary>
+    /// <summary>Non-null makes this element a flowing container for its own children (their
+    /// direction, wrap, justify and align). This is purely about the CHILDREN's layout — it is
+    /// independent of <see cref="Position"/>, which decides how THIS element is placed in its
+    /// own parent. Null = children are not flowed (each positions itself independently).</summary>
     public LayoutFlow? Flow { get; set; }
 }

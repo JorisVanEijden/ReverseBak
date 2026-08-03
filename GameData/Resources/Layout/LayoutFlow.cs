@@ -10,10 +10,13 @@ public enum LayoutFlowJustify { Start, Center, End, SpaceBetween, SpaceAround }
 public enum LayoutFlowAlign { Start, Center, End, Stretch }
 
 /// <summary>
-/// Marks a container whose children flow (and may wrap) rather than being absolutely placed.
-/// A null <see cref="LayoutHint.Flow"/> means absolute placement — the faithful default, and
-/// what every extractor emits. Setting one is how an override turns, say, a fixed 7-column
-/// item grid into a grid that rewraps to the available width.
+/// Marks a container whose children flow (and may wrap) rather than each positioning itself
+/// independently. This is about the element's OWN CHILDREN only — it says nothing about how the
+/// element itself is placed in ITS parent (see <see cref="LayoutHint.Position"/> for that). A
+/// null <see cref="LayoutHint.Flow"/> is the faithful default, and what every extractor emits.
+/// Setting one is how an override turns, say, a fixed 7-column item grid into a grid that
+/// rewraps to the available width — while the grid itself can still be absolutely pinned in its
+/// parent via <see cref="LayoutHint.Position"/> = <see cref="LayoutPosition.Absolute"/>.
 /// </summary>
 public class LayoutFlow {
     public LayoutFlowDirection Direction { get; set; } = LayoutFlowDirection.Row;

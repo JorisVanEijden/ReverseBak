@@ -10,6 +10,7 @@ public class LayoutHintTests {
     [Fact]
     public void LayoutHint_DefaultsToClassic() {
         var hint = new LayoutHint();
+        Assert.Equal(LayoutPosition.Absolute, hint.Position);
         Assert.Equal(LayoutAnchor.TopLeft, hint.Anchor);
         Assert.Equal(new NineSlice(0, 0, 0, 0), hint.Slice);
         Assert.Equal(LayoutLength.Auto, hint.Width);
@@ -48,6 +49,7 @@ public class LayoutHintTests {
     [Fact]
     public void RoundTripsThroughJson_WithFlowAndAspectPopulated() {
         var original = new LayoutHint {
+            Position = LayoutPosition.InFlow,
             Anchor = LayoutAnchor.BottomRight,
             Slice = new NineSlice(12, 10, 12, 14),
             Width = LayoutLength.Percent(50f),
@@ -65,6 +67,7 @@ public class LayoutHintTests {
         string json = JsonSerializer.Serialize(original);
         LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(json)!;
 
+        Assert.Equal(LayoutPosition.InFlow, restored.Position);
         Assert.Equal(LayoutAnchor.BottomRight, restored.Anchor);
         Assert.Equal(new NineSlice(12, 10, 12, 14), restored.Slice);
         Assert.Equal(LayoutLength.Percent(50f), restored.Width);
