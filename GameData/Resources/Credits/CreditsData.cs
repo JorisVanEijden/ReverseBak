@@ -21,6 +21,10 @@ public class CreditsData : IResource {
 
     // Ordered list of scrolling lines (one per (role, name) pair).
     public List<CreditLine> Lines { get; set; } = [];
+
+    // Screen geometry, in design-frame px. Not read from CRED.DAT — transcribed from
+    // scrollCredits (0x405f1); see CreditsLayout for per-value provenance.
+    public CreditsLayout Layout { get; set; } = new();
 }
 
 public class CreditLine {

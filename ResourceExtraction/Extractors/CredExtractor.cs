@@ -30,7 +30,8 @@ public class CredExtractor : ExtractorBase<CreditsData> {
         }
 
         var credits = new CreditsData(id) {
-            Title = count > 0 ? strings[0] : string.Empty
+            Title = count > 0 ? strings[0] : string.Empty,
+            Layout = new CreditsLayout()
         };
 
         // The closing block (left index > count-5) is centered rather than
