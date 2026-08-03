@@ -43,7 +43,7 @@ public class CreditsLayout {
     /// <summary>Height of the fade band at the bottom of the window. VGA 17.</summary>
     public LayoutLength FadeBottomBand { get; set; } = LayoutLength.Px(102f);
 
-    /// <summary>Credits glyph size. The original cell is ~8 VGA px tall.</summary>
+    /// <summary>Credits glyph size. VGA cell height 8.</summary>
     public LayoutLength FontSize { get; set; } = LayoutLength.Px(48f);
 
     /// <summary>Spacing between dots of the leader that joins role to name. The original
