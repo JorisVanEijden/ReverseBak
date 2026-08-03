@@ -22,13 +22,15 @@ using GameData.Resources.Layout;
 /// original geometry.</para>
 /// </summary>
 public class CreditsLayout {
-    /// <summary>Title band above the scroll region. The original drew the centred title's
-    /// baseline at VGA y=41 -> 246 canonical; here that value becomes the height of the band the
-    /// title occupies, with <see cref="LayoutAnchor.TopCenter"/> supplying the horizontal
-    /// centring that the (now-deleted) <c>CenterX</c> constant did before.</summary>
+    /// <summary>Title above the scroll region. Replaces the old <c>TitleY</c> coordinate (VGA
+    /// y=41 -> 246 canonical), which was the title element's <b>top edge</b> (<c>title.style.top
+    /// = TitleY</c> in the pre-conversion view) — not a band height, so this is an inset, not
+    /// <see cref="LayoutHint.Height"/>. The title sizes to its own content, as it did before.
+    /// <see cref="LayoutAnchor.TopCenter"/> supplies the horizontal centring that the
+    /// (now-deleted) <c>CenterX</c> constant did before.</summary>
     public LayoutHint Title { get; set; } = new LayoutHint {
-        Height = LayoutLength.Px(246f),
-        Anchor = LayoutAnchor.TopCenter
+        Anchor = LayoutAnchor.TopCenter,
+        Top = LayoutLength.Px(246f)
     };
 
     /// <summary>The scrolling window; lines outside it are clipped. Top inset is VGA y=54 -> 324,
@@ -45,7 +47,12 @@ public class CreditsLayout {
     /// right inset = 1600 - 1385 = <b>215</b>. Height is the line advance, VGA 11 -> 66,
     /// unchanged. <see cref="LayoutHint.Flow"/> flows role and name to opposite edges with the
     /// leader filling the gap between (<c>flexGrow: 1</c>), reproducing the original's absolute
-    /// placement exactly at these faithful insets.</summary>
+    /// placement exactly at these faithful insets. <see cref="LayoutFlowAlign.Start"/> matches the
+    /// original, which top-aligns both labels (neither sets a <c>top</c> offset, so both sit at
+    /// 0 within the row) — not centred. The leader's own vertical placement (<c>bottom = 25%</c>
+    /// of the row height, i.e. the lower quarter) stays a paint concern drawn directly by the
+    /// renderer rather than a flex alignment, since no <see cref="LayoutFlowAlign"/> value can
+    /// express "25% from the bottom".</summary>
     public LayoutHint Row { get; set; } = new LayoutHint {
         Left = LayoutLength.Px(210f),
         Right = LayoutLength.Px(215f),
@@ -54,7 +61,7 @@ public class CreditsLayout {
             Direction = LayoutFlowDirection.Row,
             Wrap = false,
             Justify = LayoutFlowJustify.SpaceBetween,
-            Align = LayoutFlowAlign.Center
+            Align = LayoutFlowAlign.Start
         }
     };
 

@@ -18,8 +18,11 @@ public class CreditsLayoutTests {
     public void Defaults_MatchTheOriginalCanonicalGeometry() {
         var layout = new CreditsLayout();
 
-        // Title band: VGA y=41 -> 246 canonical, horizontally centred.
-        Assert.Equal(LayoutLength.Px(246f), layout.Title.Height);
+        // Title: VGA y=41 -> 246 canonical is the title's TOP EDGE (title.style.top in the
+        // pre-conversion view), not a band height — sizes to its own content, horizontally
+        // centred.
+        Assert.Equal(LayoutLength.Px(246f), layout.Title.Top);
+        Assert.Equal(LayoutLength.Auto, layout.Title.Height);
         Assert.Equal(LayoutAnchor.TopCenter, layout.Title.Anchor);
 
         // Window: top VGA y=54 -> 324; bottom VGA y=158 -> 948, so height 948-324 = 624.
@@ -27,13 +30,16 @@ public class CreditsLayoutTests {
         Assert.Equal(LayoutLength.Px(624f), layout.Window.Height);
 
         // Row: left VGA x=42 -> 210; name right edge VGA x=277 -> 1385, so right inset
-        // 1600-1385 = 215. Height VGA 11 -> 66.
+        // 1600-1385 = 215. Height VGA 11 -> 66. Top-aligned (Start), matching the original's
+        // labels (neither sets a top offset); the leader's own 25%-from-bottom placement stays
+        // a paint concern, not a flex alignment.
         Assert.Equal(LayoutLength.Px(210f), layout.Row.Left);
         Assert.Equal(LayoutLength.Px(215f), layout.Row.Right);
         Assert.Equal(LayoutLength.Px(66f), layout.Row.Height);
         Assert.NotNull(layout.Row.Flow);
         Assert.Equal(LayoutFlowDirection.Row, layout.Row.Flow.Direction);
         Assert.Equal(LayoutFlowJustify.SpaceBetween, layout.Row.Flow.Justify);
+        Assert.Equal(LayoutFlowAlign.Start, layout.Row.Flow.Align);
         Assert.False(layout.Row.Flow.Wrap);
 
         // Paint parameters, unchanged from the coordinate model.
@@ -70,8 +76,10 @@ public class CreditsLayoutTests {
         Assert.Equal("CREDITS", credits.Title);
         Assert.NotNull(credits.Layout);
 
-        // Title band: VGA y=41 -> 246 canonical, horizontally centred.
-        Assert.Equal(LayoutLength.Px(246f), credits.Layout.Title.Height);
+        // Title: VGA y=41 -> 246 canonical is the title's TOP EDGE, not a band height — sizes
+        // to its own content, horizontally centred.
+        Assert.Equal(LayoutLength.Px(246f), credits.Layout.Title.Top);
+        Assert.Equal(LayoutLength.Auto, credits.Layout.Title.Height);
         Assert.Equal(LayoutAnchor.TopCenter, credits.Layout.Title.Anchor);
 
         // Window: top VGA y=54 -> 324; bottom VGA y=158 -> 948, so height 948-324 = 624.
@@ -79,13 +87,14 @@ public class CreditsLayoutTests {
         Assert.Equal(LayoutLength.Px(624f), credits.Layout.Window.Height);
 
         // Row: left VGA x=42 -> 210; name right edge VGA x=277 -> 1385, so right inset
-        // 1600-1385 = 215. Height VGA 11 -> 66.
+        // 1600-1385 = 215. Height VGA 11 -> 66. Top-aligned (Start), matching the original.
         Assert.Equal(LayoutLength.Px(210f), credits.Layout.Row.Left);
         Assert.Equal(LayoutLength.Px(215f), credits.Layout.Row.Right);
         Assert.Equal(LayoutLength.Px(66f), credits.Layout.Row.Height);
         Assert.NotNull(credits.Layout.Row.Flow);
         Assert.Equal(LayoutFlowDirection.Row, credits.Layout.Row.Flow.Direction);
         Assert.Equal(LayoutFlowJustify.SpaceBetween, credits.Layout.Row.Flow.Justify);
+        Assert.Equal(LayoutFlowAlign.Start, credits.Layout.Row.Flow.Align);
         Assert.False(credits.Layout.Row.Flow.Wrap);
 
         // Paint parameters, unchanged from the coordinate model.
