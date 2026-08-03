@@ -64,14 +64,15 @@ public class InventoryLayoutTests {
         // status line VGA (59,101) -> (295,606) — one original px right of the other three
         AssertPoint(layout.InspectStatusLine, 295f, 606f);
 
-        // One original pixel, down-right (invui_draw_text_aligned_shadow).
-        Assert.Equal(LayoutLength.Px(5f), layout.TextShadowOffsetX);
-        Assert.Equal(LayoutLength.Px(6f), layout.TextShadowOffsetY);
+        // One original pixel, down-right (invui_draw_text_aligned_shadow). A design-frame px
+        // scalar, not a LayoutLength — see the comment above the property.
+        Assert.Equal(5f, layout.TextShadowOffsetX);
+        Assert.Equal(6f, layout.TextShadowOffsetY);
 
         // One original pixel per axis: the icon flight's position lattice
         // (invinspect_animate_item_move @0x5A0CB steps in whole original pixels).
-        Assert.Equal(LayoutLength.Px(5f), layout.IconFlightStepX);
-        Assert.Equal(LayoutLength.Px(6f), layout.IconFlightStepY);
+        Assert.Equal(5f, layout.IconFlightStepX);
+        Assert.Equal(6f, layout.IconFlightStepY);
 
         // --- black item-panel fills (UI_DrawInventory @0x5687d) ---
         // paperdoll   VGA 13,11,82,121  -> 65,66,410,726
@@ -84,25 +85,34 @@ public class InventoryLayoutTests {
         // --- empty paperdoll-slot silhouettes (UI_DrawInventory @0x56990) ---
         // crossbow VGA (14,43) -> (70,258); armor VGA (14,73) -> (70,438). Each sits one original
         // px below the matching paperdoll slot's top edge.
+        // Both are asserted absolutely, and deliberately NOT as an offset from CrossbowSlot /
+        // ArmorSlot: those four paperdoll slot hints are dead (nothing reads them) and task-54 will
+        // remove or derive them, at which point a relative assertion here would fail for a reason
+        // that has nothing to do with where the silhouettes are drawn.
         AssertPoint(layout.CrossbowPlaceholder, 70f, 258f);
         AssertPoint(layout.ArmorPlaceholder, 70f, 438f);
-        Assert.Equal(6f, layout.CrossbowPlaceholder.Top.Value - layout.CrossbowSlot.Top.Value);
-        Assert.Equal(6f, layout.ArmorPlaceholder.Top.Value - layout.ArmorSlot.Top.Value);
 
         // --- interaction ---
         // drag threshold ~4 original px x5 (sub_ovr158_1013 @0x57184)
-        Assert.Equal(LayoutLength.Px(20f), layout.DragThreshold);
+        Assert.Equal(20f, layout.DragThreshold);
         // container-window hairline: one original px (sub_ovr158_3D0 @0x56420)
-        Assert.Equal(LayoutLength.Px(5f), layout.ContainerBorderWidthX);
-        Assert.Equal(LayoutLength.Px(6f), layout.ContainerBorderWidthY);
+        Assert.Equal(5f, layout.ContainerBorderWidthX);
+        Assert.Equal(6f, layout.ContainerBorderWidthY);
     }
 
-    /// <summary>The paperdoll drop target and the painted paperdoll fill are the SAME rect in the
-    /// original (<c>invui_handle_item_drag</c> INVENTOR.C:609 vs <c>UI_DrawInventory</c> @0x5687d).
-    /// They now share one property, so this pins the relationship the two used to restate
-    /// separately in Unity code.</summary>
+    /// <summary>Two structural relationships between the fill boxes and the cell grid.
+    ///
+    /// <para>First: the grid sits <b>inside</b> the paperdoll fill, not flush with it — the box
+    /// starts one original px left of and above the grid's first cell (VGA 13,11 vs 14,12). The
+    /// name of this test used to claim the opposite ("share the grid area's top-left row"), which
+    /// is exactly what the numbers below refute.</para>
+    ///
+    /// <para>Second: the paperdoll and general boxes are the split form of the continuous one, so
+    /// they must keep its top, its height and its right edge (<c>UI_DrawInventory</c> @0x5687d
+    /// paints whichever form the mode calls for, and the two forms cover the same area).</para>
+    /// </summary>
     [Fact]
-    public void PaperdollBox_ShareTheGridAreasTopLeftRow() {
+    public void FillBoxes_EncloseTheGrid_AndTheSplitFormCoversTheContinuousOne() {
         var layout = new InventoryLayout();
 
         // The fill box starts one original px left of and one above the grid's first cell

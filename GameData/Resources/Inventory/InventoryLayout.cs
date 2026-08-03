@@ -183,42 +183,59 @@ public class InventoryLayout {
         Top = LayoutLength.Px(606f),
     };
 
-    /// <summary>How far right the drop shadow under game-font text is offset. One original pixel
-    /// (<c>invui_draw_text_aligned_shadow</c> draws the same string twice, the shadow at +1,+1 in
-    /// pen 0) -> canonical 5.</summary>
-    public LayoutLength TextShadowOffsetX { get; set; } = LayoutLength.Px(5f);
+    // ---- design-frame scalars ----------------------------------------------------------------
+    // The values below are deliberately plain floats rather than LayoutHint/LayoutLength, because
+    // none of them can be expressed in any unit BUT design-frame px:
+    //   * a text shadow offset is added to a line's own position, and adding a percentage to a px
+    //     inset (or vice versa) needs a resolved parent size, i.e. a layout solver;
+    //   * the icon-flight step is a spacing in the panel's own drawing space;
+    //   * the drag threshold is compared against a 2-D pointer distance, which has no axis to take
+    //     a percentage of;
+    //   * UI Toolkit border widths are px-only floats — there is no percentage form to honour.
+    // Typing them as LayoutLength would let an override write "1%" and have the unit silently
+    // discarded, which is a worse lie than the missing expressiveness. If one of them ever needs
+    // to reflow, the fix is to give it a unit the consumer can actually resolve — not to widen the
+    // type and drop the unit on the floor.
 
-    /// <summary>How far down the drop shadow under game-font text is offset. One original pixel
-    /// -> canonical 6. Different from <see cref="TextShadowOffsetX"/> because the original's
-    /// pixels were not square.</summary>
-    public LayoutLength TextShadowOffsetY { get; set; } = LayoutLength.Px(6f);
+    /// <summary>How far right the drop shadow under game-font text is offset, in design-frame px.
+    /// One original pixel (<c>invui_draw_text_aligned_shadow</c> draws the same string twice, the
+    /// shadow at +1,+1 in pen 0) -> canonical 5.</summary>
+    public float TextShadowOffsetX { get; set; } = 5f;
 
-    /// <summary>Horizontal granularity of the inspect icon's flight
+    /// <summary>How far down the drop shadow under game-font text is offset, in design-frame px.
+    /// One original pixel -> canonical 6. Different from <see cref="TextShadowOffsetX"/> because
+    /// the original's pixels were not square.</summary>
+    public float TextShadowOffsetY { get; set; } = 6f;
+
+    /// <summary>Horizontal granularity of the inspect icon's flight, in design-frame px
     /// (<c>invinspect_animate_item_move</c> @0x5A0CB). The animation is a position <i>lattice</i>,
     /// not a smooth interpolation: each frame advances a twelfth of the remaining distance plus
     /// one step, and the "+1 step" is what puts a floor on the speed and guarantees the icon
     /// arrives. The original's step was one of its own pixels, so a step of canonical 5 reproduces
     /// its pacing exactly; a smaller step makes the tail of the flight visibly slower, not
-    /// smoother. Set this to 1px for a genuinely continuous flight.</summary>
-    public LayoutLength IconFlightStepX { get; set; } = LayoutLength.Px(5f);
+    /// smoother. Set this to 1 for a genuinely continuous flight.</summary>
+    public float IconFlightStepX { get; set; } = 5f;
 
-    /// <summary>Vertical granularity of the inspect icon's flight. See
+    /// <summary>Vertical granularity of the inspect icon's flight, in design-frame px. See
     /// <see cref="IconFlightStepX"/>; canonical 6 = one original pixel down.</summary>
-    public LayoutLength IconFlightStepY { get; set; } = LayoutLength.Px(6f);
+    public float IconFlightStepY { get; set; } = 6f;
 
     // ---- interaction ------------------------------------------------------------------------
 
-    /// <summary>How far a press must travel before it counts as a drag rather than a click
-    /// (<c>sub_ovr158_1013</c> @0x57184). Roughly 4 original px -> canonical 20. Compared against
-    /// the pointer's travel distance, so it is a single scalar rather than a per-axis pair.</summary>
-    public LayoutLength DragThreshold { get; set; } = LayoutLength.Px(20f);
+    /// <summary>How far a press must travel, in design-frame px, before it counts as a drag rather
+    /// than a click (<c>sub_ovr158_1013</c> @0x57184). Roughly 4 original px -> canonical 20.
+    /// Compared against the pointer's travel distance, so it is a single scalar rather than a
+    /// per-axis pair. Non-positive is degenerate — every pointer movement would become a drag and
+    /// nothing could be selected — and the view falls back to this default rather than honour
+    /// it.</summary>
+    public float DragThreshold { get; set; } = 20f;
 
-    /// <summary>Left/right border width of the container window's drag-time highlight
-    /// (<c>sub_ovr158_3D0</c> @0x56420 draws a one-pixel frame). One original px -> canonical
-    /// 5.</summary>
-    public LayoutLength ContainerBorderWidthX { get; set; } = LayoutLength.Px(5f);
+    /// <summary>Left/right border width, in design-frame px, of the container window's drag-time
+    /// highlight (<c>sub_ovr158_3D0</c> @0x56420 draws a one-pixel frame). One original px ->
+    /// canonical 5.</summary>
+    public float ContainerBorderWidthX { get; set; } = 5f;
 
-    /// <summary>Top/bottom border width of the container window's drag-time highlight. One
-    /// original px -> canonical 6.</summary>
-    public LayoutLength ContainerBorderWidthY { get; set; } = LayoutLength.Px(6f);
+    /// <summary>Top/bottom border width, in design-frame px, of the container window's drag-time
+    /// highlight. One original px -> canonical 6.</summary>
+    public float ContainerBorderWidthY { get; set; } = 6f;
 }
