@@ -21,6 +21,20 @@ public class LayoutHint {
     /// <summary>Height, in design-frame px or percent of the parent. Auto = intrinsic.</summary>
     public LayoutLength Height { get; set; } = LayoutLength.Auto;
 
+    /// <summary>Distance from the parent's left edge. Auto = not pinned by an inset; the
+    /// element's <see cref="Anchor"/> decides instead. An explicit inset always wins over
+    /// the anchor's implied pinning on the same edge.</summary>
+    public LayoutLength Left { get; set; } = LayoutLength.Auto;
+
+    /// <summary>Distance from the parent's top edge. See <see cref="Left"/>.</summary>
+    public LayoutLength Top { get; set; } = LayoutLength.Auto;
+
+    /// <summary>Distance from the parent's right edge. See <see cref="Left"/>.</summary>
+    public LayoutLength Right { get; set; } = LayoutLength.Auto;
+
+    /// <summary>Distance from the parent's bottom edge. See <see cref="Left"/>.</summary>
+    public LayoutLength Bottom { get; set; } = LayoutLength.Auto;
+
     /// <summary>Optional proportion to preserve. Meaningful when a size is given in percent —
     /// percent-of-width and percent-of-height are different units, so painted art needs this
     /// to avoid stretching. Applied via <c>LayoutApplier.ApplyAspectRatio</c> (native UI Toolkit

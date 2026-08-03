@@ -79,6 +79,29 @@ public class LayoutHintTests {
     }
 
     [Fact]
+    public void LayoutHint_InsetsDefaultToAuto() {
+        var hint = new LayoutHint();
+        Assert.Equal(LayoutLength.Auto, hint.Left);
+        Assert.Equal(LayoutLength.Auto, hint.Top);
+        Assert.Equal(LayoutLength.Auto, hint.Right);
+        Assert.Equal(LayoutLength.Auto, hint.Bottom);
+    }
+
+    [Fact]
+    public void LayoutHint_InsetsRoundTripThroughJson() {
+        var original = new LayoutHint {
+            Left = LayoutLength.Px(210f),
+            Right = LayoutLength.Px(215f),
+            Top = LayoutLength.Percent(27f)
+        };
+        LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(JsonSerializer.Serialize(original))!;
+        Assert.Equal(LayoutLength.Px(210f), restored.Left);
+        Assert.Equal(LayoutLength.Px(215f), restored.Right);
+        Assert.Equal(LayoutLength.Percent(27f), restored.Top);
+        Assert.Equal(LayoutLength.Auto, restored.Bottom);
+    }
+
+    [Fact]
     public void RoundTripsThroughJson_WithNullsPreserved() {
         var original = new LayoutHint();
         LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(JsonSerializer.Serialize(original))!;
