@@ -11,9 +11,38 @@ using System.Text.Json.Serialization;
 /// different units, so painted art sized purely in percent would otherwise stretch.
 /// </summary>
 [JsonConverter(typeof(LayoutAspectRatioJsonConverter))]
-public readonly record struct LayoutAspectRatio(float Width, float Height) {
-    /// <summary>Width divided by height. Always positive — both components are validated non-zero.</summary>
-    public float Ratio => Width / Height;
+public readonly record struct LayoutAspectRatio {
+    public LayoutAspectRatio(float width, float height) {
+        if (!IsUsable(width) || !IsUsable(height)) {
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                $"Aspect ratio components must be finite and positive; got {width}:{height}.");
+        }
+
+        Width = width;
+        Height = height;
+    }
+
+    public float Width { get; }
+
+    public float Height { get; }
+
+    /// <summary>Width divided by height.</summary>
+    /// <remarks>
+    /// The constructor rejects non-finite and non-positive components, so any ratio built
+    /// through <see cref="Parse"/> or the constructor is safe. A <c>default</c> struct value
+    /// bypasses both — C# guarantees every struct a zero value — so this throws rather than
+    /// returning NaN, which would otherwise flow silently into layout arithmetic.
+    /// </remarks>
+    public float Ratio =>
+        Height > 0f
+            ? Width / Height
+            : throw new InvalidOperationException(
+                "This LayoutAspectRatio is a default (uninitialised) value and has no ratio. " +
+                "Build one via LayoutAspectRatio.Parse or its constructor.");
+
+    private static bool IsUsable(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
 
     public static LayoutAspectRatio Parse(string text) =>
         TryParse(text, out LayoutAspectRatio result)

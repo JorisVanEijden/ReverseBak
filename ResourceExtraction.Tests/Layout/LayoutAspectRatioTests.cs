@@ -47,4 +47,18 @@ public class LayoutAspectRatioTests {
         Assert.Equal("\"10:9\"", JsonSerializer.Serialize(new LayoutAspectRatio(10f, 9f)));
         Assert.Equal(new LayoutAspectRatio(4f, 3f), JsonSerializer.Deserialize<LayoutAspectRatio>("\"4:3\""));
     }
+
+    [Fact]
+    public void Constructor_RejectsNonFiniteOrNonPositiveComponents() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LayoutAspectRatio(0f, 9f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LayoutAspectRatio(10f, 0f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LayoutAspectRatio(-10f, 9f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LayoutAspectRatio(float.NaN, 9f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LayoutAspectRatio(10f, float.PositiveInfinity));
+    }
+
+    [Fact]
+    public void Ratio_OnDefaultValue_ThrowsRatherThanReturningNaN() {
+        Assert.Throws<InvalidOperationException>(() => _ = default(LayoutAspectRatio).Ratio);
+    }
 }
