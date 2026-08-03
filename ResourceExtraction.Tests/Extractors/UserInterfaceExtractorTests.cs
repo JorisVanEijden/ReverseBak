@@ -1,8 +1,10 @@
 namespace ResourceExtraction.Tests.Extractors;
 
+using GameData.Resources.Layout;
 using GameData.Resources.Menu;
 
 using ResourceExtraction.Extractors;
+using ResourceExtraction.Imaging;
 using Xunit;
 
 public class UserInterfaceExtractorTests {
@@ -59,6 +61,47 @@ public class UserInterfaceExtractorTests {
         Assert.Equal(18, result.MenuEntries[0].YPosition);
         Assert.Equal(20, result.MenuEntries[0].Width);
         Assert.Equal(30, result.MenuEntries[0].Height);
+
+        Assert.NotNull(result.Frame);
+        Assert.Equal(AspectCorrection.CanonicalWidth, result.Frame.Width);
+        Assert.Equal(AspectCorrection.CanonicalHeight, result.Frame.Height);
+        Assert.Equal(LayoutFit.Contain, result.Frame.Fit);
+    }
+
+    // The REQ_CAMP case the brief calls out by name: a screen whose own box (a 1470x606 world-
+    // viewport panel at 65,66) is smaller than — and must never be conflated with — the 1600x1200
+    // canonical frame those coordinates resolve against.
+    [Fact]
+    public void Extract_EmitsAFrameDistinctFromTheScreensOwnBox() {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.ASCII, leaveOpen: true)) {
+            writer.Write((ushort)0);    // UserInterfaceType
+            writer.Write((ushort)0);    // IsModal
+            writer.Write((ushort)0);    // ColorBase
+            writer.Write((ushort)13);   // XPosition -> 65
+            writer.Write((ushort)11);   // YPosition -> 66
+            writer.Write((ushort)294);  // Width     -> 1470 (REQ_CAMP's panel, not the frame)
+            writer.Write((ushort)101);  // Height    -> 606
+            writer.Write((ushort)0);    // entry count placeholder
+            writer.Write((ushort)0);    // entry pointer placeholder
+            writer.Write((short)-1);    // titleOffset (none)
+            writer.Write((short)0);     // XOffset
+            writer.Write((short)0);     // YOffset
+            writer.Write((uint)0);      // bitmap pointer placeholder
+            writer.Write((ushort)0);    // numberOfElements
+            writer.Write((ushort)0);    // labelBufferSize
+        }
+        stream.Position = 0;
+
+        var result = new UserInterfaceExtractor().Extract("REQ_CAMP.DAT", stream);
+
+        Assert.Equal(1470, result.Width);
+        Assert.Equal(606, result.Height);
+        Assert.Equal(AspectCorrection.CanonicalWidth, result.Frame.Width);
+        Assert.Equal(AspectCorrection.CanonicalHeight, result.Frame.Height);
+        Assert.Equal(1600, result.Frame.Width);
+        Assert.Equal(1200, result.Frame.Height);
+        Assert.NotEqual(result.Width, result.Frame.Width);
     }
 
     [Theory]

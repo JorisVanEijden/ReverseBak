@@ -7,6 +7,7 @@ using GameData.Resources.Credits;
 using GameData.Resources.Layout;
 
 using ResourceExtraction.Extractors;
+using ResourceExtraction.Imaging;
 
 using Xunit;
 
@@ -104,5 +105,10 @@ public class CreditsLayoutTests {
         Assert.Equal(LayoutLength.Px(20f), credits.Layout.LeaderDotPitch);
         Assert.Equal(LayoutLength.Px(2.5f), credits.Layout.LeaderDotRadius);
         Assert.Equal(LayoutLength.Px(10f), credits.Layout.LeaderGap);
+
+        Assert.NotNull(credits.Frame);
+        Assert.Equal(AspectCorrection.CanonicalWidth, credits.Frame.Width);
+        Assert.Equal(AspectCorrection.CanonicalHeight, credits.Frame.Height);
+        Assert.Equal(LayoutFit.Contain, credits.Frame.Fit);
     }
 }

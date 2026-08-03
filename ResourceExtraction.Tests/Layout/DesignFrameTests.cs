@@ -23,6 +23,18 @@ public class DesignFrameTests {
     }
 
     [Fact]
+    public void CanonicalFrame_MatchesTheCanonicalDimensionsAndDefaultsToContain() {
+        // The one factory extractors build a screen's Frame from — asserted here so every
+        // extractor call site is guaranteed to agree, rather than each hand-rolling the pair.
+        DesignFrame frame = AspectCorrection.CanonicalFrame();
+        Assert.Equal(AspectCorrection.CanonicalWidth, frame.Width);
+        Assert.Equal(AspectCorrection.CanonicalHeight, frame.Height);
+        Assert.Equal(1600, frame.Width);
+        Assert.Equal(1200, frame.Height);
+        Assert.Equal(LayoutFit.Contain, frame.Fit);
+    }
+
+    [Fact]
     public void DesignFrame_RoundTripsThroughJson() {
         var original = new DesignFrame { Width = 1600, Height = 1200, Fit = LayoutFit.Fill };
         DesignFrame restored = System.Text.Json.JsonSerializer.Deserialize<DesignFrame>(

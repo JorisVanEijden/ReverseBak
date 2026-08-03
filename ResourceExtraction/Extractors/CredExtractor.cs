@@ -2,6 +2,8 @@ namespace ResourceExtraction.Extractors;
 
 using GameData.Resources.Credits;
 
+using ResourceExtraction.Imaging;
+
 using System.IO;
 using System.Text;
 
@@ -31,7 +33,8 @@ public class CredExtractor : ExtractorBase<CreditsData> {
 
         var credits = new CreditsData(id) {
             Title = count > 0 ? strings[0] : string.Empty,
-            Layout = new CreditsLayout()
+            Layout = new CreditsLayout(),
+            Frame = AspectCorrection.CanonicalFrame()
         };
 
         // The closing block (left index > count-5) is centered rather than

@@ -2,6 +2,8 @@ namespace GameData.Resources.Credits;
 
 using System.Collections.Generic;
 
+using GameData.Resources.Layout;
+
 // CRED.DAT — the intro credits text, scrolled by ShowCredits (KRONDOR.EXE
 // 0x40934) over the BLANK.SCX parchment. Entry [0] of the on-disk string table
 // is the title; the remaining entries are consumed as (role, name) pairs that
@@ -25,6 +27,11 @@ public class CreditsData : IResource {
     // Screen geometry, in design-frame px. Not read from CRED.DAT — transcribed from
     // scrollCredits (0x405f1); see CreditsLayout for per-value provenance.
     public CreditsLayout Layout { get; set; } = new();
+
+    // The coordinate space Layout's px values resolve against — the full canonical frame
+    // (credits has no separate "own box"; it always fills the screen). Populated by the
+    // extractor from AspectCorrection.CanonicalWidth/Height.
+    public DesignFrame Frame { get; set; } = new();
 }
 
 public class CreditLine {

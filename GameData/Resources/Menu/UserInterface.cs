@@ -1,5 +1,7 @@
 namespace GameData.Resources.Menu;
 
+using GameData.Resources.Layout;
+
 [Serializable]
 public class UserInterface : IResource {
     /// <summary>
@@ -25,6 +27,14 @@ public class UserInterface : IResource {
     public int YOffset { get; set; }
     public Colorset Colorset { get; set; } // semantic selector for the screen's palette range; the Unity theme maps this to actual colours
     public UiElement[] MenuEntries { get; set; } = [];
+
+    /// <summary>
+    /// The coordinate space XPosition/YPosition/Width/Height (and every MenuEntries rect) resolve
+    /// against. Distinct from the screen's own Width/Height above — e.g. REQ_CAMP's Width is 1470
+    /// (a panel), while its Frame is the full 1600x1200 canonical space it's positioned within.
+    /// Populated by the extractor from AspectCorrection.CanonicalWidth/Height.
+    /// </summary>
+    public DesignFrame Frame { get; set; } = new();
 
     public ResourceType Type {
         get => ResourceType.REQ;

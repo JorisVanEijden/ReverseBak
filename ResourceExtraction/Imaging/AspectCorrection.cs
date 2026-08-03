@@ -1,5 +1,7 @@
 namespace ResourceExtraction.Imaging;
 
+using GameData.Resources.Layout;
+
 /// <summary>
 /// Converts the DOS game's non-square pixels into square pixels at the extraction boundary,
 /// so every downstream consumer receives correctly-proportioned, engine-independent assets and
@@ -33,6 +35,13 @@ public static class AspectCorrection {
 
     /// <summary>Canonical frame height. See <see cref="CanonicalWidth"/>.</summary>
     public static int CanonicalHeight => VgaHeight * VgaScaleY;
+
+    /// <summary>
+    /// A fresh <see cref="DesignFrame"/> for the canonical space, at the faithful <see
+    /// cref="LayoutFit.Contain"/> default. The one place extractors build a screen's frame from,
+    /// so every screen resource derives it the same way instead of repeating the two fields.
+    /// </summary>
+    public static DesignFrame CanonicalFrame() => new() { Width = CanonicalWidth, Height = CanonicalHeight };
 
     /// <summary>Scales a VGA (320x200-space) X coordinate or width into canonical 1600x1200 space.</summary>
     public static int ScaleVgaX(int x) => x * VgaScaleX;

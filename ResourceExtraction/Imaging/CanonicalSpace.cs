@@ -30,6 +30,9 @@ public static class CanonicalSpace {
             entry.Width = AspectCorrection.ScaleVgaX(entry.Width);
             entry.Height = AspectCorrection.ScaleVgaY(entry.Height);
         }
+        // The frame is the coordinate space the rects above resolve against — separate from
+        // ui.Width/Height, which is the screen's own box (e.g. REQ_CAMP's 1470x606 panel).
+        ui.Frame = AspectCorrection.CanonicalFrame();
     }
 
     public static void Apply(LabelSet labels) {
