@@ -17,16 +17,29 @@ public class CreditsLayoutTests {
     [Fact]
     public void Defaults_MatchTheOriginalCanonicalGeometry() {
         var layout = new CreditsLayout();
-        Assert.Equal(LayoutLength.Px(246f), layout.TitleY);
-        Assert.Equal(LayoutLength.Px(324f), layout.WindowTop);
-        Assert.Equal(LayoutLength.Px(948f), layout.WindowBottom);
-        Assert.Equal(LayoutLength.Px(66f), layout.LineHeight);
-        Assert.Equal(LayoutLength.Px(210f), layout.RoleLeftX);
-        Assert.Equal(LayoutLength.Px(1385f), layout.NameRightX);
-        Assert.Equal(LayoutLength.Px(800f), layout.CenterX);
+
+        // Title band: VGA y=41 -> 246 canonical, horizontally centred.
+        Assert.Equal(LayoutLength.Px(246f), layout.Title.Height);
+        Assert.Equal(LayoutAnchor.TopCenter, layout.Title.Anchor);
+
+        // Window: top VGA y=54 -> 324; bottom VGA y=158 -> 948, so height 948-324 = 624.
+        Assert.Equal(LayoutLength.Px(324f), layout.Window.Top);
+        Assert.Equal(LayoutLength.Px(624f), layout.Window.Height);
+
+        // Row: left VGA x=42 -> 210; name right edge VGA x=277 -> 1385, so right inset
+        // 1600-1385 = 215. Height VGA 11 -> 66.
+        Assert.Equal(LayoutLength.Px(210f), layout.Row.Left);
+        Assert.Equal(LayoutLength.Px(215f), layout.Row.Right);
+        Assert.Equal(LayoutLength.Px(66f), layout.Row.Height);
+        Assert.NotNull(layout.Row.Flow);
+        Assert.Equal(LayoutFlowDirection.Row, layout.Row.Flow.Direction);
+        Assert.Equal(LayoutFlowJustify.SpaceBetween, layout.Row.Flow.Justify);
+        Assert.False(layout.Row.Flow.Wrap);
+
+        // Paint parameters, unchanged from the coordinate model.
+        Assert.Equal(LayoutLength.Px(48f), layout.FontSize);
         Assert.Equal(LayoutLength.Px(96f), layout.FadeTopBand);
         Assert.Equal(LayoutLength.Px(102f), layout.FadeBottomBand);
-        Assert.Equal(LayoutLength.Px(48f), layout.FontSize);
         Assert.Equal(LayoutLength.Px(20f), layout.LeaderDotPitch);
         Assert.Equal(LayoutLength.Px(2.5f), layout.LeaderDotRadius);
         Assert.Equal(LayoutLength.Px(10f), layout.LeaderGap);
@@ -56,13 +69,26 @@ public class CreditsLayoutTests {
 
         Assert.Equal("CREDITS", credits.Title);
         Assert.NotNull(credits.Layout);
-        Assert.Equal(LayoutLength.Px(246f), credits.Layout.TitleY);
-        Assert.Equal(LayoutLength.Px(324f), credits.Layout.WindowTop);
-        Assert.Equal(LayoutLength.Px(948f), credits.Layout.WindowBottom);
-        Assert.Equal(LayoutLength.Px(66f), credits.Layout.LineHeight);
-        Assert.Equal(LayoutLength.Px(210f), credits.Layout.RoleLeftX);
-        Assert.Equal(LayoutLength.Px(1385f), credits.Layout.NameRightX);
-        Assert.Equal(LayoutLength.Px(800f), credits.Layout.CenterX);
+
+        // Title band: VGA y=41 -> 246 canonical, horizontally centred.
+        Assert.Equal(LayoutLength.Px(246f), credits.Layout.Title.Height);
+        Assert.Equal(LayoutAnchor.TopCenter, credits.Layout.Title.Anchor);
+
+        // Window: top VGA y=54 -> 324; bottom VGA y=158 -> 948, so height 948-324 = 624.
+        Assert.Equal(LayoutLength.Px(324f), credits.Layout.Window.Top);
+        Assert.Equal(LayoutLength.Px(624f), credits.Layout.Window.Height);
+
+        // Row: left VGA x=42 -> 210; name right edge VGA x=277 -> 1385, so right inset
+        // 1600-1385 = 215. Height VGA 11 -> 66.
+        Assert.Equal(LayoutLength.Px(210f), credits.Layout.Row.Left);
+        Assert.Equal(LayoutLength.Px(215f), credits.Layout.Row.Right);
+        Assert.Equal(LayoutLength.Px(66f), credits.Layout.Row.Height);
+        Assert.NotNull(credits.Layout.Row.Flow);
+        Assert.Equal(LayoutFlowDirection.Row, credits.Layout.Row.Flow.Direction);
+        Assert.Equal(LayoutFlowJustify.SpaceBetween, credits.Layout.Row.Flow.Justify);
+        Assert.False(credits.Layout.Row.Flow.Wrap);
+
+        // Paint parameters, unchanged from the coordinate model.
         Assert.Equal(LayoutLength.Px(96f), credits.Layout.FadeTopBand);
         Assert.Equal(LayoutLength.Px(102f), credits.Layout.FadeBottomBand);
         Assert.Equal(LayoutLength.Px(48f), credits.Layout.FontSize);

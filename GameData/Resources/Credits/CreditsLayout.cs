@@ -12,30 +12,51 @@ using GameData.Resources.Layout;
 /// the flag predicates on <see cref="CreditLine"/> are resolved at extraction, so the renderer
 /// needs no knowledge of the original display.</para>
 ///
+/// <para>Expressed as <see cref="LayoutHint"/> boxes — title band, clipped window, row template —
+/// rather than 13 loose named coordinates, so <c>LayoutApplier.Apply</c> can consume them
+/// directly and an override can reflow the screen with percentages. Only paint parameters that
+/// are genuinely not box geometry (font size, fade bands, leader-dot metrics) remain plain
+/// lengths.</para>
+///
 /// <para>The defaults are the faithful values: an override that omits a property still gets the
 /// original geometry.</para>
 /// </summary>
 public class CreditsLayout {
-    /// <summary>Baseline of the centred title above the scroll region. VGA y=41.</summary>
-    public LayoutLength TitleY { get; set; } = LayoutLength.Px(246f);
+    /// <summary>Title band above the scroll region. The original drew the centred title's
+    /// baseline at VGA y=41 -> 246 canonical; here that value becomes the height of the band the
+    /// title occupies, with <see cref="LayoutAnchor.TopCenter"/> supplying the horizontal
+    /// centring that the (now-deleted) <c>CenterX</c> constant did before.</summary>
+    public LayoutHint Title { get; set; } = new LayoutHint {
+        Height = LayoutLength.Px(246f),
+        Anchor = LayoutAnchor.TopCenter
+    };
 
-    /// <summary>Top of the scrolling window; lines above this are clipped. VGA y=54.</summary>
-    public LayoutLength WindowTop { get; set; } = LayoutLength.Px(324f);
+    /// <summary>The scrolling window; lines outside it are clipped. Top inset is VGA y=54 -> 324,
+    /// unchanged. Height is derived, not transcribed: bottom was VGA y=158 -> 948, so
+    /// height = 948 - 324 = <b>624</b>.</summary>
+    public LayoutHint Window { get; set; } = new LayoutHint {
+        Top = LayoutLength.Px(324f),
+        Height = LayoutLength.Px(624f)
+    };
 
-    /// <summary>Bottom of the scrolling window. VGA y=158.</summary>
-    public LayoutLength WindowBottom { get; set; } = LayoutLength.Px(948f);
-
-    /// <summary>Vertical advance between successive credit lines. VGA 11.</summary>
-    public LayoutLength LineHeight { get; set; } = LayoutLength.Px(66f);
-
-    /// <summary>Left edge of the role column. VGA x=42.</summary>
-    public LayoutLength RoleLeftX { get; set; } = LayoutLength.Px(210f);
-
-    /// <summary>Right edge the name column is flushed against. VGA x=277.</summary>
-    public LayoutLength NameRightX { get; set; } = LayoutLength.Px(1385f);
-
-    /// <summary>Horizontal centre used for the title and for centred closing lines. VGA x=160.</summary>
-    public LayoutLength CenterX { get; set; } = LayoutLength.Px(800f);
+    /// <summary>Template for one credit row (role, leader, name). Left inset is VGA x=42 -> 210,
+    /// unchanged. Right inset is derived, not transcribed: the name column's right edge was VGA
+    /// x=277 -> 1385, and the design frame is 1600px wide, so
+    /// right inset = 1600 - 1385 = <b>215</b>. Height is the line advance, VGA 11 -> 66,
+    /// unchanged. <see cref="LayoutHint.Flow"/> flows role and name to opposite edges with the
+    /// leader filling the gap between (<c>flexGrow: 1</c>), reproducing the original's absolute
+    /// placement exactly at these faithful insets.</summary>
+    public LayoutHint Row { get; set; } = new LayoutHint {
+        Left = LayoutLength.Px(210f),
+        Right = LayoutLength.Px(215f),
+        Height = LayoutLength.Px(66f),
+        Flow = new LayoutFlow {
+            Direction = LayoutFlowDirection.Row,
+            Wrap = false,
+            Justify = LayoutFlowJustify.SpaceBetween,
+            Align = LayoutFlowAlign.Center
+        }
+    };
 
     /// <summary>Height of the fade band at the top of the window. VGA 16.</summary>
     public LayoutLength FadeTopBand { get; set; } = LayoutLength.Px(96f);
