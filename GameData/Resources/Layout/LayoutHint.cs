@@ -54,4 +54,13 @@ public class LayoutHint {
     /// independent of <see cref="Position"/>, which decides how THIS element is placed in its
     /// own parent. Null = children are not flowed (each positions itself independently).</summary>
     public LayoutFlow? Flow { get; set; }
+
+    /// <summary>Non-null makes this element a fixed-cell-grid container for its own children —
+    /// UI Toolkit's flexbox has no "this child spans 2 columns x 2 rows" concept, so this fills
+    /// that gap (see <see cref="LayoutGrid"/>). Purely about the CHILDREN's layout, exactly like
+    /// <see cref="Flow"/> — independent of <see cref="Position"/> (how THIS element sits in its
+    /// own parent) AND independent of <see cref="Flow"/> itself: nothing here forces an either/or
+    /// choice between a grid and a flow container. Null = children are not grid-placed, which is
+    /// the default and what every extractor emits.</summary>
+    public LayoutGrid? Grid { get; set; }
 }

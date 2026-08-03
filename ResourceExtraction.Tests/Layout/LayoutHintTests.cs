@@ -113,4 +113,86 @@ public class LayoutHintTests {
         Assert.Equal(LayoutLength.Auto, restored.Width);
         Assert.Equal(LayoutLength.Auto, restored.Height);
     }
+
+    [Fact]
+    public void LayoutGrid_DefaultsToAutoCellsAndZeroDimensions() {
+        var grid = new LayoutGrid();
+        Assert.Equal(LayoutLength.Auto, grid.CellWidth);
+        Assert.Equal(LayoutLength.Auto, grid.CellHeight);
+        Assert.Equal(0, grid.Columns);
+        Assert.Equal(0, grid.Rows);
+    }
+
+    [Fact]
+    public void LayoutGridPlacement_SpansDefaultToOne() {
+        var placement = new LayoutGridPlacement();
+        Assert.Equal(0, placement.Column);
+        Assert.Equal(0, placement.Row);
+        Assert.Equal(1, placement.ColumnSpan);
+        Assert.Equal(1, placement.RowSpan);
+    }
+
+    [Fact]
+    public void LayoutGrid_RoundTripsThroughJson() {
+        var original = new LayoutGrid {
+            CellWidth = LayoutLength.Px(200f),
+            CellHeight = LayoutLength.Percent(15f),
+            Columns = 3,
+            Rows = 2
+        };
+
+        LayoutGrid restored = JsonSerializer.Deserialize<LayoutGrid>(JsonSerializer.Serialize(original))!;
+
+        Assert.Equal(LayoutLength.Px(200f), restored.CellWidth);
+        Assert.Equal(LayoutLength.Percent(15f), restored.CellHeight);
+        Assert.Equal(3, restored.Columns);
+        Assert.Equal(2, restored.Rows);
+    }
+
+    [Fact]
+    public void LayoutGridPlacement_RoundTripsThroughJson() {
+        var original = new LayoutGridPlacement {
+            Column = 2,
+            Row = 1,
+            ColumnSpan = 2,
+            RowSpan = 2
+        };
+
+        LayoutGridPlacement restored = JsonSerializer.Deserialize<LayoutGridPlacement>(JsonSerializer.Serialize(original))!;
+
+        Assert.Equal(2, restored.Column);
+        Assert.Equal(1, restored.Row);
+        Assert.Equal(2, restored.ColumnSpan);
+        Assert.Equal(2, restored.RowSpan);
+    }
+
+    [Fact]
+    public void LayoutHint_Grid_DefaultsToNull() {
+        Assert.Null(new LayoutHint().Grid);
+    }
+
+    [Fact]
+    public void LayoutHint_Grid_RoundTripsThroughJson_IndependentlyOfFlowAndPosition() {
+        var original = new LayoutHint {
+            Position = LayoutPosition.Absolute,
+            Flow = null,
+            Grid = new LayoutGrid {
+                CellWidth = LayoutLength.Px(200f),
+                CellHeight = LayoutLength.Px(180f),
+                Columns = 3,
+                Rows = 2
+            }
+        };
+
+        LayoutHint restored = JsonSerializer.Deserialize<LayoutHint>(JsonSerializer.Serialize(original))!;
+
+        Assert.NotNull(restored.Grid);
+        Assert.Equal(LayoutLength.Px(200f), restored.Grid!.CellWidth);
+        Assert.Equal(LayoutLength.Px(180f), restored.Grid.CellHeight);
+        Assert.Equal(3, restored.Grid.Columns);
+        Assert.Equal(2, restored.Grid.Rows);
+        // Grid coexists with Position/Flow rather than displacing them.
+        Assert.Equal(LayoutPosition.Absolute, restored.Position);
+        Assert.Null(restored.Flow);
+    }
 }
