@@ -8,6 +8,13 @@ using Xunit;
 
 public class DialogStyleTableTests {
     /// <summary>
+    /// The shipped table, as the resource system hands it out when nothing is overridden.
+    /// A fresh instance per test class: <see cref="DialogStyleTable"/> is a resource now
+    /// (DIALSTYL.DAT) rather than a static array, so there is no global to reach for.
+    /// </summary>
+    private readonly DialogStyleTable _table = new();
+
+    /// <summary>
     /// Every defined row's shipped rect, stated as the RAW VGA (320x200-space) numbers from the
     /// row comments in <see cref="DialogStyleTable"/> — not the canonical numbers. The test body
     /// multiplies by <see cref="AspectCorrection.VgaScaleX"/>/<see cref="AspectCorrection.VgaScaleY"/>,
@@ -30,7 +37,7 @@ public class DialogStyleTableTests {
     [MemberData(nameof(ShippedRowsInVga))]
     public void DefaultArea_IsTheShippedCanonicalRect_InDesignFramePx(
         int row, int vgaLeft, int vgaTop, int vgaWidth, int vgaHeight) {
-        LayoutHint area = DialogStyleTable.Get(row).DefaultArea;
+        LayoutHint area = _table.Get(row).DefaultArea;
 
         // Unit-bearing assertions throughout: a bare number would pass just as happily against a
         // percentage of the same magnitude, and "right number, wrong unit" is the defect class
@@ -63,8 +70,8 @@ public class DialogStyleTableTests {
     /// </summary>
     [Fact]
     public void Row5_DiffersFromRow2_InHeightAlone() {
-        DialogStyle row2 = DialogStyleTable.Get(2);
-        DialogStyle row5 = DialogStyleTable.Get(5);
+        DialogStyle row2 = _table.Get(2);
+        DialogStyle row5 = _table.Get(5);
 
         Assert.Equal(row2.DefaultArea.Left, row5.DefaultArea.Left);
         Assert.Equal(row2.DefaultArea.Top, row5.DefaultArea.Top);
@@ -147,14 +154,29 @@ public class DialogStyleTableTests {
     }
 
     /// <summary>
-    /// <see cref="DialogStyle"/> is a class now, so <see cref="DialogStyleTable.Get"/> hands back
-    /// a reference into the shared table rather than the defensive copy the old record struct
-    /// gave every caller. This test states that as a fact of the API (it is what Task 3's
-    /// resource identity will hang an override off) so a future change that starts cloning is a
-    /// deliberate decision rather than a silent one.
+    /// <see cref="DialogStyleTable.Get"/> hands back the table's own row rather than a defensive
+    /// copy. Stated as a fact of the API so a future change that starts cloning is a deliberate
+    /// decision rather than a silent one — the reason it does not clone is that cloning would
+    /// allocate per dialog for no gain, and the one field a caller keeps as live state
+    /// (DefaultArea) is already cloned at that boundary by DialogManager.ResolveArea.
     /// </summary>
     [Fact]
-    public void Get_ReturnsTheSharedTableRow_NotACopy() {
-        Assert.Same(DialogStyleTable.Get(2), DialogStyleTable.Get(2));
+    public void Get_ReturnsTheTablesOwnRow_NotACopy() {
+        Assert.Same(_table.Get(2), _table.Get(2));
+    }
+
+    /// <summary>
+    /// TWO tables must not share row objects, though. The rows are the type's defaults, so a
+    /// shared static array behind the initializer would mean a caller mutating a row of the
+    /// modded table silently rewrote the shipped one (and every other table instance) too.
+    /// </summary>
+    [Fact]
+    public void TwoTables_DoNotShareRowInstances() {
+        var other = new DialogStyleTable();
+
+        Assert.NotSame(_table.Get(2), other.Get(2));
+        Assert.NotSame(_table.Get(2).DefaultArea, other.Get(2).DefaultArea);
+        // Same values, though — both are the shipped row.
+        Assert.Equal(_table.Get(2).DefaultArea.Height, other.Get(2).DefaultArea.Height);
     }
 }

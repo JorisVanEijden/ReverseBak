@@ -72,6 +72,14 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--dialog-styles") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            IResourceProvider provider = ResourceProviderFactory.CreateResourceProvider(gamePath);
+            DialogStyleTable styles = provider.GetResource<DialogStyleTable>(DialogStyleTable.ResourceId);
+            WriteToJsonFile("DIALSTYL.DAT", ResourceType.DAT, styles.ToJson());
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--world") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractZoneData(gamePath);

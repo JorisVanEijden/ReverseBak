@@ -59,6 +59,10 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
+    public static string ToJson(this DialogStyleTable resource) {
+        return JsonSerializer.Serialize(resource, JsonOptions);
+    }
+
     public static string ToJson(this LabelSet resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }

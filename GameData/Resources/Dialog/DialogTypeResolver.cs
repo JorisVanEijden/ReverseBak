@@ -59,9 +59,18 @@ public static class DialogTypeResolver {
 
     /// <summary>
     /// Resolve and look up the style in one step.
+    ///
+    /// <para>The table is a parameter, not a static: <see cref="DialogStyleTable"/> is a
+    /// resource now (<c>DIALSTYL.DAT</c>) and the caller holds whichever instance the resource
+    /// system gave it — the shipped one, or a mod's. There is deliberately no overload that
+    /// reaches for a static shipped table, because that would be a silent way to bypass an
+    /// author's override.</para>
     /// </summary>
-    public static DialogStyle ResolveStyle(DialogContext context, DialogEntry entry) {
+    public static DialogStyle ResolveStyle(DialogContext context, DialogEntry entry, DialogStyleTable table) {
+        if (table is null) {
+            throw new ArgumentNullException(nameof(table));
+        }
         int rowId = ResolveEffectiveStyleId(context, entry);
-        return DialogStyleTable.Get(rowId);
+        return table.Get(rowId);
     }
 }

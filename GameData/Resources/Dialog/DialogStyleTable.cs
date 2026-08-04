@@ -17,15 +17,102 @@ using GameData.Resources.Layout;
 /// Each row's area is stated as design-frame px in the canonical 1600×1200 space — the row
 /// comments carry the original VGA (320×200) numbers the ×5/×6 factors were applied to, so every
 /// literal below stays checkable against the binary.
+///
+/// <para><b>A resource, not a static array.</b> The table has a resource identity
+/// (<see cref="ResourceId"/> = <c>DIALSTYL.DAT</c>, <see cref="ResourceType.DAT"/>) that
+/// corresponds to no archive member — it is synthesized in code, exactly as
+/// <c>ChapterCatalog</c> (<c>CHAPTERS.DAT</c>) is. That identity is the whole point: it is what
+/// puts the table on the existing mod-override path, so an author can move or resize a dialog
+/// box by writing <c>&lt;OverridePath&gt;/DAT/DIALSTYL.json</c> instead of recompiling
+/// <c>GameData.dll</c>. Nothing resolves a style through a static any more — a caller holds the
+/// table instance the resource system handed it, which is either the shipped one below or the
+/// modded one.</para>
+///
+/// <para><b>The shipped rows are this type's defaults</b> (<see cref="Rows"/>'s initializer), so
+/// <c>new DialogStyleTable()</c> is the faithful table and every consumer has a correct fallback
+/// with no game data in hand. <see cref="Rows"/> is an ARRAY deliberately: both serializers
+/// replace an array-valued property wholesale, whereas Newtonsoft would *append* to a
+/// pre-populated <c>List&lt;T&gt;</c> and hand back 14 rows. Note that a whole-document override
+/// therefore replaces the array — see the remarks on <see cref="CreateShipped"/> for how the
+/// override path merges onto the shipped table rather than replacing it, and why it must.</para>
 /// </summary>
-public static class DialogStyleTable {
+public class DialogStyleTable : IResource {
+    /// <summary>
+    /// Well-known resource id under which the (synthesized) table is provided/loaded. There is no
+    /// <c>DIALSTYL.DAT</c> member in <c>KRONDOR.001</c> — the original kept this data inside the
+    /// executable's data segment. The name follows the archive's 8.3 convention so the override
+    /// locator, which only ever looks at the key string, resolves it to
+    /// <c>&lt;OverridePath&gt;/DAT/DIALSTYL.json</c> like any other DAT resource.
+    /// </summary>
+    public const string ResourceId = "DIALSTYL.DAT";
+
     /// <summary>Number of rows in the original table.</summary>
     public const int Length = 7;
+
+    public ResourceType Type => ResourceType.DAT;
+
+    public string Id { get; set; } = ResourceId;
+
+    /// <summary>
+    /// The style rows, index = effective style id. Index 0 is null (unused padding in the
+    /// original). Defaults to the shipped table — see <see cref="CreateShippedRows"/>.
+    /// </summary>
+    public DialogStyle?[] Rows { get; set; } = CreateShippedRows();
+
+    /// <summary>
+    /// A fresh table carrying the shipped (faithful) rows, under the given id. This is the
+    /// baseline the resource providers hand out when nothing is overridden, and — crucially —
+    /// the baseline an override document is merged ONTO rather than replacing.
+    ///
+    /// <para>The merge is not optional politeness. <see cref="DialogStyle"/>'s own type defaults
+    /// are all-zero pens and an all-Auto area; they are NOT the shipped values. So a document
+    /// that names only what it wants to change (the normal thing a mod author writes) would,
+    /// under a plain deserialize, silently zero every pen it did not mention — and an all-zero
+    /// chrome makes the renderer skip the panel entirely. The author would move a box and lose
+    /// the box. The override path therefore merges the document onto this baseline at the JSON
+    /// level, which is the only place "omitted" and "explicitly 0" are still distinguishable.</para>
+    /// </summary>
+    public static DialogStyleTable CreateShipped(string id = ResourceId) => new() { Id = id };
+
+    /// <summary>
+    /// Look up the style for an effective row index (the value the dispatcher
+    /// returns and writes back to <c>dialogEntry.dialogType</c>).
+    ///
+    /// <para>Returns the table's own row instance, not a copy — deliberately. Cloning here would
+    /// allocate on every dialog for no gain: the pens are read and consumed immediately, and the
+    /// one field a caller stores as its own live state, <see cref="DialogStyle.DefaultArea"/>, is
+    /// already cloned at that boundary by <c>DialogManager.ResolveArea</c>. Callers must
+    /// otherwise treat a looked-up style as read-only — the table instance is cached and shared
+    /// by the resource system, so mutating a row would change the style every later dialog of
+    /// that row renders with.</para>
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="rowIndex"/> is outside the table.</exception>
+    /// <exception cref="InvalidOperationException">If row 0 is requested (dispatcher never produces it).</exception>
+    public DialogStyle Get(int rowIndex) {
+        if (Rows is null || rowIndex < 0 || rowIndex >= Rows.Length) {
+            throw new ArgumentOutOfRangeException(nameof(rowIndex), rowIndex,
+                $"Must be 0..{(Rows?.Length ?? 0) - 1}.");
+        }
+        DialogStyle? style = Rows[rowIndex];
+        if (style is null) {
+            throw new InvalidOperationException(
+                $"Row {rowIndex} of dialogTypeData is unused in the original game (dispatcher never returns this index).");
+        }
+        return style;
+    }
+
+    /// <summary>True if the given index has a defined style (not unreachable padding).</summary>
+    public bool IsDefined(int rowIndex) =>
+        Rows is not null && rowIndex >= 0 && rowIndex < Rows.Length && Rows[rowIndex] is not null;
 
     // Each row's shipped rectangle goes through LayoutHint.PxRect — the same factory
     // ResizeDialogAction.ToLayoutHint uses — so a style's area and the per-entry resize that
     // replaces it are built identically and cannot drift into different units or anchors.
-    private static readonly DialogStyle?[] Rows = {
+    //
+    // Built fresh on every call rather than handed out from a shared static: two table instances
+    // (say the shipped one and a modded one) must not share row objects, or mutating a row
+    // through one would silently rewrite the other.
+    private static DialogStyle?[] CreateShippedRows() => new DialogStyle?[] {
         // Row 0: unused. The dispatcher never returns 0 (default is 2; source
         // byte == 0 leaves the default in place — it does not override to 0).
         // The bytes at 0x3a831 for this row are init padding.
@@ -141,28 +228,4 @@ public static class DialogStyleTable {
             TextPadRightPct = 0.37037f,
         },
     };
-
-    /// <summary>
-    /// Look up the style for an effective row index (the value the dispatcher
-    /// returns and writes back to <c>dialogEntry.dialogType</c>).
-    ///
-    /// <para>Returns the shared table row itself, not a copy — see the remarks on
-    /// <see cref="DialogStyle"/>. Callers must treat it as read-only.</para>
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="rowIndex"/> is outside 1..6.</exception>
-    /// <exception cref="InvalidOperationException">If row 0 is requested (dispatcher never produces it).</exception>
-    public static DialogStyle Get(int rowIndex) {
-        if (rowIndex < 0 || rowIndex >= Length) {
-            throw new ArgumentOutOfRangeException(nameof(rowIndex), rowIndex, $"Must be 0..{Length - 1}.");
-        }
-        DialogStyle? style = Rows[rowIndex];
-        if (style is null) {
-            throw new InvalidOperationException(
-                $"Row {rowIndex} of dialogTypeData is unused in the original game (dispatcher never returns this index).");
-        }
-        return style;
-    }
-
-    /// <summary>True if the given index has a defined style (not unreachable padding).</summary>
-    public static bool IsDefined(int rowIndex) => rowIndex >= 0 && rowIndex < Length && Rows[rowIndex] is not null;
 }

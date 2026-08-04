@@ -1,6 +1,7 @@
 namespace GameData.Resources.Dialog;
 
 using GameData.Resources.Layout;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Per-style chrome + text configuration for a DDX dialog. One row of the
@@ -113,14 +114,21 @@ public class DialogStyle {
     /// </summary>
     public float TextPadRightPct { get; set; }
 
+    // The five properties below are DERIVED — read-only convenience over the pen fields above.
+    // They are ignored by the serializer on purpose: DIALSTYL.json is not just an extractor
+    // output, it is the document a mod author copies and edits, and a field that looks settable
+    // but silently does nothing (no setter to deserialize into) is a trap. Change the pen; the
+    // derived answer follows.
     /// <summary>
     /// True → renderer overdraws the panel with a stripe-textured fill (via
     /// <c>vga_sub_14DD7</c>). False → renderer blits the saved background
     /// from VGA buffer C into buffer 1, preserving what was underneath.
     /// </summary>
+    [JsonIgnore]
     public bool UsesTexturedFill => FillPenColor != 0;
 
     /// <summary>True → draw a filled border in <see cref="BorderPenColor"/>.</summary>
+    [JsonIgnore]
     public bool HasBorder => BorderPenColor != 0;
 
     /// <summary>
@@ -130,6 +138,7 @@ public class DialogStyle {
     /// This is panel chrome — it does NOT control the text drop-shadow (see
     /// <see cref="HasTextShadow"/>).
     /// </summary>
+    [JsonIgnore]
     public bool HasDropShadow => ShadowPenColor != 0;
 
     /// <summary>
@@ -138,6 +147,7 @@ public class DialogStyle {
     /// it). Driven by <c>dialogTypeData.field_3</c>: the engine runs the shadow
     /// pass only when <c>field_3 != 0</c> (0x48d7b @ 0x490bf).
     /// </summary>
+    [JsonIgnore]
     public bool HasTextShadow => TextShadowPenSource != 0;
 
     /// <summary>
@@ -145,5 +155,6 @@ public class DialogStyle {
     /// <c>field_3 - 1</c> (0x490c8). Only meaningful when
     /// <see cref="HasTextShadow"/> is true.
     /// </summary>
+    [JsonIgnore]
     public byte TextShadowPenColor => (byte)(TextShadowPenSource - 1);
 }

@@ -10,6 +10,10 @@ using Xunit;
 /// future change to the resolver fails loudly.
 /// </summary>
 public class DialogTypeResolverTests {
+    /// <summary>The shipped style table — a resource instance now (DIALSTYL.DAT), not a
+    /// static array, so tests hold one exactly as the runtime does.</summary>
+    private readonly DialogStyleTable _table = new();
+
 
     // ────────────────── Precedence: no overrides ──────────────────
 
@@ -155,7 +159,7 @@ public class DialogTypeResolverTests {
         // VGA (13, 11, 294, 101) → canonical (65, 66, 1470, 606).
         var entry = new DialogEntry { DialogType = DialogType.Normal, ActorNumber = 0 };
 
-        DialogStyle style = DialogTypeResolver.ResolveStyle(DialogContext.None, entry);
+        DialogStyle style = DialogTypeResolver.ResolveStyle(DialogContext.None, entry, _table);
 
         Assert.Equal(LayoutLength.Px(65f), style.DefaultArea.Left);
         Assert.Equal(LayoutLength.Px(66f), style.DefaultArea.Top);
@@ -169,8 +173,8 @@ public class DialogTypeResolverTests {
     public void StyleTable_Row0_IsUnreachableAndThrows() {
         // The dispatcher never produces dx=0 (default is 2, source byte 0
         // doesn't override). Row 0's bytes at 0x3a831 are init padding.
-        Assert.False(DialogStyleTable.IsDefined(0));
-        Assert.Throws<InvalidOperationException>(() => DialogStyleTable.Get(0));
+        Assert.False(_table.IsDefined(0));
+        Assert.Throws<InvalidOperationException>(() => _table.Get(0));
     }
 
     [Theory]
@@ -181,8 +185,8 @@ public class DialogTypeResolverTests {
     [InlineData(5)]
     [InlineData(6)]
     public void StyleTable_DefinedRows_AreLookable(int rowId) {
-        Assert.True(DialogStyleTable.IsDefined(rowId));
-        DialogStyle style = DialogStyleTable.Get(rowId);
+        Assert.True(_table.IsDefined(rowId));
+        DialogStyle style = _table.Get(rowId);
 
         // Smoke check — defined rows must have a non-empty area, and it must be stated in the
         // design frame's own px (the space every extracted value is in), not left Auto.
@@ -197,15 +201,15 @@ public class DialogTypeResolverTests {
     [InlineData(7)]
     [InlineData(100)]
     public void StyleTable_OutOfRange_Throws(int rowId) {
-        Assert.False(DialogStyleTable.IsDefined(rowId));
-        Assert.Throws<ArgumentOutOfRangeException>(() => DialogStyleTable.Get(rowId));
+        Assert.False(_table.IsDefined(rowId));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _table.Get(rowId));
     }
 
     [Fact]
     public void StyleTable_Row6_HasFullScreenArea() {
         // From bytes at 0x3a8b5: actionData VGA (25, 21, 270, 160)
         // → canonical (125, 126, 1350, 960).
-        DialogStyle style = DialogStyleTable.Get(6);
+        DialogStyle style = _table.Get(6);
 
         Assert.Equal(LayoutLength.Px(125f), style.DefaultArea.Left);
         Assert.Equal(LayoutLength.Px(126f), style.DefaultArea.Top);
@@ -220,7 +224,7 @@ public class DialogTypeResolverTests {
         // row 1), NOT 16 — a prior transcription used 5% and pushed
         // Left+Width past 1600. Fields are (X, Y, Width, Height), per the
         // field use in dialog_DrawChrome (0x48632).
-        DialogStyle style = DialogStyleTable.Get(3);
+        DialogStyle style = _table.Get(3);
 
         Assert.Equal(LayoutLength.Px(40f), style.DefaultArea.Left);
         Assert.Equal(LayoutLength.Px(708f), style.DefaultArea.Top);
@@ -236,7 +240,7 @@ public class DialogTypeResolverTests {
     [Fact]
     public void StyleTable_Row2_HasShadowAndBorder() {
         // From bytes at 0x3a859: field_4=0x01 (border), field_5=0x04 (shadow).
-        DialogStyle style = DialogStyleTable.Get(2);
+        DialogStyle style = _table.Get(2);
 
         Assert.True(style.HasBorder);
         Assert.Equal(0x01, style.BorderPenColor);
@@ -250,7 +254,7 @@ public class DialogTypeResolverTests {
         // i.e. they preserve the underlying buffer (no fill, no border, no shadow).
         // The renderer's buffer-C→1 blit branch at 0x48735 handles them.
         foreach (int rowId in new[] { 1, 3, 6 }) {
-            DialogStyle style = DialogStyleTable.Get(rowId);
+            DialogStyle style = _table.Get(rowId);
             Assert.False(style.UsesTexturedFill);
             Assert.False(style.HasBorder);
             Assert.False(style.HasDropShadow);
@@ -267,7 +271,7 @@ public class DialogTypeResolverTests {
     public void StyleTable_Row1_ColoredWithoutBox_BodyPen10_ShadowPen1() {
         // From bytes at 0x3a845: field_2=0x0A (body text = bright cream pen 10,
         // same pen the name bubble uses), field_3=0x02 → text shadow in pen 1.
-        DialogStyle style = DialogStyleTable.Get(1);
+        DialogStyle style = _table.Get(1);
 
         Assert.Equal(0x0A, style.BodyTextPenColor);
         Assert.True(style.HasTextShadow);
@@ -277,7 +281,7 @@ public class DialogTypeResolverTests {
     [Fact]
     public void StyleTable_Row4_UnreachableTwinOfRow1() {
         // Row 4 is identical to row 1 (bytes at 0x3a881): same body/shadow pens.
-        DialogStyle style = DialogStyleTable.Get(4);
+        DialogStyle style = _table.Get(4);
 
         Assert.Equal(0x0A, style.BodyTextPenColor);
         Assert.True(style.HasTextShadow);
@@ -291,7 +295,7 @@ public class DialogTypeResolverTests {
         // PlainWithoutBox (row 3, cutscene narrative) is therefore black text,
         // confirmed against the original game.
         foreach (int rowId in new[] { 2, 3, 5, 6 }) {
-            DialogStyle style = DialogStyleTable.Get(rowId);
+            DialogStyle style = _table.Get(rowId);
             Assert.Equal(0x00, style.BodyTextPenColor);
             Assert.False(style.HasTextShadow);
         }
@@ -302,12 +306,12 @@ public class DialogTypeResolverTests {
         // Row 2 (Normal) has a chrome bevel (field_5=4 → HasDropShadow) but NO
         // text shadow (field_3=0). The two must not be conflated — the text
         // renderer keys off field_3, the chrome renderer off field_5.
-        DialogStyle row2 = DialogStyleTable.Get(2);
+        DialogStyle row2 = _table.Get(2);
         Assert.True(row2.HasDropShadow);   // chrome bevel
         Assert.False(row2.HasTextShadow);  // text shadow
 
         // Row 1 (ColoredWithoutBox) is the inverse: text shadow but no bevel.
-        DialogStyle row1 = DialogStyleTable.Get(1);
+        DialogStyle row1 = _table.Get(1);
         Assert.False(row1.HasDropShadow);
         Assert.True(row1.HasTextShadow);
     }

@@ -2,6 +2,7 @@ namespace ResourceExtraction.Providers;
 
 using GameData.Resources;
 using GameData.Resources.Data;
+using GameData.Resources.Dialog;
 using GameData.Resources.Image;
 using ResourceExtraction.Extensions;
 using System;
@@ -54,6 +55,12 @@ public class GeneralResourceProvider : IResourceProvider {
         if (string.Equals(resourceId, ChapterCatalog.ResourceId, System.StringComparison.OrdinalIgnoreCase)) {
             return true;
         }
+        // The dialog style table likewise has no archive member — the original kept it in the
+        // executable's data segment, and GameData carries the rows as code. Provided whenever
+        // asked so the faithful table is reachable with or without a mod override.
+        if (string.Equals(resourceId, DialogStyleTable.ResourceId, System.StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
         // Derived book-parchment variants (BOOK_EVEN.SCX / BOOK_ODD.SCX) are synthesized from
         // BOOK.SCX, so we can provide them whenever the source is available.
         if (BookParchment.IsVariant(resourceId)) {
@@ -97,6 +104,12 @@ public class GeneralResourceProvider : IResourceProvider {
         // Synthesized chapter catalog: probe the archive for each chapter's parts (see ChapterCatalogBuilder).
         if (typeof(T) == typeof(ChapterCatalog)) {
             return (T)(IResource)ChapterCatalogBuilder.Build(resourceId, this);
+        }
+
+        // Synthesized dialog style table: the seven dialogTypeData rows at 0x3a831 live in
+        // GameData as code (see DialogStyleTable), so the shipped table needs no archive read.
+        if (typeof(T) == typeof(DialogStyleTable)) {
+            return (T)(IResource)DialogStyleTable.CreateShipped(resourceId);
         }
 
         // Derived book-parchment variants: even = BOOK.SCX as-is, odd = vertically flipped
