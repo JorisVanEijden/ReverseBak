@@ -35,6 +35,11 @@ using GameData.Resources.Layout;
 /// parent size, i.e. a layout solver. Typing them as <see cref="LayoutLength"/> would let an
 /// override write <c>"1%"</c> and have the unit silently discarded — a worse lie than the missing
 /// expressiveness.</para>
+///
+/// <para>The test is whether the value is APPLIED ON ITS OWN, not whether it looks like an
+/// inset. <see cref="SpeakerToBodyGap"/> looks exactly like one and is a <c>float</c>, because
+/// it is only ever a TERM in a px sum and is never handed to UI Toolkit by itself — see its
+/// remarks.</para>
 /// </summary>
 public class DialogLayout {
     /// <summary>
@@ -117,8 +122,9 @@ public class DialogLayout {
     /// Top inset of the body text when the entry has NO speaker — the tuned offset the borderless
     /// narrative strips (<c>PlainWithoutBox</c> / <c>PlainFullScreen</c>) keep. VGA 30 x6 -> 180.
     ///
-    /// <para>Also the fallback the renderer falls back to when a speaker IS present but the
-    /// speaker offsets cannot be summed (see <see cref="SpeakerToBodyGap"/>).</para>
+    /// <para>Also the fallback the renderer falls back to when a speaker IS present but
+    /// <see cref="SpeakerTop"/> is a percentage, so the body's top inset cannot be summed (see
+    /// <see cref="SpeakerToBodyGap"/>).</para>
     /// </summary>
     public LayoutLength NarrativeBodyTop { get; set; } = LayoutLength.Px(180f);
 
@@ -130,17 +136,25 @@ public class DialogLayout {
     public LayoutLength SpeakerTop { get; set; } = LayoutLength.Px(36f);
 
     /// <summary>
-    /// Clearance between the bottom of the speaker line and the top of the body text. VGA 20 x6
-    /// -> 120.
+    /// Clearance between the bottom of the speaker line and the top of the body text, in
+    /// design-frame px. VGA 20 x6 -> 120.
     ///
-    /// <para>The body's top inset with a speaker present is
-    /// <see cref="SpeakerTop"/> + the body font size + this — a sum, so it is only a length at all
-    /// when both terms resolve in the same space as the font size, which is design-frame px. A
-    /// percentage among them cannot be added to a px font size without measuring the parent, so
-    /// the renderer refuses loudly and falls back to <see cref="NarrativeBodyTop"/> rather than
-    /// stamping the bare numbers together.</para>
+    /// <para><b>Plain <c>float</c>, not a <see cref="LayoutLength"/>, and that is the rule three
+    /// paragraphs up being obeyed rather than broken.</b> This value has NO independent consumer:
+    /// it exists only inside the sum <see cref="SpeakerTop"/> + the body font size + this, which
+    /// the renderer computes in design-frame px and which refuses a percentage outright (a
+    /// percentage cannot be added to a px font size without measuring the parent). So a
+    /// percentage here could never resolve — typing it as a <see cref="LayoutLength"/> would let
+    /// an author write <c>"9.7%"</c>, watch the unit survive every round trip, and then have the
+    /// renderer discard the whole sum and fall back to <see cref="NarrativeBodyTop"/>. That is
+    /// the "silently discarded unit" lie the border widths and shadow offsets are floats to
+    /// avoid.</para>
+    ///
+    /// <para>Contrast <see cref="SpeakerTop"/>, which stays a <see cref="LayoutLength"/> because
+    /// it IS applied on its own — it is the speaker label's own top inset, where a percentage
+    /// resolves against the panel and arrives intact even when the body's sum is refused.</para>
     /// </summary>
-    public LayoutLength SpeakerToBodyGap { get; set; } = LayoutLength.Px(120f);
+    public float SpeakerToBodyGap { get; set; } = 120f;
 
     /// <summary>
     /// Width of the panel's bevelled border on all four edges, in design-frame px

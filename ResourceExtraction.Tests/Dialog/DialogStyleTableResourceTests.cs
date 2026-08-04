@@ -120,10 +120,19 @@ public class DialogStyleTableResourceTests {
     }
 
     /// <summary>
-    /// Whole-table round trip through the serializer the extractor writes with. The row count is
-    /// asserted because <see cref="DialogStyleTable.Rows"/> is an ARRAY on purpose: a
-    /// pre-populated <c>List&lt;T&gt;</c> would be APPENDED to by Newtonsoft on the override path
-    /// and come back with fourteen rows, and this is the assertion that would notice.
+    /// Whole-table round trip through the serializer the extractor writes with: seven rows in,
+    /// seven rows out, every pen and every unit intact.
+    ///
+    /// <para><b>This is NOT the guard on <see cref="DialogStyleTable.Rows"/> being an array.</b>
+    /// It used to claim it was — "a pre-populated <c>List&lt;T&gt;</c> would be APPENDED to and
+    /// come back with fourteen rows, and this is the assertion that would notice" — which is
+    /// false about this test: it runs through System.Text.Json, which replaces a collection-valued
+    /// property wholesale and never had the append behaviour, so changing <c>Rows</c> to a
+    /// <c>List&lt;T&gt;</c> leaves it green while the Unity override path breaks. The append is
+    /// NEWTONSOFT's, and the only test that exercises Newtonsoft against this type is
+    /// <c>BakAgain.Tests.Editor.UI.DialogStyleTableOverrideTests.PartialOverrideOnDisk_ResolvedByTheRealLocator_MovesTheBoxAndKeepsItsChrome</c>
+    /// ("the merge must not append rows"). Do not delete that assertion on the strength of this
+    /// one.</para>
     /// </summary>
     [Fact]
     public void Table_RoundTripsThroughSystemTextJson_KeepingSevenRowsAndTheirUnits() {
@@ -158,8 +167,15 @@ public class DialogStyleTableResourceTests {
     }
 
     /// <summary>
-    /// A whole-document override REPLACES the rows array rather than being appended to the
-    /// defaults. Seven entries in, seven entries out — a merge/append bug shows up as fourteen.
+    /// A whole-document deserialize REPLACES the rows array rather than being appended to the
+    /// defaults: seven entries in, seven entries out, and the row the document states is the row
+    /// that arrives.
+    ///
+    /// <para><b>Scoped to System.Text.Json, which is all this test can speak for.</b> STJ
+    /// replaces a collection-valued property outright, so the seven here is not evidence about
+    /// the array-vs-<c>List&lt;T&gt;</c> decision at all — see the note on
+    /// <see cref="Table_RoundTripsThroughSystemTextJson_KeepingSevenRowsAndTheirUnits"/> for
+    /// which test actually holds that line, and why deleting it would be a silent regression.</para>
     /// </summary>
     [Fact]
     public void WholeDocumentOverride_ReplacesTheRowsArray_RatherThanAppendingToTheDefaults() {

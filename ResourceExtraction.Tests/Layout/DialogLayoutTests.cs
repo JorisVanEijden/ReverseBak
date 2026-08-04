@@ -74,7 +74,9 @@ public class DialogLayoutTests {
     public void BodyTextOffsets_AreTheOriginalsVerticalInsets() {
         Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(30)), _layout.NarrativeBodyTop);
         Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(6)), _layout.SpeakerTop);
-        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(20)), _layout.SpeakerToBodyGap);
+        // A plain float, not a LayoutLength — see SpeakerToBodyGap's remarks: it is only ever a
+        // term in a px sum, so a percentage there could never resolve.
+        Assert.Equal((float)AspectCorrection.ScaleVgaY(20), _layout.SpeakerToBodyGap);
     }
 
     /// <summary>
@@ -137,8 +139,12 @@ public class DialogLayoutTests {
 
         Assert.Contains("\"Layout\"", json);
         // Lengths travel as unit-bearing strings, not {Value,Unit} objects.
-        Assert.Contains("\"SpeakerToBodyGap\": \"120px\"", json);
-        Assert.DoesNotContain("\"SpeakerToBodyGap\": 120", json);
+        Assert.Contains("\"NarrativeBodyTop\": \"180px\"", json);
+        Assert.DoesNotContain("\"NarrativeBodyTop\": 180", json);
+        // ...and the plain-float scalars travel as bare numbers, so no unit an author writes
+        // there can look like it survived. (SpeakerToBodyGap used to be a LayoutLength.)
+        Assert.Contains("\"SpeakerToBodyGap\": 120", json);
+        Assert.DoesNotContain("\"SpeakerToBodyGap\": \"120px\"", json);
 
         var readOptions = new JsonSerializerOptions {
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
@@ -164,12 +170,19 @@ public class DialogLayoutTests {
     /// An author restating one of these in PERCENT must arrive as a percentage, not as a bare
     /// number that silently means px. Fixture values are asymmetric and non-round so no
     /// defaulting or unit-blind path can reproduce them by accident.
+    ///
+    /// <para><b>Scope, deliberately narrow.</b> Only values the RENDERER can actually resolve as
+    /// a percentage appear here. <c>SpeakerToBodyGap</c> used to, and that was a lie in test
+    /// form: the unit really did round-trip at this layer, while <c>ResolveBodyTop</c> refused
+    /// the whole sum and dropped the body back to <c>NarrativeBodyTop</c> — an author following
+    /// this test would have moved every speaker'd body to 180px. It is a plain <c>float</c> now,
+    /// so the authoring form no longer exists to be endorsed.</para>
     /// </summary>
     [Fact]
-    public void AnOverrideCanRestateTheOffsetsInPercent_AndTheUnitSurvives() {
+    public void AnOverrideCanRestateTheResolvableOffsetsInPercent_AndTheUnitSurvives() {
         const string json =
             "{\"Layout\":{\"NarrativeBodyTop\":\"17.3%\",\"SpeakerTop\":\"4.1%\","
-            + "\"SpeakerToBodyGap\":\"9.7%\",\"SpeakerPill\":{\"Padding\":{\"Left\":\"6.25%\"}}}}";
+            + "\"SpeakerPill\":{\"Padding\":{\"Left\":\"6.25%\"}}}}";
 
         DialogLayout layout = JsonSerializer.Deserialize<DialogStyleTable>(json,
             new JsonSerializerOptions {
@@ -178,9 +191,139 @@ public class DialogLayoutTests {
 
         Assert.Equal(LayoutLength.Percent(17.3f), layout.NarrativeBodyTop);
         Assert.Equal(LayoutLengthUnit.Percent, layout.NarrativeBodyTop.Unit);
+        // SpeakerTop resolves ON ITS OWN — it is the speaker label's own top inset — which is
+        // exactly why it stays a LayoutLength while SpeakerToBodyGap does not.
         Assert.Equal(LayoutLength.Percent(4.1f), layout.SpeakerTop);
-        Assert.Equal(LayoutLength.Percent(9.7f), layout.SpeakerToBodyGap);
         Assert.Equal(LayoutLength.Percent(6.25f), layout.SpeakerPill.Padding!.Left);
         Assert.Equal(LayoutLengthUnit.Percent, layout.SpeakerPill.Padding.Left.Unit);
+    }
+
+    /// <summary>
+    /// THE READ-DIRECTION FENCE. Every other test on this type compares a
+    /// <c>new DialogStyleTable()</c> against a <c>new DialogLayout()</c> — defaults against
+    /// defaults — so each of them still passes if the property is dropped from serialization
+    /// entirely. Make <c>ChromeShadowOffset</c> get-only and it still EMITS (so
+    /// <c>make verify-generated</c> stays clean and the corpus still matches), no test goes red,
+    /// and overriding it from <c>DAT/DIALSTYL.json</c> silently stops working.
+    ///
+    /// <para>So this one states a whole layout in values that are nothing like the shipped
+    /// numbers — asymmetric, non-round, and no two sharing a value, so a property that lost its
+    /// setter, got wired to a sibling, or fell back to its default lands on a number this test
+    /// names. These eleven are the full set: they are what a mod author is being sold.</para>
+    /// </summary>
+    [Fact]
+    public void EveryLayoutValue_SurvivesAnOverrideDocument_NotJustTheOnesWithADefault() {
+        const string json =
+            "{\"Layout\":{"
+            + "\"SpeakerPillRow\":{\"Left\":\"11px\",\"Top\":\"37px\",\"Right\":\"13px\"},"
+            + "\"SpeakerPill\":{\"Padding\":{"
+            + "\"Left\":\"113px\",\"Top\":\"29px\",\"Right\":\"71px\",\"Bottom\":\"43px\"}},"
+            + "\"SpeakerPillShadowOffset\":17,\"SpeakerPillBorderWidth\":23,"
+            + "\"NarrativeBodyTop\":\"211px\",\"SpeakerTop\":\"53px\",\"SpeakerToBodyGap\":137,"
+            + "\"ChromeBorderWidth\":31,\"ChromeShadowOffset\":19,"
+            + "\"TextShadowOffsetX\":7,\"TextShadowOffsetY\":11}}";
+
+        DialogLayout layout = JsonSerializer.Deserialize<DialogStyleTable>(json,
+            new JsonSerializerOptions {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            })!.Layout;
+
+        // The pill row's Left/Right are not 0 here, so an implementation that hardcoded the
+        // "span the panel" 0s cannot satisfy them.
+        Assert.Equal(LayoutLength.Px(11f), layout.SpeakerPillRow.Left);
+        Assert.Equal(LayoutLength.Px(37f), layout.SpeakerPillRow.Top);
+        Assert.Equal(LayoutLength.Px(13f), layout.SpeakerPillRow.Right);
+
+        // Four sides, four different numbers: "one horizontal + one vertical" cannot produce them.
+        LayoutPadding padding = layout.SpeakerPill.Padding!;
+        Assert.Equal(LayoutLength.Px(113f), padding.Left);
+        Assert.Equal(LayoutLength.Px(29f), padding.Top);
+        Assert.Equal(LayoutLength.Px(71f), padding.Right);
+        Assert.Equal(LayoutLength.Px(43f), padding.Bottom);
+
+        Assert.Equal(17f, layout.SpeakerPillShadowOffset);
+        Assert.Equal(23f, layout.SpeakerPillBorderWidth);
+        Assert.Equal(LayoutLength.Px(211f), layout.NarrativeBodyTop);
+        Assert.Equal(LayoutLength.Px(53f), layout.SpeakerTop);
+        Assert.Equal(137f, layout.SpeakerToBodyGap);
+        Assert.Equal(31f, layout.ChromeBorderWidth);
+        Assert.Equal(19f, layout.ChromeShadowOffset);
+        Assert.Equal(7f, layout.TextShadowOffsetX);
+        Assert.Equal(11f, layout.TextShadowOffsetY);
+
+        // And none of it is a shipped default that happened to match: every value above differs
+        // from the one a fresh table carries, so "the override was ignored" cannot pass.
+        var shipped = new DialogLayout();
+        Assert.NotEqual(shipped.SpeakerPillShadowOffset, layout.SpeakerPillShadowOffset);
+        Assert.NotEqual(shipped.SpeakerPillBorderWidth, layout.SpeakerPillBorderWidth);
+        Assert.NotEqual(shipped.SpeakerToBodyGap, layout.SpeakerToBodyGap);
+        Assert.NotEqual(shipped.ChromeBorderWidth, layout.ChromeBorderWidth);
+        Assert.NotEqual(shipped.ChromeShadowOffset, layout.ChromeShadowOffset);
+        Assert.NotEqual(shipped.TextShadowOffsetX, layout.TextShadowOffsetX);
+        Assert.NotEqual(shipped.TextShadowOffsetY, layout.TextShadowOffsetY);
+        Assert.NotEqual(shipped.SpeakerPillRow.Left, layout.SpeakerPillRow.Left);
+        Assert.NotEqual(shipped.SpeakerPillRow.Right, layout.SpeakerPillRow.Right);
+        Assert.NotEqual(shipped.SpeakerPill.Padding!.Top, padding.Top);
+        Assert.NotEqual(shipped.SpeakerPill.Padding.Right, padding.Right);
+        Assert.NotEqual(shipped.SpeakerPill.Padding.Bottom, padding.Bottom);
+    }
+
+    /// <summary>
+    /// The other half of the read direction: a distinctive layout must also make the ROUND TRIP
+    /// — serialize, reload, same values. <see cref="Layout_RoundTripsThroughTheExtractorsSerializer_KeepingItsUnits"/>
+    /// round-trips the DEFAULTS, so a property that stopped being written would come back as its
+    /// default and that test could not tell.
+    /// </summary>
+    [Fact]
+    public void ADistinctiveLayout_RoundTripsThroughTheExtractorsSerializer() {
+        var table = new DialogStyleTable {
+            Layout = new DialogLayout {
+                SpeakerPillRow = new LayoutHint {
+                    Left = LayoutLength.Px(11f),
+                    Top = LayoutLength.Px(37f),
+                    Right = LayoutLength.Px(13f),
+                },
+                SpeakerPill = new LayoutHint {
+                    Position = LayoutPosition.InFlow,
+                    Padding = new LayoutPadding {
+                        Left = LayoutLength.Px(113f),
+                        Top = LayoutLength.Px(29f),
+                        Right = LayoutLength.Px(71f),
+                        Bottom = LayoutLength.Px(43f),
+                    },
+                },
+                SpeakerPillShadowOffset = 17f,
+                SpeakerPillBorderWidth = 23f,
+                NarrativeBodyTop = LayoutLength.Px(211f),
+                SpeakerTop = LayoutLength.Px(53f),
+                SpeakerToBodyGap = 137f,
+                ChromeBorderWidth = 31f,
+                ChromeShadowOffset = 19f,
+                TextShadowOffsetX = 7f,
+                TextShadowOffsetY = 11f,
+            }
+        };
+
+        DialogLayout restored = JsonSerializer.Deserialize<DialogStyleTable>(table.ToJson(),
+            new JsonSerializerOptions {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            })!.Layout;
+
+        Assert.Equal(LayoutLength.Px(11f), restored.SpeakerPillRow.Left);
+        Assert.Equal(LayoutLength.Px(37f), restored.SpeakerPillRow.Top);
+        Assert.Equal(LayoutLength.Px(13f), restored.SpeakerPillRow.Right);
+        Assert.Equal(LayoutLength.Px(113f), restored.SpeakerPill.Padding!.Left);
+        Assert.Equal(LayoutLength.Px(29f), restored.SpeakerPill.Padding.Top);
+        Assert.Equal(LayoutLength.Px(71f), restored.SpeakerPill.Padding.Right);
+        Assert.Equal(LayoutLength.Px(43f), restored.SpeakerPill.Padding.Bottom);
+        Assert.Equal(17f, restored.SpeakerPillShadowOffset);
+        Assert.Equal(23f, restored.SpeakerPillBorderWidth);
+        Assert.Equal(LayoutLength.Px(211f), restored.NarrativeBodyTop);
+        Assert.Equal(LayoutLength.Px(53f), restored.SpeakerTop);
+        Assert.Equal(137f, restored.SpeakerToBodyGap);
+        Assert.Equal(31f, restored.ChromeBorderWidth);
+        Assert.Equal(19f, restored.ChromeShadowOffset);
+        Assert.Equal(7f, restored.TextShadowOffsetX);
+        Assert.Equal(11f, restored.TextShadowOffsetY);
     }
 }
