@@ -7,6 +7,22 @@ namespace GameData.Resources.Layout;
 /// exactly; overrides use percentages and <see cref="Flow"/> to reflow.
 /// </summary>
 public class LayoutHint {
+    /// <summary>
+    /// A plain design-frame pixel rectangle: the four insets/sizes set, every other field left at
+    /// its faithful default (absolute, top-left anchored, no far-edge opinion, no flow/grid/
+    /// padding). This is the exact shape an extracted rect has, so the places that need to state
+    /// one — the dialog style table's rows and the per-entry <c>ResizeDialogAction</c> that
+    /// replaces them, which must produce interchangeable areas — say it once here instead of each
+    /// spelling out the same four <see cref="LayoutLength.Px(float)"/> calls and silently
+    /// drifting apart.
+    /// </summary>
+    public static LayoutHint PxRect(float left, float top, float width, float height) => new() {
+        Left = LayoutLength.Px(left),
+        Top = LayoutLength.Px(top),
+        Width = LayoutLength.Px(width),
+        Height = LayoutLength.Px(height),
+    };
+
     /// <summary>How this element itself is placed in its parent. Defaults to
     /// <see cref="LayoutPosition.Absolute"/> — every extracted hint keeps behaving exactly as
     /// it does today. Independent of <see cref="Flow"/>: an absolutely-placed element can

@@ -1,6 +1,7 @@
 namespace BetrayalAtKrondor.Tests.Dialog;
 
 using GameData.Resources.Dialog;
+using GameData.Resources.Layout;
 using Xunit;
 
 /// <summary>
@@ -156,7 +157,10 @@ public class DialogTypeResolverTests {
 
         DialogStyle style = DialogTypeResolver.ResolveStyle(DialogContext.None, entry);
 
-        Assert.Equal(new DialogArea(65, 66, 1470, 606), style.DefaultArea);
+        Assert.Equal(LayoutLength.Px(65f), style.DefaultArea.Left);
+        Assert.Equal(LayoutLength.Px(66f), style.DefaultArea.Top);
+        Assert.Equal(LayoutLength.Px(1470f), style.DefaultArea.Width);
+        Assert.Equal(LayoutLength.Px(606f), style.DefaultArea.Height);
     }
 
     // ────────────────── Style table integrity ──────────────────
@@ -180,9 +184,12 @@ public class DialogTypeResolverTests {
         Assert.True(DialogStyleTable.IsDefined(rowId));
         DialogStyle style = DialogStyleTable.Get(rowId);
 
-        // Smoke check — defined rows must have a non-empty area.
-        Assert.True(style.DefaultArea.Width > 0);
-        Assert.True(style.DefaultArea.Height > 0);
+        // Smoke check — defined rows must have a non-empty area, and it must be stated in the
+        // design frame's own px (the space every extracted value is in), not left Auto.
+        Assert.Equal(LayoutLengthUnit.Px, style.DefaultArea.Width.Unit);
+        Assert.Equal(LayoutLengthUnit.Px, style.DefaultArea.Height.Unit);
+        Assert.True(style.DefaultArea.Width.Value > 0);
+        Assert.True(style.DefaultArea.Height.Value > 0);
     }
 
     [Theory]
@@ -200,7 +207,10 @@ public class DialogTypeResolverTests {
         // → canonical (125, 126, 1350, 960).
         DialogStyle style = DialogStyleTable.Get(6);
 
-        Assert.Equal(new DialogArea(125, 126, 1350, 960), style.DefaultArea);
+        Assert.Equal(LayoutLength.Px(125f), style.DefaultArea.Left);
+        Assert.Equal(LayoutLength.Px(126f), style.DefaultArea.Top);
+        Assert.Equal(LayoutLength.Px(1350f), style.DefaultArea.Width);
+        Assert.Equal(LayoutLength.Px(960f), style.DefaultArea.Height);
     }
 
     [Fact]
@@ -212,8 +222,15 @@ public class DialogTypeResolverTests {
         // field use in dialog_DrawChrome (0x48632).
         DialogStyle style = DialogStyleTable.Get(3);
 
-        Assert.Equal(new DialogArea(40, 708, 1525, 438), style.DefaultArea);
-        Assert.True(style.DefaultArea.Left + style.DefaultArea.Width <= 1600);
+        Assert.Equal(LayoutLength.Px(40f), style.DefaultArea.Left);
+        Assert.Equal(LayoutLength.Px(708f), style.DefaultArea.Top);
+        Assert.Equal(LayoutLength.Px(1525f), style.DefaultArea.Width);
+        Assert.Equal(LayoutLength.Px(438f), style.DefaultArea.Height);
+        // Left+Width is only comparable against the frame's 1600 px when both are px — asserting
+        // the unit first is what stops this passing against a percentage that happens to be small.
+        Assert.Equal(LayoutLengthUnit.Px, style.DefaultArea.Left.Unit);
+        Assert.Equal(LayoutLengthUnit.Px, style.DefaultArea.Width.Unit);
+        Assert.True(style.DefaultArea.Left.Value + style.DefaultArea.Width.Value <= 1600f);
     }
 
     [Fact]

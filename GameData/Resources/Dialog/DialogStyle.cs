@@ -1,5 +1,7 @@
 namespace GameData.Resources.Dialog;
 
+using GameData.Resources.Layout;
+
 /// <summary>
 /// Per-style chrome + text configuration for a DDX dialog. One row of the
 /// original game's 7-row × 20-byte <c>dialogTypeData</c> table at 0x3a831.
@@ -26,31 +28,91 @@ namespace GameData.Resources.Dialog;
 /// the in-game / menu path. Keeping pens (not baked RGB) on the model is
 /// deliberate: the same style renders different colours under different scene
 /// palettes, exactly as the original indexed renderer did.
+///
+/// <para><b>A settable-property class, deliberately.</b> Every other resource on the
+/// mod-override path (<c>CreditsData</c>, <c>ChapterCatalog</c>, <c>UserInterface</c>,
+/// <see cref="LayoutHint"/>, …) is a plain class with <c>{ get; set; }</c> and defaults, and
+/// this one has to match: the override path deserializes a whole document with Newtonsoft, so a
+/// type whose only way in is a positional constructor depends on parameter-name matching rather
+/// than on property names. The property-by-property shape also means an override document may
+/// name only the fields it wants to change — unnamed fields simply land on this type's own
+/// defaults instead of failing to match a constructor.</para>
+///
+/// <para><b>The instance a <see cref="DialogStyleTable"/> lookup returns is the shared table
+/// row</b>, not the defensive copy the previous record struct handed out. Treat a looked-up
+/// style as read-only; mutating one would change the style every later dialog of that row
+/// renders with.</para>
 /// </summary>
-/// <param name="TextPadLeftPct">
-/// Left text inset as a percentage (0..100) of the panel width. The original
-/// <c>RenderDialogText</c> (0x48d7b) shrinks the panel rect into a text rect
-/// before laying out / wrapping the body text: <c>X += field_9</c> and
-/// <c>Width -= field_9 + field_A</c> at 0x49043‑0x4905f. <c>field_9</c> is the
-/// left inset in VGA pixels; this field stores it normalised against the
-/// row's <c>DefaultArea</c> width so consumers never see VGA pixels. Without
-/// it, wrapped text runs flush to the panel border.
-/// </param>
-/// <param name="TextPadRightPct">
-/// Right text inset as a percentage (0..100) of the panel width — the
-/// original's <c>field_A</c> (0x4905f), normalised against the row's
-/// <c>DefaultArea</c> width. Bounds the right edge of the wrap region.
-/// </param>
-public record struct DialogStyle(
-    byte FillPenColor,
-    byte BorderPenColor,
-    byte ShadowPenColor,
-    byte BodyTextPenColor,
-    byte TextShadowPenSource,
-    DialogArea DefaultArea,
-    float TextPadLeftPct = 0f,
-    float TextPadRightPct = 0f
-) {
+public class DialogStyle {
+    /// <summary>Chrome stripe fill pen (<c>field_1</c>).</summary>
+    public byte FillPenColor { get; set; }
+
+    /// <summary>Chrome border pen (<c>field_4</c>).</summary>
+    public byte BorderPenColor { get; set; }
+
+    /// <summary>Chrome 3D bevel pen (<c>field_5</c>) — the panel bevel, not the text shadow.</summary>
+    public byte ShadowPenColor { get; set; }
+
+    /// <summary>Main body-text pen (<c>field_2</c>).</summary>
+    public byte BodyTextPenColor { get; set; }
+
+    /// <summary>Body-text drop-shadow source (<c>field_3</c>); the pen drawn is this minus one.</summary>
+    public byte TextShadowPenSource { get; set; }
+
+    /// <summary>
+    /// Where the dialog panel sits, as layout data rather than a fixed rectangle. The table's own
+    /// rows state it as design-frame px in the canonical 1600×1200 space (VGA 320×200 scaled
+    /// ×5 horizontal / ×6 vertical, converted by the extractor at build time) so the shipped
+    /// dialogs land exactly where the original put them; an override author can restate it as
+    /// percentages, or anchor it, and the panel reflows.
+    ///
+    /// <para>The ×5/×6 pair is what preserves the 4:3 "non-square pixel" correction the original
+    /// relied on: the ×6 vertical factor keeps the implicit ×1.2 vertical stretch relative to the
+    /// ×5 horizontal one. Downstream consumers never see VGA pixels.</para>
+    ///
+    /// <para><b>A per-entry resize discards this hint entirely.</b> When a DDX entry carries a
+    /// <c>ResizeDialog</c> action, <c>dialog_getDialogArea</c> (0x485bc) uses the entry's rect in
+    /// place of the style's — it does not merge the two. The port keeps that: the resize's own
+    /// <see cref="LayoutHint"/> (see <c>ResizeDialogAction.ToLayoutHint</c>) replaces this one
+    /// wholesale, so an override author who anchors, say, row 2's area gets that anchor thrown
+    /// away for any entry carrying a resize. That is faithful, not a defect — the original
+    /// replaced too — and it is why the resize speaks in <see cref="LayoutHint"/> as well: a
+    /// total replacement in one vocabulary can never leave a px inset being measured from a
+    /// percentage-valued anchor.</para>
+    ///
+    /// <para>Source: <c>dialogAction_ResizeDialog</c> at offset 12 of <c>dialogTypeData</c>
+    /// (per style row), plus the per-entry <c>ResizeDialog</c> overrides resolved by
+    /// <c>dialog_getDialogArea</c> at 0x485bc.</para>
+    /// </summary>
+    public LayoutHint DefaultArea { get; set; } = new();
+
+    /// <summary>
+    /// Left text inset as a percentage (0..100) of the panel width. The original
+    /// <c>RenderDialogText</c> (0x48d7b) shrinks the panel rect into a text rect
+    /// before laying out / wrapping the body text: <c>X += field_9</c> and
+    /// <c>Width -= field_9 + field_A</c> at 0x49043‑0x4905f. <c>field_9</c> is the
+    /// left inset in VGA pixels; this field stores it normalised against the row's
+    /// shipped <c>DefaultArea</c> width. Without it, wrapped text runs flush to the
+    /// panel border.
+    ///
+    /// <para>The normalisation happened at authoring time against the row's <b>shipped px
+    /// width</b> — the numbers in the table's own comments. It stays a correct percentage of
+    /// whatever width <see cref="DefaultArea"/> ends up resolving to (that is the point of
+    /// storing a percentage), but once an override restates the area in percentages the stated
+    /// derivation is no longer checkable against the model: there is no px width left in the data
+    /// to divide by. The comments on each <see cref="DialogStyleTable"/> row record the divisor
+    /// that was used.</para>
+    /// </summary>
+    public float TextPadLeftPct { get; set; }
+
+    /// <summary>
+    /// Right text inset as a percentage (0..100) of the panel width — the original's
+    /// <c>field_A</c> (0x4905f), normalised against the row's shipped <c>DefaultArea</c> width
+    /// exactly as <see cref="TextPadLeftPct"/> was (see its remarks on the derivation). Bounds
+    /// the right edge of the wrap region.
+    /// </summary>
+    public float TextPadRightPct { get; set; }
+
     /// <summary>
     /// True → renderer overdraws the panel with a stripe-textured fill (via
     /// <c>vga_sub_14DD7</c>). False → renderer blits the saved background
@@ -85,18 +147,3 @@ public record struct DialogStyle(
     /// </summary>
     public byte TextShadowPenColor => (byte)(TextShadowPenSource - 1);
 }
-
-/// <summary>
-/// Screen rectangle for a DialogStyle in the canonical 1600×1200 coordinate
-/// space (VGA 320×200 scaled ×5 horizontal / ×6 vertical). The extractor
-/// converts from the original 320×200 VGA coordinates at build time
-/// (<c>X * 5</c>, <c>Y * 6</c>); downstream consumers never see VGA pixels.
-/// The 4:3 aspect-ratio "non-square pixel" correction the original game relied
-/// on falls out automatically: the ×6 vertical factor preserves the implicit
-/// ×1.2 vertical stretch relative to the ×5 horizontal factor.
-///
-/// Source: <c>dialogAction_ResizeDialog</c> at offset 12 of
-/// <c>dialogTypeData</c> (per style row), plus per-entry <c>ResizeDialog</c>
-/// overrides resolved by <c>dialog_getDialogArea</c> at 0x485bc.
-/// </summary>
-public record struct DialogArea(int Left, int Top, int Width, int Height);
