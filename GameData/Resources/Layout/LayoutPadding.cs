@@ -27,4 +27,7 @@ public class LayoutPadding {
     public LayoutLength Right { get; set; } = LayoutLength.Auto;
 
     public LayoutLength Bottom { get; set; } = LayoutLength.Auto;
+
+    /// <summary>A copy whose properties can be changed without affecting this instance.</summary>
+    public LayoutPadding Clone() => new() { Left = Left, Top = Top, Right = Right, Bottom = Bottom };
 }

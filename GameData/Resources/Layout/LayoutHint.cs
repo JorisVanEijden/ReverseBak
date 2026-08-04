@@ -87,4 +87,29 @@ public class LayoutHint {
     /// what every extractor emits (an element renders exactly as it did before this field
     /// existed).</summary>
     public LayoutPadding? Padding { get; set; }
+
+    /// <summary>
+    /// A deep copy: every field is value-copied, and the three reference-typed fields
+    /// (<see cref="Flow"/>, <see cref="Grid"/>, <see cref="Padding"/>) are cloned rather than
+    /// shared, so mutating the result can never reach this instance. Needed at any boundary
+    /// where a shared, long-lived hint (e.g. a <c>DialogStyleTable</c> row) is handed to a
+    /// caller that treats the result as its own live state — a table row must stay the same
+    /// for every dialog that resolves to it, no matter what the caller later does with what it
+    /// got back.
+    /// </summary>
+    public LayoutHint Clone() => new() {
+        Position = Position,
+        Anchor = Anchor,
+        Slice = Slice,
+        Width = Width,
+        Height = Height,
+        Left = Left,
+        Top = Top,
+        Right = Right,
+        Bottom = Bottom,
+        AspectRatio = AspectRatio,
+        Flow = Flow?.Clone(),
+        Grid = Grid?.Clone(),
+        Padding = Padding?.Clone(),
+    };
 }

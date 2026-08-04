@@ -31,4 +31,7 @@ public class LayoutGrid {
 
     /// <summary>Number of rows in the grid.</summary>
     public int Rows { get; set; }
+
+    /// <summary>A copy whose properties can be changed without affecting this instance.</summary>
+    public LayoutGrid Clone() => new() { CellWidth = CellWidth, CellHeight = CellHeight, Columns = Columns, Rows = Rows };
 }

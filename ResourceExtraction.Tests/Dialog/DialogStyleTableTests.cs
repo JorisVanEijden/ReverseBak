@@ -3,37 +3,42 @@ namespace ResourceExtraction.Tests.Dialog;
 using System.Text.Json;
 using GameData.Resources.Dialog;
 using GameData.Resources.Layout;
+using ResourceExtraction.Imaging;
 using Xunit;
 
 public class DialogStyleTableTests {
     /// <summary>
-    /// Every defined row's shipped rect, canonical (VGA x5 horizontal / x6 vertical). Held as
-    /// one table so a transcription slip in any row surfaces as its own failing case instead of
-    /// hiding in a row nobody happened to assert.
+    /// Every defined row's shipped rect, stated as the RAW VGA (320x200-space) numbers from the
+    /// row comments in <see cref="DialogStyleTable"/> — not the canonical numbers. The test body
+    /// multiplies by <see cref="AspectCorrection.VgaScaleX"/>/<see cref="AspectCorrection.VgaScaleY"/>,
+    /// so the ×5/×6 mapping — the binding constraint of this whole effort — is what gets proven,
+    /// not asserted nowhere. A slip copied identically into both the table and this data would no
+    /// longer pass: the table states canonical px, this states VGA px, and only the real scale
+    /// factors reconcile the two.
     /// </summary>
-    public static TheoryData<int, int, int, int, int> ShippedRows => new() {
-        //  row   L    T     W     H         VGA source        x5/x6
-        { 1, 40, 720, 1525, 450 },  // (8, 120, 305, 75)
-        { 2, 65, 66, 1470, 606 },   // (13, 11, 294, 101)
-        { 3, 40, 708, 1525, 438 },  // (8, 118, 305, 73)
-        { 4, 40, 720, 1525, 450 },  // (8, 120, 305, 75)
-        { 5, 65, 66, 1470, 726 },   // (13, 11, 294, 121)
-        { 6, 125, 126, 1350, 960 }, // (25, 21, 270, 160)
+    public static TheoryData<int, int, int, int, int> ShippedRowsInVga => new() {
+        //  row  VGA L  VGA T  VGA W  VGA H
+        { 1, 8, 120, 305, 75 },
+        { 2, 13, 11, 294, 101 },
+        { 3, 8, 118, 305, 73 },
+        { 4, 8, 120, 305, 75 },
+        { 5, 13, 11, 294, 121 },
+        { 6, 25, 21, 270, 160 },
     };
 
     [Theory]
-    [MemberData(nameof(ShippedRows))]
+    [MemberData(nameof(ShippedRowsInVga))]
     public void DefaultArea_IsTheShippedCanonicalRect_InDesignFramePx(
-        int row, int left, int top, int width, int height) {
+        int row, int vgaLeft, int vgaTop, int vgaWidth, int vgaHeight) {
         LayoutHint area = DialogStyleTable.Get(row).DefaultArea;
 
         // Unit-bearing assertions throughout: a bare number would pass just as happily against a
         // percentage of the same magnitude, and "right number, wrong unit" is the defect class
         // this project has already shipped more than once.
-        Assert.Equal(LayoutLength.Px(left), area.Left);
-        Assert.Equal(LayoutLength.Px(top), area.Top);
-        Assert.Equal(LayoutLength.Px(width), area.Width);
-        Assert.Equal(LayoutLength.Px(height), area.Height);
+        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaX(vgaLeft)), area.Left);
+        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(vgaTop)), area.Top);
+        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaX(vgaWidth)), area.Width);
+        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(vgaHeight)), area.Height);
 
         // Absolute + TopLeft is what makes those insets mean "measured from the design frame's
         // top-left corner". Drop either and the same four numbers place the panel somewhere else

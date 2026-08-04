@@ -30,4 +30,7 @@ public class LayoutFlow {
 
     /// <summary>Spacing between children.</summary>
     public LayoutLength Gap { get; set; } = LayoutLength.Px(0f);
+
+    /// <summary>A copy whose properties can be changed without affecting this instance.</summary>
+    public LayoutFlow Clone() => new() { Direction = Direction, Wrap = Wrap, Justify = Justify, Align = Align, Gap = Gap };
 }
