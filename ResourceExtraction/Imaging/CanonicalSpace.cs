@@ -82,6 +82,25 @@ public static class CanonicalSpace {
         }
     }
 
+    /// <summary>
+    /// Stamps the dialog surface's design frame onto the (synthesized) DIALSTYL.DAT table — the
+    /// space <see cref="DialogStyle.DefaultArea"/> and every <see cref="DialogLayout"/> value
+    /// resolve in, and the one place <see cref="GameData.Resources.Layout.LayoutFit"/> can be
+    /// stated for dialogs.
+    ///
+    /// <para>Nothing else is rescaled: unlike a REQ or a DDX, this table is not parsed from
+    /// original bytes — GameData carries its rows already in canonical px (see the row comments,
+    /// which record the VGA numbers and the x5/x6 factors applied to them). What GameData cannot
+    /// carry is the canonical frame itself, because the dimensions are derived from
+    /// <see cref="AspectCorrection"/>, which lives on this side of the boundary. Hence a stamp
+    /// rather than a type default — and hence EVERY path that hands out a shipped table has to
+    /// come through here (the archive provider, and the override merge baseline on the Unity
+    /// side), or an unmentioned frame arrives at the stage as 0x0.</para>
+    /// </summary>
+    public static void Apply(DialogStyleTable styleTable) {
+        styleTable.Frame = AspectCorrection.CanonicalFrame();
+    }
+
     public static void Apply(AnimationResource animation) {
         foreach (Frame frame in animation.Frames) {
             foreach (FrameCommand command in frame.Commands) {

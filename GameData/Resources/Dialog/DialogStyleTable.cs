@@ -70,6 +70,34 @@ public class DialogStyleTable : IResource {
     public DialogLayout Layout { get; set; } = new();
 
     /// <summary>
+    /// The coordinate space every rect on this resource resolves against — <see
+    /// cref="DialogStyle.DefaultArea"/> (where the box sits) and every value on <see
+    /// cref="Layout"/> (what sits inside it) — plus the <see cref="LayoutFit"/> that decides
+    /// whether the dialog surface pillarboxes or spans the window.
+    ///
+    /// <para><b>Why the frame is HERE and not on <c>Dialog</c> (the DDX).</b> A frame belongs with
+    /// the geometry it resolves. Tasks 3 and 4 put the dialog's box rect and its intra-panel
+    /// constants on this resource, so a frame stated anywhere else would let an author move the
+    /// box in <c>DAT/DIALSTYL.json</c> while the space those numbers live in was declared in 32
+    /// other files — and would put <see cref="LayoutFit"/>, the only reason this property exists,
+    /// out of reach of the one document an author actually edits. A DDX is also not a screen: it
+    /// is a zone's whole conversation script (hundreds of entries), whereas the shipped analogues
+    /// of this property (<c>UserInterface.Frame</c>, <c>CreditsData.Frame</c>) sit on resources
+    /// that each ARE one screen. The dialog surface is one screen with one design frame, and this
+    /// is the one resource that describes it. A DDX's only geometry is the optional per-entry
+    /// <c>ResizeDialogAction</c> rect, which substitutes for <see cref="DialogStyle.DefaultArea"/>
+    /// at render time — i.e. it must resolve in the SAME space, which is this one.</para>
+    ///
+    /// <para><b>Populated at the boundary, not here.</b> Like <c>UserInterface.Frame</c> and
+    /// <c>CreditsData.Frame</c>, the dimensions are derived from the original display mode by
+    /// <c>AspectCorrection</c> and stamped by <c>ResourceExtraction.Imaging.CanonicalSpace.Apply</c>
+    /// — GameData carries no canonical dimensions of its own, so writing them here would be a
+    /// second source of truth for the same numbers. The default is therefore a 0x0 frame: every
+    /// path that hands out a shipped table runs it through <c>CanonicalSpace.Apply</c> first.</para>
+    /// </summary>
+    public DesignFrame Frame { get; set; } = new();
+
+    /// <summary>
     /// A fresh table carrying the shipped (faithful) rows, under the given id. This is the
     /// baseline the resource providers hand out when nothing is overridden, and — crucially —
     /// the baseline an override document is merged ONTO rather than replacing.
@@ -81,6 +109,11 @@ public class DialogStyleTable : IResource {
     /// chrome makes the renderer skip the panel entirely. The author would move a box and lose
     /// the box. The override path therefore merges the document onto this baseline at the JSON
     /// level, which is the only place "omitted" and "explicitly 0" are still distinguishable.</para>
+    ///
+    /// <para><b>It does NOT stamp <see cref="Frame"/></b> — see that property for why the canonical
+    /// dimensions cannot be derived inside GameData. Every caller must run the result through
+    /// <c>CanonicalSpace.Apply</c>, the override merge baseline included: a baseline with a 0x0
+    /// frame would hand a document that never mentions <see cref="Frame"/> a collapsed one.</para>
     /// </summary>
     public static DialogStyleTable CreateShipped(string id = ResourceId) => new() { Id = id };
 

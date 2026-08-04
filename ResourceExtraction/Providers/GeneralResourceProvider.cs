@@ -109,7 +109,12 @@ public class GeneralResourceProvider : IResourceProvider {
         // Synthesized dialog style table: the seven dialogTypeData rows at 0x3a831 live in
         // GameData as code (see DialogStyleTable), so the shipped table needs no archive read.
         if (typeof(T) == typeof(DialogStyleTable)) {
-            return (T)(IResource)DialogStyleTable.CreateShipped(resourceId);
+            DialogStyleTable styleTable = DialogStyleTable.CreateShipped(resourceId);
+            // The rows are already canonical px, but the design frame they resolve against is
+            // derived from AspectCorrection and so cannot live in GameData — stamp it here, the
+            // same way every extractor stamps the frame on the screen resource it returns.
+            ResourceExtraction.Imaging.CanonicalSpace.Apply(styleTable);
+            return (T)(IResource)styleTable;
         }
 
         // Derived book-parchment variants: even = BOOK.SCX as-is, odd = vertically flipped
