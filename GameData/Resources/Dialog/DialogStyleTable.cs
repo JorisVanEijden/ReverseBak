@@ -1,6 +1,7 @@
 namespace GameData.Resources.Dialog;
 
 using GameData.Resources.Layout;
+using System.Runtime.Serialization;
 
 /// <summary>
 /// Verbatim port of the 7-row × 20-byte <c>dialogTypeData</c> table at
@@ -56,6 +57,19 @@ public class DialogStyleTable : IResource {
     /// <summary>Number of rows in the original table.</summary>
     public const int Length = 7;
 
+    // [IgnoreDataMember] only — NOT [JsonIgnore]. This property is the one place those two attribu-
+    // tes deliberately diverge from the pair-them-always rule stated on DialogStyle's five derived
+    // properties. Unlike those, Type IS genuinely informative about the emitted document (it is the
+    // first key a mod author sees when they copy generated/DAT/DIALSTYL.json), so System.Text.Json
+    // — the extractor's serializer — keeps emitting it; only Newtonsoft (the override-merge path's
+    // serializer, Unity-side) is told to look away. Without [IgnoreDataMember], Type would still
+    // reach the merge baseline JObject.FromObject builds in OverrideJsonMerge.OntoBaseline, and an
+    // author writing "Type": "REQ" would hit scalar-onto-scalar in the diagnostics walk (silently
+    // "matched", no warning) while ToObject discarded it for want of a setter — the same trap
+    // DialogStyle's comment describes, on the type that is supposed to be the example of avoiding
+    // it. With the attribute, the baseline simply has no "Type" key, so an authored "Type" instead
+    // hits the (correct) "not a field of the shipped resource" warning. See TASK-62.
+    [IgnoreDataMember]
     public ResourceType Type => ResourceType.DAT;
 
     public string Id { get; set; } = ResourceId;
