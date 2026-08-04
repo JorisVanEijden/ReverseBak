@@ -1,6 +1,7 @@
 namespace GameData.Resources.Dialog;
 
 using GameData.Resources.Layout;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 /// <summary>
@@ -115,20 +116,31 @@ public class DialogStyle {
     public float TextPadRightPct { get; set; }
 
     // The five properties below are DERIVED — read-only convenience over the pen fields above.
-    // They are ignored by the serializer on purpose: DIALSTYL.json is not just an extractor
+    // They are ignored by both serializers on purpose: DIALSTYL.json is not just an extractor
     // output, it is the document a mod author copies and edits, and a field that looks settable
     // but silently does nothing (no setter to deserialize into) is a trap. Change the pen; the
     // derived answer follows.
+    //
+    // Both attributes are needed. [JsonIgnore] here is System.Text.Json's — the extractor's
+    // serializer, which is what keeps these off the emitted DIALSTYL.json. Newtonsoft (the
+    // override-merge path's serializer, Unity-side) does not recognise that attribute at all, so
+    // without [IgnoreDataMember] too (BCL, no new package needed — GameData has no Newtonsoft
+    // reference and shouldn't gain one just for this) the merge baseline JObject would still carry
+    // these keys, and an author writing e.g. "HasBorder": false would hit scalar-onto-scalar in
+    // the diagnostics walk (silently "matched", no warning) while ToObject discards it for want of
+    // a setter — the quietest possible authoring failure.
     /// <summary>
     /// True → renderer overdraws the panel with a stripe-textured fill (via
     /// <c>vga_sub_14DD7</c>). False → renderer blits the saved background
     /// from VGA buffer C into buffer 1, preserving what was underneath.
     /// </summary>
     [JsonIgnore]
+    [IgnoreDataMember]
     public bool UsesTexturedFill => FillPenColor != 0;
 
     /// <summary>True → draw a filled border in <see cref="BorderPenColor"/>.</summary>
     [JsonIgnore]
+    [IgnoreDataMember]
     public bool HasBorder => BorderPenColor != 0;
 
     /// <summary>
@@ -139,6 +151,7 @@ public class DialogStyle {
     /// <see cref="HasTextShadow"/>).
     /// </summary>
     [JsonIgnore]
+    [IgnoreDataMember]
     public bool HasDropShadow => ShadowPenColor != 0;
 
     /// <summary>
@@ -148,6 +161,7 @@ public class DialogStyle {
     /// pass only when <c>field_3 != 0</c> (0x48d7b @ 0x490bf).
     /// </summary>
     [JsonIgnore]
+    [IgnoreDataMember]
     public bool HasTextShadow => TextShadowPenSource != 0;
 
     /// <summary>
@@ -156,5 +170,6 @@ public class DialogStyle {
     /// <see cref="HasTextShadow"/> is true.
     /// </summary>
     [JsonIgnore]
+    [IgnoreDataMember]
     public byte TextShadowPenColor => (byte)(TextShadowPenSource - 1);
 }
