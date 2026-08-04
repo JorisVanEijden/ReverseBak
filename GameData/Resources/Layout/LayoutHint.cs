@@ -63,4 +63,12 @@ public class LayoutHint {
     /// choice between a grid and a flow container. Null = children are not grid-placed, which is
     /// the default and what every extractor emits.</summary>
     public LayoutGrid? Grid { get; set; }
+
+    /// <summary>Inner spacing between this element's own border and its content/children — e.g.
+    /// the speaker pill, which hugs its label plus this padding rather than sitting at a fixed
+    /// inset. Independent of <see cref="Flow"/>/<see cref="Grid"/>/<see cref="Position"/> exactly
+    /// as they are independent of each other. Null = no padding opinion, which is the default and
+    /// what every extractor emits (an element renders exactly as it did before this field
+    /// existed).</summary>
+    public LayoutPadding? Padding { get; set; }
 }
