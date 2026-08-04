@@ -60,6 +60,16 @@ public class DialogStyleTable : IResource {
     public DialogStyle?[] Rows { get; set; } = CreateShippedRows();
 
     /// <summary>
+    /// Geometry INSIDE the box — speaker pill, body-text offsets, chrome edge widths — as opposed
+    /// to <see cref="DialogStyle.DefaultArea"/>, which says where the box itself sits. It rides on
+    /// the table rather than on a row because the original has exactly one copy of each of these
+    /// numbers (no <c>dialogTypeData</c> field carries any of them), and it rides on this resource
+    /// rather than a new one because an author moving a dialog box and an author re-spacing its
+    /// contents are the same author editing the same document. See <see cref="DialogLayout"/>.
+    /// </summary>
+    public DialogLayout Layout { get; set; } = new();
+
+    /// <summary>
     /// A fresh table carrying the shipped (faithful) rows, under the given id. This is the
     /// baseline the resource providers hand out when nothing is overridden, and — crucially —
     /// the baseline an override document is merged ONTO rather than replacing.
