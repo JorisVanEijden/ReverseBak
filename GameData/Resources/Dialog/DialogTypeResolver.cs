@@ -58,7 +58,17 @@ public static class DialogTypeResolver {
     }
 
     /// <summary>
-    /// Resolve and look up the style in one step.
+    /// Resolve and look up the style in one step — the convenience form for a consumer that wants
+    /// the row and has no use for the row's index.
+    ///
+    /// <para><b>Where this is used.</b> The .NET side (extractors, tooling, tests, any non-Unity
+    /// host of <c>GameData</c>). The Unity renderer deliberately does NOT go through it: both of
+    /// <c>DialogManager</c>'s call sites need the resolved id itself — they log it, and it is the
+    /// single most useful value when diagnosing "why did this dialog render like that" — so they
+    /// call <see cref="ResolveEffectiveStyleId(DialogContext, DialogEntry)"/> and
+    /// <c>table.Get(id)</c> as two steps rather than throwing the id away and re-deriving it.
+    /// This overload is the same two calls in the same order; there is no second implementation
+    /// of the resolution to drift.</para>
     ///
     /// <para>The table is a parameter, not a static: <see cref="DialogStyleTable"/> is a
     /// resource now (<c>DIALSTYL.DAT</c>) and the caller holds whichever instance the resource
