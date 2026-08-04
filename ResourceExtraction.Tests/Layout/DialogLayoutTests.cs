@@ -90,9 +90,13 @@ public class DialogLayoutTests {
         Assert.Equal((float)AspectCorrection.ScaleVgaY(1), _layout.SpeakerPillShadowOffset);
         Assert.Equal((float)AspectCorrection.ScaleVgaY(1), _layout.SpeakerPillBorderWidth);
 
-        // Not the horizontal factor: this is the assertion that fails if someone "fixes" the
-        // asymmetry. AspectCorrection's two factors genuinely differ, so this is a real check.
-        Assert.NotEqual((float)AspectCorrection.ScaleVgaX(1), _layout.ChromeBorderWidth);
+        // The four assertions above are only a fence on the asymmetry while the two factors
+        // genuinely differ — if AspectCorrection's horizontal factor were ever changed to match
+        // the vertical one, they would all still pass while saying nothing. So the premise gets
+        // its own assertion, which can fail on its own. (Restating it per-value as
+        // `NotEqual(ScaleVgaX(1), ChromeBorderWidth)` could not: with `== ScaleVgaY(1)` already
+        // asserted, 5 != 6 makes it true by arithmetic, not by anything about the layout.)
+        Assert.NotEqual(AspectCorrection.ScaleVgaX(1), AspectCorrection.ScaleVgaY(1));
     }
 
     /// <summary>
