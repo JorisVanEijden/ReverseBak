@@ -67,8 +67,15 @@ public class DialogStyleTableFrameTests {
     /// FAITHFULNESS. The dialog surface must land in the same space as every other screen, which
     /// is what makes "nothing observable changed" true: before this task the dialog stage was
     /// built from <c>CanonicalStage</c>'s null fallback, whose dimensions are the canonical ones.
-    /// Comparing against the frame a REQ screen gets — through a completely different code path —
-    /// is the assertion that would catch a dialog frame drifting away from the rest of the UI.
+    ///
+    /// <para><b>Scope, honestly stated.</b> Both <c>Apply</c> overloads assign
+    /// <c>AspectCorrection.CanonicalFrame()</c>, so this is not independent confirmation: a drift
+    /// inside <c>AspectCorrection</c> moves both sides together and leaves this green (the
+    /// derivation itself is pinned by
+    /// <see cref="ApplyStampsTheCanonicalSpace_DerivedFromTheVgaModeAndTheAspectFactors"/>, which
+    /// recomputes it from the mode size and the factors). What it does catch is the two overloads
+    /// being edited apart — someone hand-writing dimensions into one of them — and it goes red if
+    /// the dialog stamp is removed altogether.</para>
     /// </summary>
     [Fact]
     public void TheDialogFrame_IsTheSameSpaceEveryOtherScreenResourceIsStampedWith() {

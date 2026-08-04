@@ -29,8 +29,15 @@ using GameData.Resources.Layout;
 /// modded one.</para>
 ///
 /// <para><b>The shipped rows are this type's defaults</b> (<see cref="Rows"/>'s initializer), so
-/// <c>new DialogStyleTable()</c> is the faithful table and every consumer has a correct fallback
-/// with no game data in hand. <see cref="Rows"/> is an ARRAY deliberately: both serializers
+/// <c>new DialogStyleTable()</c> carries the faithful rows and layout with no game data in hand —
+/// <b>with one stated exception: <see cref="Frame"/></b>, which defaults to 0x0 because its
+/// dimensions are derived outside GameData and must be stamped by
+/// <c>CanonicalSpace.Apply</c> (see that property's remarks, and
+/// <see cref="CreateShipped"/>'s). A consumer that needs the coordinate space as well as the rows
+/// therefore cannot simply construct one; it must go through a stamping factory. Do not
+/// "simplify" such a caller back to a bare <c>new DialogStyleTable()</c> or
+/// <see cref="CreateShipped"/> — the frame silently collapses and the dialog surface falls back to
+/// its warn-and-guess path. <see cref="Rows"/> is an ARRAY deliberately: both serializers
 /// replace an array-valued property wholesale, whereas Newtonsoft would *append* to a
 /// pre-populated <c>List&lt;T&gt;</c> and hand back 14 rows. Note that a whole-document override
 /// therefore replaces the array — see the remarks on <see cref="CreateShipped"/> for how the
@@ -113,7 +120,11 @@ public class DialogStyleTable : IResource {
     /// <para><b>It does NOT stamp <see cref="Frame"/></b> — see that property for why the canonical
     /// dimensions cannot be derived inside GameData. Every caller must run the result through
     /// <c>CanonicalSpace.Apply</c>, the override merge baseline included: a baseline with a 0x0
-    /// frame would hand a document that never mentions <see cref="Frame"/> a collapsed one.</para>
+    /// frame would hand a document that never mentions <see cref="Frame"/> a collapsed one. There
+    /// are exactly two stamping factories, and a new consumer should call one rather than this:
+    /// <c>GeneralResourceProvider.GetResource&lt;DialogStyleTable&gt;</c> on the extraction side, and
+    /// <c>OverrideResourceProvider.ShippedDialogStyleTable</c> on the Unity side (which serves both
+    /// the merge baseline and the dialog loader's load-failure fallback).</para>
     /// </summary>
     public static DialogStyleTable CreateShipped(string id = ResourceId) => new() { Id = id };
 
