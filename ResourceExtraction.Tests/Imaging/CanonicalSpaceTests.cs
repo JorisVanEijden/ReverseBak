@@ -5,6 +5,7 @@ using GameData.Resources.Animation.FrameCommands;
 using GameData.Resources.Dialog;
 using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Label;
+using GameData.Resources.Layout;
 using GameData.Resources.Menu;
 using ResourceExtraction.Imaging;
 using Xunit;
@@ -106,16 +107,45 @@ public class CanonicalSpaceTests {
     public void Apply_Dialog_ScalesResizeActionVga() {
         var dialog = new Dialog("TEST.DDX");
         var entry = new DialogEntry();
-        entry.Actions.Add(new ResizeDialogAction { Left = 13, Top = 11, Width = 294, Height = 101 });
+        entry.Actions.Add(new ResizeDialogAction {
+            Left = LayoutLength.Px(13f), Top = LayoutLength.Px(11f),
+            Width = LayoutLength.Px(294f), Height = LayoutLength.Px(101f)
+        });
         dialog.Entries.Add(entry);
 
         CanonicalSpace.Apply(dialog);
 
         var resize = Assert.IsType<ResizeDialogAction>(dialog.Entries[0].Actions[0]);
-        Assert.Equal(65, resize.Left);
-        Assert.Equal(66, resize.Top);
-        Assert.Equal(1470, resize.Width);
-        Assert.Equal(606, resize.Height);
+        Assert.Equal(LayoutLength.Px(65f), resize.Left);
+        Assert.Equal(LayoutLength.Px(66f), resize.Top);
+        Assert.Equal(LayoutLength.Px(1470f), resize.Width);
+        Assert.Equal(LayoutLength.Px(606f), resize.Height);
+    }
+
+    /// <summary>
+    /// The likeliest silent error in this task: a percent-valued resize is already
+    /// resolution-independent and must pass through <c>CanonicalSpace.Apply(Dialog)</c>
+    /// unchanged. Getting this wrong would multiply e.g. 50% into 250%. Falsified deliberately
+    /// (task brief Step 7): making <c>Apply</c> scale percentages too turns this test red, which
+    /// is the required proof that this assertion actually exercises the guard.
+    /// </summary>
+    [Fact]
+    public void Apply_Dialog_LeavesPercentResizeActionUnchanged() {
+        var dialog = new Dialog("TEST.DDX");
+        var entry = new DialogEntry();
+        entry.Actions.Add(new ResizeDialogAction {
+            Left = LayoutLength.Percent(12.5f), Top = LayoutLength.Percent(30f),
+            Width = LayoutLength.Percent(91.75f), Height = LayoutLength.Percent(48f)
+        });
+        dialog.Entries.Add(entry);
+
+        CanonicalSpace.Apply(dialog);
+
+        var resize = Assert.IsType<ResizeDialogAction>(dialog.Entries[0].Actions[0]);
+        Assert.Equal(LayoutLength.Percent(12.5f), resize.Left);
+        Assert.Equal(LayoutLength.Percent(30f), resize.Top);
+        Assert.Equal(LayoutLength.Percent(91.75f), resize.Width);
+        Assert.Equal(LayoutLength.Percent(48f), resize.Height);
     }
 
     [Fact]

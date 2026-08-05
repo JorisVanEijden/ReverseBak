@@ -6,6 +6,7 @@ using GameData.Resources.Book;
 using GameData.Resources.Dialog;
 using GameData.Resources.Dialog.Actions;
 using GameData.Resources.Label;
+using GameData.Resources.Layout;
 using GameData.Resources.Menu;
 
 /// <summary>
@@ -73,14 +74,26 @@ public static class CanonicalSpace {
         foreach (DialogEntry entry in dialog.Entries) {
             foreach (DialogActionBase action in entry.Actions) {
                 if (action is ResizeDialogAction resize) {
-                    resize.Left = AspectCorrection.ScaleVgaX(resize.Left);
-                    resize.Top = AspectCorrection.ScaleVgaY(resize.Top);
-                    resize.Width = AspectCorrection.ScaleVgaX(resize.Width);
-                    resize.Height = AspectCorrection.ScaleVgaY(resize.Height);
+                    resize.Left = ScaleResizeLength(resize.Left, AspectCorrection.ScaleVgaX);
+                    resize.Top = ScaleResizeLength(resize.Top, AspectCorrection.ScaleVgaY);
+                    resize.Width = ScaleResizeLength(resize.Width, AspectCorrection.ScaleVgaX);
+                    resize.Height = ScaleResizeLength(resize.Height, AspectCorrection.ScaleVgaY);
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Scales only the px case of a <see cref="ResizeDialogAction"/> inset — the extractor's own
+    /// VGA-space output. A percent length is already resolution-independent (it is a fraction of
+    /// whatever the parent resolves to, not a VGA pixel count) and must pass through unchanged;
+    /// scaling it would turn an override author's e.g. <c>50%</c> into <c>250%</c>. <c>Auto</c>
+    /// passes through for the same reason: there is no pixel count to scale.
+    /// </summary>
+    private static LayoutLength ScaleResizeLength(LayoutLength length, System.Func<int, int> scaleVga) =>
+        length.Unit == LayoutLengthUnit.Px
+            ? LayoutLength.Px(scaleVga((int)length.Value))
+            : length;
 
     /// <summary>
     /// Stamps the dialog surface's design frame onto the (synthesized) DIALSTYL.DAT table — the
