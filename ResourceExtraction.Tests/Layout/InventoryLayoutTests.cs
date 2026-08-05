@@ -92,6 +92,30 @@ public class InventoryLayoutTests {
         AssertPoint(layout.CrossbowPlaceholder, 70f, 258f);
         AssertPoint(layout.ArmorPlaceholder, 70f, 438f);
 
+        // --- "More Info" stat panel (UI_showItemStats @0x5A1DA) ---
+        // The walk's two origins: general VGA (140,30) -> (700,180); the melee table shifts left
+        // to fit two columns, VGA (115,30) -> (575,180).
+        AssertPoint(layout.StatsOrigin, 700f, 180f);
+        AssertPoint(layout.StatsWeaponOrigin, 575f, 180f);
+
+        // Column offsets from the walk's x (horizontal, x5): +85 -> 425, +150 -> 750, +70 -> 350.
+        Assert.Equal(425f, layout.StatsThrustColumn);
+        Assert.Equal(750f, layout.StatsSwingColumn);
+        Assert.Equal(350f, layout.StatsValueColumn);
+
+        // Vertical advances (x6): row +10 -> 60, section gap +6 -> 36, melee header +15 -> 90,
+        // underline +3 -> 18, staff nudge +10 -> 60, ranged block +25 -> 150, armor block
+        // +15 -> 90. Named separately even where the numbers coincide — see the property comments.
+        Assert.Equal(60f, layout.StatsLineAdvance);
+        Assert.Equal(36f, layout.StatsSectionGap);
+        Assert.Equal(90f, layout.StatsHeaderHeight);
+        Assert.Equal(18f, layout.StatsUnderlineOffset);
+        Assert.Equal(60f, layout.StatsStaffNudge);
+        Assert.Equal(150f, layout.StatsCrossbowOffsetY);
+        Assert.Equal(90f, layout.StatsArmorOffsetY);
+        // Horizontal (x5): armor indents +15 -> 75.
+        Assert.Equal(75f, layout.StatsArmorIndentX);
+
         // --- interaction ---
         // drag threshold ~4 original px x5 (sub_ovr158_1013 @0x57184)
         Assert.Equal(20f, layout.DragThreshold);

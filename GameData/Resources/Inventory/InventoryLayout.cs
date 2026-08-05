@@ -183,6 +183,79 @@ public class InventoryLayout {
         Top = LayoutLength.Px(606f),
     };
 
+    // ---- "More Info" stat panel (UI_showItemStats @0x5A1DA) ----------------------------------
+    // The stat block is a cursor WALK, not a set of named boxes: a section appends its lines at the
+    // cursor and then advances it by its own amount. So only the two ORIGINS are positions; every
+    // other value here is a distance added to one, which is why they follow the design-frame scalar
+    // rule documented below rather than being LayoutLengths — adding a percentage to a px cursor
+    // needs a resolved parent size, i.e. a layout solver.
+    //
+    // Every advance is named separately even where two happen to share a number today (StaffNudge
+    // and LineAdvance are both one original row; ArmorOffsetY and HeaderHeight are both 15). They
+    // are independent immediates in the original, and collapsing them here would assert a shared
+    // identity the disassembly does not show — and would silently move two things when an override
+    // meant to move one.
+
+    /// <summary>Where the stat walk starts for every category except the melee table. VGA (140,30)
+    /// -> canonical (700,180) (<c>UI_showItemStats</c> @0x5A1DA).</summary>
+    public LayoutHint StatsOrigin { get; set; } = new LayoutHint {
+        Left = LayoutLength.Px(700f),
+        Top = LayoutLength.Px(180f),
+    };
+
+    /// <summary>Where the walk starts for a sword or staff: the two-column Thrust|Swing table needs
+    /// more width, so the original shifts the cursor left. VGA (115,30) -> canonical (575,180).
+    /// Only the horizontal origin differs from <see cref="StatsOrigin"/> in the shipped data; both
+    /// axes are honoured so an override can move the melee table on its own.</summary>
+    public LayoutHint StatsWeaponOrigin { get; set; } = new LayoutHint {
+        Left = LayoutLength.Px(575f),
+        Top = LayoutLength.Px(180f),
+    };
+
+    /// <summary>Thrust column offset from the walk's x, in design-frame px. VGA +85 -> 425.</summary>
+    public float StatsThrustColumn { get; set; } = 425f;
+
+    /// <summary>Swing column offset from the walk's x, in design-frame px. VGA +150 -> 750.</summary>
+    public float StatsSwingColumn { get; set; } = 750f;
+
+    /// <summary>Offset from the walk's x to the value of every SINGLE-column row (ranged damage,
+    /// armor mod, enchantments, racial), in design-frame px. VGA +70 -> 350.</summary>
+    public float StatsValueColumn { get; set; } = 350f;
+
+    /// <summary>One row of the walk, in design-frame px — the advance between consecutive lines
+    /// within a section. VGA +10 -> 60.</summary>
+    public float StatsLineAdvance { get; set; } = 60f;
+
+    /// <summary>Extra space inserted before a new section (enchantments, racial, the statistics
+    /// line), in design-frame px. VGA +6 -> 36.</summary>
+    public float StatsSectionGap { get; set; } = 36f;
+
+    /// <summary>Distance from the melee table's header row down to its first data row, in
+    /// design-frame px. VGA +15 -> 90.</summary>
+    public float StatsHeaderHeight { get; set; } = 90f;
+
+    /// <summary>How far below the melee header its "________" underline sits, in design-frame px.
+    /// VGA +3 -> 18. Small because it underlines the same row rather than starting a new
+    /// one.</summary>
+    public float StatsUnderlineOffset { get; set; } = 18f;
+
+    /// <summary>A staff's table starts one row lower than a sword's, in design-frame px. VGA +10
+    /// -> 60 (<c>UI_showItemStats</c>: the staff branch adds a row before drawing).</summary>
+    public float StatsStaffNudge { get; set; } = 60f;
+
+    /// <summary>Distance from the walk's start down to a crossbow/quarrel block's first row, in
+    /// design-frame px. VGA +25 -> 150. The ranged block has no header table to clear, so this is
+    /// its own advance rather than a header height.</summary>
+    public float StatsCrossbowOffsetY { get; set; } = 150f;
+
+    /// <summary>How far right an armor block indents from the walk's x, in design-frame px.
+    /// VGA +15 -> 75.</summary>
+    public float StatsArmorIndentX { get; set; } = 75f;
+
+    /// <summary>Distance from the walk's start down to the armor block's first row, in design-frame
+    /// px. VGA +15 -> 90.</summary>
+    public float StatsArmorOffsetY { get; set; } = 90f;
+
     // ---- design-frame scalars ----------------------------------------------------------------
     // The values below are deliberately plain floats rather than LayoutHint/LayoutLength, because
     // none of them can be expressed in any unit BUT design-frame px:
