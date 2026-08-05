@@ -11,20 +11,23 @@ using GameData.Resources.World;
 /// and a corpse (<see cref="WorldEntityType.Corpse"/>) shows the dead-body sprite.
 /// <para>
 /// The original additionally has container-type special cases resolved <b>before</b> this switch —
-/// cheat chest (containerType 8) and default member inventory → 11, npc/monster inventory
-/// (containerType 7) → 4, shop container → 7. Those belong to the not-yet-built general-inventory /
-/// shop entry points; the world-clicked loot path (chest/corpse) always falls through to this
-/// world-item-type switch, so only that mapping is modelled here.
+/// the shared keys inventory (containerType 8) and the no-selection member inventory → 11,
+/// npc/monster inventory (containerType 7) → 4, shop container → 7. The keys and member cases are
+/// modelled (see the two constants below, applied by the inventory screen); the combat and shop
+/// cases belong to the not-yet-built entry points. The world-clicked loot path (chest/corpse)
+/// always falls through to this world-item-type switch.
 /// </para>
 /// </summary>
 public static class ContainerImage {
     /// <summary>INVMISC.BMX#4 — the dead-body sprite (a corpse).</summary>
     public const int DeadBodyIndex = 4;
 
-    /// <summary>INVMISC.BMX#11 — the member-inventory image shown while NOTHING is selected: a ring
-    /// of keys. <c>invui_actor_inventory_kind</c> (@0x565EE) returns 0xB only when its caller passes
-    /// <c>flag == 0</c>, and the caller computes that flag as <c>highlight_slot != -1</c> — i.e. the
-    /// keys are the no-selection state.</summary>
+    /// <summary>INVMISC.BMX#11 — a ring of keys. Two cases return it
+    /// (<c>invui_actor_inventory_kind</c> @0x565EE, INVENTOR.C:269): the member inventory while
+    /// NOTHING is selected (the selector returns 0xB only when its caller passes <c>flag == 0</c>,
+    /// computed as <c>highlight_slot != -1</c>), and — unconditionally, selection or not — the
+    /// party's shared keys inventory itself (<see cref="Data.SaveGameContainerType.SharedKeys"/>,
+    /// the DOS <c>RES_PICKLOCK_BUFFER</c> residence).</summary>
     public const int MemberInventoryIndex = 11;
 
     /// <summary>INVMISC.BMX#0 — the member-inventory image shown while an item IS selected: a bag.

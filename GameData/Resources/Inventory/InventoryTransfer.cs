@@ -16,8 +16,7 @@ using System.Collections.Generic;
 /// <see cref="Apply"/> (or <see cref="Distribute"/> for Share). <see cref="Move"/> is the
 /// non-interactive wrapper: it answers every picker with "all".</para>
 ///
-/// <para>Keys-to-shared-inventory and the starving-ration auto-consume are still out of
-/// scope (task-49 §5; no status system yet).</para>
+/// <para>The starving-ration auto-consume is still out of scope (no status system yet).</para>
 /// </summary>
 public static class InventoryTransfer {
     public enum Result {
@@ -72,8 +71,10 @@ public static class InventoryTransfer {
 
     /// <summary>Non-interactive move: every picker question is answered with "all".</summary>
     public static Result Move(RuntimeContainer source, int itemIndex, RuntimeContainer target,
-        ObjectInfoSet objects, ref int partyGold, bool targetIsCaster = false) {
-        TransferPlan plan = Plan(source, itemIndex, target, objects, ref partyGold, targetIsCaster);
+        ObjectInfoSet objects, ref int partyGold, bool targetIsCaster = false,
+        RuntimeContainer sharedKeys = null) {
+        TransferPlan plan = Plan(source, itemIndex, target, objects, ref partyGold, targetIsCaster,
+            allowShare: false, sharedKeys: sharedKeys);
         return plan.Immediate ?? Apply(plan, plan.MaxQuantity);
     }
 
@@ -81,9 +82,13 @@ public static class InventoryTransfer {
     /// auto-equip categories); ignored when the target is not a member inventory.</param>
     /// <param name="allowShare">Whether a picker, if one is needed, offers "Share with party"
     /// (pickupItem passes: destination is a party member and not in combat).</param>
+    /// <param name="sharedKeys">The party's one shared keys inventory
+    /// (<c>g_gameState.shared_inventory</c>). Keys bound for a party member land here instead —
+    /// see the cat-7 branch below. Null disables the diversion (keys then take the normal path),
+    /// which is what a save with no such container gets.</param>
     public static TransferPlan Plan(RuntimeContainer source, int itemIndex, RuntimeContainer target,
         ObjectInfoSet objects, ref int partyGold, bool targetIsCaster = false,
-        bool allowShare = false) {
+        bool allowShare = false, RuntimeContainer sharedKeys = null) {
         var plan = new TransferPlan {
             Source = source, Target = target, Objects = objects, ItemIndex = itemIndex,
         };
@@ -129,6 +134,17 @@ public static class InventoryTransfer {
                 plan.Immediate = Result.MustKeepEquipped;
                 return plan;
             }
+        }
+
+        // pickupItem @0x558c2 (CMBINV.C:881-901), immediately after those guards: a key bound for
+        // a PARTY MEMBER never enters that member's pack — it diverts to the party's one shared
+        // keys inventory. One slot per key kind: a kind already on the ring just bumps its count,
+        // a new kind is appended with count 1. There is no fit test on this path at all (the ring
+        // never refuses), and no equip/stack/picker handling — it returns straight away.
+        if (sharedKeys != null && category == ObjectType.Key
+            && target.ContainerType == SaveGameContainerType.Inventory) {
+            plan.Immediate = AddToKeyring(source, itemIndex, item, sharedKeys, objects);
+            return plan;
         }
 
         // Currency: convert straight into the gold scalar; no carried item.
@@ -295,6 +311,32 @@ public static class InventoryTransfer {
             InventoryOrder.Consolidate(r, objects,
                 r.ContainerType == SaveGameContainerType.Inventory);
         }
+        return Result.Moved;
+    }
+
+    // The keyring insert (pickupItem @0x558c2 / CMBINV.C:886-900). The original asks
+    // itemtbl_inv_count_by_kind first and then bumps EVERY slot of that kind — a loop that can
+    // only ever see one, since the else-branch is the only thing that appends. Reproduced as
+    // written rather than "find the one slot", so a save that somehow carries two slots of one
+    // key behaves as the original would. The key's own count is discarded: a picked-up key is
+    // worth exactly one on the ring.
+    private static Result AddToKeyring(RuntimeContainer source, int itemIndex, RuntimeItem item,
+        RuntimeContainer keys, ObjectInfoSet objects) {
+        bool alreadyHeld = false;
+        foreach (RuntimeItem held in keys.Items) {
+            if (held.ObjectId == item.ObjectId) {
+                held.Variable = (byte)(held.Variable + 1);
+                alreadyHeld = true;
+            }
+        }
+        if (!alreadyHeld) {
+            RuntimeItem added = item.Clone();
+            added.Variable = 1;
+            keys.Items.Add(added);
+        }
+        keys.Dirty = true;
+        InventoryOrder.Sort(keys, objects, equippedOrder: false); // cmbinv_combat_sort_initiative
+        RemoveAt(source, itemIndex);
         return Result.Moved;
     }
 

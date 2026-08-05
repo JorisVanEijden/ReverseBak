@@ -12,7 +12,7 @@ public class SaveGameContainerTypeTests {
     [InlineData(SaveGameContainerType.Corpse, 5)]
     [InlineData(SaveGameContainerType.FixedWorldItem, 6)]
     [InlineData(SaveGameContainerType.NpcInventory, 7)]
-    [InlineData(SaveGameContainerType.CheatChest, 8)]
+    [InlineData(SaveGameContainerType.SharedKeys, 8)]
     [InlineData(SaveGameContainerType.ScriptedLoot, 9)]
     public void EnumValuesMatchGameData(SaveGameContainerType t, byte expected) =>
         Assert.Equal(expected, (byte)t);
