@@ -40,11 +40,19 @@ public static class DialogSlotPopulator {
 
     // Kinds, named where the engine only numbers them.
     private const int KindChapterSpeaker = 7;          // global 30005, no randomness
+    private const int KindPrimaryActor = 10, KindPrimaryActorAlt = 30;
+    private const int KindSecondaryActor = 11;
+    private const int KindTertiaryActor = 12;
     private const int KindRandomFirst = 13, KindRandomLast = 16;
+    private const int KindCreatureName = 17;
+    private const int KindObjectName = 18;
     private const int KindRandomNotSpeaker = 31;
+    private const int KindShopOrTavernKeeper = 28;
     private const int SourceQuotedMoney = 19;
     private const int SourcePartyMoney = 20;
     private const int SourceQuotedNumber = 21;
+    private const int SourceGlobal30015 = 22;
+    private const int SourceGlobal30018 = 23;
 
     private const int RandomDrawLimit = 500;
 
@@ -124,6 +132,30 @@ public static class DialogSlotPopulator {
             return;
         }
         switch (kind) {
+            // The three actor globals a dialog is "about". Each writes the kind too, so the slot
+            // knows it holds a party member.
+            case KindPrimaryActor:
+            case KindPrimaryActorAlt:
+                SetActor(table, slot, context.PrimaryActorId, context);
+                return;
+            case KindSecondaryActor:
+                SetActor(table, slot, context.SecondaryActorId, context);
+                return;
+            case KindTertiaryActor:
+                SetActor(table, slot, context.TertiaryActorId, context);
+                return;
+            // A creature, not a party member — and the slot is marked as such, which is what turns
+            // on the renderer's a/an article and possessive rules for this token.
+            case KindCreatureName:
+                table.Kinds[slot] = DialogSlotTable.CreatureActor;
+                table.Names[slot] = context.CreatureNameOf?.Invoke(context.CreatureType) ?? "";
+                return;
+            case KindObjectName:
+                table.Names[slot] = context.ObjectNameOf?.Invoke(context.KeyObjectId) ?? "";
+                return;
+            case KindShopOrTavernKeeper:
+                table.Names[slot] = context.IsRestEncounter ? "tavernkeeper" : "shopkeeper";
+                return;
             // Both money sources speak the prose wording — every amount SPOKEN in the game is in
             // sovereigns and royals; gold/silver is screen-only.
             case SourceQuotedMoney:
@@ -139,9 +171,21 @@ public static class DialogSlotPopulator {
             case SourceQuotedNumber:
                 table.Names[slot] = context.QuotedAmount.ToString(CultureInfo.InvariantCulture);
                 return;
+            case SourceGlobal30015:
+                table.Names[slot] = context.Global30015.ToString(CultureInfo.InvariantCulture);
+                return;
+            case SourceGlobal30018:
+                table.Names[slot] = context.Global30018.ToString(CultureInfo.InvariantCulture);
+                return;
             default:
                 return; // unmodelled kind: keep whatever the seeding put here
         }
+    }
+
+    private static void SetActor(DialogSlotTable table, int slot, int actorId,
+        DialogSlotContext context) {
+        table.Kinds[slot] = actorId;
+        table.Names[slot] = context.NameOf(actorId);
     }
 
     /// <summary>

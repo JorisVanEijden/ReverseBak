@@ -120,7 +120,7 @@ public class SaveGameStateData {
             var values = new Dictionary<int, int>();
 
             int[] keys = {
-                30000, 30001, 30002, 30003, 30005, 30007, 30009, 30010,
+                30000, 30001, 30002, 30003, 30004, 30005, 30007, 30009, 30010,
                 30012, 30013, 30014, 30015, 30018, 30019, 30029
             };
 
@@ -150,6 +150,9 @@ public class SaveGameStateData {
 
         return key switch {
             30000 => MiscStateData.Global30000,
+            // The dialog's primary actor (nEvtArgActor0, TEMP.GAM +0x0596): text-variable kinds 10
+            // and 30, and the actor a bare '@' names.
+            30004 => MiscStateData.DialogPrimaryActorNumber,
             30001 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold / 10)),
             30002 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold)),
             30003 => PartyGold >= MiscStateData.Global30014Money ? 1 : 0,

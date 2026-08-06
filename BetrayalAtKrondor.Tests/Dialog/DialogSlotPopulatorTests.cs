@@ -67,14 +67,14 @@ public class DialogSlotPopulatorTests {
         Assert.Equal("Owyn", Slot(1, 3, Context()));
     }
 
-    // An unmodelled kind must not blank the slot — it keeps whatever the seeding put there, which
-    // is a plausible name rather than an empty token.
+    // An unmodelled kind (27 = attribute name + value, one shipped use) must not blank the slot —
+    // it keeps whatever the seeding put there, which is a plausible name rather than an empty token.
     [Fact]
     public void UnmodelledKindKeepsTheSeededName() {
         DialogSlotContext context = Context();
         string seeded = DialogSlotPopulator.CreateForPlay(context).Names[4];
         Assert.False(string.IsNullOrEmpty(seeded));
-        Assert.Equal(seeded, Slot(4, 17, context));
+        Assert.Equal(seeded, Slot(4, 27, context));
     }
 
     // An entry writes on top of the seeded table rather than replacing it: the slots it does not
@@ -103,5 +103,79 @@ public class DialogSlotPopulatorTests {
         string[] slots = DialogSlotPopulator.BuildSlots(entry, context);
         Assert.Equal("Locklear checked their funds. They had 123 sovereigns and 4 royals.",
             TextVariableResolver.Substitute(entry.Text, slots, context.NameOf(context.CurrentActorId)));
+    }
+
+    // ---- the actor kinds (globals 30004 / +0x0598 / +0x059A) -----------------------------
+
+    [Fact]
+    public void Kinds10And30NameThePrimaryActor() {
+        DialogSlotContext context = Context();
+        context.PrimaryActorId = 4;
+        Assert.Equal("James", Slot(1, 10, context));
+        Assert.Equal("James", Slot(1, 30, context));
+    }
+
+    [Fact]
+    public void Kind11NamesTheSecondaryActor() {
+        DialogSlotContext context = Context();
+        context.SecondaryActorId = 5;
+        Assert.Equal("Patrus", Slot(1, 11, context));
+    }
+
+    [Fact]
+    public void Kind12NamesTheTertiaryActor() {
+        DialogSlotContext context = Context();
+        context.TertiaryActorId = 3;
+        Assert.Equal("Pug", Slot(1, 12, context));
+    }
+
+    // ---- creature and object names ---------------------------------------------------------
+
+    // 72 shipped entries use kind 17 — the most-used kind of all.
+    [Fact]
+    public void Kind17NamesTheCreatureAndMarksTheSlotAsOne() {
+        DialogSlotContext context = Context();
+        context.CreatureType = 7;
+        context.CreatureNameOf = id => id == 7 ? "Wraith" : "?";
+        DialogSlotTable table = DialogSlotPopulator.CreateForPlay(context);
+        DialogSlotPopulator.Assign(table, 1, 17, 0, context);
+        Assert.Equal("Wraith", table.Names[1]);
+        // The mark is what turns on the renderer's article/possessive rules for this token.
+        Assert.Equal(DialogSlotTable.CreatureActor, table.Kinds[1]);
+    }
+
+    [Fact]
+    public void Kind18NamesTheKeyObject() {
+        DialogSlotContext context = Context();
+        context.KeyObjectId = 12;
+        context.ObjectNameOf = id => id == 12 ? "Bowstring" : "?";
+        Assert.Equal("Bowstring", Slot(1, 18, context));
+    }
+
+    [Fact]
+    public void MissingNameLookupsYieldEmptyRatherThanThrowing() {
+        DialogSlotContext context = Context();
+        Assert.Equal("", Slot(1, 17, context));
+        Assert.Equal("", Slot(1, 18, context));
+    }
+
+    // ---- the remaining number and label kinds ----------------------------------------------
+
+    [Fact]
+    public void Kinds22And23AreBareNumbers() {
+        DialogSlotContext context = Context();
+        context.Global30015 = 42;
+        context.Global30018 = 7;
+        Assert.Equal("42", Slot(1, 22, context));
+        Assert.Equal("7", Slot(1, 23, context));
+    }
+
+    [Fact]
+    public void Kind28PicksTheKeeperByEncounterType() {
+        DialogSlotContext shop = Context();
+        Assert.Equal("shopkeeper", Slot(1, 28, shop));
+        DialogSlotContext inn = Context();
+        inn.IsRestEncounter = true;
+        Assert.Equal("tavernkeeper", Slot(1, 28, inn));
     }
 }

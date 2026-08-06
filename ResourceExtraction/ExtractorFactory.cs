@@ -8,6 +8,7 @@ using GameData.Resources.Animation;
 using GameData.Resources.Audio;
 using GameData.Resources.Book;
 using GameData.Resources.Config;
+using GameData.Resources.Creature;
 using GameData.Resources.Credits;
 using GameData.Resources.Data;
 using GameData.Resources.Image;
@@ -85,6 +86,8 @@ public static class ExtractorFactory {
             typeof(ObjectInfoSet), typeof(ObjectInfoSetExtractor)
         }, {
             typeof(DetectData), typeof(DetectExtractor)
+        }, {
+            typeof(CreatureNames), typeof(MnamesExtractor)
         }
     };
 

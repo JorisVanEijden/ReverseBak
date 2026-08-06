@@ -17,14 +17,21 @@ using System.Collections.Generic;
 public static class DialogBranchWalker {
     private const int MaxHops = 32; // guard against malformed/cyclic data
 
+    /// <param name="onEntryVisited">Runs for every entry the walk touches, in order, INCLUDING the
+    /// leaf it stops on. The engine's op loop runs per record it reaches, not only on the one it
+    /// ends up displaying (DIALOG.C:855-870) — and that matters: 57 shipped entries are text-less
+    /// routers whose only job is to fill a text variable before branching to the leaf that uses it.
+    /// Skipping them leaves those tokens showing the seeded default instead of what the dialog
+    /// meant.</param>
     public static DialogEntry WalkToLeaf(Dialog dialog, DialogEntry start, Func<int, int?> getGlobal,
-        Action<Effect> applyEffect = null) {
+        Action<Effect> applyEffect = null, Action<DialogEntry> onEntryVisited = null) {
         if (dialog == null || start == null) {
             return start;
         }
         Dictionary<string, DialogEntry> byKey = BuildKeyIndex(dialog);
         DialogEntry current = start;
         for (int hop = 0; hop < MaxHops; hop++) {
+            onEntryVisited?.Invoke(current);
             ApplyEffects(current, applyEffect);
             if (!string.IsNullOrEmpty(current.Text)) {
                 return current; // leaf

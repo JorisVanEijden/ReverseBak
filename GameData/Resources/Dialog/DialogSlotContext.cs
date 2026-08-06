@@ -27,11 +27,47 @@ public sealed class DialogSlotContext {
     /// <c>nEvtArgActor0</c>, global 30004.</summary>
     public int CurrentActorId { get; set; }
 
+    /// <summary>Global 30004 — the dialog's primary actor (kinds 10 and 30, and the actor a bare
+    /// <c>@</c> names). Same value as <see cref="CurrentActorId"/>; both names are kept because the
+    /// engine reads it through two different paths.</summary>
+    public int PrimaryActorId { get; set; }
+
+    /// <summary>The dialog's secondary actor (kind 11) — TEMP.GAM +0x0598, the last actor a status
+    /// effect touched.</summary>
+    public int SecondaryActorId { get; set; }
+
+    /// <summary>The dialog's tertiary actor (kind 12) — TEMP.GAM +0x059A.</summary>
+    public int TertiaryActorId { get; set; }
+
+    /// <summary>The creature the dialog is about (kind 17) — TEMP.GAM +0x05A0, an index into
+    /// MNAMES.DAT.</summary>
+    public int CreatureType { get; set; }
+
+    /// <summary>The object the dialog is about (kind 18) — TEMP.GAM +0x05A2.</summary>
+    public int KeyObjectId { get; set; }
+
     /// <summary>The party purse in royals, for text-variable source 20.</summary>
     public int PartyMoneyInRoyals { get; set; }
 
     /// <summary>The engine's quoted-amount global (30014), for sources 19 and 21.</summary>
     public int QuotedAmount { get; set; }
+
+    /// <summary>Global 30015, printed as a bare number by kind 22.</summary>
+    public int Global30015 { get; set; }
+
+    /// <summary>Global 30018, printed as a bare number by kind 23.</summary>
+    public int Global30018 { get; set; }
+
+    /// <summary>Whether the NPC being spoken to runs an inn rather than a shop — the engine's
+    /// <c>g_bIsRestEncounter</c>, set from the container's nightly rate (CMBINV.C:67). Kind 28 says
+    /// "tavernkeeper" when true and "shopkeeper" when false.</summary>
+    public bool IsRestEncounter { get; set; }
+
+    /// <summary>Creature id → name (MNAMES.DAT), for kind 17. Null yields an empty name.</summary>
+    public Func<int, string> CreatureNameOf { get; set; }
+
+    /// <summary>Object id → name (OBJINFO.DAT), for kind 18. Null yields an empty name.</summary>
+    public Func<int, string> ObjectNameOf { get; set; }
 
     /// <summary>The engine's <c>RND(n)</c>: a value in <c>[0, n)</c>. Injected so the seeding is
     /// reproducible under test — the picker genuinely re-rolls on every dialog play, so a narration
