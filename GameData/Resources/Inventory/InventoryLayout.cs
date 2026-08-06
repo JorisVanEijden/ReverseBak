@@ -141,6 +141,33 @@ public class InventoryLayout {
         Top = LayoutLength.Px(438f),
     };
 
+    /// <summary>
+    /// The party-money readout, drawn on every render of this screen in ALL its modes — a member's
+    /// own inventory, a loot container, the combat inventory and a shop (<c>UI_DrawInventory</c>
+    /// @0x56dd0, INVENTOR.C:530-543). VGA (259,183) -> canonical (1295,1098).
+    ///
+    /// <para>Authored as a <b>Right</b> inset because the original draws it with
+    /// <c>alignment == 2</c>, which <c>invui_draw_text_aligned_shadow</c> implements as
+    /// <c>x -= textWidth</c>: 259 is the text's RIGHT edge, not its left, and the text grows
+    /// leftward as the party gets richer. 1600 - 1295 = 305 from the frame's right edge.</para>
+    ///
+    /// <para>That edge is not arbitrary. <c>REQ_INV.DAT</c> entry 6 is an invisible ClickArea with
+    /// action id 34 (<c>0x22</c>) spanning canonical (975,1080)-(1295,1170) — the readout's own hit
+    /// target, whose right edge is exactly this anchor. Moving one without the other separates the
+    /// number from its button.</para>
+    /// </summary>
+    /// <para>The <see cref="LayoutAnchor.TopRight"/> anchor is load-bearing, not decoration. The
+    /// default TopLeft anchor pins <c>left: 0</c>, and an element pinned on BOTH edges is stretched
+    /// between them — the readout's box would span the whole frame and only its text alignment
+    /// would still look right, so anything that measured the element (an override giving it a
+    /// Width, a hit test, a background) would get a screen-wide box. Anchoring top-right leaves the
+    /// left edge free, which is what lets the number size to itself and grow leftward.</para>
+    public LayoutHint MoneyReadout { get; set; } = new LayoutHint {
+        Anchor = LayoutAnchor.TopRight,
+        Right = LayoutLength.Px(305f),
+        Top = LayoutLength.Px(1098f),
+    };
+
     // ---- item-inspect view (UI_showItem @0x5A778) ------------------------------------------
     // Four text lines and an icon, each at a named point rather than in a grid. All four lines
     // are drawn with align == 1, which invui_draw_text_aligned_shadow implements as
