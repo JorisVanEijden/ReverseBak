@@ -153,9 +153,10 @@ public class SaveGameStateData {
             30001 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold / 10)),
             30002 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold)),
             30003 => PartyGold >= MiscStateData.Global30014Money ? 1 : 0,
-            30005 => PartyConfigurationData.ActivePartyCharacters.Length > 0
-                ? PartyConfigurationData.ActivePartyCharacters[0]
-                : 0,
+            // The chapter's designated speaker (GetGlobalValue @0x42399): member 3 whenever he is in
+            // the active party, otherwise the chapter's own entry in the 9-byte table at 0x3a53e.
+            // NOT the roster's first member — that only coincides in chapter 1.
+            30005 => ChapterSpeaker(),
             30007 => ChapterNumber,
             30009 => IsNightTime() ? 1 : 0,
             30010 => IsNightTime() ? 0 : 1,
@@ -169,6 +170,22 @@ public class SaveGameStateData {
             30029 => PartyConfigurationData.RewardMoneyCounter > 0 ? 1 : 0,
             _ => null
         };
+    }
+
+    /// <summary>Member ids the chapters designate as their speaker, chapter 1 first
+    /// (<c>chapterCharacterNumbers</c> @0x3a53e).</summary>
+    private static readonly byte[] ChapterSpeakers = { 0, 4, 4, 1, 4, 2, 4, 2, 3 };
+
+    /// <summary>Global 30005 — see <c>GetGlobalValue</c> @0x42399.</summary>
+    private int ChapterSpeaker() {
+        const int Pug = 3;
+        foreach (byte member in PartyConfigurationData.ActivePartyCharacters) {
+            if (member == Pug) {
+                return Pug;
+            }
+        }
+        int index = ChapterNumber - 1;
+        return index >= 0 && index < ChapterSpeakers.Length ? ChapterSpeakers[index] : 0;
     }
 
     private int GetCurrentHourOfDay() {

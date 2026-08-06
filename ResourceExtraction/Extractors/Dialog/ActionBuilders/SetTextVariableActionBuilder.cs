@@ -6,15 +6,15 @@ using System.IO;
 
 internal class SetTextVariableActionBuilder : IDialogActionBuilder {
     public DialogActionBase Build(BinaryReader resourceReader) {
-        ushort variable = resourceReader.ReadUInt16();
-        ushort value = resourceReader.ReadUInt16();
-        ushort unknown = resourceReader.ReadUInt16(); // unknown data
+        ushort slot = resourceReader.ReadUInt16();
+        ushort kind = resourceReader.ReadUInt16();
+        ushort aux = resourceReader.ReadUInt16();
         _ = resourceReader.ReadUInt16(); // unused data
 
         return new SetTextVariableAction {
-            Slot = variable,
-            Source = value,
-            Unknown = unknown
+            Slot = slot,
+            Source = kind,
+            Aux = aux
         };
     }
 }
