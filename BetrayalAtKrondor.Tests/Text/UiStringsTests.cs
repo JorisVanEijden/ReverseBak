@@ -56,15 +56,18 @@ public class UiStringsTests {
         }
     }
 
-    // A naive "Embedded returns an empty catalog for the {} placeholder" test is unfalsifiable:
-    // it passes whether Embedded actually reads the manifest stream, or silently takes its
-    // `name == null` fallback path, because both produce an empty catalog while the placeholder
-    // is in place. Once the placeholder is replaced with ~112 real entries it would ALSO pass
-    // for the wrong reason (an empty fallback catalog just looks "populated" if compared to
-    // nothing). So instead: locate the manifest resource ourselves, prove the stream exists,
-    // parse it independently of Embedded, and compare entry counts. If Embedded ever took the
-    // fallback while a real resource existed, the counts diverge; if the resource were missing
-    // entirely, the stream assertion below fails first.
+    // This test verifies that Embedded genuinely reads through to the manifest resource.
+    // DOES catch: a missing embedded resource (Assert.NotNull(name) fails on the stream lookup).
+    // CANNOT catch (while placeholder is {}): Embedded wrongly taking its `name == null` fallback
+    // branch while the resource genuinely exists, because both paths yield an empty catalog
+    // and compare equal.
+    // This limitation self-resolves once the placeholder is replaced with ~112 real entries —
+    // the entry counts will then diverge if Embedded ever took the fallback, making the test
+    // meaningful again. This test MUST be re-run and verified meaningful at that time.
+    // Detection method: locate the manifest resource name ourselves, verify the stream is non-null,
+    // parse it independently of Embedded, and assert the counts match. If Embedded took the fallback
+    // while a real resource existed, counts would diverge; if the resource were missing, the stream
+    // assertion fails first.
     [Fact]
     public void EmbeddedReadsThroughToTheManifestResource() {
         var asm = typeof(UiStringCatalog).Assembly;
