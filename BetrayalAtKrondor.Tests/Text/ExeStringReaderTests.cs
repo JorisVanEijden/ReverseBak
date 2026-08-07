@@ -67,4 +67,20 @@ public class ExeStringReaderTests {
             () => ExeStringReader.ReadSingle(exe, "Quarrel", 1));
         Assert.Contains("Quarrel", ex.Message);
     }
+
+    [Fact]
+    public void ZeroStrideIsRejected() {
+        byte[] exe = Exe("", new[] { "Health" }, 15);
+        InvalidDataException ex = Assert.Throws<InvalidDataException>(
+            () => ExeStringReader.ReadTable(exe, "Health", 0, 3));
+        Assert.Contains("Health", ex.Message);
+    }
+
+    [Fact]
+    public void NegativeCountIsRejected() {
+        byte[] exe = Exe("", new[] { "Health" }, 15);
+        InvalidDataException ex = Assert.Throws<InvalidDataException>(
+            () => ExeStringReader.ReadTable(exe, "Health", 15, -1));
+        Assert.Contains("Health", ex.Message);
+    }
 }

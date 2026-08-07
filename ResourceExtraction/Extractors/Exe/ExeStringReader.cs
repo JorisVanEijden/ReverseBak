@@ -14,6 +14,15 @@ using System.Text;
 public static class ExeStringReader {
     /// <summary>A NUL-padded fixed-stride table, located by its first entry.</summary>
     public static IReadOnlyList<string> ReadTable(byte[] exe, string anchor, int stride, int count) {
+        // Guard against invalid parameters before anchoring. A stride of zero would cause
+        // the bounds check to degenerate (start > exe.Length is always false once found),
+        // allowing ReadNulTerminated to be called with max=0, which silently returns empty
+        // strings for every entry instead of throwing. This is exactly the failure mode we
+        // exist to prevent, so reject it loudly instead.
+        if (stride <= 0 || count < 0) {
+            throw new InvalidDataException(
+                $"EXE string table '{anchor}': stride must be > 0 (got {stride}), count must be >= 0 (got {count}).");
+        }
         int start = FindEntry(exe, anchor, 0, stride);
         if (start < 0) {
             throw new InvalidDataException(
