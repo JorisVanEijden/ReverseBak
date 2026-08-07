@@ -26,4 +26,15 @@ public class CFormatTests {
     [Fact]
     public void MissingArgumentsBecomeEmpty() =>
         Assert.Equal(" gold  silver", CFormat.Apply("%ld gold %ld silver"));
+
+    // Width is NOT supported, and the catalog does contain it (base:uistring:item.percent_value).
+    // Pinned rather than left implicit: the specifier survives verbatim AND the argument is left
+    // unconsumed, so in a multi-argument format every later value would shift by one. If someone
+    // adds width support, this test is the one that should change — and it will say why.
+    [Fact]
+    public void WidthIsUnsupportedAndDropsTheArgument() {
+        Assert.Equal("%3d%", CFormat.Apply("%3d%%", 50));
+        // The shift, made visible: the unconsumed 50 is picked up by the NEXT conversion.
+        Assert.Equal("%3d 50", CFormat.Apply("%3d %d", 50, 7));
+    }
 }

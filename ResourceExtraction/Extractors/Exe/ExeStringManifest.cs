@@ -1,13 +1,49 @@
 namespace ResourceExtraction.Extractors.Exe;
 
+using System;
 using System.Collections.Generic;
+using System.IO;
+
+/// <summary>One row of a fixed-width table: the key suffix we give it, and the text we expect to
+/// find there. A pair rather than two parallel arrays, so a key can never silently drift onto the
+/// wrong expected text — there is no second array to forget to edit.</summary>
+public sealed class ExeStringTableEntry {
+    public ExeStringTableEntry(string name, string text) {
+        Name = name;
+        Text = text;
+    }
+
+    /// <summary>Key suffix — the <c>health</c> in <c>base:uistring:attribute.health</c>.</summary>
+    public string Name { get; }
+
+    /// <summary>The exact text this slot must contain. Checked on every extract; a mismatch throws
+    /// rather than being written into the catalog (spec §6).</summary>
+    public string Text { get; }
+}
 
 public sealed class ExeStringTable {
     public string KeyPrefix { get; set; }
-    public string Anchor { get; set; }
     public int Stride { get; set; }
-    public int Count { get; set; }
-    public string[] Names { get; set; }
+    public ExeStringTableEntry[] Entries { get; set; }
+
+    /// <summary>Derived, never declared: the table is located by its first entry's text, so a
+    /// separately-written anchor could only ever disagree with it.</summary>
+    public string Anchor => Entries != null && Entries.Length > 0 ? Entries[0].Text : null;
+
+    /// <summary>Derived, never declared — a declared count that disagreed with the entries would be
+    /// exactly the silent mismatch this shape exists to prevent.</summary>
+    public int Count => Entries?.Length ?? 0;
+
+    /// <summary>The key suffixes, in table order.</summary>
+    public string[] Names {
+        get {
+            var names = new string[Count];
+            for (int i = 0; i < names.Length; i++) {
+                names[i] = Entries[i].Name;
+            }
+            return names;
+        }
+    }
 }
 
 public sealed class ExeStringSingle {
@@ -24,28 +60,51 @@ public sealed class ExeStringSingle {
 public static class ExeStringManifest {
     /// <summary>Fixed-width tables. These are indexed arithmetically in the original, so they have
     /// ZERO data xrefs and no analysis can discover them — declaring them is the only way.</summary>
+    private static ExeStringTableEntry E(string name, string text) => new ExeStringTableEntry(name, text);
+
     public static IReadOnlyList<ExeStringTable> Tables { get; } = new List<ExeStringTable> {
         // 0x37897 in the IDA database, stride 23, 6 entries.
         new ExeStringTable {
-            KeyPrefix = "condition", Anchor = "Plagued", Stride = 23, Count = 6,
-            Names = new[] { "plagued", "poisoned", "drunk", "healing", "starving", "near_death" },
+            KeyPrefix = "condition", Stride = 23,
+            Entries = new[] {
+                E("plagued", "Plagued"), E("poisoned", "Poisoned"), E("drunk", "Drunk"),
+                E("healing", "Healing"), E("starving", "Starving"), E("near_death", "Near-death"),
+            },
         },
-        // 0x37930, stride 15, 16 entries. Order matches ActorAttribute's first 16 members.
+        // 0x37930, stride 15, 16 entries. The index order is the executable's — GetAttributeFromActor
+        // (0x42fca) walks the actor record with the same number that indexes this table — and
+        // ActorAttribute's first 16 members happen to agree; see GameData's ActorAttributeValues.
         new ExeStringTable {
-            KeyPrefix = "attribute", Anchor = "Health", Stride = 15, Count = 16,
-            Names = new[] {
-                "health", "stamina", "speed", "strength", "defense",
-                "accy_crossbow", "accy_melee", "accy_casting", "assessment", "armorcraft",
-                "weaponcraft", "barding", "haggling", "lockpick", "scouting", "stealth",
+            KeyPrefix = "attribute", Stride = 15,
+            Entries = new[] {
+                E("health", "Health"), E("stamina", "Stamina"), E("speed", "Speed"),
+                E("strength", "Strength"), E("defense", "Defense"),
+                E("accy_crossbow", "Accy: Crossbow"), E("accy_melee", "Accy: Melee"),
+                E("accy_casting", "Accy: Casting"), E("assessment", "Assessment"),
+                E("armorcraft", "Armorcraft"), E("weaponcraft", "Weaponcraft"),
+                E("barding", "Barding"), E("haggling", "Haggling"), E("lockpick", "Lockpick"),
+                E("scouting", "Scouting"), E("stealth", "Stealth"),
             },
         },
     };
 
     public static IReadOnlyList<ExeStringSingle> Singles { get; } = new List<ExeStringSingle> {
         // --- Task 4 Step 3: singletons needed by the Task 7-9 cutover ---
+        // The gold/silver wordings exist TWICE, and both copies are real call sites. Occurrence 0
+        // (0x3a582/0x3a596/0x3a5a1) is inside FormatMoneyToString (0x42d9a) — the helper
+        // MoneyFormatter ports, and the same function the sovereign/royal wordings below come from,
+        // so these keys keep the unqualified names. Occurrence 1 (0x3ad3a/0x3ad4e/0x3ad59) is
+        // UI_DrawInventory's (0x5674d) own embed, keyed separately below.
+        //
+        // The second copies were invisible until the extractor started enforcing "found more often
+        // than declared" (spec §6): the candidate baseline lists only UI_DrawInventory's, because
+        // FormatMoneyToString never calls a text-draw primitive and the classifier is function-level.
         new ExeStringSingle { Key = "base:uistring:money.gold_and_silver", Text = "%ld gold %ld silver", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:money.silver_only", Text = "%ld silver", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:money.gold_only", Text = "%ld gold", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:money.inventory_gold_and_silver", Text = "%ld gold %ld silver", Occurrence = 1 },
+        new ExeStringSingle { Key = "base:uistring:money.inventory_silver_only", Text = "%ld silver", Occurrence = 1 },
+        new ExeStringSingle { Key = "base:uistring:money.inventory_gold_only", Text = "%ld gold", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:money.sovereigns_and_royal", Text = "%ld sovereigns and %ld royal", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:money.sovereign_and_royal", Text = "%ld sovereign and %ld royal", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:money.royal_only", Text = "%ld royal", Occurrence = 0 },
@@ -127,6 +186,15 @@ public static class ExeStringManifest {
         // Enchantment block (swords and armor only).
         new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_label", Text = "Active Mods:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.resistances_label", Text = "Resistances:", Occurrence = 0 },
+        // EXTRACTED BUT UNCONSUMED, and with an unexplained arity — see also
+        // itemstats.bless_type_value_format below. This format has SEVEN %s, while
+        // ItemStatsText.ActiveMods appends SIX words (Poisoned, Frosted, Flaming, Steelfired,
+        // Enhanced×2). The bless format has FOUR %s against THREE tiers. The same +1 in both places
+        // is unlikely to be coincidence: it suggests each port is missing a component the original
+        // supplies (a prefix, a separator, or an empty-string sentinel). Neither key is used today —
+        // ItemStatsText concatenates with a StringBuilder rather than formatting — so nothing is
+        // visibly wrong; the open RE question is backlog task-74. Do not "tidy" these away: if the
+        // extra component is real, deleting the declaration deletes the evidence.
         new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_value_format", Text = "%s%s%s%s%s%s%s", Occurrence = 0 },
         // Fallback text when none of the mod flags below are set. Only found once IDA's
         // string-window minlen was lowered to 2.
@@ -140,6 +208,8 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_enhanced_1", Text = "Enhanced", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_enhanced_2", Text = "Enhanced", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_label", Text = "Bless Type:", Occurrence = 0 },
+        // Extracted but unconsumed; 4 x %s against ItemStatsText.BlessType's 3 tiers — the same +1
+        // as active_mods_value_format above. Backlog task-74.
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_value_format", Text = "%s%s%s%s", Occurrence = 0 },
         // Fallback text when none of the blessed-tier flags below are set. Same literal as
         // itemstats.active_mods_none above but a distinct call site, hence occurrence 1. Only
@@ -187,6 +257,18 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:combat.creature_speed_label", Text = "Speed:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:combat.creature_strength_label", Text = "Strength:", Occurrence = 0 },
 
+        // A SECOND block of the same four labels, at 0x3b283-0x3b29b, embedded by UI_assessOpponent
+        // (0x63721) — the Assess panel, a different screen from the creature-info block above
+        // (UI_show_healthStaminaSpeedStrength, 0x5e640). Absent from the candidate baseline, and
+        // found only once the extractor began enforcing "found more often than declared" (§6):
+        // the baseline jumps straight from 0x3b235 to 0x3b50e, so this whole block sits in one of
+        // the classifier's blind spots. Nothing consumes these keys yet — the Assess screen is not
+        // ported — but they are keyed now so the port has them and a translation covers both screens.
+        new ExeStringSingle { Key = "base:uistring:combat.assess_health_label", Text = "Health:", Occurrence = 1 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_stamina_label", Text = "Stamina:", Occurrence = 1 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_speed_label", Text = "Speed:", Occurrence = 1 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_strength_label", Text = "Strength:", Occurrence = 1 },
+
         // Two back-to-back "Choose a target" / "Accuracy:" / "Damage:" blocks — a melee weapon
         // panel followed by a ranged (crossbow) one, the latter immediately followed by
         // "quarrels remaining" (ammo count only makes sense for the ranged weapon).
@@ -218,18 +300,49 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:combat.health_stamina_format", Text = "Health/Stamina:  %d of %d", Occurrence = 0 },
     };
 
-    /// <summary>Resolve every declaration against an executable image. Throws (via ExeStringReader)
-    /// naming the declaration if anything does not match.</summary>
+    /// <summary>
+    /// How many times each declared text may appear in the image: exactly the number of
+    /// declarations that name it. Derived rather than hand-written, because a hand-written count is
+    /// a place to quietly record "yes I know there are five, four is fine" — which is the failure
+    /// spec §6 asks us to make loud. "Found more often than declared" therefore means precisely
+    /// "the executable has an occurrence no key claims".
+    /// </summary>
+    private static Dictionary<string, int> ExpectedOccurrenceCounts() {
+        var counts = new Dictionary<string, int>();
+        foreach (ExeStringSingle s in Singles) {
+            counts.TryGetValue(s.Text, out int n);
+            counts[s.Text] = n + 1;
+        }
+        return counts;
+    }
+
+    /// <summary>Resolve every declaration against an executable image. Throws
+    /// <see cref="InvalidDataException"/> naming the declaration if anything does not match: a
+    /// missing anchor, a table entry whose text is not what was declared, or a text found more
+    /// often than the declarations account for (spec §6). There is no partial read — a silently
+    /// wrong string is worse than an absent file, because nothing downstream can detect it.</summary>
     public static IDictionary<string, string> Extract(byte[] exe) {
         var result = new Dictionary<string, string>();
         foreach (ExeStringTable t in Tables) {
             IReadOnlyList<string> values = ExeStringReader.ReadTable(exe, t.Anchor, t.Stride, t.Count);
-            for (int i = 0; i < t.Names.Length; i++) {
-                result[$"base:uistring:{t.KeyPrefix}.{t.Names[i]}"] = values[i];
+            for (int i = 0; i < t.Entries.Length; i++) {
+                ExeStringTableEntry entry = t.Entries[i];
+                // The reader only anchors on entry 0; every later slot is reached by arithmetic and
+                // could be anything at all if the stride or the build is wrong. Checking each one
+                // against its declaration is what turns "wrong build" into a named failure instead
+                // of a catalog full of plausible-looking garbage.
+                if (!string.Equals(values[i], entry.Text, StringComparison.Ordinal)) {
+                    throw new InvalidDataException(
+                        $"EXE string table '{t.KeyPrefix}' (anchor '{t.Anchor}', stride {t.Stride}) " +
+                        $"index {i} ('{entry.Name}'): declared \"{entry.Text}\", found \"{values[i]}\". " +
+                        "The executable is not the expected build, or the declaration is wrong.");
+                }
+                result[$"base:uistring:{t.KeyPrefix}.{entry.Name}"] = values[i];
             }
         }
+        Dictionary<string, int> expected = ExpectedOccurrenceCounts();
         foreach (ExeStringSingle s in Singles) {
-            result[s.Key] = ExeStringReader.ReadSingle(exe, s.Text, s.Occurrence);
+            result[s.Key] = ExeStringReader.ReadSingle(exe, s.Text, s.Occurrence, expected[s.Text]);
         }
         return result;
     }

@@ -57,15 +57,49 @@ public class ExeStringReaderTests {
     [Fact]
     public void SingleSelectsTheRequestedOccurrence() {
         byte[] exe = Exe("", new[] { "Quarrel", "Other", "Quarrel" }, 10);
-        Assert.Equal("Quarrel", ExeStringReader.ReadSingle(exe, "Quarrel", 1));
+        Assert.Equal("Quarrel", ExeStringReader.ReadSingle(exe, "Quarrel", 1, expectedCount: 2));
     }
 
     [Fact]
     public void SingleThrowsWhenTheOccurrenceIsAbsent() {
         byte[] exe = Exe("", new[] { "Quarrel" }, 10);
         InvalidDataException ex = Assert.Throws<InvalidDataException>(
-            () => ExeStringReader.ReadSingle(exe, "Quarrel", 1));
+            () => ExeStringReader.ReadSingle(exe, "Quarrel", 1, expectedCount: 2));
         Assert.Contains("Quarrel", ex.Message);
+    }
+
+    // Spec §6: "found more often than declared" must fail loudly. An extra copy is an extra call
+    // site with no key — a translation hole that would otherwise ship invisibly, because the
+    // requested occurrence still resolves perfectly well.
+    [Fact]
+    public void SingleThrowsWhenFoundMoreOftenThanDeclared() {
+        byte[] exe = Exe("", new[] { "Quarrel", "Quarrel", "Quarrel" }, 10);
+        InvalidDataException ex = Assert.Throws<InvalidDataException>(
+            () => ExeStringReader.ReadSingle(exe, "Quarrel", 0, expectedCount: 2));
+        Assert.Contains("Quarrel", ex.Message);
+        Assert.Contains("3", ex.Message);
+        Assert.Contains("2", ex.Message);
+        Assert.Contains("ExeStringManifest", ex.Message);
+    }
+
+    // A tail sharing a longer string's terminator is NOT an occurrence. Found for real: "Damage:"
+    // matched inside "Base Damage:\0", so occurrence 0 named a phantom entry and the two genuine
+    // combat labels were numbered 1 and 2. The trailing NUL alone cannot tell the cases apart.
+    [Fact]
+    public void SingleDoesNotMatchATailOfALongerString() {
+        byte[] exe = Exe("", new[] { "Base Damage:", "Damage:" }, 20);
+        // Two matches by trailing-NUL alone; only one is a whole string, so declaring one is right.
+        Assert.Equal("Damage:", ExeStringReader.ReadSingle(exe, "Damage:", 0, expectedCount: 1));
+        Assert.Throws<InvalidDataException>(
+            () => ExeStringReader.ReadSingle(exe, "Damage:", 1, expectedCount: 2));
+    }
+
+    // Exactly as many as declared is the normal case and must not trip the over-count check.
+    [Fact]
+    public void SingleAcceptsExactlyTheDeclaredCount() {
+        byte[] exe = Exe("", new[] { "Quarrel", "Quarrel" }, 10);
+        Assert.Equal("Quarrel", ExeStringReader.ReadSingle(exe, "Quarrel", 0, expectedCount: 2));
+        Assert.Equal("Quarrel", ExeStringReader.ReadSingle(exe, "Quarrel", 1, expectedCount: 2));
     }
 
     [Fact]

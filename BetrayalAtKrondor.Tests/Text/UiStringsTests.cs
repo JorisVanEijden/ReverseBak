@@ -4,6 +4,7 @@ using System.IO;
 using GameData.Resources.Text;
 using Xunit;
 
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class UiStringsTests {
     [Fact]
     public void ParsesAFlatKeyValueDocument() {

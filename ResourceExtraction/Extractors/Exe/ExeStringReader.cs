@@ -39,21 +39,48 @@ public static class ExeStringReader {
         return result;
     }
 
-    /// <summary>One individually-referenced string, selected by 0-based occurrence.</summary>
-    public static string ReadSingle(byte[] exe, string text, int occurrence) {
+    /// <summary>
+    /// One individually-referenced string, selected by 0-based <paramref name="occurrence"/>.
+    ///
+    /// <para><paramref name="expectedCount"/> is how many times the manifest's declarations account
+    /// for this text. Spec §6 requires failing loudly when a string is "found more often than
+    /// declared", so the whole image is scanned even after the wanted occurrence is located: an
+    /// undeclared extra copy means a call site nobody has keyed, which is a translation hole that
+    /// would otherwise ship silently. Stopping early would make the check unenforceable, so the cost
+    /// of the full scan is the point, not an oversight.</para>
+    /// </summary>
+    public static string ReadSingle(byte[] exe, string text, int occurrence, int expectedCount) {
         byte[] needle = Encoding.ASCII.GetBytes(text);
         int seen = 0;
         for (int i = 0; i + needle.Length < exe.Length; i++) {
             if (!Matches(exe, i, needle) || exe[i + needle.Length] != 0) {
                 continue;
             }
-            if (seen == occurrence) {
-                return text;
+            // A match must be a WHOLE string, not a tail sharing someone else's terminator.
+            // "Damage:" otherwise matches inside "Base Damage:\0", "%ld silver" inside
+            // "%ld gold %ld silver\0", "%s%s%s%s" inside "%s%s%s%s%s%s%s\0" — the trailing NUL alone
+            // does not distinguish them. In a C string pool every string is preceded by the previous
+            // one's terminator, so requiring a leading NUL (or the very start of the image) is the
+            // mirror of the trailing-NUL rule FindEntry already applies to table anchors. Without
+            // it, `occurrence` silently numbered phantom entries: "Damage:" occurrence 0 resolved to
+            // the tail of "Base Damage:" rather than to the combat panel's own literal.
+            if (i > 0 && exe[i - 1] != 0) {
+                continue;
             }
             seen++;
         }
-        throw new InvalidDataException(
-            $"EXE string '{text}' occurrence {occurrence} not found (found {seen}).");
+        if (seen > expectedCount) {
+            throw new InvalidDataException(
+                $"EXE string '{text}' found {seen} times but only {expectedCount} declaration(s) " +
+                "claim it. Every occurrence is a separate call site and needs its own key — declare " +
+                "the extra occurrence(s) in ExeStringManifest.Singles, or exclude the text with a " +
+                "reason in docs/re-notes/exe-display-strings.md.");
+        }
+        if (occurrence < 0 || occurrence >= seen) {
+            throw new InvalidDataException(
+                $"EXE string '{text}' occurrence {occurrence} not found (found {seen}).");
+        }
+        return text;
     }
 
     // An anchor must be a whole NUL-terminated entry, so "Health" cannot match inside

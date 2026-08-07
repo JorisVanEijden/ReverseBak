@@ -7,6 +7,7 @@ using Xunit;
 /// Expectations transcribed from <c>FormatMoneyToString</c> @0x42d9a and the inventory readout at
 /// @0x56dd0 (spec: docs/specs/party-money-display.md §2, §3.1). Amounts are ROYALS.
 /// </summary>
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class MoneyFormatterTests {
     // ---- the split -----------------------------------------------------------------------
 

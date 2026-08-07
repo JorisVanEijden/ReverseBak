@@ -11,6 +11,7 @@ using Xunit;
 /// <see cref="DialogSlotSeedingTests"/>; this covers the kinds an entry names.
 /// Spec: docs/specs/party-money-display.md §3.5-§3.7 for the money kinds.
 /// </summary>
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class DialogSlotPopulatorTests {
     private static readonly string[] Names =
         { "Locklear", "Gorath", "Owyn", "Pug", "James", "Patrus" };

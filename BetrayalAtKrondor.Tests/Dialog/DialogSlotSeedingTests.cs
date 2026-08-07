@@ -13,6 +13,7 @@ using Xunit;
 /// slot 5 (kind 15), slot 3 (kind 14), slot 0 (kind 31). The order matters because the random
 /// picker only refuses actors already used in a LOWER slot.</para>
 /// </summary>
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class DialogSlotSeedingTests {
     // Member ids as the engine numbers them; the picker's constraints are in these.
     private const int Locklear = 0, Gorath = 1, Owyn = 2, Pug = 3, James = 4, Patrus = 5;
