@@ -63,12 +63,22 @@ public static class ExeStringManifest {
     private static ExeStringTableEntry E(string name, string text) => new ExeStringTableEntry(name, text);
 
     public static IReadOnlyList<ExeStringTable> Tables { get; } = new List<ExeStringTable> {
-        // 0x37897 in the IDA database, stride 23, 6 entries.
+        // 0x37880 in the IDA database, stride 23, SEVEN entries — not six starting at "Plagued".
+        //
+        // This was wrong until task-73. The table was declared anchored on "Plagued" (0x37897),
+        // which silently dropped index 0 and shifted every remaining key one place off the
+        // engine's own numbering. Nothing caught it because an arithmetically-indexed table has
+        // no data xrefs, so there is no reference for anything to disagree with — the same
+        // property that makes these tables undiscoverable makes a wrong declaration invisible.
+        // Two independent confirmations: reading the 23-byte records shows "Sick" one stride
+        // below "Plagued" and index 7 running into the attribute table, and GameData's
+        // ActorCondition enum has exactly these seven members in this order.
         new ExeStringTable {
             KeyPrefix = "condition", Stride = 23,
             Entries = new[] {
-                E("plagued", "Plagued"), E("poisoned", "Poisoned"), E("drunk", "Drunk"),
-                E("healing", "Healing"), E("starving", "Starving"), E("near_death", "Near-death"),
+                E("sick", "Sick"), E("plagued", "Plagued"), E("poisoned", "Poisoned"),
+                E("drunk", "Drunk"), E("healing", "Healing"), E("starving", "Starving"),
+                E("near_death", "Near-death"),
             },
         },
         // 0x37930, stride 15, 16 entries. The index order is the executable's — GetAttributeFromActor

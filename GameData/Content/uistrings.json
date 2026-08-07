@@ -48,6 +48,7 @@
   "base:uistring:condition.near_death": "Near-death",
   "base:uistring:condition.plagued": "Plagued",
   "base:uistring:condition.poisoned": "Poisoned",
+  "base:uistring:condition.sick": "Sick",
   "base:uistring:condition.starving": "Starving",
   "base:uistring:item.amount": "Amount: %d",
   "base:uistring:item.bracketed_name_format": "- %Fs -",

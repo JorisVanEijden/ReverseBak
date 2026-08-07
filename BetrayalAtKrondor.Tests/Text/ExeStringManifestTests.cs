@@ -27,14 +27,18 @@ public class ExeStringManifestTests {
     }
 
     [Fact]
-    public void ConditionTableHasSixNamedEntries() {
+    public void ConditionTableHasSevenNamedEntries() {
         ExeStringTable? t = null;
         foreach (ExeStringTable c in ExeStringManifest.Tables) {
             if (c.KeyPrefix == "condition") { t = c; }
         }
         Assert.NotNull(t);
-        Assert.Equal(6, t!.Count);
-        Assert.Equal(6, t.Names.Length);
+        // SEVEN, and the first is "Sick". It was declared as six anchored on "Plagued" until
+        // task-73, which dropped engine index 0 and shifted every other key off the engine's
+        // numbering. GameData's ActorCondition enum is the independent cross-check.
+        Assert.Equal(7, t!.Count);
+        Assert.Equal(7, t.Names.Length);
+        Assert.Equal("sick", t.Names[0]);
     }
 
     // Every declared key must be unique — a duplicate would silently drop an entry.
@@ -96,14 +100,18 @@ public class ExeStringManifestTests {
     public void ExtractThrowsWhenATableEntryDoesNotMatchItsDeclaration() {
         // The condition table is the first one Extract walks, so a mismatch here fires before any
         // singleton is looked for — the image needs nothing else in it.
+        //
+        // Corrupt a NON-anchor entry. Entry 0 IS the anchor the table is located by, so corrupting
+        // it makes the table unfindable and yields "anchor not found" — a different, weaker failure
+        // that would not exercise the per-entry comparison this test exists for.
         byte[] exe = TableImage(
-            new[] { "Plagued", "Poisoned", "Sozzled", "Healing", "Starving", "Near-death" }, 23);
+            new[] { "Sick", "Plagued", "Poisoned", "Sozzled", "Healing", "Starving", "Near-death" }, 23);
 
         InvalidDataException ex = Assert.Throws<InvalidDataException>(
             () => ExeStringManifest.Extract(exe));
 
         Assert.Contains("condition", ex.Message);   // the table
-        Assert.Contains("index 2", ex.Message);     // the index
+        Assert.Contains("index 3", ex.Message);     // the index
         Assert.Contains("drunk", ex.Message);       // the declaration's key
         Assert.Contains("Drunk", ex.Message);       // the expected text
         Assert.Contains("Sozzled", ex.Message);     // the actual text
@@ -113,7 +121,7 @@ public class ExeStringManifestTests {
     [Fact]
     public void ExtractAcceptsATableThatMatchesItsDeclaration() {
         byte[] exe = TableImage(
-            new[] { "Plagued", "Poisoned", "Drunk", "Healing", "Starving", "Near-death" }, 23);
+            new[] { "Sick", "Plagued", "Poisoned", "Drunk", "Healing", "Starving", "Near-death" }, 23);
 
         // The attribute table and every singleton are still absent, so extraction fails — but on
         // the NEXT declaration, proving the condition table itself passed.
