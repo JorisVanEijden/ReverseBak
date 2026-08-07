@@ -189,12 +189,20 @@ public static class ExeStringManifest {
         // EXTRACTED BUT UNCONSUMED, and with an unexplained arity — see also
         // itemstats.bless_type_value_format below. This format has SEVEN %s, while
         // ItemStatsText.ActiveMods appends SIX words (Poisoned, Frosted, Flaming, Steelfired,
-        // Enhanced×2). The bless format has FOUR %s against THREE tiers. The same +1 in both places
-        // is unlikely to be coincidence: it suggests each port is missing a component the original
-        // supplies (a prefix, a separator, or an empty-string sentinel). Neither key is used today —
-        // ItemStatsText concatenates with a StringBuilder rather than formatting — so nothing is
-        // visibly wrong; the open RE question is backlog task-74. Do not "tidy" these away: if the
-        // extra component is real, deleting the declaration deletes the evidence.
+        // Enhanced×2). The bless format has FOUR %s against THREE tiers.
+        //
+        // RESOLVED, task-74 (INVINSP.C:288 and :297): the extra %s is a LEADING "None"-or-empty
+        // sentinel, not a missing word —
+        //     sprintf(buf, "%s%s%s%s%s%s%s", (flags & 0x1f80) ? "" : "None", <the six words>)
+        //     sprintf(buf, "%s%s%s%s",       (flags & 0xe000) ? "" : "None", <the three tiers>)
+        // 0x1F80 is exactly the six mod bits and 0xE000 exactly the three bless bits, so the
+        // sentinel renders "None" precisely when no other slot contributes anything. Nothing is
+        // being dropped: ItemStatsText branches on the same two masks and returns the None string,
+        // which is the same output by a different route.
+        //
+        // Both keys therefore stay UNCONSUMED on purpose. They carry no translatable words — every
+        // word they join (the mods, the tiers, "None") is separately keyed — so formatting through
+        // them would buy nothing and would only re-import the sentinel trick.
         new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_value_format", Text = "%s%s%s%s%s%s%s", Occurrence = 0 },
         // Fallback text when none of the mod flags below are set. Only found once IDA's
         // string-window minlen was lowered to 2.
@@ -208,8 +216,8 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_enhanced_1", Text = "Enhanced", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_enhanced_2", Text = "Enhanced", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_label", Text = "Bless Type:", Occurrence = 0 },
-        // Extracted but unconsumed; 4 x %s against ItemStatsText.BlessType's 3 tiers — the same +1
-        // as active_mods_value_format above. Backlog task-74.
+        // Extracted but unconsumed on purpose; 4 x %s against BlessType's 3 tiers because the first
+        // is the "None"-or-empty sentinel — see active_mods_value_format above (task-74, resolved).
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_value_format", Text = "%s%s%s%s", Occurrence = 0 },
         // Fallback text when none of the blessed-tier flags below are set. Same literal as
         // itemstats.active_mods_none above but a distinct call site, hence occurrence 1. Only
