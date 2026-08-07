@@ -26,6 +26,12 @@ public sealed class UiStringCatalog {
 
     public bool TryGet(string key, out string value) => _entries.TryGetValue(key, out value);
 
+    /// <summary>Parses a flat key/value JSON document into a catalog.</summary>
+    /// <exception cref="JsonException">The input is not well-formed JSON. Deliberately not
+    /// caught here: a parse function that swallows malformed input would silently ship a
+    /// half-empty UI instead of telling anyone. Callers loading a mod-supplied file (as opposed
+    /// to the trusted embedded resource) must catch this and fall back to
+    /// <see cref="Embedded"/> — see <c>UiStringLoader</c>.</exception>
     public static UiStringCatalog FromJson(string json) {
         var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
             ?? new Dictionary<string, string>();
