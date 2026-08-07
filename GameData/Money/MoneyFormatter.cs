@@ -1,6 +1,7 @@
 namespace GameData.Money;
 
 using System.Globalization;
+using GameData.Resources.Text;
 
 /// <summary>
 /// Renders a party-money amount as the original does. Faithful port of
@@ -17,6 +18,14 @@ using System.Globalization;
 /// deliberately — see the spec's "Non-goals" list before "fixing" any of them.</para>
 /// </summary>
 public static class MoneyFormatter {
+    private const string KeyGoldAndSilver = "base:uistring:money.gold_and_silver";
+    private const string KeySilverOnly = "base:uistring:money.silver_only";
+    private const string KeyGoldOnly = "base:uistring:money.gold_only";
+    private const string KeySovereignsAndRoyal = "base:uistring:money.sovereigns_and_royal";
+    private const string KeySovereignAndRoyal = "base:uistring:money.sovereign_and_royal";
+    private const string KeyRoyalOnly = "base:uistring:money.royal_only";
+    private const string KeyAbbreviated = "base:uistring:money.abbreviated";
+
     /// <summary>Ten royals to the sovereign (DDX 1800034; the <c>idiv 10</c> at 0x42dab).</summary>
     public const int RoyalsPerSovereign = 10;
 
@@ -48,11 +57,11 @@ public static class MoneyFormatter {
     // zero-royals amount says only the gold part, and a zero-gold amount says only the silver.
     private static string FormatGoldAndSilver(int sovereigns, int royals) {
         if (royals == 0) {
-            return Num(sovereigns) + " gold";
+            return CFormat.Apply(UiStrings.Get(KeyGoldOnly), sovereigns);
         }
         return sovereigns == 0
-            ? Num(royals) + " silver"
-            : Num(sovereigns) + " gold " + Num(royals) + " silver";
+            ? CFormat.Apply(UiStrings.Get(KeySilverOnly), royals)
+            : CFormat.Apply(UiStrings.Get(KeyGoldAndSilver), sovereigns, royals);
     }
 
     // currency_sovereigns_royals (0x42e1b-0x42e99).
@@ -60,12 +69,16 @@ public static class MoneyFormatter {
         if (royals == 0) {
             // "%ld sovereign%c" with '\0' for <= 1: the NUL terminates the string, so one (or
             // zero, or a negative count of) sovereigns reads singular. "0 sovereign" is what an
-            // empty purse says in prose.
+            // empty purse says in prose. Not expressible as a catalog entry (no NUL-conversion
+            // in CFormat), so this branch deliberately keeps its C# literal — do not "finish"
+            // this cutover by moving it to the catalog, or the singular breaks.
             return Num(sovereigns) + " sovereign" + (sovereigns > 1 ? "s" : string.Empty);
         }
-        string text = sovereigns > 1 ? Num(sovereigns) + " sovereigns and " + Num(royals) + " royal"
-            : sovereigns != 0 ? Num(sovereigns) + " sovereign and " + Num(royals) + " royal"
-            : Num(royals) + " royal";
+        string text = sovereigns > 1
+            ? CFormat.Apply(UiStrings.Get(KeySovereignsAndRoyal), sovereigns, royals)
+            : sovereigns != 0
+                ? CFormat.Apply(UiStrings.Get(KeySovereignAndRoyal), sovereigns, royals)
+                : CFormat.Apply(UiStrings.Get(KeyRoyalOnly), royals);
         // The "s" is appended AFTER the sentence is built, and only above one — so a negative
         // royal count stays singular ("-5 royal"), exactly as the original prints it.
         return royals > 1 ? text + "s" : text;
@@ -76,7 +89,7 @@ public static class MoneyFormatter {
     private static string FormatAbbreviated(int sovereigns, int royals) =>
         sovereigns > AbbreviatedSovereignLimit
             ? Num(sovereigns)
-            : Num(sovereigns) + "s " + Num(royals) + "r";
+            : CFormat.Apply(UiStrings.Get(KeyAbbreviated), sovereigns, royals);
 
     // The original's sprintf("%ld") — a plain, culture-free decimal with no group separators.
     private static string Num(int value) => value.ToString(CultureInfo.InvariantCulture);
