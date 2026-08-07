@@ -29,6 +29,7 @@ using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
 using ResourceExtractor.Extractors.Container;
 using ResourceExtraction.Extractors.Dialog;
+using ResourceExtraction.Extractors.Exe;
 using ResourceExtractor.Imaging;
 using System.Linq;
 using System.Text;
@@ -216,6 +217,12 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--mnames") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractCreatureNames(gamePath);
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--uistrings") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractUiStrings(gamePath);
             return;
         }
 
@@ -1184,6 +1191,32 @@ internal static class Program {
         WriteToJsonFile("mnames.dat", data.Type,
             JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"[MNAMES] {data.Creatures.Count} creatures written to DAT/mnames.json");
+    }
+
+    // KRONDOR.EXE's player-visible strings. Authoring-time only — the runtime reads the JSON this
+    // writes, never the executable. Two outputs, one source of truth: the copy under GameData is the
+    // embedded resource the game actually uses; the generated/ copy exists for verify-generated and
+    // for human diffing.
+    private static void ExtractUiStrings(string gamePath) {
+        string exePath = Path.Combine(gamePath, "KRONDOR.EXE");
+        if (!File.Exists(exePath)) {
+            Console.Error.WriteLine($"KRONDOR.EXE not found at {exePath}");
+            return;
+        }
+        byte[] exe = File.ReadAllBytes(exePath);
+        IDictionary<string, string> entries = ExeStringManifest.Extract(exe);
+
+        var ordered = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, string> kv in entries) {
+            ordered[kv.Key] = kv.Value;
+        }
+        string json = JsonSerializer.Serialize(ordered, new JsonSerializerOptions { WriteIndented = true });
+
+        // Main already SetCurrentDirectory'd to <repo>/generated, same as every other WriteToJsonFile
+        // caller — so this is "EXE", not "generated/EXE" (which would nest generated/generated/EXE).
+        Directory.CreateDirectory("EXE");
+        File.WriteAllText(Path.Combine("EXE", "uistrings.json"), json);
+        Console.WriteLine($"Extracted {ordered.Count} UI strings.");
     }
 
     /// <summary>Extracts TELEPORT.DAT (the temple/teleport destination table) to
