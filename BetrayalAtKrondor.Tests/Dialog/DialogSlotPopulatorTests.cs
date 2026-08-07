@@ -25,6 +25,7 @@ public class DialogSlotPopulatorTests {
             PartyMoneyInRoyals = money,
             QuotedAmount = quoted,
             Random = bound => bound <= 0 ? 0 : n++ % bound,
+            AttributeValueOf = _ => 0,
         };
     }
 
@@ -67,14 +68,15 @@ public class DialogSlotPopulatorTests {
         Assert.Equal("Owyn", Slot(1, 3, Context()));
     }
 
-    // An unmodelled kind (27 = attribute name + value, one shipped use) must not blank the slot —
-    // it keeps whatever the seeding put there, which is a plausible name rather than an empty token.
+    // An unmodelled kind (32 = the "ask about" name/keyword lookup, not yet ported) must not blank
+    // the slot — it keeps whatever the seeding put there, which is a plausible name rather than an
+    // empty token. (Kind 27 used to be this test's example; it is modelled as of this change.)
     [Fact]
     public void UnmodelledKindKeepsTheSeededName() {
         DialogSlotContext context = Context();
         string seeded = DialogSlotPopulator.CreateForPlay(context).Names[4];
         Assert.False(string.IsNullOrEmpty(seeded));
-        Assert.Equal(seeded, Slot(4, 27, context));
+        Assert.Equal(seeded, Slot(4, 32, context));
     }
 
     // An entry writes on top of the seeded table rather than replacing it: the slots it does not
@@ -177,5 +179,26 @@ public class DialogSlotPopulatorTests {
         DialogSlotContext inn = Context();
         inn.IsRestEncounter = true;
         Assert.Equal("tavernkeeper", Slot(1, 28, inn));
+    }
+
+    // DIAL_Z24: "My @0 rating is limited to a mere @1" — the ONE entry in the whole corpus
+    // with an unresolvable token before this. Kind 27 writes BOTH slots.
+    [Fact]
+    public void Kind27WritesTheAttributeNameAndItsValue() {
+        DialogSlotContext context = Context();
+        context.Global30015 = 3;               // attribute index -> Strength
+        context.AttributeValueOf = _ => 42;
+        DialogSlotTable table = DialogSlotPopulator.CreateForPlay(context);
+        DialogSlotPopulator.Assign(table, 0, 27, 0, context);
+        Assert.Equal("Strength", table.Names[0]);
+        Assert.Equal("42", table.Names[1]);
+    }
+
+    // DIAL_Z21 #2100016: "The party's @1 ability has increased." Kind 29 reads global 30018.
+    [Fact]
+    public void Kind29NamesTheAttributeFromGlobal30018() {
+        DialogSlotContext context = Context();
+        context.Global30018 = 13;              // -> Lockpick
+        Assert.Equal("Lockpick", Slot(1, 29, context));
     }
 }

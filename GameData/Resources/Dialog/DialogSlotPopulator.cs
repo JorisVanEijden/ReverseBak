@@ -2,6 +2,7 @@ namespace GameData.Resources.Dialog;
 
 using GameData.Money;
 using GameData.Resources.Dialog.Actions;
+using GameData.Resources.Text;
 using System.Globalization;
 
 /// <summary>
@@ -53,6 +54,8 @@ public static class DialogSlotPopulator {
     private const int SourceQuotedNumber = 21;
     private const int SourceGlobal30015 = 22;
     private const int SourceGlobal30018 = 23;
+    private const int KindAttributeNameAndValue = 27;
+    private const int KindAttributeName = 29;
 
     private const int RandomDrawLimit = 500;
 
@@ -154,7 +157,9 @@ public static class DialogSlotPopulator {
                 table.Names[slot] = context.ObjectNameOf?.Invoke(context.KeyObjectId) ?? "";
                 return;
             case KindShopOrTavernKeeper:
-                table.Names[slot] = context.IsRestEncounter ? "tavernkeeper" : "shopkeeper";
+                table.Names[slot] = UiStrings.Get(context.IsRestEncounter
+                    ? "base:uistring:npc.tavernkeeper"
+                    : "base:uistring:npc.shopkeeper");
                 return;
             // Both money sources speak the prose wording — every amount SPOKEN in the game is in
             // sovereigns and royals; gold/silver is screen-only.
@@ -176,6 +181,19 @@ public static class DialogSlotPopulator {
                 return;
             case SourceGlobal30018:
                 table.Names[slot] = context.Global30018.ToString(CultureInfo.InvariantCulture);
+                return;
+            // Kind 27 writes TWO slots regardless of which was requested: the attribute name into
+            // the requested slot and its value into slot 1 (DIALOG.C:531-535). That second write is
+            // why DIAL_Z24's "@1" was blank while every other token in the corpus resolved.
+            case KindAttributeNameAndValue:
+                table.Names[slot] = context.AttributeNameOf(context.Global30015);
+                if (SlotCount > 1) {
+                    table.Names[1] = (context.AttributeValueOf?.Invoke(context.Global30015) ?? 0)
+                        .ToString(CultureInfo.InvariantCulture);
+                }
+                return;
+            case KindAttributeName:
+                table.Names[slot] = context.AttributeNameOf(context.Global30018);
                 return;
             default:
                 return; // unmodelled kind: keep whatever the seeding put here

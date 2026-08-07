@@ -77,4 +77,22 @@ public sealed class DialogSlotContext {
     /// <summary>The name for a member id, or empty when the id is out of range.</summary>
     public string NameOf(int actorId) =>
         actorId >= 0 && actorId < ActorNames.Count ? ActorNames[actorId] ?? "" : "";
+
+    /// <summary>An attribute's current value for the primary actor, by attribute index — kind 27's
+    /// second write. Null yields 0.</summary>
+    public Func<int, int> AttributeValueOf { get; set; }
+
+    /// <summary>The display name of attribute <paramref name="index"/>, from the UI string catalog.
+    /// Empty when the index is outside the 16 the original names.</summary>
+    public string AttributeNameOf(int index) =>
+        index >= 0 && index < AttributeKeys.Length
+            ? GameData.Resources.Text.UiStrings.Get("base:uistring:attribute." + AttributeKeys[index])
+            : "";
+
+    // Order matches the executable's 16-entry table, which is ActorAttribute's first 16 members.
+    private static readonly string[] AttributeKeys = {
+        "health", "stamina", "speed", "strength", "defense",
+        "accy_crossbow", "accy_melee", "accy_casting", "assessment", "armorcraft",
+        "weaponcraft", "barding", "haggling", "lockpick", "scouting", "stealth",
+    };
 }
