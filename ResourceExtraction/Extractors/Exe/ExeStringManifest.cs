@@ -69,8 +69,11 @@ public static class ExeStringManifest {
 
         // "From:"/"Cost:" sit between the teleport-cost singleton (money.teleport_cost, "%d
         // sovereigns") and the money wordings in the baseline, so grouped with the teleport UI
-        // rather than a bare "item" label.
+        // rather than a bare "item" label. "To:" (UI_teleportation @0x4ee7e) draws between them,
+        // the destination counterpart to "From:" — only found once IDA's string-window minlen
+        // was lowered to 2 (default 5 hides it, same as "Left" below).
         new ExeStringSingle { Key = "base:uistring:money.teleport_from_label", Text = "From:", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:money.teleport_to_label", Text = "To:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:money.teleport_cost_label", Text = "Cost:", Occurrence = 0 },
 
         // Meaning not confirmed — three numeric-format snippets sitting between the shop/money
@@ -79,6 +82,14 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:item.count_suffix", Text = " (%d)", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.percent_suffix", Text = " (%d%%)", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.percent_value", Text = "%3d%%", Occurrence = 0 },
+
+        // UI_show_attribute (0x57dec) and UI_show_attribute_x_of_y (0x5800f): the attribute-value
+        // readout used elsewhere (e.g. the More Info panel), not part of the item block above or
+        // below despite sitting between them in the string pool. "N/A" is the fallback when the
+        // actor has no value for the attribute; "of" is the separator in a "<current> of <max>"
+        // reading. Both only found once IDA's string-window minlen was lowered to 2.
+        new ExeStringSingle { Key = "base:uistring:attribute.value_unavailable", Text = "N/A", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:attribute.current_of_max_separator", Text = "of", Occurrence = 0 },
 
         // The item quality/appraisal block: a "Ratings:" header, a "Condition:" label, a
         // "<descriptor> (<pct>%)" value format, and "Normal" as one such descriptor. Distinct from
@@ -117,6 +128,9 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_label", Text = "Active Mods:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.resistances_label", Text = "Resistances:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_value_format", Text = "%s%s%s%s%s%s%s", Occurrence = 0 },
+        // Fallback text when none of the mod flags below are set. Only found once IDA's
+        // string-window minlen was lowered to 2.
+        new ExeStringSingle { Key = "base:uistring:itemstats.active_mods_none", Text = "None", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_poisoned", Text = "Poisoned ", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_frosted", Text = "Frosted ", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_flaming", Text = "Flaming ", Occurrence = 0 },
@@ -127,12 +141,18 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:itemstats.mod_enhanced_2", Text = "Enhanced", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_label", Text = "Bless Type:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_value_format", Text = "%s%s%s%s", Occurrence = 0 },
+        // Fallback text when none of the blessed-tier flags below are set. Same literal as
+        // itemstats.active_mods_none above but a distinct call site, hence occurrence 1. Only
+        // found once IDA's string-window minlen was lowered to 2.
+        new ExeStringSingle { Key = "base:uistring:itemstats.bless_type_none", Text = "None", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_tier_1", Text = "#1 (+5%)", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_tier_2", Text = "#2 (+10%)", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.bless_tier_3", Text = "#3 (+15%)", Occurrence = 0 },
         // Racial line.
         new ExeStringSingle { Key = "base:uistring:itemstats.racial_mod_label", Text = "Racial Mod:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.race_tsurani", Text = "Tsurani", Occurrence = 0 },
+        // Only found once IDA's string-window minlen was lowered to 2 — "Elf" is 3 characters.
+        new ExeStringSingle { Key = "base:uistring:itemstats.race_elf", Text = "Elf", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.race_dwarf", Text = "Dwarf", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:itemstats.race_human", Text = "Human", Occurrence = 0 },
         // Affects-player-statistics line.
@@ -149,6 +169,12 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:item.using", Text = "Using", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.broken", Text = "Broken", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.repairable", Text = "Repairable", Occurrence = 0 },
+
+        // drawFloatingCombatNumber (0x5d6dd): replaces the numeric damage readout with this
+        // literal when an attack misses. Sits between the item-inspect block and the world
+        // messages below in the string pool despite being combat feedback, not item or world
+        // text. Only found once IDA's string-window minlen was lowered to 2.
+        new ExeStringSingle { Key = "base:uistring:combat.miss_indicator", Text = "miss", Occurrence = 0 },
 
         // World interaction messages.
         new ExeStringSingle { Key = "base:uistring:world.object_pushed", Text = "Object will be pushed.", Occurrence = 0 },
@@ -174,13 +200,16 @@ public static class ExeStringManifest {
 
         // A weapon comparison table: Thrust/Swing repeat as column headers here (second call
         // site — distinct from the stat-panel labels above), plus bare "Damage"/"Accuracy"
-        // (no colon, so not duplicates of the labels above) and a "Right" [-hand] column. No
-        // "Left" string exists anywhere in the exe, so this reads as a single weapon-slot table
-        // rather than a Left/Right pair.
+        // (no colon, so not duplicates of the labels above) and a "Left"/"Right" [-hand] column
+        // pair, both pushed back-to-back in the same function (sub_ovr168_1C03 @0x60ec3).
+        // "Left" was previously believed not to exist anywhere in the exe — that was wrong: IDA's
+        // string-window default (minlen 5) was hiding it (4 characters). Found once the minlen
+        // was lowered to 2.
         new ExeStringSingle { Key = "base:uistring:combat.weapon_table_thrust", Text = "Thrust", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:combat.weapon_table_swing", Text = "Swing", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:combat.weapon_table_damage", Text = "Damage", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:combat.weapon_table_accuracy", Text = "Accuracy", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:combat.weapon_table_left", Text = "Left", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:combat.weapon_table_right", Text = "Right", Occurrence = 0 },
 
         // Spell casting cost/damage and the health+stamina readout.
