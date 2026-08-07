@@ -136,6 +136,14 @@ public static class ExeStringManifest {
         // dashes), not a claim about where it is drawn.
         new ExeStringSingle { Key = "base:uistring:item.bracketed_name_format", Text = "- %Fs -", Occurrence = 0 },
 
+        // ShowKeywordDialog (0x4b0fd) builds the keyword menu's header by strcpy'ing the topic and
+        // strcat'ing this onto it, so the rendered line reads "<topic> asked about:". Keyed as a
+        // suffix rather than a sentence because the topic is not ours to place — a translation that
+        // needs the other order has to reshape the caller, which is a port change, not a data one.
+        // Invisible to the classifier until reachability went transitive: ShowKeywordDialog draws
+        // nothing itself, it hands the menu to menu_sub_2C322 (0x2c322).
+        new ExeStringSingle { Key = "base:uistring:dialog.asked_about_suffix", Text = " asked about:", Occurrence = 0 },
+
         // "From:"/"Cost:" sit between the teleport-cost singleton (money.teleport_cost, "%d
         // sovereigns") and the money wordings in the baseline, so grouped with the teleport UI
         // rather than a bare "item" label. "To:" (UI_teleportation @0x4ee7e) draws between them,
@@ -168,6 +176,17 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:item.condition_label", Text = "Condition:", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.condition_descriptor_format", Text = "%Fs (%d%)", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:item.condition_normal", Text = "Normal", Occurrence = 0 },
+
+        // The quantity picker (quantityPickerDialog @0x59ea1) — the slider panel that appears when
+        // an amount has to be chosen, e.g. handing items or gold to another party member. Its one
+        // label is built in three pieces: "Give: " + itoa(n), replaced wholesale by
+        // "None: (Cancel)" when n is zero, and with " (All)" appended when n is the maximum. Keyed
+        // as three pieces because that is how the original assembles them; joining them here would
+        // invent a wording the executable never had. Another transitive-reachability find — the
+        // dialog draws through menu_sub_2C322 (0x2c322) and drawQuantityPickerPanel (0x59d60).
+        new ExeStringSingle { Key = "base:uistring:quantity.give_prefix", Text = "Give: ", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:quantity.none_cancel", Text = "None: (Cancel)", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:quantity.all_suffix", Text = " (All)", Occurrence = 0 },
 
         // The "More Info" stat panel (ItemStatsText.cs, UI_showItemStats @0x5A1DA).
         // Melee (Sword/Staff): Thrust|Swing two-column block.
@@ -277,15 +296,27 @@ public static class ExeStringManifest {
 
         // A SECOND block of the same four labels, at 0x3b283-0x3b29b, embedded by UI_assessOpponent
         // (0x63721) — the Assess panel, a different screen from the creature-info block above
-        // (UI_show_healthStaminaSpeedStrength, 0x5e640). Absent from the candidate baseline, and
-        // found only once the extractor began enforcing "found more often than declared" (§6):
-        // the baseline jumps straight from 0x3b235 to 0x3b50e, so this whole block sits in one of
-        // the classifier's blind spots. Nothing consumes these keys yet — the Assess screen is not
-        // ported — but they are keyed now so the port has them and a translation covers both screens.
+        // (UI_show_healthStaminaSpeedStrength, 0x5e640). These were first forced into the open by
+        // the extractor's "found more often than declared" check (§6) while the classifier was
+        // still function-level; UI_assessOpponent calls no draw primitive of its own, it hands the
+        // panel to performAssesment (0x6362c), which calls displayText (0x160ac). Since task-73
+        // made reachability transitive the whole block IS in the candidate baseline, together with
+        // the four combat-rating labels below it. Nothing consumes these keys yet — the Assess
+        // screen is not ported — but they are keyed so the port has them and a translation covers
+        // both screens.
         new ExeStringSingle { Key = "base:uistring:combat.assess_health_label", Text = "Health:", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:combat.assess_stamina_label", Text = "Stamina:", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:combat.assess_speed_label", Text = "Speed:", Occurrence = 1 },
         new ExeStringSingle { Key = "base:uistring:combat.assess_strength_label", Text = "Strength:", Occurrence = 1 },
+        // The same panel's combat ratings, at 0x3b2a5-0x3b2ba, immediately after the four above.
+        // "Missle:" is the original's spelling and is preserved verbatim — the catalog records what
+        // the executable says, and silently correcting it here would make the baseline and the
+        // shipped catalog disagree. Colon-suffixed, so all four are distinct texts from the bare
+        // attribute-table entries ("Defense" at 0x3796c is condition/attribute table index 4).
+        new ExeStringSingle { Key = "base:uistring:combat.assess_missile_label", Text = "Missle:", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_melee_label", Text = "Melee:", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_cast_label", Text = "Cast:", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:combat.assess_defense_label", Text = "Defense:", Occurrence = 0 },
 
         // Two back-to-back "Choose a target" / "Accuracy:" / "Damage:" blocks — a melee weapon
         // panel followed by a ranged (crossbow) one, the latter immediately followed by
@@ -316,6 +347,37 @@ public static class ExeStringManifest {
         new ExeStringSingle { Key = "base:uistring:combat.spell_cost_format", Text = "Cost: %d Health+Stamina", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:combat.spell_damage_format", Text = "Damage: %d", Occurrence = 0 },
         new ExeStringSingle { Key = "base:uistring:combat.health_stamina_format", Text = "Health/Stamina:  %d of %d", Occurrence = 0 },
+
+        // --- task-73: strings the generator could only report, not classify ---
+        // All four below are referenced ONLY from a pointer table, so there is no containing
+        // function for a function-level (or even transitive) classifier to reach a renderer from.
+        // The generator now reports them in their own section instead of dropping them; the
+        // judgement that they are display text is made here and recorded in the baseline's
+        // "Declared beyond the classifier's reach" table.
+
+        // Drawn centred over the credits bitmap by sub_ovr181_1BF8 (0x6f9e8) with
+        // j_drawShadowedText, via the versionString pointer at 0x3a206. It names the build the
+        // catalog was extracted from, so a mod that swaps it is renaming its own build, not lying
+        // about ours — that is the modder's call, which is precisely why it is data.
+        new ExeStringSingle { Key = "base:uistring:credits.version", Text = "Version 1.02 CD", Occurrence = 0 },
+
+        // The Encamp screen's per-actor readout (UI_show_actor_healthStatus @0x70d2d). The first
+        // two come from the pointer pair at 0x3bb6c, which the function indexes; the separator
+        // comes from the pointer at 0x3bb70. " of " keeps its surrounding spaces because they are
+        // the layout — the caller concatenates rather than formatting, so trimming here would
+        // close the gaps on screen. Distinct from attribute.current_of_max_separator ("of",
+        // 0x3adba), which is a different call site with no spaces of its own.
+        new ExeStringSingle { Key = "base:uistring:encamp.health_stamina_label", Text = "Health/Stamina", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:encamp.rations_label", Text = "Rations", Occurrence = 0 },
+        new ExeStringSingle { Key = "base:uistring:encamp.current_of_max_separator", Text = " of ", Occurrence = 0 },
+
+        // sub_ovr181_1DBD (0x6fbad) sprintf's this into saveGameName, so it becomes the bookmark
+        // save's entry in the Save/Load list — player-visible text that happens to travel through
+        // a file rather than straight to a renderer. Not reported by the generator at all: the
+        // function's only text route is j_dialog_Show (0x38810), a far-jump thunk whose callees
+        // IDA does not resolve, so nothing connects it to the hand-listed draw primitives. Keyed
+        // by hand and documented under the baseline's "Residual limits".
+        new ExeStringSingle { Key = "base:uistring:savegame.bookmark_name", Text = "Copied Bookmark", Occurrence = 0 },
     };
 
     /// <summary>
