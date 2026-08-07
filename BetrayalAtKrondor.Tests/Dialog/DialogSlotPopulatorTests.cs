@@ -201,4 +201,22 @@ public class DialogSlotPopulatorTests {
         context.Global30018 = 13;              // -> Lockpick
         Assert.Equal("Lockpick", Slot(1, 29, context));
     }
+
+    // The engine hardcodes both kind-27 destinations (DIALOG.C:531-535: `g_speaker_names[0]` and
+    // `g_speaker_names[1]` are literals) — the requested slot is ignored entirely. Request slot 3
+    // to prove the write still lands on 0/1 and that slot 3 is untouched, rather than clobbered.
+    [Fact]
+    public void Kind27IgnoresTheRequestedSlotAndAlwaysWritesZeroAndOne() {
+        DialogSlotContext context = Context();
+        context.Global30015 = 3;               // attribute index -> Strength
+        context.AttributeValueOf = _ => 42;
+        DialogSlotTable table = DialogSlotPopulator.CreateForPlay(context);
+        table.Names[3] = "sentinel";
+
+        DialogSlotPopulator.Assign(table, 3, 27, 0, context);
+
+        Assert.Equal("Strength", table.Names[0]);
+        Assert.Equal("42", table.Names[1]);
+        Assert.Equal("sentinel", table.Names[3]);
+    }
 }

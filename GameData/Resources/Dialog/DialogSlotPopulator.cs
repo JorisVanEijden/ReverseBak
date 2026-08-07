@@ -15,11 +15,16 @@ using System.Globalization;
 /// whichever slots they name. A slot nothing wrote stays empty, and the renderer emits nothing for
 /// it — it never shows the token.</para>
 ///
-/// <para><b>Modelled kinds:</b> 1-6 (a specific party member), 7 (the chapter speaker), 13-16 and 31
-/// (the constrained random picker), 19/20 (money, in the prose wording) and 21 (a bare number).
+/// <para><b>Modelled kinds:</b> 1-6 (a specific party member), 7 (the chapter speaker), 10/30, 11 and
+/// 12 (the primary/secondary/tertiary "about" actor), 13-16 and 31 (the constrained random picker),
+/// 17 (a creature name), 18 (an object name), 19/20 (money, in the prose wording), 21 (a bare
+/// number), 22 and 23 (globals 30015/30018 as bare numbers), 27 (an attribute name and value — see
+/// its case below for why both writes are hardcoded), 28 (shopkeeper/tavernkeeper) and 29 (an
+/// attribute name from global 30018).
 /// Any other kind leaves the slot's current text alone rather than inventing one, so an unmodelled
-/// kind now shows the seeded default instead of a raw token — better, but still not right; see
-/// the kind table in <c>PopulateDialogSlotText</c> for what is missing.</para>
+/// kind now shows the seeded default instead of a raw token — better, but still not right. The one
+/// gap left in the corpus's kind set is 32 (<c>askabout_name_or_keyword_lookup</c>, DIALOG.C:477-479);
+/// see the kind table in <c>PopulateDialogSlotText</c> for the full switch.</para>
 /// </summary>
 public static class DialogSlotPopulator {
     public const int SlotCount = DialogSlotTable.SlotCount;
@@ -182,15 +187,16 @@ public static class DialogSlotPopulator {
             case SourceGlobal30018:
                 table.Names[slot] = context.Global30018.ToString(CultureInfo.InvariantCulture);
                 return;
-            // Kind 27 writes TWO slots regardless of which was requested: the attribute name into
-            // the requested slot and its value into slot 1 (DIALOG.C:531-535). That second write is
-            // why DIAL_Z24's "@1" was blank while every other token in the corpus resolved.
+            // Kind 27 writes TWO slots, and both destinations are hardcoded in the engine — slot 0
+            // for the name, slot 1 for the value — regardless of which slot was requested
+            // (DIALOG.C:531-535, `g_speaker_names[0]` / `g_speaker_names[1]` are literals, not
+            // `g_speaker_names[slot]`). That second write is why DIAL_Z24's "@1" was blank while
+            // every other token in the corpus resolved. Do NOT "fix" this to use `slot` — a real
+            // request for a non-zero slot would be a bug in the dialog data, not in this port.
             case KindAttributeNameAndValue:
-                table.Names[slot] = context.AttributeNameOf(context.Global30015);
-                if (SlotCount > 1) {
-                    table.Names[1] = (context.AttributeValueOf?.Invoke(context.Global30015) ?? 0)
-                        .ToString(CultureInfo.InvariantCulture);
-                }
+                table.Names[0] = context.AttributeNameOf(context.Global30015);
+                table.Names[1] = (context.AttributeValueOf?.Invoke(context.Global30015) ?? 0)
+                    .ToString(CultureInfo.InvariantCulture);
                 return;
             case KindAttributeName:
                 table.Names[slot] = context.AttributeNameOf(context.Global30018);
