@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Xunit;
 
 /// <summary>
@@ -37,7 +38,7 @@ public class ExeStringCoverageTests {
     // Those are declared deliberately, so they satisfy the reverse-direction check exactly as an
     // exclusion does — but they are NOT exclusions, and conflating the two would hide the
     // distinction between "we chose to skip this" and "the tool cannot see this".
-    private static (HashSet<string> candidates, HashSet<string> allowed) Parse(string path) {
+    internal static (HashSet<string> candidates, HashSet<string> allowed) Parse(string path) {
         var candidates = new HashSet<string>(StringComparer.Ordinal);
         var allowed = new HashSet<string>(StringComparer.Ordinal);
         string section = "";
@@ -53,8 +54,12 @@ public class ExeStringCoverageTests {
             if (cells.Length < 3) {
                 continue;
             }
-            string first = cells[1].Trim().Trim('`');
-            string second = cells[2].Trim().Trim('`');
+            // Extract backtick-delimited text. The baseline uses the convention `text` (0xADDRESS)
+            // for some rows (Exclusions with address suffixes), where Trim('`') would leave the
+            // closing backtick and address behind. Regex extracts only the backtick-delimited span,
+            // ignoring any address suffix. Fall back to Trim() if no backticks are present.
+            string first = ExtractBacktickContent(cells[1].Trim());
+            string second = ExtractBacktickContent(cells[2].Trim());
             if (first is "address" or "text" or "---") {
                 continue;
             }
@@ -66,6 +71,11 @@ public class ExeStringCoverageTests {
             }
         }
         return (candidates, allowed);
+    }
+
+    private static string ExtractBacktickContent(string cell) {
+        var match = Regex.Match(cell, @"`([^`]*)`");
+        return match.Success ? match.Groups[1].Value : cell;
     }
 
     [Fact]
@@ -128,6 +138,46 @@ public class ExeStringCoverageTests {
         foreach (ExeStringSingle s in ExeStringManifest.Singles) {
             Assert.True(catalog.ContainsKey(s.Key), $"catalog missing {s.Key}");
             Assert.False(string.IsNullOrEmpty(catalog[s.Key]), $"catalog has empty {s.Key}");
+        }
+    }
+
+    // Regression test: backtick-quoted cells with address suffixes are parsed correctly.
+    // The Exclusions table uses the convention `text` (0xADDRESS) to annotate where format
+    // strings were found; naive Trim('`') leaves the closing backtick and suffix behind.
+    [Fact]
+    public void BacktickExtractorHandlesAddressSuffixes() {
+        string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
+        try {
+            string markdown = @"## Candidates
+| address | text |
+|---|---|
+| `0x1234` | `Hello World` |
+| `0x5678` | `%Fs` |
+
+## Exclusions
+| text | reason |
+|---|---|
+| `%Fs` (0x3a904) | pure format glue — no translatable words |
+| `Plain text` | some reason |
+";
+            File.WriteAllText(tempPath, markdown);
+            (HashSet<string> candidates, HashSet<string> allowed) = Parse(tempPath);
+
+            // Candidates table: second column must be extracted correctly.
+            Assert.Contains("Hello World", candidates);
+            Assert.Contains("%Fs", candidates);
+
+            // Exclusions table: first column with and without address suffix must both yield bare text.
+            Assert.Contains("%Fs", allowed);
+            Assert.Contains("Plain text", allowed);
+
+            // Verify no mangled versions are present.
+            Assert.DoesNotContain("%Fs` (0x3a904)", allowed);
+            Assert.DoesNotContain("Hello World`", candidates);
+        } finally {
+            if (File.Exists(tempPath)) {
+                File.Delete(tempPath);
+            }
         }
     }
 }
