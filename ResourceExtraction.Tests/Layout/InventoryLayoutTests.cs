@@ -9,9 +9,14 @@ using ResourceExtraction.Extractors;
 using Xunit;
 
 /// <summary>Faithfulness gate for the inventory grid layout: these are exactly the constants
-/// ItemGridRenderer.cs carried before the conversion (CellVgaW/H, OriginVgaX/Y,
-/// MemberShiftVgaX, LootBoxVgaW/H, and the four paperdoll rects from its class doc). If one of
-/// these changes, the loot/inventory screen has moved relative to the original.</summary>
+/// ItemGridRenderer.cs carried before the conversion (CellVgaW/H, OriginVgaX/Y, MemberShiftVgaX,
+/// LootBoxVgaH). If one of these changes, the loot/inventory screen has moved relative to the
+/// original.
+///
+/// <para>The four paperdoll slot rects and the loot box's width were dropped in task-54: they were
+/// second encodings of geometry the renderer derives (from the grid, and from the design frame),
+/// with no consumer. Dead data that looks authoritative is worse than absent data — a mod author
+/// edits it, nothing moves, and the two encodings drift apart in the meantime.</para></summary>
 public class InventoryLayoutTests {
     [Fact]
     public void Defaults_MatchTheOriginalCanonicalGeometry() {
@@ -30,19 +35,17 @@ public class InventoryLayoutTests {
         // Member-mode shift: VGA 12 -> 60.
         Assert.Equal(LayoutLength.Px(60f), layout.MemberShiftX);
 
-        // Loot centering box: VGA 307x132 -> 1535x792.
-        Assert.Equal(LayoutLength.Px(1535f), layout.LootBox.Width);
+        // Loot centering box: VGA height 132 -> 792. Only the VERTICAL axis is box-driven; the
+        // horizontal one centres on the design frame (see the property doc and
+        // ItemGridRenderer.ResolveGridOrigin), so a Width here would be data nothing applies.
+        Assert.Equal(LayoutLength.Auto, layout.LootBox.Width);
         Assert.Equal(LayoutLength.Px(792f), layout.LootBox.Height);
 
-        // Paperdoll rects (VGA -> canonical, x5/x6):
-        // Sword    14,12,80,30 -> 70,72,400,180
-        AssertRect(layout.SwordSlot, 70f, 72f, 400f, 180f);
-        // Staff    14,12,80,60 -> 70,72,400,360
-        AssertRect(layout.StaffSlot, 70f, 72f, 400f, 360f);
-        // Crossbow 14,42,80,30 -> 70,252,400,180
-        AssertRect(layout.CrossbowSlot, 70f, 252f, 400f, 180f);
-        // Armor    14,72,80,60 -> 70,432,400,360
-        AssertRect(layout.ArmorSlot, 70f, 432f, 400f, 360f);
+        // The four paperdoll slot rects (Sword/Staff/Crossbow/Armor) used to be asserted here.
+        // They were removed in task-54: exactly derivable from the grid above — column 0,
+        // colspan 2, row+rowspan from ItemGridRenderer.TryPaperdollSlot — and only the derivation
+        // was ever consumed. Two encodings of one geometry drift; the hints looked authoritative
+        // to a mod author while nothing read them.
     }
 
     /// <summary>Faithfulness gate for the named coordinates that used to be private VGA constants
@@ -83,14 +86,14 @@ public class InventoryLayoutTests {
         AssertRect(layout.FullItemsBox, 65f, 66f, 1470f, 726f);
 
         // --- empty paperdoll-slot silhouettes (UI_DrawInventory @0x56990) ---
-        // crossbow VGA (14,43) -> (70,258); armor VGA (14,73) -> (70,438). Each sits one original
-        // px below the matching paperdoll slot's top edge.
-        // Both are asserted absolutely, and deliberately NOT as an offset from CrossbowSlot /
-        // ArmorSlot: those four paperdoll slot hints are dead (nothing reads them) and task-54 will
-        // remove or derive them, at which point a relative assertion here would fail for a reason
-        // that has nothing to do with where the silhouettes are drawn.
-        AssertPoint(layout.CrossbowPlaceholder, 70f, 258f);
-        AssertPoint(layout.ArmorPlaceholder, 70f, 438f);
+        // One original pixel below the matching paperdoll cell's top edge: crossbow VGA (14,43),
+        // armor VGA (14,73). That inset is the only number the model states — canonical 6 — because
+        // the positions themselves are DERIVED from the grid by
+        // ItemGridRenderer.PaperdollPlaceholderHint, so a resized grid takes its silhouettes with
+        // it. The two properties are overrides, null unless a mod author pins a point.
+        Assert.Equal(6f, layout.PaperdollPlaceholderNudgeY);
+        Assert.Null(layout.CrossbowPlaceholder);
+        Assert.Null(layout.ArmorPlaceholder);
 
         // --- "More Info" stat panel (UI_showItemStats @0x5A1DA) ---
         // The walk's two origins: general VGA (140,30) -> (700,180); the melee table shifts left
@@ -154,6 +157,28 @@ public class InventoryLayoutTests {
         Assert.Equal(layout.FullItemsBox.Height, layout.GeneralItemsBox.Height);
         Assert.Equal(layout.FullItemsBox.Left.Value + layout.FullItemsBox.Width.Value,
             layout.GeneralItemsBox.Left.Value + layout.GeneralItemsBox.Width.Value);
+    }
+
+    /// <summary>The silhouettes' positions are no longer stated, so what has to be pinned instead
+    /// is that the grid they are derived FROM still produces the original's numbers: crossbow
+    /// VGA (14,43) -> canonical (70,258), armor VGA (14,73) -> (70,438).
+    ///
+    /// <para>This restates <c>ItemGridRenderer.PaperdollPlaceholderHint</c>'s arithmetic (cell
+    /// origin + nudge) deliberately — the renderer lives in the Unity assembly and cannot be
+    /// referenced here, and the point of the check is that the shipped <see cref="InventoryLayout"/>
+    /// data still feeds that arithmetic the right inputs. The rows come from
+    /// <c>ItemGridRenderer.TryPaperdollSlot</c>: crossbow row 1, armor row 2.</para></summary>
+    [Fact]
+    public void GridAndNudge_DeriveTheOriginalsSilhouettePositions() {
+        var layout = new InventoryLayout();
+        float left = layout.GridArea.Left.Value;
+        float top = layout.GridArea.Top.Value;
+        float cellHeight = layout.GridArea.Grid!.CellHeight.Value;
+        float nudge = layout.PaperdollPlaceholderNudgeY;
+
+        Assert.Equal(70f, left);
+        Assert.Equal(258f, top + (1 * cellHeight) + nudge); // crossbow, row 1
+        Assert.Equal(438f, top + (2 * cellHeight) + nudge); // armor, row 2
     }
 
     private static void AssertPoint(LayoutHint hint, float left, float top) {

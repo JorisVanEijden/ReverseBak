@@ -16,7 +16,10 @@ using GameData.Resources.Layout;
 /// can consume them directly and an override can reflow the screen with percentages.</para>
 ///
 /// <para>The defaults are the faithful values: an override that omits a property still gets the
-/// original geometry.</para>
+/// original geometry. A few of those faithful values are <b>derived rather than stated</b> — the
+/// empty-slot silhouettes come from <see cref="GridArea"/>, and the loot cluster's horizontal
+/// centring from the design frame. Nothing here restates a geometry something else derives: two
+/// encodings of one rect drift, and the dead one reads as authoritative to whoever edits it.</para>
 /// </summary>
 public class InventoryLayout {
     /// <summary>The 7-column x 4-row cell grid container. Origin VGA (14,12) -> canonical
@@ -40,49 +43,20 @@ public class InventoryLayout {
 
     /// <summary>Loot mode's centering box: the packed cluster of items (unshifted, unlike member
     /// mode) is centered inside this box after packing — the box itself is never drawn. VGA
-    /// 307x132 -> canonical 1535x792, anchored at the screen's own origin (the loot centering
-    /// pass, <c>sub_ovr157_0</c> @0x54663).</summary>
+    /// height 132 -> canonical 792, measured from the grid area's own top (the loot centering
+    /// pass, <c>sub_ovr157_0</c> @0x54663).
+    ///
+    /// <para><b>Only the vertical axis is box-driven, and that is why only a Height is stated.</b>
+    /// The original centres both axes inside this box with integer division, but horizontally the
+    /// truncation always discards exactly half a unit of its own pixel grid — a quantum this
+    /// engine-independent geometry cannot express. On the shipped numbers the truncated box form
+    /// is provably identical to "centre the cluster on the frame's centre line" (the algebra is in
+    /// <c>ItemGridRenderer.ResolveGridOrigin</c>), so the renderer centres horizontally on the
+    /// frame, which is exact and reflows. Re-adding a Width here would state a horizontal rule
+    /// nothing applies: honouring it would move the shipped screen 2.5 design px right on every
+    /// loot render, and not honouring it is data that lies about what it controls.</para></summary>
     public LayoutHint LootBox { get; set; } = new LayoutHint {
-        Width = LayoutLength.Px(1535f),
         Height = LayoutLength.Px(792f),
-    };
-
-    /// <summary>Paperdoll rect for an equipped sword: one grid row tall. VGA (14,12,80,30) ->
-    /// canonical (70,72,400,180) (the paperdoll blacking pass, <c>sub_ovr157_0</c> @0x569e4;
-    /// slot selection @0x5451e). Shares row 0 with <see cref="StaffSlot"/> — a member carries
-    /// one or the other.</summary>
-    public LayoutHint SwordSlot { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(72f),
-        Width = LayoutLength.Px(400f),
-        Height = LayoutLength.Px(180f),
-    };
-
-    /// <summary>Paperdoll rect for an equipped staff: two grid rows tall (row 0). VGA
-    /// (14,12,80,60) -> canonical (70,72,400,360) (<c>sub_ovr157_0</c> @0x569e4, @0x5451e).</summary>
-    public LayoutHint StaffSlot { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(72f),
-        Width = LayoutLength.Px(400f),
-        Height = LayoutLength.Px(360f),
-    };
-
-    /// <summary>Paperdoll rect for an equipped crossbow: one grid row tall (row 1). VGA
-    /// (14,42,80,30) -> canonical (70,252,400,180) (<c>sub_ovr157_0</c> @0x569e4, @0x5451e).</summary>
-    public LayoutHint CrossbowSlot { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(252f),
-        Width = LayoutLength.Px(400f),
-        Height = LayoutLength.Px(180f),
-    };
-
-    /// <summary>Paperdoll rect for equipped armor: two grid rows tall (row 2). VGA (14,72,80,60)
-    /// -> canonical (70,432,400,360) (<c>sub_ovr157_0</c> @0x569e4, @0x5451e).</summary>
-    public LayoutHint ArmorSlot { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(432f),
-        Width = LayoutLength.Px(400f),
-        Height = LayoutLength.Px(360f),
     };
 
     // ---- black item-panel fills (UI_DrawInventory @0x5687d) -------------------------------
@@ -122,24 +96,36 @@ public class InventoryLayout {
         Height = LayoutLength.Px(726f),
     };
 
-    /// <summary>Top-left of the empty-crossbow silhouette (<c>INVSHP2.BMX#10</c>) drawn in member
-    /// mode when the slot is unoccupied — skipped for casters, who cannot carry one
-    /// (<c>invui_grid_render</c> INVENTOR.C:402-406 / <c>UI_DrawInventory</c> @0x56990). The sprite
-    /// keeps its native size, so only a position is needed. VGA (14,43) -> canonical (70,258) —
-    /// one original pixel below <see cref="CrossbowSlot"/>'s top edge, as the original draws
-    /// it.</summary>
-    public LayoutHint CrossbowPlaceholder { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(258f),
-    };
+    /// <summary>Optional override for the top-left of the empty-crossbow silhouette
+    /// (<c>INVSHP2.BMX#10</c>), drawn in member mode when the slot is unoccupied — skipped for
+    /// casters, who cannot carry one (<c>invui_grid_render</c> INVENTOR.C:402-406 /
+    /// <c>UI_DrawInventory</c> @0x56990). The sprite keeps its native size, so only a position is
+    /// needed.
+    ///
+    /// <para><b>Null is the default and the recommended state.</b> Null means "derive from
+    /// <see cref="GridArea"/>": the silhouette sits at its own paperdoll cell's top-left (column 0,
+    /// row 1), nudged down by <see cref="PaperdollPlaceholderNudgeY"/> — which reproduces the
+    /// original's canonical (70,258) exactly, from the same grid the equipped-item cells are placed
+    /// against. The point of deriving is that the silhouette then FOLLOWS a resized grid: change
+    /// <c>GridArea.Grid.CellHeight</c> and the crossbow cell and its silhouette move together. A
+    /// fixed point does not — it would stay put while the cell moved out from under it, and the
+    /// armor silhouette would end up inside the crossbow slot.</para>
+    ///
+    /// <para>A non-null value is honoured verbatim as an explicit override. Setting one is taking
+    /// responsibility for keeping the silhouette with its cell across every other change to
+    /// <see cref="GridArea"/>.</para></summary>
+    public LayoutHint? CrossbowPlaceholder { get; set; }
 
-    /// <summary>Top-left of the empty-armor silhouette (<c>INVSHP2.BMX#11</c>), drawn in member
-    /// mode whenever the slot is unoccupied. VGA (14,73) -> canonical (70,438). There is no
-    /// sword/staff placeholder in the original.</summary>
-    public LayoutHint ArmorPlaceholder { get; set; } = new LayoutHint {
-        Left = LayoutLength.Px(70f),
-        Top = LayoutLength.Px(438f),
-    };
+    /// <summary>Optional override for the top-left of the empty-armor silhouette
+    /// (<c>INVSHP2.BMX#11</c>), drawn in member mode whenever the slot is unoccupied. There is no
+    /// sword/staff placeholder in the original.
+    ///
+    /// <para>Null — the default and recommended state — derives it from <see cref="GridArea"/>:
+    /// the armor paperdoll cell (column 0, row 2) nudged down by
+    /// <see cref="PaperdollPlaceholderNudgeY"/>, which is the original's canonical (70,438). See
+    /// <see cref="CrossbowPlaceholder"/> for why deriving is preferred to a fixed point and what an
+    /// override signs up for.</para></summary>
+    public LayoutHint? ArmorPlaceholder { get; set; }
 
     /// <summary>
     /// The party-money readout, drawn on every render of this screen in ALL its modes — a member's
@@ -289,6 +275,7 @@ public class InventoryLayout {
     //   * a text shadow offset is added to a line's own position, and adding a percentage to a px
     //     inset (or vice versa) needs a resolved parent size, i.e. a layout solver;
     //   * the icon-flight step is a spacing in the panel's own drawing space;
+    //   * the empty-slot silhouette nudge is added to a derived cell top, same problem as above;
     //   * the drag threshold is compared against a 2-D pointer distance, which has no axis to take
     //     a percentage of;
     //   * UI Toolkit border widths are px-only floats — there is no percentage form to honour.
@@ -319,6 +306,20 @@ public class InventoryLayout {
     /// <summary>Vertical granularity of the inspect icon's flight, in design-frame px. See
     /// <see cref="IconFlightStepX"/>; canonical 6 = one original pixel down.</summary>
     public float IconFlightStepY { get; set; } = 6f;
+
+    /// <summary>How far below its paperdoll cell's top edge an empty-slot silhouette is blitted,
+    /// in design-frame px. One original pixel down -> canonical 6.
+    ///
+    /// <para>This exists because the original does not draw the silhouettes flush with their
+    /// cells: the crossbow cell starts at VGA y=42 and its silhouette at y=43, the armor cell at
+    /// y=72 and its silhouette at y=73 (<c>UI_DrawInventory</c> @0x56990). One pixel of inset, the
+    /// same for both — so it is one named number rather than two coordinates, and the silhouettes
+    /// stay attached to their cells when the grid is resized.</para>
+    ///
+    /// <para>A design-frame px scalar rather than a <see cref="LayoutLength"/> for the reason
+    /// stated above: it is ADDED to the cell's own top inset, and adding a percentage to a px
+    /// inset needs a resolved parent size.</para></summary>
+    public float PaperdollPlaceholderNudgeY { get; set; } = 6f;
 
     // ---- interaction ------------------------------------------------------------------------
 
