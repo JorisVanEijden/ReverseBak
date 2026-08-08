@@ -11,8 +11,16 @@ public enum ObjectFlags {
     NotEquipable = 0x0002,
     B0004 = 0x0004,
     B0008 = 0x0008,
-    B0010 = 0x0010,
-    B0020 = 0x0020,
+    /// <summary>When the last charge is spent, the item is removed rather than left sitting at
+    /// zero — <c>Use_Item</c>'s tail (ITEMUSE.C:495-499): <c>condition &gt; 1 ? condition-- :
+    /// (flags &amp; 0x10) ? remove : condition = 0</c>. Carried by every consumable that wears out
+    /// (whetstones, poisons, oils); a staff, which stays in hand at 0 charges, does not.</summary>
+    DiscardWhenEmpty = 0x0010,
+
+    /// <summary>Spent whole on one use: the tail removes the item outright before touching charges
+    /// (ITEMUSE.C:491-493). Ships on exactly the two bowstrings — fitting one consumes it.</summary>
+    ConsumedOnUse = 0x0020,
+
     OnlyUsableInCombat = 0x0040,
 
     /// <summary>Only a spellcaster may use it: refused (DDX 1800005) when the member's

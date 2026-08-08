@@ -426,8 +426,9 @@ public static class InventoryTransfer {
         return s <= 0 ? 1 : s; // howManyInventorySlots: default 1 when the record says 0
     }
 
-    // RemoveItemFromContainer @0x554ef: swap the last item into the removed slot.
-    private static void RemoveAt(RuntimeContainer c, int index) {
+    // RemoveItemFromContainer @0x554ef: swap the last item into the removed slot. Internal rather
+    // than private because using an item consumes it the same way (InventoryUse's common tail).
+    internal static void RemoveAt(RuntimeContainer c, int index) {
         int last = c.Items.Count - 1;
         c.Items[index] = c.Items[last];
         c.Items.RemoveAt(last);
