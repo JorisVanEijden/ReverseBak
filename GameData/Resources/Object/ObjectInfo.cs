@@ -52,35 +52,51 @@ public class ObjectInfo : IResource {
     public int ShopType { get; set; }
     public ObjectType ObjectType { get; set; }
 
-    /// <summary>+0x3E. <b>Use/timed-effect flags + (for some non-consumables) a skill/attribute
-    /// target.</b> Copied to the active-effect record's flags word by <c>Use_Item</c> and read
-    /// by <c>sub_ovr132_0</c> (0x42ea0): bit <c>0x100</c> = combat-only, <c>0x200</c> = timed
-    /// (expires after <see cref="EffectDurationHours"/>), <c>0x400</c>/<c>0x800</c> = the effect
-    /// is a <i>percentage</i> modifier (<c>value × (amount+100)/100</c>) rather than a flat add.
-    /// Must be non-zero for an active effect to apply (<c>GetAttributeFromActor</c> guard).
-    /// The low bits additionally encode the affected skill on repair/enhancer tools (e.g.
-    /// Whetstone 0x1, Armorer's Hammer 0x4) — hence the historical <c>ActorAttributeFlag</c>
-    /// decode, which is meaningful for those items but NOT for the high flag bits above.</summary>
-    public ActorAttributeFlag Attributes { get; set; }
+    /// <summary>+0x3E. <b>The first word of the four-word effect-parameter block, and it means a
+    /// different thing per <see cref="ObjectType"/></b> — <c>Use_Item</c> @0x58cbd reads it seven
+    /// ways (canassa's <c>wEffect_arg_a</c>, ITEMUSE.C):
+    /// <list type="table">
+    /// <item><term>8 repair kit</term><description>the target <b>category number</b> (1 Sword,
+    /// 2 Crossbow, 4 Armor), which also picks the skill: 4 → ArmorCraft, else WeaponCraft.</description></item>
+    /// <item><term>9 / 10 / 11 coatings</term><description>an <see cref="ItemFlags"/> <b>SET</b>
+    /// mask, applied with <see cref="EffectArgB"/> as the keep mask.</description></item>
+    /// <item><term>17 stat effect</term><description>an <b>actor-attribute</b> mask — the one
+    /// reading the old <c>ActorAttributeFlag</c> typing was right about
+    /// (<c>itemuse_apply_stat_effects</c>).</description></item>
+    /// <item><term>18 timed modifier</term><description>the modifier record's <b>flags word</b>:
+    /// 0x100 combat-only, 0x200 timed (expires after <see cref="EffectDurationHours"/>),
+    /// 0x400/0x800 the amount is a percentage rather than a flat add (<c>sub_ovr132_0</c>
+    /// 0x42ea0).</description></item>
+    /// <item><term>19 food</term><description>the <b>heal amount</b>.</description></item>
+    /// <item><term>20 direct delta</term><description>a <b>stat index</b>.</description></item>
+    /// <item><term>21 torch</term><description>the <b>burn duration in hours</b>
+    /// (<c>arg_a × 0x708</c> ticks).</description></item>
+    /// </list>
+    /// Emitted raw for that reason: any single decode would be a lie for six of the seven. The
+    /// per-category dispatch that reads it is <c>GameData.Resources.Inventory.InventoryUse</c>;
+    /// see docs/specs/inventory-item-handling.md §17.2. (Was <c>Attributes</c>, typed
+    /// <see cref="ActorAttributeFlag"/> — task-77.)</summary>
+    public int EffectArgA { get; set; }
 
-    /// <summary>+0x40. <b>Use/timed-effect affected-attribute bitmask.</b> For an item consumed
-    /// via <c>Use_Item</c>, this selects which actor attributes the effect modifies:
-    /// <c>GetAttributeFromActor</c> (0x42fca) applies the effect to attribute <c>n</c> iff
-    /// <c>(mask &amp; (1 &lt;&lt; n)) != 0</c>. Single-bit for most potions (e.g. Truesight Tea
-    /// 0x20); many bits for broad coatings (0xE07F). (Prior RE called this "effectStrength" —
-    /// that name is wrong; the magnitude is <see cref="UseEffectAmount"/>.)</summary>
-    public int UseEffectAttributeMask { get; set; }
+    /// <summary>+0x40. The second word of the effect-parameter block, equally per-category
+    /// (canassa's <c>wEffect_arg_b</c>): the <see cref="ItemFlags"/> <b>keep</b> mask for the
+    /// coating categories (0xE07F = "keep everything but the other coatings"; Coltari Poison's 0
+    /// wipes the lot), the <b>affected-attribute mask</b> of a timed modifier (category 18, the
+    /// reading its old name <c>UseEffectAttributeMask</c> described), the effect <b>amount</b>
+    /// (&lt;&lt; 8) for category 17, the random <b>heal range</b> for food, the <b>delta</b> for
+    /// category 20. Unused by repair kits and torches.</summary>
+    public int EffectArgB { get; set; }
 
-    /// <summary>+0x42. <b>Use/timed-effect magnitude.</b> The amount applied to each attribute
-    /// selected by <see cref="UseEffectAttributeMask"/>, read by <c>sub_ovr132_0</c>: a flat
-    /// add, or — when <see cref="Attributes"/> has bit 0x400/0x800 — a percentage
-    /// (<c>value × (amount+100)/100</c>). Non-zero on potions/books that grant a graded buff.</summary>
+    /// <summary>+0x42. <b>Use/timed-effect magnitude</b> (canassa's <c>wEffect_chance_pct</c>):
+    /// the modifier's value for category 18 — a flat add, or a percentage when
+    /// <see cref="EffectArgA"/> carries 0x400/0x800 — and the re-use chance percent for
+    /// category 17. Non-zero on potions/books that grant a graded buff.</summary>
     public int UseEffectAmount { get; set; }
 
     /// <summary>+0x44. <b>Timed-effect duration in game hours.</b> <c>Use_Item</c> sets the
     /// active effect's expiry to <c>GameTimeIn2Seconds + EffectDurationHours × 0x708</c> (one
-    /// hour = 0x708 two-second ticks). (Prior name "Book1Potion8" was a guess; the loader uses
-    /// it purely as the effect duration.)</summary>
+    /// hour = 0x708 two-second ticks). Category 17 instead reads it as the amount applied on a
+    /// repeat use. (Prior name "Book1Potion8" was a guess.)</summary>
     public int EffectDurationHours { get; set; }
 
     /// <summary>+0x46. <b>Equipped/carried passive-modifier attribute bitmask.</b> Read as an
@@ -88,8 +104,12 @@ public class ObjectInfo : IResource {
     /// attribute <c>n</c> with <c>(mask &amp; (1 &lt;&lt; n)) != 0</c>, the actor's attribute
     /// modifier gets <see cref="EquipModifierAmount"/> added. This is the passive worn-item
     /// bonus path (rings, amulets, Weedwalkers), distinct from the use-effect path above.
-    /// (Prior name "CanEffect".)</summary>
-    public int EquipAttributeMask { get; set; }
+    ///
+    /// <para>The one field in the record that is unconditionally <c>1 &lt;&lt; ActorAttribute</c>,
+    /// so it carries the <see cref="ActorAttributeFlag"/> typing that used to sit on
+    /// <see cref="EffectArgA"/> — a ring now reads <c>"Scouting, Stealth"</c> instead of 0xC000
+    /// (task-77). (Prior name "CanEffect".)</para></summary>
+    public ActorAttributeFlag EquipAttributeMask { get; set; }
 
     /// <summary>+0x48. <b>Equipped/carried passive-modifier amount</b> (signed) added to each
     /// attribute selected by <see cref="EquipAttributeMask"/>. Can be negative — e.g. Idol of
@@ -118,7 +138,7 @@ public class ObjectInfo : IResource {
 
     public string ToCsv() {
         return
-            $"{Number},{Name},{Field1E},{ToBooleans(Flags)},{WordWrap},{ChapterNumber},{Price},{SwingBaseDamage},{ThrustBaseDamage},{SwingAccuracy_ArmorMod_BowAccuracy},{ThrustAccuracy},{Icon},{InventorySlots},{SoundId},{MaxAmount},{MaxCharges},{Race},{ShopType:X4},{ObjectType},\"{Attributes}\",{UseEffectAttributeMask:X4},{UseEffectAmount},{EffectDurationHours},{EquipAttributeMask:X4},{EquipModifierAmount},{DegradeChancePercent},{MaxWearPerDegrade},{MinimumQuality}";
+            $"{Number},{Name},{Field1E},{ToBooleans(Flags)},{WordWrap},{ChapterNumber},{Price},{SwingBaseDamage},{ThrustBaseDamage},{SwingAccuracy_ArmorMod_BowAccuracy},{ThrustAccuracy},{Icon},{InventorySlots},{SoundId},{MaxAmount},{MaxCharges},{Race},{ShopType:X4},{ObjectType},{EffectArgA:X4},{EffectArgB:X4},{UseEffectAmount},{EffectDurationHours},\"{EquipAttributeMask}\",{EquipModifierAmount},{DegradeChancePercent},{MaxWearPerDegrade},{MinimumQuality}";
     }
 
     private static string ToBooleans(ObjectFlags flags) {

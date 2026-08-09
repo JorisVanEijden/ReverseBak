@@ -49,14 +49,15 @@ public readonly struct ItemUseResult {
 /// maps, combat items) needs a stat, timer or combat runtime the remake does not have; those
 /// return <see cref="ItemUseOutcome.NotPorted"/> and are listed in spec §17.2.</para>
 ///
-/// <para><b>On <c>wEffect_arg_a</c> / <c>wEffect_arg_b</c></b> (<see cref="ObjectInfo.Attributes"/>
-/// and <see cref="ObjectInfo.UseEffectAttributeMask"/>): both are polymorphic, read differently per
-/// category. For the coating categories (9, 10, 11) they are an <see cref="ItemFlags"/> pair —
-/// <c>target.flags = (target.flags &amp; arg_b) | arg_a</c> — which is why Althafain's Icer carries
-/// 0x400 (<see cref="ItemFlags.Frosted"/>) and 0xE07F (keep everything but the other coatings). For
-/// a repair kit (category 8) <c>arg_a</c> is instead a bare target <b>category number</b>: Whetstone
-/// 1 = Sword, Aventurine 2 = Crossbow, Armorer's Hammer 4 = Armor. The <c>ActorAttributeFlag</c>
-/// typing on <see cref="ObjectInfo.Attributes"/> is meaningful for neither.</para>
+/// <para><b>On <c>wEffect_arg_a</c> / <c>wEffect_arg_b</c></b> (<see cref="ObjectInfo.EffectArgA"/>
+/// and <see cref="ObjectInfo.EffectArgB"/>): both are polymorphic, read differently per category —
+/// this class is the dispatch that decides which reading applies, and the full table is on
+/// <see cref="ObjectInfo.EffectArgA"/>. For the coating categories (9, 10, 11) they are an
+/// <see cref="ItemFlags"/> pair — <c>target.flags = (target.flags &amp; arg_b) | arg_a</c> — which
+/// is why Althafain's Icer carries 0x400 (<see cref="ItemFlags.Frosted"/>) and 0xE07F (keep
+/// everything but the other coatings). For a repair kit (category 8) <c>arg_a</c> is instead a bare
+/// target <b>category number</b>: Whetstone 1 = Sword, Aventurine 2 = Crossbow, Armorer's Hammer
+/// 4 = Armor.</para>
 /// </summary>
 public static class InventoryUse {
     /// <summary>Pass as <c>targetIndex</c> for a use with no second item (the Use button).</summary>
@@ -135,8 +136,8 @@ public static class InventoryUse {
             : null;
         ObjectInfo trec = target == null ? null : objects.GetById(target.ObjectId);
 
-        var argA = (ushort)rec.Attributes;
-        var argB = (ushort)rec.UseEffectAttributeMask;
+        var argA = (ushort)rec.EffectArgA;
+        var argB = (ushort)rec.EffectArgB;
         ItemUseOutcome outcome;
 
         switch (rec.ObjectType) {

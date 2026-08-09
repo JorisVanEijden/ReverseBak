@@ -42,11 +42,11 @@ public class ObjectInfoSetExtractor : ExtractorBase<ObjectInfoSet> {
                 Race = (Race)reader.ReadUInt16(),
                 ShopType = reader.ReadUInt16(),
                 ObjectType = (ObjectType)reader.ReadUInt16(),
-                Attributes = (ActorAttributeFlag)reader.ReadUInt16(), // +0x3E use-effect flags / tool target
-                UseEffectAttributeMask = reader.ReadUInt16(), // +0x40 affected-attribute bitmask
+                EffectArgA = reader.ReadUInt16(),               // +0x3E per-category effect arg A
+                EffectArgB = reader.ReadUInt16(),               // +0x40 per-category effect arg B
                 UseEffectAmount = reader.ReadUInt16(),        // +0x42 effect magnitude
                 EffectDurationHours = reader.ReadUInt16(),    // +0x44 timed-effect duration (hours)
-                EquipAttributeMask = reader.ReadUInt16(),     // +0x46 passive-modifier attribute mask
+                EquipAttributeMask = (ActorAttributeFlag)reader.ReadUInt16(), // +0x46 passive-modifier attribute mask
                 EquipModifierAmount = reader.ReadInt16(),     // +0x48 passive-modifier amount (signed)
                 DegradeChancePercent = reader.ReadUInt16(),   // +0x4A
                 MaxWearPerDegrade = reader.ReadUInt16(),      // +0x4C

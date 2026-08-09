@@ -33,11 +33,11 @@ internal class ObjectExtractor : ExtractorBase {
                 Race = (Race)resourceReader.ReadUInt16(),
                 ShopType = resourceReader.ReadUInt16(),
                 ObjectType = (ObjectType)resourceReader.ReadUInt16(),
-                Attributes = (ActorAttributeFlag)resourceReader.ReadUInt16(), // +0x3E use-effect flags / tool target
-                UseEffectAttributeMask = resourceReader.ReadUInt16(), // +0x40 affected-attribute bitmask
+                EffectArgA = resourceReader.ReadUInt16(),               // +0x3E per-category effect arg A
+                EffectArgB = resourceReader.ReadUInt16(),               // +0x40 per-category effect arg B
                 UseEffectAmount = resourceReader.ReadUInt16(),        // +0x42 effect magnitude
                 EffectDurationHours = resourceReader.ReadUInt16(),    // +0x44 timed-effect duration (hours)
-                EquipAttributeMask = resourceReader.ReadUInt16(),     // +0x46 passive-modifier attribute mask
+                EquipAttributeMask = (ActorAttributeFlag)resourceReader.ReadUInt16(), // +0x46 passive-modifier attribute mask
                 EquipModifierAmount = resourceReader.ReadInt16(),     // +0x48 passive-modifier amount (signed)
                 DegradeChancePercent = resourceReader.ReadUInt16(),   // +0x4A
                 MaxWearPerDegrade = resourceReader.ReadUInt16(),      // +0x4C

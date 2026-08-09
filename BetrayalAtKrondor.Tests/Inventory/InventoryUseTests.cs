@@ -37,14 +37,14 @@ public class InventoryUseTests {
     private const int NoEffectRecord = 1800003;  // 0x1B7743, the tail's outcome-0 record
     private const int NoRepairRecord = 1800030;  // 0x1B775E, "it needs no repair"
 
-    // wEffect_arg_a / wEffect_arg_b live in ObjectInfo.Attributes / .UseEffectAttributeMask; the
-    // former is typed ActorAttributeFlag, which for these categories is an ItemFlags set-mask or a
-    // bare category number (see InventoryUse's remarks). Cast in, so the tests read as the record.
+    // wEffect_arg_a / wEffect_arg_b are ObjectInfo.EffectArgA / .EffectArgB — raw words, because
+    // what they mean depends on the category: an ItemFlags set/keep pair here, a bare target
+    // category number for a repair kit (see InventoryUse's remarks).
     private static ObjectInfo Obj(byte id, ObjectType type, ObjectFlags flags = 0,
         int argA = 0, int argB = 0) =>
         new ObjectInfo("O") {
             Number = id, Name = "obj" + id, ObjectType = type, Flags = flags,
-            Attributes = (ActorAttributeFlag)argA, UseEffectAttributeMask = argB,
+            EffectArgA = argA, EffectArgB = argB,
             InventorySlots = 1, MaxAmount = 1,
         };
 
