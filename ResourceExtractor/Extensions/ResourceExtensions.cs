@@ -24,7 +24,12 @@ using System.Text.Json.Serialization;
 using Color = GameData.Resources.Palette.Color;
 
 public static class ResourceExtensions {
-    private static readonly JsonSerializerOptions JsonOptions = new() {
+    /// <summary>The one serializer configuration for everything written to <c>generated/</c>.
+    /// <see cref="JsonStringEnumConverter"/> is the load-bearing part: every model here implements
+    /// <see cref="GameData.Resources.IResource"/>, whose <c>Type</c> is a real enum, and a bare
+    /// <see cref="JsonSerializerOptions"/> emits it as <c>"Type": 5</c> — meaningless to a mod author
+    /// hand-editing an override. Serialize through this, never through a fresh options instance.</summary>
+    public static readonly JsonSerializerOptions JsonOptions = new() {
         WriteIndented = true,
         Converters = {
             new JsonStringEnumConverter()

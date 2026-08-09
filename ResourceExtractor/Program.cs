@@ -903,9 +903,7 @@ internal static class Program {
             globalFlag2Changes
         );
 
-        string diffJson = JsonSerializer.Serialize(diffReport, new JsonSerializerOptions {
-            WriteIndented = true
-        });
+        string diffJson = JsonSerializer.Serialize(diffReport, ResourceExtensions.JsonOptions);
 
         string diffReportPath = $"{Path.GetFileNameWithoutExtension(beforeSavePath)}_to_{Path.GetFileNameWithoutExtension(afterSavePath)}.flagdiff.json";
         File.WriteAllText(diffReportPath, diffJson);
@@ -1130,7 +1128,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         ChapterSongMap map = new ChapterSongMapExtractor().Extract("CHAPSONG.DAT", stream);
-        string json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(map, ResourceExtensions.JsonOptions);
         File.WriteAllText("CHAPSONG.json", json);
         Console.WriteLine($"[CHAPSONG] {map.Entries.Count} chapter entries written to CHAPSONG.json");
     }
@@ -1143,7 +1141,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         MovementData data = new MovementExtractor().Extract("MOVEMENT.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("MOVEMENT.json", json);
         Console.WriteLine($"[MOVEMENT] step={string.Join("/", data.StepDistances)} " +
                           $"turn={string.Join("/", data.TurnAngles)} " +
@@ -1158,7 +1156,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         PartyData data = new PartyExtractor().Extract("PARTY.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("PARTY.json", json);
         Console.WriteLine($"[PARTY] {data.Members.Count} members: " +
                           $"{string.Join(", ", data.Members.Select(m => m.Name))} written to PARTY.json");
@@ -1172,7 +1170,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         ObjectNames data = new OnamesExtractor().Extract("ONAMES.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("ONAMES.json", json);
         Console.WriteLine($"[ONAMES] {data.Names.Count} names written to ONAMES.json (e.g. {string.Join(", ", data.Names.Take(3))})");
     }
@@ -1189,7 +1187,7 @@ internal static class Program {
         using FileStream stream = File.OpenRead(files[0]);
         GameData.Resources.Creature.CreatureNames data = new MnamesExtractor().Extract("mnames.dat", stream);
         WriteToJsonFile("mnames.dat", data.Type,
-            JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions));
         Console.WriteLine($"[MNAMES] {data.Creatures.Count} creatures written to DAT/mnames.json");
     }
 
@@ -1210,7 +1208,7 @@ internal static class Program {
         foreach (KeyValuePair<string, string> kv in entries) {
             ordered[kv.Key] = kv.Value;
         }
-        string json = JsonSerializer.Serialize(ordered, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(ordered, ResourceExtensions.JsonOptions);
 
         // Main already SetCurrentDirectory'd to <repo>/generated, same as every other WriteToJsonFile
         // caller — so this is "EXE", not "generated/EXE" (which would nest generated/generated/EXE).
@@ -1255,7 +1253,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         FilterData data = new FilterExtractor().Extract("FILTER.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("FILTER.json", json);
         Console.WriteLine($"[FILTER] {data.DetailLevels.Count} detail-level blocks × " +
                           $"{FilterData.EntityTypeCount} entity-type draw distances written to FILTER.json");
@@ -1269,7 +1267,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         DetectData data = new DetectExtractor().Extract("DETECT.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("DETECT.json", json);
         Console.WriteLine($"[DETECT] {data.Locations.Count} location blocks × " +
                           $"{DetectData.EntityTypeCount} entity-type detection ranges written to DETECT.json");
@@ -1283,7 +1281,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         SpellDescriptions data = new SpellDocExtractor().Extract("SPELLDOC.DAT", stream);
-        File.WriteAllText("SPELLDOC.json", JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText("SPELLDOC.json", JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions));
         Console.WriteLine($"[SPELLDOC] {data.Spells.Count} spells written to SPELLDOC.json");
     }
 
@@ -1298,7 +1296,7 @@ internal static class Program {
             using FileStream stream = File.OpenRead(fullPath);
             SpellAffinityTable data = extractor.Extract(fileName, stream);
             string outName = Path.GetFileNameWithoutExtension(fileName) + ".json";
-            File.WriteAllText(outName, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(outName, JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions));
             int withAffinity = data.Spells.Count(s => s.CreatureTypes.Count > 0);
             Console.WriteLine($"[SPELLAFFINITY] {fileName} -> {outName} ({data.Spells.Count} spells, {withAffinity} with entries)");
         }
@@ -1312,7 +1310,7 @@ internal static class Program {
             using FileStream stream = File.OpenRead(file);
             InputForm form = extractor.Extract(name, stream);
             string outPath = Path.Combine(outputDir, Path.GetFileNameWithoutExtension(name) + ".json");
-            File.WriteAllText(outPath, JsonSerializer.Serialize(form, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(outPath, JsonSerializer.Serialize(form, ResourceExtensions.JsonOptions));
             Console.WriteLine($"[IN] {name} -> {outPath} ({form.Fields.Count} fields)");
         }
     }
@@ -1325,7 +1323,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         GridData data = new GridExtractor().Extract("GRID.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("GRID.json", json);
         Console.WriteLine($"[GRID] {data.ZoneBorderPens.Count} per-zone border pens written to GRID.json: {string.Join(",", data.ZoneBorderPens)}");
     }
@@ -1338,7 +1336,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         EncampData data = new EncampExtractor().Extract("ENCAMP.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("ENCAMP.json", json);
         Console.WriteLine($"[ENCAMP] {data.ClockEntries.Count} clock + {data.NeedleEntries.Count} needle points written to ENCAMP.json");
     }
@@ -1351,7 +1349,7 @@ internal static class Program {
         }
         using var stream = File.OpenRead(fullPath);
         TrapData data = new TrapExtractor().Extract("TRAPS.DAT", stream);
-        string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("TRAPS.json", json);
         int active = data.Encounters.Count(e => e.Elements.Count > 0);
         Console.WriteLine($"[TRAPS] {data.Encounters.Count} encounter records ({active} non-empty) written to TRAPS.json");
@@ -1360,7 +1358,7 @@ internal static class Program {
     private static void ExtractFullMap(string gamePath) {
         const string outputDir = "FMAP";
         Directory.CreateDirectory(outputDir);
-        var options = new JsonSerializerOptions { WriteIndented = true };
+        JsonSerializerOptions options = ResourceExtensions.JsonOptions;
 
         string twnPath = Path.Combine(gamePath, "FMAP_TWN.DAT");
         if (File.Exists(twnPath)) {
@@ -1399,7 +1397,7 @@ internal static class Program {
             }
             using var stream = File.OpenRead(fullPath);
             DefFamilyFile<TEntry> file = extractor.Extract(fileName, stream);
-            string json = JsonSerializer.Serialize(file, new JsonSerializerOptions { WriteIndented = true });
+            string json = JsonSerializer.Serialize(file, ResourceExtensions.JsonOptions);
             File.WriteAllText(Path.Combine(outputDir, Path.GetFileNameWithoutExtension(fileName) + ".json"), json);
             int active = file.Records.Count(r => r.Status == 1);
             Console.WriteLine($"[DEF] {fileName}: {file.Records.Count} records ({active} active)");
