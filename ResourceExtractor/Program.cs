@@ -160,6 +160,18 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--ads") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractAnimations(gamePath, new GeneralResourceProvider(gamePath));
+            return;
+        }
+
+        if (args.Length >= 1 && args[0] == "--ttm") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractAnimatorScripts(gamePath, new GeneralResourceProvider(gamePath));
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--def") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractDefDat(gamePath);
@@ -296,12 +308,6 @@ internal static class Program {
         if (args.Length >= 1 && args[0] == "--grid") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractGridData(gamePath);
-            return;
-        }
-
-        if (args.Length >= 1 && args[0] == "--in") {
-            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
-            ExtractInputForms(gamePath);
             return;
         }
 
