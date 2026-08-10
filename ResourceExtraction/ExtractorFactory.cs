@@ -87,6 +87,13 @@ public static class ExtractorFactory {
         }, {
             typeof(DetectData), typeof(DetectExtractor)
         }, {
+            typeof(FilterData), typeof(FilterExtractor)
+        }, {
+            // The invisible-wall hotspot parameters (docs/specs/collision-system.md §3.4.1).
+            typeof(DefFamilyFile<DefBlocEntry>), typeof(Extractors.Def.DefBlocExtractor)
+        }, {
+            typeof(TileEventTile), typeof(TileEventExtractor)
+        }, {
             typeof(CreatureNames), typeof(MnamesExtractor)
         }
     };

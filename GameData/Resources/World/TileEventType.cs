@@ -4,9 +4,14 @@ namespace GameData.Resources.World;
 // embedded in the original game's def_file_struct.type field. Each value
 // names a "def_*.dat" family that the trigger's EntryNumber indexes into.
 //
-// Note: Comm, Heal and Bloc never appear in shipping data and have no
-// runtime handler in ovr187. Soun has a handler but no data. The other
-// eight types are actively used.
+// Note: Comm and Heal never appear in shipping data and have no runtime
+// handler. Soun has a handler but no data. The other ten types are actively
+// used — Bloc included: it ships 81 records and IS handled, by the activate
+// pass only (canassa hotspotevt_dlg_run_msg_event, case 11 of
+// hotspotevt_activate_at_player). It is the game's data-driven invisible
+// wall: when its gates pass it plays a dialog and reports "interacted",
+// which reverts the step that entered the tile. See
+// docs/specs/collision-system.md §3.4.1.
 public enum TileEventType : ushort
 {
     Bkgr = 0,
