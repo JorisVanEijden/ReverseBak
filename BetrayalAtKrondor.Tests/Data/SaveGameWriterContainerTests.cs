@@ -75,6 +75,70 @@ public class SaveGameWriterContainerTests {
         Assert.Equal(noEdits.Bytes.Length, r.Bytes.Length);
     }
 
+    /// <summary>
+    /// Claiming a ground bag rewrites the record's identity, not just its items: the writer must
+    /// lay the packed 16-byte header down and stamp the last-touch timestamp, while the record's
+    /// length stays exactly what it was.
+    /// </summary>
+    [Fact]
+    public void ContainerEdit_WithHeaderAndTimestamp_PatchesIdentityAndLastTouch() {
+        byte[] body = BodyWithContainer();
+        var claimed = new GameData.Resources.Inventory.RuntimeContainer {
+            Zone = 4, MinChapter = 0, MaxChapter = 10,
+            WorldItemId = GameData.Resources.Inventory.GroundContainerPool.BagWorldItemId,
+            X = 0x00112233, Y = 0x00445566,
+            ContainerType = SaveGameContainerType.Bag,
+            Capacity = 4,
+            DataTypes = SaveGameContainerDataType.Timestamp | SaveGameContainerDataType.SelfSpawn,
+        };
+        claimed.Items.Add(new GameData.Resources.Inventory.RuntimeItem(0x99, 0x88, 0x7766));
+
+        int timestampOffset = ContainerGeometry.TimestampOffset(claimed.Capacity, claimed.DataTypes);
+        var edit = new DirtyContainerEdit {
+            BodyOffset = ContainerOffset,
+            NumberOfItems = 1,
+            LiveItemBytes = new byte[] { 0x99, 0x88, 0x66, 0x77 },
+            HeaderBytes = ContainerGeometry.PackHeader(claimed),
+            TimestampOffset = timestampOffset,
+            Timestamp = 0x0A0B0C0D,
+        };
+
+        SaveGameWriteResult noEdits = SaveGameWriter.Write(body, ZeroFields, "Drop", 0, 0, 0);
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, ZeroFields, "Drop", 0, 0, 0, containerEdits: new[] { edit });
+
+        int baseOff = SaveGameOffsets.HeaderSize + ContainerOffset;
+
+        Assert.Equal(4, r.Bytes[baseOff + 0]);                       // zone
+        Assert.Equal(0x0A, r.Bytes[baseOff + 1]);                    // chapter band 0..10
+        Assert.Equal(0xA6, BitConverter.ToInt16(r.Bytes, baseOff + 2));
+        Assert.Equal(0x00112233, BitConverter.ToInt32(r.Bytes, baseOff + 4));
+        Assert.Equal(0x00445566, BitConverter.ToInt32(r.Bytes, baseOff + 8));
+        Assert.Equal((byte)SaveGameContainerType.Bag, r.Bytes[baseOff + 12]);
+        Assert.Equal(1, r.Bytes[baseOff + ContainerGeometry.NumberOfItemsOffset]);
+        Assert.Equal(4, r.Bytes[baseOff + 14]);                      // capacity untouched
+        Assert.Equal(0x0A0B0C0D, BitConverter.ToInt32(r.Bytes, baseOff + timestampOffset));
+
+        // The record's size is invariant, so the file length cannot move.
+        Assert.Equal(noEdits.Bytes.Length, r.Bytes.Length);
+    }
+
+    [Fact]
+    public void TimestampOffset_IsMinusOne_WhenTheRecordCarriesNoTimestampSubrecord() {
+        Assert.Equal(-1, ContainerGeometry.TimestampOffset(20, SaveGameContainerDataType.Lock));
+    }
+
+    /// <summary>Subrecords follow the item array in ascending bit order, so a record carrying a
+    /// lock and a dialog pushes its timestamp past both.</summary>
+    [Fact]
+    public void TimestampOffset_SkipsTheLowerBitSubrecords() {
+        SaveGameContainerDataType types = SaveGameContainerDataType.Lock
+            | SaveGameContainerDataType.Dialog | SaveGameContainerDataType.Timestamp;
+
+        Assert.Equal(ContainerGeometry.ItemArrayOffset + 20 * 4 + 4 + 6,
+            ContainerGeometry.TimestampOffset(20, types));
+    }
+
     [Fact]
     public void NoContainerEdits_ProducesAByteIdenticalBodyToBaseline() {
         byte[] body = BodyWithContainer();

@@ -5,7 +5,7 @@ using Xunit;
 
 public class SaveGameContainerTypeTests {
     [Theory]
-    [InlineData(SaveGameContainerType.TemplatePool, 0)]
+    [InlineData(SaveGameContainerType.Free, 0)]
     [InlineData(SaveGameContainerType.Inventory, 1)]
     [InlineData(SaveGameContainerType.Bag, 2)]
     [InlineData(SaveGameContainerType.Chest, 4)]

@@ -8,6 +8,6 @@ public enum ContainerDataType {
     Encounter = 0x08,
     Timestamp = 0x10,
     GlobalState = 0x20,
-    Flag1 = 0x40,
-    Flag2 = 0x80
+    HoldsProtectedItem = 0x40,
+    SelfSpawn = 0x80
 }

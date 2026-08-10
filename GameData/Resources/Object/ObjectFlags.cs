@@ -7,7 +7,11 @@ namespace GameData.Resources.Object;
 /// </summary>
 [Flags]
 public enum ObjectFlags {
-    B0001 = 0x0001,
+    /// <summary>The item may never be discarded to the ground: the third gate in
+    /// <c>cmbinv_actor_drop_item_at_pos</c> (CMBINV.C:1047) refuses the drop with DDX 1800014
+    /// when <c>item_rec-&gt;wFlags &amp; 1</c>. No record in the shipped OBJINFO.DAT sets it, so
+    /// the gate never fires with stock data — it is honoured for overrides.</summary>
+    CannotBeDiscarded = 0x0001,
     NotEquipable = 0x0002,
     B0004 = 0x0004,
     B0008 = 0x0008,

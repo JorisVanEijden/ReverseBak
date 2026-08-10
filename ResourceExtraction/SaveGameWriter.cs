@@ -59,10 +59,21 @@ public static class SaveGameWriter {
 
         if (containerEdits != null) {
             foreach (DirtyContainerEdit edit in containerEdits) {
+                // The header goes down first so NumberOfItems below stays authoritative — a
+                // claimed ground bag rewrites zone/chapter band/world item id/x/y/residence, and
+                // every other edit leaves HeaderBytes null and patches items only.
+                if (edit.HeaderBytes != null) {
+                    for (int i = 0; i < edit.HeaderBytes.Length; i++) {
+                        PatchU8(edit.BodyOffset + i, edit.HeaderBytes[i]);
+                    }
+                }
                 PatchU8(edit.BodyOffset + ContainerGeometry.NumberOfItemsOffset, edit.NumberOfItems);
                 int arrayOff = edit.BodyOffset + ContainerGeometry.ItemArrayOffset;
                 for (int i = 0; i < edit.LiveItemBytes.Length; i++) {
                     PatchU8(arrayOff + i, edit.LiveItemBytes[i]);
+                }
+                if (edit.TimestampOffset >= 0) {
+                    PatchI32(edit.BodyOffset + edit.TimestampOffset, edit.Timestamp);
                 }
             }
         }
