@@ -1,0 +1,14 @@
+# Normalise every text file to LF in the repository AND in the working tree.
+#
+# Without this the working tree was a 204/433 CRLF/LF split and nothing normalised on either
+# checkout or commit, so a file's endings depended on which machine and editor last touched it.
+# The visible cost was whole-file diffs: a one-function change to GeneralResourceProvider.cs
+# arrived as all 138 lines because the file flipped CRLF -> LF on the way past.
+#
+# eol=lf (not bare text=auto) because this repo is worked from two machines and the sibling
+# UnityProject/.gitattributes already pins its serialized assets to LF — matching it keeps a
+# checkout identical everywhere rather than native-per-platform.
+#
+# No binary rules: nothing tracked here is binary (637 files, all source/config). Add explicit
+# `binary` lines if that ever changes.
+* text=auto eol=lf
