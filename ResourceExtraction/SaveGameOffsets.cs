@@ -28,6 +28,27 @@ public static class SaveGameOffsets {
     public const int PositionZ = 29;   // Int32
     public const int Rotation = 33;    // Int16 (currentZRotation)
 
+    // The six party-member records and their affliction ranks, both inside StateData. The reader
+    // reaches these sequentially rather than by offset, so SaveGameOffsetsTests pins every constant
+    // below by writing at it and reading the value back out through SaveGameExtractor — if the
+    // parse order ever shifts, those tests fail rather than the writer quietly corrupting a save.
+    public const int PartyActorCount = 6;
+
+    /// <summary>First party actor record; 95 bytes each, in character-id order.</summary>
+    public const int PartyActors = 119;
+    public const int PartyActorStride = 95;
+
+    /// <summary>Attribute quintuples {Maximum, Current, CurrentEffective, Experience, Modifier}
+    /// start here within an actor record, one per attribute in ActorAttribute order.</summary>
+    public const int ActorAttributesInRecord = 8;
+    public const int ActorAttributeStride = 5;
+    public const int ActorAttributeCount = 16;
+
+    /// <summary>First actor's seven affliction ranks; 7 bytes each, in character-id order.</summary>
+    public const int ActorStatusEffects = 709;
+    public const int ActorStatusEffectsStride = 7;
+    public const int ActorStatusEffectCount = 7;
+
     // 100-byte slot header field offsets (within the header, which precedes the body on disk).
     // Name length + total size are the reader's (SaveGameHeader) — one source of truth.
     public const int HeaderName = 0;

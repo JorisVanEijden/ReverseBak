@@ -1,0 +1,179 @@
+namespace BetrayalAtKrondor.Tests.Data;
+
+using GameData;
+using GameData.Resources.Character;
+using GameData.Resources.Data;
+using ResourceExtraction;
+using ResourceExtraction.Extractors;
+using System.IO;
+using System.Text;
+using Xunit;
+
+/// <summary>
+/// Writing live party state back into a save. The offsets these use are not declared by the
+/// reader — it walks StateData sequentially — so every test here goes out through
+/// <see cref="SaveGameWriter"/> and back in through <see cref="SaveGameExtractor"/>. If the parse
+/// order ever moves, these fail instead of the writer quietly corrupting somebody's save.
+/// </summary>
+public class SaveGameActorWriteTests {
+    static SaveGameActorWriteTests() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+    private static byte[] EmptyBody() => new byte[SaveGameOffsets.BodySize];
+
+    private static SaveGameFields Fields() => new SaveGameFields(
+        Chapter: 1, PartyGold: 0, GameTime: 0, CurrentZone: 1, WorldX: 0, WorldY: 0,
+        PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
+
+    private static SaveGame RoundTrip(DirtyActorEdit[] edits) {
+        SaveGameWriteResult written = SaveGameWriter.Write(
+            EmptyBody(), Fields(), "test", 0, 0, 0, containerEdits: null, actorEdits: edits);
+
+        // Strip the 100-byte slot header so the extractor reads it back as a TEMP.GAM body.
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+        System.Buffer.BlockCopy(written.Bytes, SaveGameOffsets.HeaderSize, body, 0, body.Length);
+        using var stream = new MemoryStream(body);
+        return new SaveGameExtractor().Extract("test", stream);
+    }
+
+    private static ActorStat[] StatsWith(ActorAttribute attribute, ActorStat stat) {
+        var stats = new ActorStat[SaveGameOffsets.ActorAttributeCount];
+        for (int i = 0; i < stats.Length; i++) {
+            stats[i] = new ActorStat();
+        }
+        stats[(int)attribute] = stat;
+        return stats;
+    }
+
+    [Fact]
+    public void AnAttributeWrittenForAnActorReadsBackFromThatActorsRecord() {
+        var stat = new ActorStat { Max = 90, Base = 71, Effective = 68, Experience = 200, Modifier = -5 };
+
+        SaveGame save = RoundTrip(new[] {
+            new DirtyActorEdit(2, StatsWith(ActorAttribute.Stealth, stat), null),
+        });
+
+        SaveGameAttributeValuesData read = save.Data!.StateData.PartyActors[2].Stealth;
+        Assert.Equal(90, read.Maximum);
+        Assert.Equal(71, read.Current);
+        Assert.Equal(68, read.CurrentEffective);
+        Assert.Equal(200, read.Experience);
+        Assert.Equal(unchecked((byte)-5), read.Modifier);
+    }
+
+    [Fact]
+    public void EachPartyMemberLandsInTheirOwnRecord() {
+        SaveGame save = RoundTrip(new[] {
+            new DirtyActorEdit(0, StatsWith(ActorAttribute.Health, new ActorStat { Max = 60, Base = 11 }), null),
+            new DirtyActorEdit(5, StatsWith(ActorAttribute.Health, new ActorStat { Max = 70, Base = 55 }), null),
+        });
+
+        Assert.Equal(11, save.Data!.StateData.PartyActors[0].Health.Current);
+        Assert.Equal(55, save.Data!.StateData.PartyActors[5].Health.Current);
+        Assert.Equal(0, save.Data!.StateData.PartyActors[3].Health.Current);
+    }
+
+    [Fact]
+    public void EveryAttributeSlotLandsOnTheRightAttribute() {
+        var stats = new ActorStat[SaveGameOffsets.ActorAttributeCount];
+        for (int i = 0; i < stats.Length; i++) {
+            // A distinct value per slot, so a stride mistake shows up as a swap.
+            stats[i] = new ActorStat { Max = 100, Base = (byte)(i + 1) };
+        }
+
+        SaveGame save = RoundTrip(new[] { new DirtyActorEdit(1, stats, null) });
+        SaveGameActorData actor = save.Data!.StateData.PartyActors[1];
+
+        Assert.Equal(1, actor.Health.Current);
+        Assert.Equal(2, actor.Stamina.Current);
+        Assert.Equal(3, actor.Speed.Current);
+        Assert.Equal(4, actor.Strength.Current);
+        Assert.Equal(9, actor.Assessment.Current);
+        Assert.Equal(14, actor.Lockpick.Current);
+        Assert.Equal(16, actor.Stealth.Current);
+    }
+
+    [Fact]
+    public void AfflictionRanksReadBackForTheRightActor() {
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Poisoned] = 42;
+        conditions[ActorCondition.NearDeath] = 7;
+
+        SaveGame save = RoundTrip(new[] { new DirtyActorEdit(4, null, conditions) });
+
+        SaveGameActorStatusEffectsData read = save.Data!.StateData.PartyConfigurationData.ActorStatusEffects[4];
+        Assert.Equal(42, read.Poisoned);
+        Assert.Equal(7, read.NearDeath);
+        Assert.Equal(0, read.Sick);
+        Assert.Equal(0, save.Data!.StateData.PartyConfigurationData.ActorStatusEffects[0].Poisoned);
+    }
+
+    [Fact]
+    public void EveryAfflictionSlotLandsOnTheRightAffliction() {
+        var conditions = new ActorConditions();
+        for (int i = 0; i < ActorConditions.Count; i++) {
+            conditions[(ActorCondition)i] = i + 1;
+        }
+
+        SaveGame save = RoundTrip(new[] { new DirtyActorEdit(0, null, conditions) });
+        SaveGameActorStatusEffectsData read = save.Data!.StateData.PartyConfigurationData.ActorStatusEffects[0];
+
+        Assert.Equal(1, read.Sick);
+        Assert.Equal(2, read.Plagued);
+        Assert.Equal(3, read.Poisoned);
+        Assert.Equal(4, read.Drunk);
+        Assert.Equal(5, read.Healing);
+        Assert.Equal(6, read.Starving);
+        Assert.Equal(7, read.NearDeath);
+    }
+
+    [Fact]
+    public void WritingStatsLeavesAfflictionsAloneAndViceVersa() {
+        byte[] body = EmptyBody();
+        body[SaveGameOffsets.ActorStatusEffects + 2] = 33; // actor 0, Poisoned
+
+        SaveGameWriteResult written = SaveGameWriter.Write(
+            body, Fields(), "test", 0, 0, 0, containerEdits: null,
+            actorEdits: new[] {
+                new DirtyActorEdit(0, StatsWith(ActorAttribute.Health, new ActorStat { Max = 50, Base = 50 }), null),
+            });
+
+        byte[] roundTripped = new byte[SaveGameOffsets.BodySize];
+        System.Buffer.BlockCopy(written.Bytes, SaveGameOffsets.HeaderSize, roundTripped, 0, roundTripped.Length);
+        using var stream = new MemoryStream(roundTripped);
+        SaveGame save = new SaveGameExtractor().Extract("test", stream);
+
+        Assert.Equal(50, save.Data!.StateData.PartyActors[0].Health.Current);
+        Assert.Equal(33, save.Data!.StateData.PartyConfigurationData.ActorStatusEffects[0].Poisoned);
+    }
+
+    [Fact]
+    public void NoActorEditsLeavesTheRecordsExactlyAsTheyWere() {
+        byte[] body = EmptyBody();
+        body[SaveGameOffsets.PartyActors + SaveGameOffsets.ActorAttributesInRecord + 1] = 77;
+
+        SaveGameWriteResult written = SaveGameWriter.Write(body, Fields(), "test", 0, 0, 0);
+
+        Assert.Equal(77, written.Bytes[SaveGameOffsets.HeaderSize + SaveGameOffsets.PartyActors
+            + SaveGameOffsets.ActorAttributesInRecord + 1]);
+    }
+
+    [Fact]
+    public void ACharacterIndexOutsideThePartyIsRejected() {
+        Assert.Throws<System.ArgumentOutOfRangeException>(() => SaveGameWriter.Write(
+            EmptyBody(), Fields(), "test", 0, 0, 0, containerEdits: null,
+            actorEdits: new[] { new DirtyActorEdit(6, null, null) }));
+    }
+
+    [Fact]
+    public void WrittenActorBytesCountTowardsCoverage() {
+        SaveGameWriteResult bare = SaveGameWriter.Write(EmptyBody(), Fields(), "test", 0, 0, 0);
+        SaveGameWriteResult withActors = SaveGameWriter.Write(
+            EmptyBody(), Fields(), "test", 0, 0, 0, containerEdits: null,
+            actorEdits: new[] {
+                new DirtyActorEdit(0, StatsWith(ActorAttribute.Health, new ActorStat()), new ActorConditions()),
+            });
+
+        // 16 attributes x 5 bytes + 7 affliction ranks.
+        Assert.Equal(bare.Coverage.AuthoredBytes + 16 * 5 + 7, withActors.Coverage.AuthoredBytes);
+    }
+}

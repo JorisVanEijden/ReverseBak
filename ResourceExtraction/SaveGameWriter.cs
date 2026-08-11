@@ -3,10 +3,13 @@ namespace ResourceExtraction;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using GameData;
+using GameData.Resources.Character;
 using GameData.Resources.Data;
 
 /// <summary>Result of writing a save: the full SAVE##.GAM bytes + which body bytes we authored.</summary>
 public readonly record struct SaveGameWriteResult(byte[] Bytes, SaveCoverage Coverage);
+
 
 /// <summary>
 /// Writes a byte-interchangeable SAVE##.GAM (100-byte header + patched TEMP.GAM body). Preserve-and-
@@ -19,7 +22,8 @@ public static class SaveGameWriter {
     public static SaveGameWriteResult Write(
         byte[] backingBody, in SaveGameFields fields,
         string name, short headerWorldX, short headerWorldY, short mapIcon,
-        IReadOnlyList<DirtyContainerEdit> containerEdits = null) {
+        IReadOnlyList<DirtyContainerEdit> containerEdits = null,
+        IReadOnlyList<DirtyActorEdit> actorEdits = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -74,6 +78,44 @@ public static class SaveGameWriter {
                 }
                 if (edit.TimestampOffset >= 0) {
                     PatchI32(edit.BodyOffset + edit.TimestampOffset, edit.Timestamp);
+                }
+            }
+        }
+
+        // Live party state. Without this, anything that changes an actor at runtime — upkeep,
+        // healing, skill advancement — would be applied and then silently lost on save.
+        if (actorEdits != null) {
+            foreach (DirtyActorEdit edit in actorEdits) {
+                if (edit.CharacterIndex < 0 || edit.CharacterIndex >= SaveGameOffsets.PartyActorCount) {
+                    throw new ArgumentOutOfRangeException(nameof(actorEdits),
+                        $"Character index {edit.CharacterIndex} is outside the six party records.");
+                }
+
+                if (edit.Stats != null) {
+                    int recordOffset = SaveGameOffsets.PartyActors
+                        + edit.CharacterIndex * SaveGameOffsets.PartyActorStride
+                        + SaveGameOffsets.ActorAttributesInRecord;
+                    int attributes = Math.Min(edit.Stats.Length, SaveGameOffsets.ActorAttributeCount);
+                    for (int i = 0; i < attributes; i++) {
+                        ActorStat stat = edit.Stats[i];
+                        if (stat == null) {
+                            continue;
+                        }
+                        int at = recordOffset + i * SaveGameOffsets.ActorAttributeStride;
+                        PatchU8(at + 0, stat.Max);
+                        PatchU8(at + 1, stat.Base);
+                        PatchU8(at + 2, stat.Effective);
+                        PatchU8(at + 3, stat.Experience);
+                        PatchU8(at + 4, unchecked((byte)stat.Modifier));
+                    }
+                }
+
+                if (edit.Conditions != null) {
+                    int ranksOffset = SaveGameOffsets.ActorStatusEffects
+                        + edit.CharacterIndex * SaveGameOffsets.ActorStatusEffectsStride;
+                    for (int i = 0; i < SaveGameOffsets.ActorStatusEffectCount; i++) {
+                        PatchU8(ranksOffset + i, (byte)edit.Conditions[(ActorCondition)i]);
+                    }
                 }
             }
         }

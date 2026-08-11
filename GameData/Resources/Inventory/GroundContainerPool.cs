@@ -33,7 +33,7 @@ public static class GroundContainerPool {
 
     /// <summary>The object-record flag that makes a container count as holding a protected item
     /// (CMBINV.C:819, <c>itemtbl_record_ptr(slot)-&gt;wFlags &amp; 2</c>).</summary>
-    private const int ProtectedItemObjectFlag = (int)ObjectFlags.NotEquipable;
+    private const int ProtectedItemObjectFlag = (int)ObjectFlags.Protected;
 
     /// <summary>
     /// Pick the record a discard should claim in this zone: the first

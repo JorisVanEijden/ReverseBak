@@ -152,7 +152,7 @@ public class GroundContainerPoolTests {
     public void RecomputeHoldsProtectedItem_SetsAndClearsFromTheObjectRecords() {
         var objects = new ObjectInfoSet("objinfo", new List<ObjectInfo> {
             new ObjectInfo("plain") { Number = 10, Flags = ObjectFlags.Stackable },
-            new ObjectInfo("quest") { Number = 120, Flags = ObjectFlags.NotEquipable },
+            new ObjectInfo("quest") { Number = 120, Flags = ObjectFlags.Protected },
         });
         var bag = Bag(1);
         bag.Items.Clear();

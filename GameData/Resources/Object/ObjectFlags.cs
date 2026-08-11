@@ -12,7 +12,26 @@ public enum ObjectFlags {
     /// when <c>item_rec-&gt;wFlags &amp; 1</c>. No record in the shipped OBJINFO.DAT sets it, so
     /// the gate never fires with stock data — it is honoured for overrides.</summary>
     CannotBeDiscarded = 0x0001,
-    NotEquipable = 0x0002,
+
+    /// <summary>
+    /// A quest / plot-critical item, which makes the container holding it the <b>last</b> one the
+    /// ground-bag recycler destroys.
+    ///
+    /// <para>Two readers in the original, neither about equipping:
+    /// <c>cmbinv_recompute_has_weapon_flag</c> (CMBINV.C:819 — that name is canassa's guess and is
+    /// wrong too) raises the container's
+    /// <see cref="Data.SaveGameContainerDataType.HoldsProtectedItem"/> bit, and the recycler then
+    /// ORs 0x80000000 into that bag's last-touch key so every unprotected pile is destroyed first;
+    /// and the used-up branch of the item-use gate chain (ITEMUSE.C:119) groups it with the
+    /// equipped flag to pick the wording when something runs out — you are told differently about
+    /// a worn or plot-critical item than about a spare.</para>
+    ///
+    /// <para>Was called <c>NotEquipable</c>, which the shipped data contradicts: of the 21 records
+    /// carrying it, two are ordinary equipment (Grey Tower Plate, Leather Leggings) and the rest
+    /// are notes, journals, traps and quest tokens — the Abbot's Journal and the Glazer's Guild
+    /// Seal, not a class of gear you cannot wear.</para>
+    /// </summary>
+    Protected = 0x0002,
     B0004 = 0x0004,
     B0008 = 0x0008,
     /// <summary>When the last charge is spent, the item is removed rather than left sitting at

@@ -12,7 +12,35 @@ public sealed class RuntimeContainer {
     public int Capacity;
     public SaveGameContainerType ContainerType;
     public short OwnerActorNumber;
-    public bool Dirty;
+
+    private bool _dirty;
+
+    /// <summary>
+    /// The contents changed and the save writer must re-emit them — the engine's
+    /// <c>needsFlush</c>. Raising it also stamps <see cref="Timestamp"/> when
+    /// <see cref="TouchClock"/> is attached, because in this engine "dirty" is exactly the moment
+    /// the container was last used.
+    /// </summary>
+    public bool Dirty {
+        get => _dirty;
+        set {
+            _dirty = value;
+            if (value && TouchClock != null) {
+                GroundContainerPool.Touch(this, TouchClock());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Supplies the current game time for the last-touch stamp; attached by the session when it
+    /// builds the runtime containers. Left null, no stamping happens at all — which is what pure
+    /// fixtures want, and keeps a clockless caller from writing a zero over a real timestamp.
+    ///
+    /// <para>This exists because every mutation already funnels through <see cref="Dirty"/>: the
+    /// alternative was threading a clock into a dozen <c>InventoryTransfer</c> / <c>InventoryUse</c>
+    /// call sites that have no business knowing about time.</para>
+    /// </summary>
+    public System.Func<int> TouchClock;
 
     /// <summary>
     /// The record's placement, mutable because claiming a ground bag rewrites it in place —
