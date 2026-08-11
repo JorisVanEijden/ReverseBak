@@ -28,6 +28,19 @@ public static class SaveGameOffsets {
     public const int PositionZ = 29;   // Int32
     public const int Rotation = 33;    // Int16 (currentZRotation)
 
+    /// <summary>
+    /// Int32. When the party last rested (<c>dwLastActionTimeSnapshot</c>) — exhaustion is measured
+    /// from here, so leaving it unwritten loses how tired everyone is.
+    /// </summary>
+    public const int TimeSnapshot = 10;
+
+    // The pending-timer pool. Like the party records, the reader reaches these sequentially, so the
+    // constants below are pinned by round-trip tests rather than trusted.
+    public const int TimerPoolCount = 1458;   // Int16, how many of the 20 slots are live
+    public const int TimerPool = 1460;        // 20 slots of {type u8, mode u8, key i16, time i32}
+    public const int TimerStride = 8;
+    public const int TimerSlots = 20;
+
     // The six party-member records and their affliction ranks, both inside StateData. The reader
     // reaches these sequentially rather than by offset, so SaveGameOffsetsTests pins every constant
     // below by writing at it and reading the value back out through SaveGameExtractor — if the

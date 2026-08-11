@@ -24,6 +24,7 @@ public class SaveGameWriterTests {
         Chapter: BitConverter.ToInt16(body, SaveGameOffsets.Chapter),
         PartyGold: BitConverter.ToInt32(body, SaveGameOffsets.PartyGold),
         GameTime: BitConverter.ToInt32(body, SaveGameOffsets.GameTime),
+        TimeSnapshot: BitConverter.ToInt32(body, SaveGameOffsets.TimeSnapshot),
         CurrentZone: body[SaveGameOffsets.CurrentZone],
         WorldX: body[SaveGameOffsets.WorldX],
         WorldY: body[SaveGameOffsets.WorldY],
@@ -86,10 +87,15 @@ public class SaveGameWriterTests {
     public void Coverage_CountsExactlyTheModeledScalarBytes() {
         byte[] body = PatternBody();
         SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
-        // chapter2 + gold4 + time4 + zone1 + worldX1 + worldY1 + posX4 + posY4 + posZ4 + rot2 = 27
-        Assert.Equal(27, r.Coverage.AuthoredBytes);
+        // chapter2 + gold4 + time4 + snapshot4 + zone1 + worldX1 + worldY1
+        // + posX4 + posY4 + posZ4 + rot2 = 31.
+        // Scalars only — this call passes no container/actor/timer edits, which are covered
+        // separately. Raise this number deliberately as more of the block is modelled; that is
+        // what makes coverage growth visible rather than accidental.
+        const int ModelledScalarBytes = 31;
+        Assert.Equal(ModelledScalarBytes, r.Coverage.AuthoredBytes);
         Assert.Equal(SaveGameOffsets.BodySize, r.Coverage.TotalBodyBytes);
-        Assert.Equal(SaveGameOffsets.BodySize - 27, r.Coverage.PassthroughBytes);
+        Assert.Equal(SaveGameOffsets.BodySize - ModelledScalarBytes, r.Coverage.PassthroughBytes);
     }
 
     private static bool IsAuthored(SaveCoverage cov, int offset) {

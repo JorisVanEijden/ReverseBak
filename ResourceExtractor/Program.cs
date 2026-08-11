@@ -91,6 +91,13 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--spellbook") {
+            string spellbookPath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            GeneralResourceProvider spellbookProvider = new(spellbookPath);
+            ExtractSpellBookPage(spellbookProvider);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--spells") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             GeneralResourceProvider provider = new(gamePath);
@@ -544,6 +551,15 @@ internal static class Program {
         // foreach (ushort command in AdsScriptBuilder.SeenCommands) {
         //     Console.WriteLine($"{command:X4}");
         // }
+    }
+
+    private static void ExtractSpellBookPage(GeneralResourceProvider generalResourceProvider) {
+        var extractor = new SpellBookPageExtractor();
+        // The engine opens it as "InvSpell.dat"; the archive entry is uppercase.
+        const string filename = "invspell.dat";
+        using Stream resourceStream = generalResourceProvider.GetResourceStream(filename);
+        SpellBookPage page = extractor.Extract(filename, resourceStream);
+        WriteToJsonFile(filename, ResourceType.DAT, page.ToJson());
     }
 
     private static void ExtractSpells(GeneralResourceProvider generalResourceProvider) {

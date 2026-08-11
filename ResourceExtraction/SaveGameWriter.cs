@@ -23,7 +23,8 @@ public static class SaveGameWriter {
         byte[] backingBody, in SaveGameFields fields,
         string name, short headerWorldX, short headerWorldY, short mapIcon,
         IReadOnlyList<DirtyContainerEdit> containerEdits = null,
-        IReadOnlyList<DirtyActorEdit> actorEdits = null) {
+        IReadOnlyList<DirtyActorEdit> actorEdits = null,
+        IReadOnlyList<SaveGameTimerData> timers = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -53,6 +54,7 @@ public static class SaveGameWriter {
         PatchI16(SaveGameOffsets.Chapter, fields.Chapter);
         PatchI32(SaveGameOffsets.PartyGold, fields.PartyGold);
         PatchI32(SaveGameOffsets.GameTime, fields.GameTime);
+        PatchI32(SaveGameOffsets.TimeSnapshot, fields.TimeSnapshot);
         PatchU8(SaveGameOffsets.CurrentZone, fields.CurrentZone);
         PatchU8(SaveGameOffsets.WorldX, fields.WorldX);
         PatchU8(SaveGameOffsets.WorldY, fields.WorldY);
@@ -115,6 +117,30 @@ public static class SaveGameWriter {
                         + edit.CharacterIndex * SaveGameOffsets.ActorStatusEffectsStride;
                     for (int i = 0; i < SaveGameOffsets.ActorStatusEffectCount; i++) {
                         PatchU8(ranksOffset + i, (byte)edit.Conditions[(ActorCondition)i]);
+                    }
+                }
+            }
+        }
+
+        // Pending timers. Without this a temporary dialog flag or a scheduled clear would be
+        // dropped on save and the flag would stay set for good — the corpse-flavour flag 8127 is
+        // the shipped example.
+        if (timers != null) {
+            int live = Math.Min(timers.Count, SaveGameOffsets.TimerSlots);
+            PatchI16(SaveGameOffsets.TimerPoolCount, (short)live);
+            for (int i = 0; i < SaveGameOffsets.TimerSlots; i++) {
+                int at = SaveGameOffsets.TimerPool + i * SaveGameOffsets.TimerStride;
+                if (i < live) {
+                    SaveGameTimerData t = timers[i];
+                    PatchU8(at + 0, (byte)t.Type);
+                    PatchU8(at + 1, (byte)t.Flag);
+                    PatchI16(at + 2, t.Key);
+                    PatchI32(at + 4, t.Time);
+                } else {
+                    // Blank the unused slots so a shorter pool cannot leave a stale timer behind
+                    // the count for something else to pick up.
+                    for (int b = 0; b < SaveGameOffsets.TimerStride; b++) {
+                        PatchU8(at + b, 0);
                     }
                 }
             }

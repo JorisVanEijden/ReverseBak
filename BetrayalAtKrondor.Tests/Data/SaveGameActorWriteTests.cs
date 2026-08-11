@@ -3,6 +3,7 @@ namespace BetrayalAtKrondor.Tests.Data;
 using GameData;
 using GameData.Resources.Character;
 using GameData.Resources.Data;
+using GameData.Resources.Dialog.Actions;
 using ResourceExtraction;
 using ResourceExtraction.Extractors;
 using System.IO;
@@ -21,7 +22,7 @@ public class SaveGameActorWriteTests {
     private static byte[] EmptyBody() => new byte[SaveGameOffsets.BodySize];
 
     private static SaveGameFields Fields() => new SaveGameFields(
-        Chapter: 1, PartyGold: 0, GameTime: 0, CurrentZone: 1, WorldX: 0, WorldY: 0,
+        Chapter: 1, PartyGold: 0, GameTime: 0, TimeSnapshot: 0, CurrentZone: 1, WorldX: 0, WorldY: 0,
         PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
 
     private static SaveGame RoundTrip(DirtyActorEdit[] edits) {
@@ -175,5 +176,86 @@ public class SaveGameActorWriteTests {
 
         // 16 attributes x 5 bytes + 7 affliction ranks.
         Assert.Equal(bare.Coverage.AuthoredBytes + 16 * 5 + 7, withActors.Coverage.AuthoredBytes);
+    }
+
+    // ---- the pending-timer pool -----------------------------------------------------------
+
+    private static SaveGame RoundTripTimers(SaveGameTimerData[] timers) {
+        SaveGameWriteResult written = SaveGameWriter.Write(
+            EmptyBody(), Fields(), "test", 0, 0, 0, containerEdits: null, actorEdits: null,
+            timers: timers);
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+        System.Buffer.BlockCopy(written.Bytes, SaveGameOffsets.HeaderSize, body, 0, body.Length);
+        using var stream = new MemoryStream(body);
+        return new SaveGameExtractor().Extract("test", stream);
+    }
+
+    /// <summary>
+    /// A queued timer has to survive a save: the shipped example is the corpse-flavour flag 8127,
+    /// whose clear is scheduled two hours out. Lose the timer and the flag stays set for good.
+    /// </summary>
+    [Fact]
+    public void APendingTimerReadsBackWithItsTypeKeyAndRemainingTime() {
+        SaveGame save = RoundTripTimers(new[] {
+            new SaveGameTimerData(TimerType.ClearFlag, 0, 8127, 3600),
+        });
+
+        Assert.Equal(1, save.Data!.StateData.CurrentTimerAmount);
+        SaveGameTimerData read = save.Data!.StateData.Timers[0];
+        Assert.Equal(TimerType.ClearFlag, read.Type);
+        Assert.Equal((short)8127, read.Key);
+        Assert.Equal(3600, read.Time);
+    }
+
+    [Fact]
+    public void EveryTimerSlotLandsInItsOwnPlace() {
+        var timers = new SaveGameTimerData[3];
+        for (int i = 0; i < timers.Length; i++) {
+            timers[i] = new SaveGameTimerData(TimerType.SetFlag, 0, (short)(100 + i), 1000 + i);
+        }
+
+        SaveGame save = RoundTripTimers(timers);
+
+        Assert.Equal(3, save.Data!.StateData.CurrentTimerAmount);
+        for (int i = 0; i < timers.Length; i++) {
+            Assert.Equal((short)(100 + i), save.Data!.StateData.Timers[i].Key);
+            Assert.Equal(1000 + i, save.Data!.StateData.Timers[i].Time);
+        }
+    }
+
+    /// <summary>A shrinking pool must not leave a stale timer sitting past the live count.</summary>
+    [Fact]
+    public void SlotsBeyondTheLiveCountAreBlanked() {
+        byte[] body = EmptyBody();
+        int stale = SaveGameOffsets.TimerPool + SaveGameOffsets.TimerStride;
+        body[stale] = 3;
+        body[stale + 4] = 99;
+
+        SaveGameWriteResult written = SaveGameWriter.Write(
+            body, Fields(), "test", 0, 0, 0, containerEdits: null, actorEdits: null,
+            timers: new[] { new SaveGameTimerData(TimerType.SetFlag, 0, 1, 500) });
+
+        byte[] roundTripped = new byte[SaveGameOffsets.BodySize];
+        System.Buffer.BlockCopy(written.Bytes, SaveGameOffsets.HeaderSize, roundTripped, 0, roundTripped.Length);
+        using var stream = new MemoryStream(roundTripped);
+        SaveGame save = new SaveGameExtractor().Extract("test", stream);
+
+        Assert.Equal(1, save.Data!.StateData.CurrentTimerAmount);
+        Assert.Equal(0, save.Data!.StateData.Timers[1].Time);
+    }
+
+    [Fact]
+    public void TheLastRestSnapshotIsWritten() {
+        var fields = new SaveGameFields(
+            Chapter: 1, PartyGold: 0, GameTime: 90000, TimeSnapshot: 87654, CurrentZone: 1,
+            WorldX: 0, WorldY: 0, PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
+        SaveGameWriteResult written = SaveGameWriter.Write(EmptyBody(), fields, "test", 0, 0, 0);
+
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+        System.Buffer.BlockCopy(written.Bytes, SaveGameOffsets.HeaderSize, body, 0, body.Length);
+        using var stream = new MemoryStream(body);
+        SaveGame save = new SaveGameExtractor().Extract("test", stream);
+
+        Assert.Equal(87654, save.Data!.StateData.TimeSnapshot);
     }
 }

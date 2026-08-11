@@ -8,6 +8,7 @@ public readonly record struct SaveGameFields(
     short Chapter,
     int PartyGold,
     int GameTime,
+    int TimeSnapshot,
     byte CurrentZone,
     byte WorldX,
     byte WorldY,
