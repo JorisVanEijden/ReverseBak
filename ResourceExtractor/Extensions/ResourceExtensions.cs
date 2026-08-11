@@ -181,7 +181,7 @@ public static string ToJson(this SaveGame resource) {
     }
 
     public static string ToCsv(this SpellList resource) {
-        var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.IsMartial)},{nameof(Spell.TargetingType)},{nameof(Spell.Color)},{nameof(Spell.AnimationEffectType)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
+        var sb = new StringBuilder($"{nameof(Spell.Id)},{nameof(Spell.Name)},{nameof(Spell.MinimumCost)},{nameof(Spell.MaximumCost)},{nameof(Spell.IsMartial)},{nameof(Spell.TargetingType)},{nameof(Spell.EffectSubject)},{nameof(Spell.AnimationEffectType)},{nameof(Spell.ObjectId)},{nameof(Spell.Calculation)},{nameof(Spell.Damage)},{nameof(Spell.Duration)}\r\n");
         foreach (Spell spell in resource.Spells.Values) {
             sb.AppendLine(spell.ToCsv());
         }

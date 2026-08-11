@@ -26,7 +26,7 @@ public class SpellExtractor : ExtractorBase<SpellList> {
                 MaximumCost = resourceReader.ReadInt16(),
                 IsMartial = resourceReader.ReadInt16() == 1,
                 TargetingType = resourceReader.ReadInt16(),
-                Color = resourceReader.ReadInt16(),
+                EffectSubject = resourceReader.ReadInt16(),
                 AnimationEffectType = resourceReader.ReadInt16(),
                 ObjectId = resourceReader.ReadInt16(),
                 Calculation = (SpellCalculation)resourceReader.ReadInt16(),
