@@ -8,7 +8,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Shop money: list prices, what an item is worth, what a shop pays for it, and haggling.
 ///
-/// <para>Ported from the original's <c>SRC/SCREENS/SHOP.C</c> and <c>SRC/SCREENS/ITEMTBL.C</c>
+/// <para>Ported from the original's <c>SRC/SCREENS/SHOP.C</c> and <c>SRC/GAME/ACTOR/ITEMTBL.C</c>
 /// (<c>shop_items_compute_actor_prices</c>, <c>itemtbl_compute_value</c>,
 /// <c>itemtbl_slot_value_modifier</c>, <c>shop_sell_item</c>, <c>shop_haggle_attempt_purchase</c>,
 /// <c>shop_rand_max_of_3</c>), cross-read against <c>docs/shop-pricing.md</c>. These are gameplay

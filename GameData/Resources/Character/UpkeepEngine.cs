@@ -8,7 +8,7 @@ using System;
 /// What the passage of time does to a party member: hourly regeneration and affliction drift,
 /// exhaustion when they go too long without rest, and the once-a-day recoveries. Ported from
 /// <c>gstate_advance_time</c> (0x42b37) and its hourly tick <c>gstate_hourly_tick</c> (0x4291e),
-/// canassa <c>SRC/GAME/GSTATE.C</c>.
+/// canassa <c>SRC/GAME/STATE/GSTATE.C</c>.
 ///
 /// <para>These are the per-actor rules only. Deciding <i>when</i> to run them (the clock's hour and
 /// day boundaries), which actors are in the party, and what to do with the results — the tiredness

@@ -2,7 +2,7 @@ namespace GameData.Resources.Dialog.Actions;
 
 /// <summary>
 /// How a <see cref="SetTimerAction"/> merges with a timer already pending for the same kind and
-/// key — <c>timerpool_upsert</c>'s <c>mode</c> (canassa <c>SRC/GAME/TIMERPL.C</c>).
+/// key — <c>timerpool_upsert</c>'s <c>mode</c> (canassa <c>SRC/GAME/STATE/TIMERPL.C</c>).
 ///
 /// <para>Either bit makes the engine look for a matching entry first; with neither, a new one is
 /// always appended.</para>

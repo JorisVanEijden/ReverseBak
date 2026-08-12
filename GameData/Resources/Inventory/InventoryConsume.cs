@@ -5,7 +5,7 @@ using System;
 
 /// <summary>
 /// Taking one of something out of an inventory by object id — <c>itemtbl_inv_consume_one_by_kind</c>
-/// (canassa <c>SRC/SCREENS/ITEMTBL.C</c>). This is how the game spends things it was not explicitly
+/// (canassa <c>SRC/GAME/ACTOR/ITEMTBL.C</c>). This is how the game spends things it was not explicitly
 /// told to use: the daily ration, a spell's material component, an item a combat action needs.
 ///
 /// <para>Distinct from <see cref="InventoryUse"/>'s tail, which spends the charge of an item the
