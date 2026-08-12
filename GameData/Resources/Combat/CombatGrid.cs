@@ -11,19 +11,48 @@ public enum CombatTerrain : byte {
     /// this, and the whole of rows 7..12 underground.</summary>
     OutOfBounds = 2,
 
-    /// <summary>Trap crystal. Stepping onto one triggers a propagating line effect and 100 damage,
-    /// and a pair of them cannot be squeezed between diagonally.</summary>
+    /// <summary>
+    /// Trap-crystal ground. Stepping onto it triggers a propagating line effect and 100 damage, and
+    /// a pair of such tiles cannot be squeezed between diagonally.
+    /// <para>Note this is the <b>ground</b>, not the crystal: while the crystal element still stands
+    /// on the tile the tile is blocked (any element blocks). The terrain kind outlives the element,
+    /// so it is once the crystal is gone that you can walk on — and set the effect off.</para>
+    /// </summary>
     Crystal = 3,
 
     /// <summary>A pushable element (the trap diamond): walking into it shoves it one tile further,
     /// and the step is refused if it cannot move.</summary>
     Pushable = 5,
 
+    /// <summary>The puzzle's exit cell.</summary>
+    Exit = 6,
+
     /// <summary>Impassable, like <see cref="OutOfBounds"/>.</summary>
     Wall = 7,
 
     /// <summary>A tile trap; stepping on it fires the trap rather than blocking.</summary>
     Trap = 8,
+
+    /// <summary>Cannon aimed west.</summary>
+    CannonWest = 10,
+
+    /// <summary>Cannon aimed east.</summary>
+    CannonEast = 11,
+
+    /// <summary>Cannon aimed north.</summary>
+    CannonNorth = 12,
+
+    /// <summary>Cannon aimed south.</summary>
+    CannonSouth = 13,
+
+    /// <summary>Where party slot 0 starts the puzzle.</summary>
+    PartySlot0 = 15,
+
+    /// <summary>Where party slot 1 starts.</summary>
+    PartySlot1 = 16,
+
+    /// <summary>Where party slot 2 starts.</summary>
+    PartySlot2 = 17,
 }
 
 /// <summary>
