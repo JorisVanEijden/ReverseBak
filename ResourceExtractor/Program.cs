@@ -245,6 +245,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--combataffinity") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractCombatAffinity(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--fmap") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractFullMap(gamePath);
@@ -1211,6 +1217,37 @@ internal static class Program {
         WriteToJsonFile("mnames.dat", data.Type,
             JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions));
         Console.WriteLine($"[MNAMES] {data.Creatures.Count} creatures written to DAT/mnames.json");
+    }
+
+    // KRONDOR.EXE's combat affinity tables: the class-group modifier that scales melee accuracy and
+    // armour, and the per-creature damage-type weakness/resistance masks. These live in the
+    // executable's resident data rather than any .DAT, so this is the only way to ship them.
+    private static void ExtractCombatAffinity(string gamePath) {
+        string exePath = Path.Combine(gamePath, "KRONDOR.EXE");
+        if (!File.Exists(exePath)) {
+            Console.Error.WriteLine($"KRONDOR.EXE not found at {exePath}");
+            return;
+        }
+        byte[] exe = File.ReadAllBytes(exePath);
+        GameData.Resources.Combat.CombatAffinityTables tables =
+            ResourceExtraction.Extractors.Exe.CombatAffinityReader.Read(exe);
+
+        string json = JsonSerializer.Serialize(tables, ResourceExtensions.JsonOptions);
+        Directory.CreateDirectory("EXE");
+        File.WriteAllText(Path.Combine("EXE", "combat-affinity.json"), json);
+
+        var weak = 0;
+        var resist = 0;
+        foreach (GameData.Resources.Combat.CreatureAffinity c in tables.Creatures) {
+            if (c.WeaknessFlags != 0) {
+                weak++;
+            }
+            if (c.ResistanceFlags != 0) {
+                resist++;
+            }
+        }
+        Console.WriteLine($"Extracted combat affinity: {weak} creature classes with a weakness, "
+                          + $"{resist} with a resistance.");
     }
 
     // KRONDOR.EXE's player-visible strings. Authoring-time only — the runtime reads the JSON this
