@@ -1,6 +1,47 @@
 namespace GameData.Resources.Inventory;
 
+using GameData.Resources.Character;
 using GameData.Resources.Object;
+using System;
+
+/// <summary>
+/// What a use needs to know about the character doing it, for the branches that touch the character
+/// rather than the item.
+///
+/// <para>Optional: <see cref="InventoryUse.Use"/> works without it and simply reports those
+/// categories as unported, so callers that have no character to hand — tests, tools, a container
+/// view — behave exactly as before.</para>
+/// </summary>
+public sealed class ItemUseContext {
+    public ItemUseContext(ActorStat[] stats, int partySlot,
+        Func<int, int> readFlag, Action<int, int> writeFlag, Func<int, int> random) {
+        Stats = stats;
+        PartySlot = partySlot;
+        ReadFlag = readFlag;
+        WriteFlag = writeFlag;
+        Random = random;
+    }
+
+    /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
+    public ActorStat[] Stats { get; }
+
+    /// <summary>1-based character slot — the original's <c>charSlot</c>, which is the 0-based
+    /// position in the party record set plus one.</summary>
+    public int PartySlot { get; }
+
+    /// <summary>Reads a save-state flag.</summary>
+    public Func<int, int> ReadFlag { get; }
+
+    /// <summary>Writes a save-state flag.</summary>
+    public Action<int, int> WriteFlag { get; }
+
+    /// <summary>Returns a value in <c>[0, n)</c>.</summary>
+    public Func<int, int> Random { get; }
+
+    /// <summary>Whether this context can actually be used.</summary>
+    public bool IsUsable =>
+        Stats != null && PartySlot >= 1 && ReadFlag != null && WriteFlag != null && Random != null;
+}
 
 /// <summary>
 /// The <c>outcome</c> local of <c>itemuse_dispatch_on_target</c> (ITEMUSE.C:91), which decides
@@ -118,7 +159,7 @@ public static class InventoryUse {
     /// first — see <c>InventoryMenu.RefuseUse</c>.</para>
     /// </summary>
     public static ItemUseResult Use(RuntimeContainer container, int sourceIndex, int targetIndex,
-        ObjectInfoSet objects) {
+        ObjectInfoSet objects, ItemUseContext context = null) {
         if (container == null || sourceIndex < 0 || sourceIndex >= container.Items.Count) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
@@ -163,6 +204,18 @@ public static class InventoryUse {
                 break;
             case ObjectType.Usable:            // 25 — ITEMUSE.C:386-459, two target-directed cases
                 return UsableSpecial(container, sourceIndex, source, target, rec);
+            case ObjectType.Book:              // 17 — ITEMUSE.C:265, itemuse_apply_stat_effects
+                if (context == null || !context.IsUsable) {
+                    // No character to apply it to; say nothing rather than claim no effect.
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                ItemStatEffects.Apply(context.Stats, context.PartySlot, source, rec,
+                    context.ReadFlag, context.WriteFlag, context.Random);
+                // Outcome 1 REGARDLESS of whether the effect applied: the original sets it
+                // unconditionally, so the read is spent — charge consumed, "used" record played —
+                // even when the repeat-read roll fails. You pay for the reading, not the learning.
+                outcome = ItemUseOutcome.Applied;
+                break;
             default:
                 return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }

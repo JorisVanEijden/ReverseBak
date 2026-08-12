@@ -189,4 +189,72 @@ public class ItemStatEffectsTests {
 
         Assert.Equal(0, stats[(int)ActorAttribute.Scouting].Base);
     }
+
+    // ---- through the item-use dispatch ------------------------------------------------
+
+    private static ObjectInfoSet BookSet(ObjectInfo book) =>
+        new ObjectInfoSet("O", new List<ObjectInfo> { book });
+
+    private static RuntimeContainer Pack(RuntimeItem item) {
+        var c = new RuntimeContainer {
+            Capacity = 8,
+            ContainerType = GameData.Resources.Data.SaveGameContainerType.Inventory,
+        };
+        c.Items.Add(item);
+        return c;
+    }
+
+    private static ItemUseContext Context(ActorStat[] stats, Flags flags, int roll = 0) =>
+        new ItemUseContext(stats, 1, flags.Read, flags.Write, _ => roll);
+
+    [Fact]
+    public void WithNoCharacterContextTheDispatchStaysSilentRatherThanClaimingNoEffect() {
+        ObjectInfo book = Book();
+        book.Number = 5;
+        RuntimeContainer pack = Pack(Item(objectId: 5, condition: 4));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(book));
+
+        Assert.Equal(ItemUseOutcome.NotPorted, result.Outcome);
+        Assert.Equal(4, pack.Items[0].Variable);   // untouched
+    }
+
+    [Fact]
+    public void ReadingABookRaisesTheStatAndSpendsTheRead() {
+        ObjectInfo book = Book(firstAmount: 3);
+        book.Number = 5;
+        book.Flags = ObjectFlags.LimitedUses;      // charge-bearing, so the tail decrements
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+        RuntimeContainer pack = Pack(Item(objectId: 5, condition: 4));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(book),
+            Context(stats, flags));
+
+        Assert.Equal(ItemUseOutcome.Applied, result.Outcome);
+        Assert.Equal(23, stats[(int)ActorAttribute.Scouting].Base);
+        Assert.Equal(3, pack.Items[0].Variable);   // the tail ran: one charge gone
+        Assert.NotEqual(0, result.DialogId);       // and the "used" record is asked for
+    }
+
+    [Fact]
+    public void AFailedRepeatReadStillSpendsTheRead() {
+        // The original sets outcome 1 unconditionally, so the charge goes whether or not the roll
+        // paid out. Wiring the outcome to the effect's success would quietly make books free to
+        // re-read until they worked.
+        ObjectInfo book = Book(chancePercent: 50);
+        book.Number = 5;
+        book.Flags = ObjectFlags.LimitedUses;
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+        flags.Write(ItemStatEffects.UsedFlagKey(1, 5), 1);   // already read once
+        RuntimeContainer pack = Pack(Item(objectId: 5, condition: 4));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(book),
+            Context(stats, flags, roll: 99));                // roll >= chance: nothing learned
+
+        Assert.Equal(ItemUseOutcome.Applied, result.Outcome);
+        Assert.Equal(20, stats[(int)ActorAttribute.Scouting].Base);  // learned nothing
+        Assert.Equal(3, pack.Items[0].Variable);                     // paid anyway
+    }
 }
