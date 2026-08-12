@@ -249,4 +249,67 @@ public class TrapPuzzleBuilderTests {
 
         Assert.Equal(PushResult.Blocked, puzzle.TryPush(3, 12, 0, 1));
     }
+
+    // ---- the crystal line ------------------------------------------------------------------
+
+    [Fact]
+    public void AFiringCrystalSweepsTheRunOfCrystalGroundItSitsOn() {
+        // A horizontal run of crystal ground with a crystal standing at one end.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5)));
+        puzzle.Grid.SetTerrain(3, 5, CombatTerrain.Crystal);
+        puzzle.Grid.SetTerrain(4, 5, CombatTerrain.Crystal);
+
+        IReadOnlyList<(int X, int Y)> run = puzzle.TraceCrystalLine(2, 5);
+
+        Assert.NotEmpty(run);
+        Assert.All(run, t => Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(t.X, t.Y)));
+    }
+
+    [Fact]
+    public void ATileWithNoRunSweepsNothing() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5)));
+
+        Assert.Empty(puzzle.TraceCrystalLine(2, 5));
+    }
+
+    [Fact]
+    public void TheSweepStopsWhereTheCrystalGroundStops() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5)));
+        puzzle.Grid.SetTerrain(3, 5, CombatTerrain.Crystal);
+        puzzle.Grid.SetTerrain(4, 5, CombatTerrain.Crystal);
+        // 5,5 deliberately left open — the run must not reach it.
+
+        IReadOnlyList<(int X, int Y)> run = puzzle.TraceCrystalLine(2, 5);
+
+        Assert.DoesNotContain((5, 5), run);
+    }
+
+    [Fact]
+    public void TheSweepIsContiguous() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5)));
+        puzzle.Grid.SetTerrain(3, 5, CombatTerrain.Crystal);
+        puzzle.Grid.SetTerrain(4, 5, CombatTerrain.Crystal);
+
+        IReadOnlyList<(int X, int Y)> run = puzzle.TraceCrystalLine(2, 5);
+
+        for (var i = 1; i < run.Count; i++) {
+            int stepX = System.Math.Abs(run[i].X - run[i - 1].X);
+            int stepY = System.Math.Abs(run[i].Y - run[i - 1].Y);
+            Assert.True(stepX <= 1 && stepY <= 1 && (stepX + stepY) > 0, $"gap between {i - 1} and {i}");
+        }
+    }
+
+    [Fact]
+    public void PushingADiamondIntoACrystalDealsNoDamageItselfItOnlySweeps() {
+        // Pinned because it is easy to assume otherwise: the push's only other effect is a sound and
+        // a particle burst. The 100 damage belongs to a party member WALKING onto crystal ground.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3)));
+        puzzle.Grid.SetTerrain(3, 4, CombatTerrain.Crystal);
+
+        PushResult result = puzzle.TryPush(3, 3, 0, 1);
+
+        Assert.Equal(PushResult.CrystalFired, result);
+        // Nothing on the result says "damage"; the caller animates the run and plays the burst.
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 4));
+    }
 }

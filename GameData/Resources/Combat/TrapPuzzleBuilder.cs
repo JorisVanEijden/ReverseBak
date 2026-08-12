@@ -119,6 +119,92 @@ public sealed class TrapPuzzle {
         return PushResult.Moved;
     }
 
+    /// <summary>
+    /// The run of crystal tiles a firing crystal sweeps, in the order the effect travels.
+    /// </summary>
+    /// <remarks>
+    /// <para>The original does this as two passes over the same walk: <c>spread_tile_fx_line</c>
+    /// rewrites the run's terrain from crystal (3) to lit (4), plays a short cine, then
+    /// <c>line_effect_propagate</c> walks it again rewriting 4 back to 3. <b>The terrain flip nets to
+    /// nothing</b> — it is a visual sweep along the run, and nothing reads the grid in between. So the
+    /// useful thing to port is the run itself, which is what this returns; how it is animated is the
+    /// caller's business.</para>
+    ///
+    /// <para><b>The sweep does no damage.</b> The only other thing the push does is
+    /// <c>apply_tile_status_fx</c>, which builds a throwaway actor purely to play a sound and a
+    /// particle burst. The 100 damage associated with crystals belongs to a different path entirely
+    /// — a party member <i>walking onto</i> crystal ground, applied by the movement loop, not a
+    /// diamond being shoved in.</para>
+    ///
+    /// <para>The walk is: find the axis the run lies on, back up to its start, advance to the first
+    /// tile holding an element, then collect consecutive crystal tiles from there.</para>
+    /// </remarks>
+    public IReadOnlyList<(int X, int Y)> TraceCrystalLine(int x, int y) {
+        var run = new List<(int X, int Y)>();
+        (int dx, int dy) = FindLineDirection(x, y);
+        if (dx == 0 && dy == 0) {
+            return run;
+        }
+
+        while (CombatGrid.InBounds(x, y) && Grid.TerrainAt(x - dx, y - dy) == CombatTerrain.Crystal) {
+            x -= dx;
+            y -= dy;
+        }
+        while (CombatGrid.InBounds(x, y) && ElementAt(x, y) == null) {
+            x += dx;
+            y += dy;
+        }
+        while (CombatGrid.InBounds(x, y) && Grid.TerrainAt(x, y) == CombatTerrain.Crystal) {
+            run.Add((x, y));
+            x += dx;
+            y += dy;
+        }
+        return run;
+    }
+
+    /// <summary>
+    /// Which way the crystal run lies, as a neighbour offset, or (0,0) when there is no run.
+    /// </summary>
+    /// <remarks>
+    /// Two cases, and they differ in what they will accept as the next tile. From a crystal that is
+    /// still standing, the run continues through a crystal tile that is <b>not</b> holding another
+    /// crystal. From anywhere else it continues through one that is empty or holds a crystal, and
+    /// only if the run also carries on behind you — or something is standing where you are. The
+    /// neighbours are tried in the original's order, which starts at the top-left and reads down.
+    /// </remarks>
+    private (int Dx, int Dy) FindLineDirection(int x, int y) {
+        TrapGridElement here = ElementAt(x, y);
+        bool fromCrystal = here != null && IsCrystalElement(here.ElementId);
+
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) {
+                    continue;
+                }
+                if (Grid.TerrainAt(x + dx, y + dy) != CombatTerrain.Crystal) {
+                    continue;
+                }
+
+                TrapGridElement neighbour = ElementAt(x + dx, y + dy);
+                bool neighbourIsCrystal = neighbour != null && IsCrystalElement(neighbour.ElementId);
+
+                if (fromCrystal) {
+                    if (!neighbourIsCrystal) {
+                        return (dx, dy);
+                    }
+                } else if (neighbour == null || neighbourIsCrystal) {
+                    bool runsOnBehind = Grid.TerrainAt(x - dx, y - dy) == CombatTerrain.Crystal;
+                    if (runsOnBehind || here != null) {
+                        return (dx, dy);
+                    }
+                }
+            }
+        }
+        return (0, 0);
+    }
+
+    private static bool IsCrystalElement(int elementId) => elementId == 7 || elementId == 8;
+
     /// <summary>The element standing on a tile, or null.</summary>
     public TrapGridElement ElementAt(int x, int y) {
         foreach (TrapGridElement e in Elements) {
