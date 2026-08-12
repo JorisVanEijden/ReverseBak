@@ -2,6 +2,16 @@ namespace GameData.Resources.Combat;
 
 using System.Collections.Generic;
 
+/// <summary>What a death left behind.</summary>
+public enum DeathOutcome {
+    /// <summary>A body stays on the field — this is what the loot screen later opens.</summary>
+    LeavesCorpse,
+
+    /// <summary>Nothing stays. The removal is persisted, so this one does not come back if the
+    /// encounter is revisited.</summary>
+    RemovedFromField,
+}
+
 /// <summary>
 /// The tactical encounter's turn loop: who acts next, when a round ends, and when the fight is over.
 ///
@@ -132,6 +142,49 @@ public sealed class CombatEncounter {
         best.Flags &= ~CombatantFlags.Parry;
         ActingSpeed = best.IsDead ? 0 : EffectiveSpeed(best);
         return best;
+    }
+
+    /// <summary>
+    /// Creature classes that are taken off the field when they die instead of leaving a corpse.
+    /// </summary>
+    /// <remarks>
+    /// 49, 56 and 57 in the original's switch. 56/57 run a vanish effect first, and a summoned one is
+    /// deleted outright rather than merely removed. Everything else leaves a body behind, which is
+    /// what the loot screen later opens.
+    /// </remarks>
+    private static readonly HashSet<int> VanishesOnDeath = new HashSet<int> { 49, 56, 57 };
+
+    /// <summary>Kills a combatant.</summary>
+    /// <param name="playAnimation">The original's second argument. True is a real death; false is
+    /// the quiet removal a fleeing actor gets on reaching the edge of the field, which always
+    /// persists as "gone" and never leaves a corpse.</param>
+    /// <param name="grid">Optional: when supplied, the dead combatant stops occupying its tile.</param>
+    /// <remarks>
+    /// <para><b>The terrain under the body is preserved.</b> The original saves the tile's kind and
+    /// timer, clears the tile while the death plays out, and writes them back afterwards — so dying
+    /// on crystal ground leaves crystal ground. Only the occupant goes.</para>
+    /// <para>Health and stamina are zeroed, the dead flag is set, and the dead condition is applied
+    /// at full strength. Whether the body stays is decided by creature class.</para>
+    /// </remarks>
+    public DeathOutcome Kill(Combatant combatant, bool playAnimation = true, CombatGrid grid = null) {
+        if (combatant == null) {
+            throw new System.ArgumentNullException(nameof(combatant));
+        }
+
+        combatant.Incapacitated = false;   // cspell_status_effect_clear_actor
+        combatant.Health = 0;
+        combatant.Stamina = 0;
+        combatant.Flags |= CombatantFlags.Dead;
+        combatant.Target = null;
+
+        bool removed = !playAnimation || VanishesOnDeath.Contains(combatant.ClassId);
+
+        if (grid != null) {
+            // Occupancy goes; terrain stays exactly as it was.
+            grid.SetOccupied(combatant.X, combatant.Y, false);
+        }
+
+        return removed ? DeathOutcome.RemovedFromField : DeathOutcome.LeavesCorpse;
     }
 
     /// <summary>Marks the current combatant as having acted.</summary>

@@ -296,4 +296,83 @@ public class CombatEncounterTests {
 
         Assert.Same(hero, e.PickNext());
     }
+
+    // ---- dying -----------------------------------------------------------------------
+
+    [Fact]
+    public void DyingZeroesTheStatsAndSetsTheFlag() {
+        Combatant beast = Enemy(5, health: 30);
+        beast.Stamina = 12;
+        var e = new CombatEncounter();
+
+        e.Kill(beast);
+
+        Assert.Equal(0, beast.Health);
+        Assert.Equal(0, beast.Stamina);
+        Assert.True(beast.IsDead);
+    }
+
+    [Fact]
+    public void MostCreaturesLeaveABodyForTheLootScreen() {
+        Combatant beast = Enemy(5, classId: 1);
+
+        Assert.Equal(DeathOutcome.LeavesCorpse, new CombatEncounter().Kill(beast));
+    }
+
+    [Theory]
+    [InlineData(49)]
+    [InlineData(56)]
+    [InlineData(57)]
+    public void SomeCreaturesVanishInsteadOfLeavingOne(int classId) {
+        Combatant odd = Enemy(5, classId: classId);
+
+        Assert.Equal(DeathOutcome.RemovedFromField, new CombatEncounter().Kill(odd));
+    }
+
+    [Fact]
+    public void AFleeingActorLeavingTheFieldIsRemovedNotKilledIntoACorpse() {
+        // The quiet path: play_anim = 0. It always persists as gone and never leaves a body.
+        Combatant runner = Enemy(5, classId: 1);
+
+        Assert.Equal(DeathOutcome.RemovedFromField, new CombatEncounter().Kill(runner, playAnimation: false));
+    }
+
+    [Fact]
+    public void TheGroundUnderTheBodyIsUnchanged() {
+        // The original saves the tile kind and timer, clears the tile for the death, then writes them
+        // back. Dying on crystal ground must not scrub the crystal ground.
+        var grid = new CombatGrid();
+        grid.SetTerrain(3, 4, CombatTerrain.Crystal);
+        grid.SetOccupied(3, 4, true);
+        Combatant beast = Enemy(5);
+        beast.X = 3;
+        beast.Y = 4;
+
+        new CombatEncounter().Kill(beast, playAnimation: true, grid: grid);
+
+        Assert.Equal(CombatTerrain.Crystal, grid.TerrainAt(3, 4));
+        Assert.False(grid.IsOccupied(3, 4));
+    }
+
+    [Fact]
+    public void ADeadCombatantStopsPointingAtAnyone() {
+        Combatant hero = Member(5);
+        Combatant beast = Enemy(5);
+        beast.Target = hero;
+
+        new CombatEncounter().Kill(beast);
+
+        Assert.Null(beast.Target);
+    }
+
+    [Fact]
+    public void KillingTheLastEnemyEndsTheEncounter() {
+        Combatant beast = Enemy(5);
+        CombatEncounter e = Encounter(new[] { Member(5) }, new[] { beast });
+
+        Assert.False(e.IsOver());
+        e.Kill(beast);
+
+        Assert.True(e.IsOver());
+    }
 }
