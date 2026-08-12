@@ -6,14 +6,15 @@ using GameData.Resources.Object;
 /// Faithful port of the inventory ordering pass the original runs on screen entry and after every
 /// item operation: <c>cmbinv_consolidate_stacks</c> (CMBINV.C:570) — a fixpoint loop of
 /// <c>cmbinv_combat_sort_initiative</c> (CMBINV.C:545, bubble sort via the
-/// <c>cmbinv_item_compare</c> keys) followed by an adjacent-pair stack merge. Mutates the
+/// <c>cmbinv_item_compare</c> keys — canassa's name is wrong, it sorts inventory slots and has
+/// nothing to do with combat initiative; IDA has it as <c>inventory_Sort</c> @0x54fc3) followed by
+/// an adjacent-pair stack merge. Mutates the
 /// container's item order/stacks exactly like the DOS engine mutates the actor's item array
 /// (the new order is save-visible there too).
 /// </summary>
 public static class InventoryOrder {
     private const ushort EquippedFlag = (ushort)ItemFlags.Equipped;
     private const int StackableFlag = 0x800;        // ObjectFlags.Stackable (wFlags & 0x800)
-    private const int ConditionPercentFlag = 0x1000; // wFlags & 0x1000: condition is a percent — never a sort key
 
     /// <summary>Sort + merge stacks until stable. <paramref name="equippedOrder"/> is the original's
     /// <c>bResidence == RES_PARTY_SLOT</c>: party members float equipped items to the front by
@@ -98,7 +99,7 @@ public static class InventoryOrder {
         if (qtyA > qtyB) { return false; }
         if (a.ObjectId > b.ObjectId) { return true; }
         if (a.ObjectId < b.ObjectId) { return false; }
-        if (((int)ra.Flags & ConditionPercentFlag) != 0) {
+        if ((ra.Flags & ObjectFlags.Degradable) != 0) {
             return false;
         }
         return a.Variable > b.Variable;

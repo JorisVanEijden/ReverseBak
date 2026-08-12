@@ -63,7 +63,13 @@ public enum ObjectFlags {
 
     B0400 = 0x0400,
     Stackable = 0x0800,
-    B1000 = 0x1000,
+    /// <summary>The item wears out, and its <c>Variable</c> field therefore holds a 0..100 condition
+    /// rather than a charge count. This is the flag that makes condition mean anything: the resale
+    /// value calc <c>itemtbl_compute_value</c> (ITEMTBL.C) prices such an item at
+    /// <c>listPrice × conditionPercent / 100</c>, and <c>itemtbl_slot_value_modifier</c> reads
+    /// <c>Variable</c> as the percentage only when this bit is set, using a flat 100 otherwise.
+    /// Was <c>B1000</c>; see <c>docs/shop-pricing.md</c>.</summary>
+    Degradable = 0x1000,
     LimitedUses = 0x2000,
     B4000 = 0x4000,
     B8000 = 0x8000
