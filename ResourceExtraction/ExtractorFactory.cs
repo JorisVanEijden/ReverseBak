@@ -92,6 +92,12 @@ public static class ExtractorFactory {
             // The invisible-wall hotspot parameters (docs/specs/collision-system.md §3.4.1).
             typeof(DefFamilyFile<DefBlocEntry>), typeof(Extractors.Def.DefBlocExtractor)
         }, {
+            // Combat/trap hotspot parameters: the avoidable bit the scouting roll is gated on, the
+            // encounter index behind the already-fought check, and the pre-fire dialog.
+            typeof(DefFamilyFile<DefCombEntry>), typeof(Extractors.Def.DefCombExtractor)
+        }, {
+            typeof(DefFamilyFile<DefTrapEntry>), typeof(Extractors.Def.DefTrapExtractor)
+        }, {
             typeof(TileEventTile), typeof(TileEventExtractor)
         }, {
             typeof(CreatureNames), typeof(MnamesExtractor)
