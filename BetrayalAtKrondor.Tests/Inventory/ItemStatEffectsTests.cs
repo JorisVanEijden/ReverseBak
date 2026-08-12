@@ -322,4 +322,99 @@ public class ItemStatEffectsTests {
 
         Assert.Equal(ItemUseOutcome.NotPorted, result.Outcome);
     }
+
+    // ---- category 19, the restorative ------------------------------------------------
+
+    private static ObjectInfo Potion(int healBase, int spread) =>
+        new ObjectInfo("p") {
+            Number = 9,
+            ObjectType = ObjectType.Restorative,
+            EffectArgA = healBase,
+            EffectArgB = spread,
+        };
+
+    private static ActorStat[] Wounded(byte health = 10, byte stamina = 10, byte max = 50) {
+        var stats = new ActorStat[16];
+        for (var i = 0; i < stats.Length; i++) {
+            stats[i] = new ActorStat { Base = 0, Max = max };
+        }
+        stats[(int)ActorAttribute.Health] = new ActorStat { Base = health, Max = max };
+        stats[(int)ActorAttribute.Stamina] = new ActorStat { Base = stamina, Max = max };
+        return stats;
+    }
+
+    [Fact]
+    public void ADoseHealsThePoolAndEasesEveryAfflictionButHealing() {
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Poisoned] = 20;
+        conditions[ActorCondition.Starving] = 8;
+        conditions[ActorCondition.Healing] = 30;
+        ActorStat[] stats = Wounded(health: 10, stamina: 10);
+        RuntimeContainer pack = Pack(Item(objectId: 9, condition: 3));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget,
+            BookSet(Potion(healBase: 6, spread: 0)),
+            ContextWith(stats, conditions, new Flags()));
+
+        Assert.Equal(ItemUseOutcome.Handled, result.Outcome);
+        Assert.Equal(15, conditions[ActorCondition.Poisoned]);   // -5
+        Assert.Equal(3, conditions[ActorCondition.Starving]);    // -5
+        Assert.Equal(30, conditions[ActorCondition.Healing]);    // untouched
+        Assert.True(stats[(int)ActorAttribute.Health].Base + stats[(int)ActorAttribute.Stamina].Base > 20);
+    }
+
+    [Fact]
+    public void AnAfflictionCannotBeDrivenBelowNothing() {
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Sick] = 2;
+        RuntimeContainer pack = Pack(Item(objectId: 9, condition: 3));
+
+        InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Potion(6, 0)),
+            ContextWith(Wounded(), conditions, new Flags()));
+
+        Assert.Equal(0, conditions[ActorCondition.Sick]);
+    }
+
+    [Fact]
+    public void ADoseSpendsOneChargeAndTheLastDoseRemovesTheItem() {
+        RuntimeContainer pack = Pack(Item(objectId: 9, condition: 2));
+        var flags = new Flags();
+
+        ItemUseResult first = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Potion(6, 0)),
+            ContextWith(Wounded(), new ActorConditions(), flags));
+        Assert.False(first.SourceRemoved);
+        Assert.Equal(1, pack.Items[0].Variable);
+
+        ItemUseResult second = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Potion(6, 0)),
+            ContextWith(Wounded(), new ActorConditions(), flags));
+        Assert.True(second.SourceRemoved);
+        Assert.Empty(pack.Items);
+    }
+
+    [Fact]
+    public void TheSpreadIsRolledOnTopOfTheBaseHeal() {
+        // argA 6, argB 2 -> 6 + rnd(2). The shipped "Restoratives" is exactly this.
+        var conditions = new ActorConditions();
+        ActorStat[] low = Wounded(health: 10, stamina: 10);
+        ActorStat[] high = Wounded(health: 10, stamina: 10);
+        RuntimeContainer a = Pack(Item(objectId: 9, condition: 3));
+        RuntimeContainer b = Pack(Item(objectId: 9, condition: 3));
+
+        InventoryUse.Use(a, 0, InventoryUse.NoTarget, BookSet(Potion(6, 2)),
+            new ItemUseContext(low, 1, new Flags().Read, new Flags().Write, _ => 0, conditions));
+        InventoryUse.Use(b, 0, InventoryUse.NoTarget, BookSet(Potion(6, 2)),
+            new ItemUseContext(high, 1, new Flags().Read, new Flags().Write, _ => 1, new ActorConditions()));
+
+        int lowPool = low[(int)ActorAttribute.Health].Base + low[(int)ActorAttribute.Stamina].Base;
+        int highPool = high[(int)ActorAttribute.Health].Base + high[(int)ActorAttribute.Stamina].Base;
+        Assert.True(highPool > lowPool, $"a higher roll should heal more ({highPool} vs {lowPool})");
+    }
+
+    [Fact]
+    public void ARestorativeNeedsACharacterToRestore() {
+        RuntimeContainer pack = Pack(Item(objectId: 9, condition: 3));
+
+        Assert.Equal(ItemUseOutcome.NotPorted,
+            InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Potion(6, 0))).Outcome);
+    }
 }

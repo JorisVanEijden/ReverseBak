@@ -209,6 +209,11 @@ public static class InventoryUse {
                 break;
             case ObjectType.Usable:            // 25 — ITEMUSE.C:386-459, two target-directed cases
                 return UsableSpecial(container, sourceIndex, source, target, rec);
+            case ObjectType.Restorative:       // 19 — ITEMUSE.C:330
+                if (context == null || !context.IsUsable || context.Conditions == null) {
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                return ApplyRestorative(container, sourceIndex, source, rec, context);
             case ObjectType.MassRestorative:   // 20 — ITEMUSE.C:258, stat_combatant_apply_condition
                 if (context == null || !context.IsUsable || context.Conditions == null) {
                     return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
@@ -405,6 +410,62 @@ public static class InventoryUse {
     /// A single-use item goes entirely; a charge-bearing one loses a charge and, on its last,
     /// is either discarded or left empty depending on its record.
     /// </summary>
+    /// <summary>How much every affliction except Healing is eased by, per dose.</summary>
+    private const int RestorativeAfflictionRelief = -5;
+
+    /// <summary>The heal aims the pool at this percentage of its maximum.</summary>
+    private const int RestorativeHealTarget = 100;
+
+    /// <summary>
+    /// One dose of a restorative (ITEMUSE.C:330). Heals the pool and eases <b>every</b> affliction
+    /// except Healing itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>Note what the two effect words mean here, which is nothing like the neighbouring
+    /// category: <c>EffectArgA</c> is a heal amount and <c>EffectArgB</c> a random spread on top of
+    /// it, not an affliction index and rank. The shipped "Restoratives" is 6 and 2, so a dose heals
+    /// 6 or 7. Reading them as category 20 does would have applied Near-death.</para>
+    ///
+    /// <para>The branch returns <see cref="ItemUseOutcome.Handled"/> and consumes its own charge, so
+    /// the shared tail neither plays a record nor decrements again — the original returns -1 for the
+    /// same reason.</para>
+    ///
+    /// <para><b>The repeat prompt is not ported.</b> The original loops on DDX 1800004 ("use
+    /// another?") and keeps dosing until the player declines or the item runs out. That loop is
+    /// driven by a modal answer, so it belongs to the screen rather than here; one invocation is one
+    /// dose, and the player clicks again. Faithful per dose, one prompt short of faithful overall.</para>
+    /// </remarks>
+    private static ItemUseResult ApplyRestorative(RuntimeContainer container, int sourceIndex,
+        RuntimeItem source, ObjectInfo rec, ItemUseContext context) {
+        int heal = rec.EffectArgA;
+        if (rec.EffectArgB > 1) {
+            heal += context.Random(rec.EffectArgB);
+        }
+
+        for (var i = 0; i < ActorConditions.Count; i++) {
+            if (i != (int)ActorCondition.Healing) {
+                ConditionEngine.Apply(context.Conditions, (ActorCondition)i, RestorativeAfflictionRelief);
+            }
+        }
+
+        ActorStat health = HealthOf(context);
+        ActorStat stamina = StaminaOf(context);
+        if (health != null && stamina != null) {
+            StatEngine.ModifyHealthPool(health, stamina, (long)heal << 8, RestorativeHealTarget,
+                out _, context.Conditions[ActorCondition.NearDeath]);
+        }
+
+        bool removed = false;
+        if (source.Variable > 1) {
+            source.Variable--;
+        } else {
+            InventoryTransfer.RemoveAt(container, sourceIndex);
+            removed = true;
+        }
+        container.Dirty = true;
+        return new ItemUseResult(ItemUseOutcome.Handled, UsedRecord, source.ObjectId, removed);
+    }
+
     // Only the Near-death branch of ConditionEngine.Apply reads these, and no shipping restorative
     // applies Near-death — but an override could, and passing them is what makes the collapse
     // behave rather than silently skipping the health reset.
