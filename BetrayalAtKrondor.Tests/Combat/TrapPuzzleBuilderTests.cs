@@ -164,4 +164,89 @@ public class TrapPuzzleBuilderTests {
         Assert.True(puzzle.CombatFlag);
         Assert.All(puzzle.PartyStarts, Assert.Null);
     }
+
+    // ---- pushing ---------------------------------------------------------------------------
+
+    [Fact]
+    public void ADiamondPushedOntoOpenGroundMovesAndTakesItsTerrainWithIt() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3)));
+
+        PushResult result = puzzle.TryPush(3, 3, 0, 1);
+
+        Assert.Equal(PushResult.Moved, result);
+        Assert.Equal(CombatTerrain.Open, puzzle.Grid.TerrainAt(3, 3));
+        Assert.False(puzzle.Grid.IsBlocked(3, 3));
+        Assert.Equal(CombatTerrain.Pushable, puzzle.Grid.TerrainAt(3, 4));
+        Assert.True(puzzle.Grid.IsBlocked(3, 4));
+        Assert.Equal(3, puzzle.Elements[0].X);
+        Assert.Equal(4, puzzle.Elements[0].Y);
+    }
+
+    [Fact]
+    public void APushIntoAWallIsRefusedAndNothingMoves() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3)));
+        puzzle.Grid.SetTerrain(3, 4, CombatTerrain.Wall);
+
+        PushResult result = puzzle.TryPush(3, 3, 0, 1);
+
+        Assert.Equal(PushResult.Blocked, result);
+        Assert.Equal(CombatTerrain.Pushable, puzzle.Grid.TerrainAt(3, 3));
+        Assert.Equal(3, puzzle.Elements[0].Y);
+    }
+
+    [Fact]
+    public void APushIntoAnotherElementIsRefused() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3), (9, 3, 4)));
+
+        Assert.Equal(PushResult.Blocked, puzzle.TryPush(3, 3, 0, 1));
+    }
+
+    [Fact]
+    public void PushingAnEmptyTilePushesNothing() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements());
+
+        Assert.Equal(PushResult.NoElement, puzzle.TryPush(3, 3, 0, 1));
+    }
+
+    [Fact]
+    public void ADiamondShovedOntoCrystalGroundIsDestroyedAndSetsTheCrystalOff() {
+        // The puzzle's whole point. The crystal's own element must already be gone — any element
+        // blocks — so this is the disarmed-crystal ground left behind.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3)));
+        puzzle.Grid.SetTerrain(3, 4, CombatTerrain.Crystal);
+
+        PushResult result = puzzle.TryPush(3, 3, 0, 1);
+
+        Assert.Equal(PushResult.CrystalFired, result);
+        Assert.False(puzzle.Elements[0].IsOnGrid);
+        Assert.Equal(CombatTerrain.Open, puzzle.Grid.TerrainAt(3, 3));
+        // The destination keeps its crystal ground; the diamond does not become an obstacle there.
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 4));
+        Assert.False(puzzle.Grid.IsOccupied(3, 4));
+    }
+
+    [Fact]
+    public void ACrystalStillHoldingItsElementCannotBePushedOntoAtAll() {
+        // Both are placed by the builder, so the crystal tile is occupied and blocks.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3), (7, 3, 4)));
+
+        Assert.Equal(PushResult.Blocked, puzzle.TryPush(3, 3, 0, 1));
+    }
+
+    [Fact]
+    public void ARemovedElementNoLongerOccupiesAnything() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 3)));
+        puzzle.Grid.SetTerrain(3, 4, CombatTerrain.Crystal);
+        puzzle.TryPush(3, 3, 0, 1);
+
+        Assert.Null(puzzle.ElementAt(3, 4));
+        Assert.Null(puzzle.ElementAt(3, 3));
+    }
+
+    [Fact]
+    public void APushOffTheGridEdgeIsRefused() {
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((9, 3, 12)));
+
+        Assert.Equal(PushResult.Blocked, puzzle.TryPush(3, 12, 0, 1));
+    }
 }

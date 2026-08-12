@@ -14,10 +14,42 @@ public sealed class TrapGridElement {
     public int ElementId { get; }
 
     /// <summary>Grid position.</summary>
-    public int X { get; }
+    public int X { get; internal set; }
 
     /// <inheritdoc cref="X"/>
-    public int Y { get; }
+    public int Y { get; internal set; }
+
+    /// <summary>
+    /// False once the element has left the board. The original marks this by writing 0xff to both
+    /// tile coordinates rather than removing the entry, so indices stay stable.
+    /// </summary>
+    public bool IsOnGrid => X != OffGrid && Y != OffGrid;
+
+    /// <summary>The original's off-grid marker.</summary>
+    public const int OffGrid = 0xff;
+
+    internal void RemoveFromGrid() {
+        X = OffGrid;
+        Y = OffGrid;
+    }
+}
+
+/// <summary>How a push attempt ended.</summary>
+public enum PushResult {
+    /// <summary>The destination is blocked; the element does not move and the step is refused.</summary>
+    Blocked,
+
+    /// <summary>Nothing stood on the source tile.</summary>
+    NoElement,
+
+    /// <summary>The element moved one tile.</summary>
+    Moved,
+
+    /// <summary>
+    /// The element was pushed onto crystal ground: it is destroyed and the crystal goes off. This is
+    /// how a trap puzzle is solved.
+    /// </summary>
+    CrystalFired,
 }
 
 /// <summary>A trap puzzle laid out on the combat grid.</summary>
@@ -40,6 +72,62 @@ public sealed class TrapPuzzle {
     /// say this encounter is a pure puzzle rather than a fight.
     /// </summary>
     public bool CombatFlag { get; internal set; } = true;
+
+    /// <summary>
+    /// Shoves whatever stands on a tile one step along <paramref name="dx"/>,<paramref name="dy"/>.
+    /// </summary>
+    /// <remarks>
+    /// Ported from <c>combatgrid_place_actor_on_tile</c>. The source tile is cleared to open ground
+    /// whatever happens, and then:
+    /// <list type="bullet">
+    ///   <item>onto ordinary ground — the element moves and the tile becomes pushable in its turn;</item>
+    ///   <item><b>onto crystal ground — the element is destroyed and the crystal goes off.</b> That
+    ///   is the puzzle: you solve a room by shoving diamonds into crystals rather than by walking
+    ///   anywhere.</item>
+    /// </list>
+    /// <para>Note the crystal case is only reachable once the crystal's own element has gone, because
+    /// any element blocks and a blocked destination refuses the push. The terrain outlives the
+    /// element, which is what leaves the ground armed.</para>
+    /// <para>The caller runs the consequences of <see cref="PushResult.CrystalFired"/> — the line
+    /// spreads along the crystal run and damages what it reaches. Not modelled here yet.</para>
+    /// </remarks>
+    public PushResult TryPush(int fromX, int fromY, int dx, int dy) {
+        int toX = fromX + dx;
+        int toY = fromY + dy;
+
+        if (Grid.IsBlocked(toX, toY)) {
+            return PushResult.Blocked;
+        }
+
+        TrapGridElement element = ElementAt(fromX, fromY);
+        if (element == null) {
+            return PushResult.NoElement;
+        }
+
+        Grid.SetTerrain(fromX, fromY, CombatTerrain.Open);
+        Grid.SetOccupied(fromX, fromY, false);
+
+        if (Grid.TerrainAt(toX, toY) == CombatTerrain.Crystal) {
+            element.RemoveFromGrid();
+            return PushResult.CrystalFired;
+        }
+
+        element.X = toX;
+        element.Y = toY;
+        Grid.SetTerrain(toX, toY, CombatTerrain.Pushable);
+        Grid.SetOccupied(toX, toY, true);
+        return PushResult.Moved;
+    }
+
+    /// <summary>The element standing on a tile, or null.</summary>
+    public TrapGridElement ElementAt(int x, int y) {
+        foreach (TrapGridElement e in Elements) {
+            if (e.IsOnGrid && e.X == x && e.Y == y) {
+                return e;
+            }
+        }
+        return null;
+    }
 }
 
 /// <summary>
