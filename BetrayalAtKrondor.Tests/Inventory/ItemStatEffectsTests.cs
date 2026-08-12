@@ -1,0 +1,192 @@
+namespace BetrayalAtKrondor.Tests.Inventory;
+
+using GameData;
+using GameData.Resources.Character;
+using GameData.Resources.Inventory;
+using GameData.Resources.Object;
+using System.Collections.Generic;
+using Xunit;
+
+/// <summary>
+/// The permanent stat gain reading a book confers (ITEMUSE.C). The case that matters is the
+/// asymmetry: the first read pays out in full with no roll, and every later read is a gated,
+/// tapering consolation.
+/// </summary>
+public class ItemStatEffectsTests {
+    private const int ScoutingBit = 1 << (int)ActorAttribute.Scouting;
+
+    private static ActorStat[] Stats(byte scouting = 20, byte max = 100) {
+        var stats = new ActorStat[16];
+        for (var i = 0; i < stats.Length; i++) {
+            stats[i] = new ActorStat { Base = 0, Max = max };
+        }
+        stats[(int)ActorAttribute.Scouting] = new ActorStat { Base = scouting, Max = max };
+        return stats;
+    }
+
+    private static ObjectInfo Book(int mask = ScoutingBit, int firstAmount = 3,
+        int chancePercent = 50, int laterValue = 100) =>
+        new ObjectInfo("book") {
+            ObjectType = ObjectType.Book,
+            EffectArgA = mask,
+            EffectArgB = firstAmount,
+            UseEffectAmount = chancePercent,      // +0x42 — wEffect_chance_pct in this category
+            EffectDurationHours = laterValue,     // +0x44 — wEffect_stat_value in this category
+        };
+
+    private static RuntimeItem Item(byte objectId = 5, byte condition = 1) =>
+        new RuntimeItem(objectId, condition, 0);
+
+    private sealed class Flags {
+        private readonly Dictionary<int, int> _values = new Dictionary<int, int>();
+
+        public int Read(int key) => _values.TryGetValue(key, out int v) ? v : 0;
+
+        public void Write(int key, int value) => _values[key] = value;
+    }
+
+    // ---- the flag key ----------------------------------------------------------------
+
+    [Fact]
+    public void TheUsedFlagIsPerCharacterAndPerItem() {
+        Assert.Equal(6476, ItemStatEffects.UsedFlagKey(partySlot: 1, objectId: 0));
+        Assert.Equal(6481, ItemStatEffects.UsedFlagKey(partySlot: 1, objectId: 5));
+        Assert.Equal(6496, ItemStatEffects.UsedFlagKey(partySlot: 2, objectId: 0));
+    }
+
+    [Fact]
+    public void ButTheKeySpaceAliasesAndWeReproduceThat() {
+        // Stride 20, object ids up to 137: character 2's item 0 is character 1's item 20. Faithful,
+        // and deliberately not widened — existing saves carry the original's layout.
+        Assert.Equal(
+            ItemStatEffects.UsedFlagKey(partySlot: 1, objectId: 20),
+            ItemStatEffects.UsedFlagKey(partySlot: 2, objectId: 0));
+    }
+
+    // ---- the first read --------------------------------------------------------------
+
+    [Fact]
+    public void TheFirstReadRaisesTheAttributeByTheFullAmountWithNoRoll() {
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+
+        bool applied = ItemStatEffects.Apply(stats, 1, Item(), Book(firstAmount: 3),
+            flags.Read, flags.Write, _ => throw new System.InvalidOperationException("must not roll"));
+
+        Assert.True(applied);
+        Assert.Equal(23, stats[(int)ActorAttribute.Scouting].Base);
+    }
+
+    [Fact]
+    public void AndRecordsThatThisCharacterHasReadIt() {
+        ActorStat[] stats = Stats();
+        var flags = new Flags();
+
+        ItemStatEffects.Apply(stats, 1, Item(objectId: 5), Book(), flags.Read, flags.Write, _ => 0);
+
+        Assert.Equal(1, flags.Read(ItemStatEffects.UsedFlagKey(1, 5)));
+    }
+
+    [Fact]
+    public void OnlyTheAttributesInTheMaskAreTouched() {
+        ActorStat[] stats = Stats(scouting: 20);
+        stats[(int)ActorAttribute.Stealth].Base = 40;
+        var flags = new Flags();
+
+        ItemStatEffects.Apply(stats, 1, Item(), Book(mask: ScoutingBit), flags.Read, flags.Write, _ => 0);
+
+        Assert.Equal(23, stats[(int)ActorAttribute.Scouting].Base);
+        Assert.Equal(40, stats[(int)ActorAttribute.Stealth].Base);
+    }
+
+    [Fact]
+    public void AMaskCanRaiseSeveralAttributesAtOnce() {
+        ActorStat[] stats = Stats(scouting: 20);
+        stats[(int)ActorAttribute.Stealth].Base = 40;
+        int mask = ScoutingBit | (1 << (int)ActorAttribute.Stealth);
+        var flags = new Flags();
+
+        ItemStatEffects.Apply(stats, 1, Item(), Book(mask: mask, firstAmount: 2),
+            flags.Read, flags.Write, _ => 0);
+
+        Assert.Equal(22, stats[(int)ActorAttribute.Scouting].Base);
+        Assert.Equal(42, stats[(int)ActorAttribute.Stealth].Base);
+    }
+
+    // ---- every read after ------------------------------------------------------------
+
+    [Fact]
+    public void ALaterReadIsGatedOnAChanceAndGivesNothingWhenItFails() {
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+        flags.Write(ItemStatEffects.UsedFlagKey(1, 5), 1);   // already read once
+
+        bool applied = ItemStatEffects.Apply(stats, 1, Item(objectId: 5),
+            Book(chancePercent: 50), flags.Read, flags.Write, _ => 50);   // roll >= chance
+
+        Assert.False(applied);
+        Assert.Equal(20, stats[(int)ActorAttribute.Scouting].Base);
+    }
+
+    [Fact]
+    public void ALaterReadThatPassesTapersTowardTheMaximumInsteadOfPayingFlat() {
+        // PercentOfRemaining: the raise is (100 - current) * value / 256, so it shrinks as the
+        // attribute fills up. Two characters, same book, different starting points.
+        ActorStat[] low = Stats(scouting: 20);
+        ActorStat[] high = Stats(scouting: 90);
+        var flags = new Flags();
+        flags.Write(ItemStatEffects.UsedFlagKey(1, 5), 1);
+
+        ItemStatEffects.Apply(low, 1, Item(objectId: 5), Book(chancePercent: 100, laterValue: 100),
+            flags.Read, flags.Write, _ => 0);
+        ItemStatEffects.Apply(high, 1, Item(objectId: 5), Book(chancePercent: 100, laterValue: 100),
+            flags.Read, flags.Write, _ => 0);
+
+        int lowGain = low[(int)ActorAttribute.Scouting].Base - 20;
+        int highGain = high[(int)ActorAttribute.Scouting].Base - 90;
+        Assert.True(lowGain > highGain, $"expected the lower stat to gain more ({lowGain} vs {highGain})");
+    }
+
+    // ---- refusals --------------------------------------------------------------------
+
+    [Fact]
+    public void SomebodyOutsideThePartyGetsNothing() {
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+
+        Assert.False(ItemStatEffects.Apply(stats, 0, Item(), Book(), flags.Read, flags.Write, _ => 0));
+        Assert.Equal(20, stats[(int)ActorAttribute.Scouting].Base);
+    }
+
+    [Fact]
+    public void AnItemWithNoAttributeMaskDoesNothing() {
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+
+        Assert.False(ItemStatEffects.Apply(stats, 1, Item(), Book(mask: 0),
+            flags.Read, flags.Write, _ => 0));
+    }
+
+    [Fact]
+    public void AnExhaustedItemDoesNothing() {
+        // condition 0 — the book is used up.
+        ActorStat[] stats = Stats(scouting: 20);
+        var flags = new Flags();
+
+        Assert.False(ItemStatEffects.Apply(stats, 1, Item(condition: 0), Book(),
+            flags.Read, flags.Write, _ => 0));
+        Assert.Equal(0, flags.Read(ItemStatEffects.UsedFlagKey(1, 5)));
+    }
+
+    [Fact]
+    public void AnAttributeTheCharacterDoesNotHaveStaysInert() {
+        // StatEngine refuses a stat whose maximum is 0, so a book cannot grant a skill from nothing.
+        ActorStat[] stats = Stats(scouting: 20);
+        stats[(int)ActorAttribute.Scouting] = new ActorStat { Base = 0, Max = 0 };
+        var flags = new Flags();
+
+        ItemStatEffects.Apply(stats, 1, Item(), Book(), flags.Read, flags.Write, _ => 0);
+
+        Assert.Equal(0, stats[(int)ActorAttribute.Scouting].Base);
+    }
+}
