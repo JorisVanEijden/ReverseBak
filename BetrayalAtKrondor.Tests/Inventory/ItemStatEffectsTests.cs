@@ -257,4 +257,69 @@ public class ItemStatEffectsTests {
         Assert.Equal(20, stats[(int)ActorAttribute.Scouting].Base);  // learned nothing
         Assert.Equal(3, pack.Items[0].Variable);                     // paid anyway
     }
+
+    // ---- category 20, the restoratives -----------------------------------------------
+
+    private static ObjectInfo Restorative(int conditionIndex, int amount) =>
+        new ObjectInfo("r") {
+            Number = 7,
+            ObjectType = ObjectType.MassRestorative,
+            EffectArgA = conditionIndex,
+            EffectArgB = amount,
+        };
+
+    private static ItemUseContext ContextWith(ActorStat[] stats, ActorConditions conditions, Flags flags) =>
+        new ItemUseContext(stats, 1, flags.Read, flags.Write, _ => 0, conditions);
+
+    [Fact]
+    public void AHerbalPackSetsHealing() {
+        // The shipped Herbal Pack is argA 4 (Healing), argB 100.
+        var conditions = new ActorConditions();
+        RuntimeContainer pack = Pack(Item(objectId: 7, condition: 1));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget,
+            BookSet(Restorative((int)ActorCondition.Healing, 100)),
+            ContextWith(Stats(), conditions, new Flags()));
+
+        Assert.Equal(ItemUseOutcome.Applied, result.Outcome);
+        Assert.Equal(100, conditions[ActorCondition.Healing]);
+    }
+
+    [Fact]
+    public void AnAleCaskMakesYouDrunk() {
+        // argA 3 (Drunk), argB 25 — and it stacks with what is already there.
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Drunk] = 10;
+        RuntimeContainer pack = Pack(Item(objectId: 7, condition: 1));
+
+        InventoryUse.Use(pack, 0, InventoryUse.NoTarget,
+            BookSet(Restorative((int)ActorCondition.Drunk, 25)),
+            ContextWith(Stats(), conditions, new Flags()));
+
+        Assert.Equal(35, conditions[ActorCondition.Drunk]);
+    }
+
+    [Fact]
+    public void ARestorativeIsSpentLikeAnyOtherUse() {
+        var conditions = new ActorConditions();
+        ObjectInfo rec = Restorative((int)ActorCondition.Healing, 100);
+        rec.Flags = ObjectFlags.LimitedUses;
+        RuntimeContainer pack = Pack(Item(objectId: 7, condition: 3));
+
+        InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(rec),
+            ContextWith(Stats(), conditions, new Flags()));
+
+        Assert.Equal(2, pack.Items[0].Variable);
+    }
+
+    [Fact]
+    public void WithNoConditionsToActOnTheCategoryStaysSilent() {
+        // A container view has no character, so there is nothing to restore.
+        RuntimeContainer pack = Pack(Item(objectId: 7, condition: 1));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget,
+            BookSet(Restorative((int)ActorCondition.Healing, 100)));
+
+        Assert.Equal(ItemUseOutcome.NotPorted, result.Outcome);
+    }
 }
