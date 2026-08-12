@@ -92,4 +92,44 @@ public class TrapExtractorTests {
         Assert.Equal(19, result.Encounters[0].RawCount);
         Assert.Equal(15, result.Encounters[0].Elements.Count);
     }
+
+    /// <summary>
+    /// Four shipped encounters declare more records than their 15 slots hold, and the engine caps
+    /// nothing — it reads the declared count straight on into the following block. Clamping to 15
+    /// silently dropped real data: encounter 463's 16th record is the -18 clear-combat-flag marker.
+    /// </summary>
+    [Fact]
+    public void AnOverLongEncounterReadsOnIntoTheFollowingBlock() {
+        // Block 0 declares 16 records but only fills 15; the 16th comes from block 1's first bytes,
+        // which are block 1's own count field (-18 here) read as a record type.
+        var slots = new (short, byte, byte)[15];
+        for (var i = 0; i < 15; i++) {
+            slots[i] = ((short)7, (byte)i, (byte)0);
+        }
+        byte[] first = Record(16, slots);
+        byte[] second = Record(-18);
+        var stream = new MemoryStream();
+        stream.Write(first, 0, first.Length);
+        stream.Write(second, 0, second.Length);
+        stream.Position = 0;
+
+        TrapData data = new TrapExtractor().Extract("traps.dat", stream);
+
+        Assert.Equal(16, data.Encounters[0].Elements.Count);
+        Assert.Equal(-18, data.Encounters[0].Elements[15].Type);
+        // And the block whose header was consumed as a record yields nothing, because the engine
+        // reads that same negative value as its count and loops zero times.
+        Assert.Empty(data.Encounters[1].Elements);
+    }
+
+    [Fact]
+    public void ADeclaredCountRunningPastTheFileStopsAtTheEnd() {
+        byte[] only = Record(20, ((short)7, (byte)1, (byte)1));
+        var stream = new MemoryStream(only);
+
+        TrapData data = new TrapExtractor().Extract("traps.dat", stream);
+
+        // 15 slots are present in the block; the rest of the declared 20 have no bytes to come from.
+        Assert.Equal(15, data.Encounters[0].Elements.Count);
+    }
 }
