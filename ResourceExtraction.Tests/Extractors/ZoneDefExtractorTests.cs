@@ -53,4 +53,20 @@ public class ZoneDefExtractorTests
         Assert.Equal(600u, result.PolygonFogNearDistance);
         Assert.Equal(700u, result.FarClipDistance);
     }
+
+    /// <summary>
+    /// Only ZoneLocation 2 is underground. The shipped zones split 0 (most), 1 (zones 2 and 9, a
+    /// distinct category whose meaning is not established) and 2 (zones 10-12, the dungeons), and
+    /// every engine test is against 2 — so treating "non-zero" as underground would wrongly put
+    /// zones 2 and 9 below ground.
+    /// </summary>
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public void OnlyLocationTwoCountsAsUnderground(short location, bool expected) {
+        var zone = new ZoneDefinition("test") { ZoneLocation = location };
+
+        Assert.Equal(expected, zone.IsUnderground);
+    }
 }
