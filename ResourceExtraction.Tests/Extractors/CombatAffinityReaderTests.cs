@@ -131,4 +131,32 @@ public class CombatAffinityReaderTests {
 
         Assert.True(tables.Creatures[0].IsPlain);
     }
+
+    [Fact]
+    public void TheThresholdTablesAreReadFromTheirOwnAddresses() {
+        var exe = new byte[0x40000];
+        exe[0] = (byte)'M';
+        exe[1] = (byte)'Z';
+        exe[8] = HeaderParagraphs & 0xff;
+        exe[9] = (HeaderParagraphs >> 8) & 0xff;
+        Write(exe, Offset(CombatAffinityReader.ClassGroupModifierAddress), Modifiers);
+        Write(exe, Offset(CombatAffinityReader.StatCheckThresholdAddress),
+            new short[] { 10, 10, 10, 0, 0, 0, 0, 0, 0 });
+        Write(exe, Offset(CombatAffinityReader.AiFleeThresholdAddress),
+            new short[] { 85, 55, 45, 35, 25, 20, 10, 5, 5, 0 });
+
+        CombatAffinityTables tables = CombatAffinityReader.Read(exe);
+
+        Assert.Equal(new[] { 10, 10, 10, 0, 0, 0, 0, 0, 0 }, tables.StatCheckThresholds);
+        Assert.Equal(new[] { 85, 55, 45, 35, 25, 20, 10, 5, 5, 0 }, tables.AiFleeThresholds);
+    }
+
+    [Fact]
+    public void TheTwoThresholdTablesAreAdjacentWhichCrossChecksBoth() {
+        // 9 shorts at 0x3B246 ends exactly where 0x3B258 begins. If either address were wrong the
+        // arrays would overlap or leave a hole, so this is a cheap guard on both at once.
+        Assert.Equal(CombatAffinityReader.AiFleeThresholdAddress,
+            CombatAffinityReader.StatCheckThresholdAddress
+            + (CombatAffinityReader.StatCheckThresholdCount * 2));
+    }
 }

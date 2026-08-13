@@ -42,6 +42,28 @@ public class CombatAffinityTables : IResource {
 
     /// <summary>Per-creature-class affinities, indexed by class id (0..63).</summary>
     public List<CreatureAffinity> Creatures { get; set; } = new List<CreatureAffinity>();
+
+    /// <summary>
+    /// <c>g_anStatCheckThreshold</c> (@0x3B246) — health thresholds the can-cast check sums over.
+    ///
+    /// <para><b>The shipping values make that check far simpler than it looks.</b> They are
+    /// {10, 10, 10, 0, 0, 0, 0, 0, 0}, and the caller passes when health exceeds <i>any</i> of the
+    /// nine. Six are zero, so the whole nine-way loop reduces to "health &gt; 0" — the caster is
+    /// alive. Worth knowing before anyone builds a difficulty curve on it: there is no curve in the
+    /// shipped data, only in the shape of the code.</para>
+    /// </summary>
+    public int[] StatCheckThresholds { get; set; } = new int[0];
+
+    /// <summary>
+    /// <c>g_ai_flee_threshold_table</c> (@0x3B258) — the morale check's flee chance as a percentage,
+    /// indexed by the combined stamina-and-morale index.
+    ///
+    /// <para>{85, 55, 45, 35, 25, 20, 10, 5, 5, 0}: a steep descent, so a creature at the low end
+    /// routs on most turns while one at index 9 never does. The index is
+    /// <c>staminaPercent/10 - 1 + (8 - morale)</c> clamped to 9 — the morale check recorded on
+    /// TASK-97, which had the formula but not this table.</para>
+    /// </summary>
+    public int[] AiFleeThresholds { get; set; } = new int[0];
 }
 
 /// <summary>One creature class's damage-type weaknesses and resistances.</summary>

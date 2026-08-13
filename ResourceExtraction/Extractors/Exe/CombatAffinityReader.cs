@@ -30,6 +30,15 @@ public static class CombatAffinityReader {
     /// <summary><c>creatureResistanceFlags</c> / <c>g_aClassWeaknessMask[64]</c>.</summary>
     public const int ResistanceAddress = 0x3B754;
 
+    /// <summary><c>g_anStatCheckThreshold[9]</c>, the can-cast health thresholds.</summary>
+    public const int StatCheckThresholdAddress = 0x3B246;
+    public const int StatCheckThresholdCount = 9;
+
+    /// <summary><c>g_ai_flee_threshold_table[10]</c>, the morale check's flee chances. Sits
+    /// immediately after the stat thresholds, which is a useful cross-check on both.</summary>
+    public const int AiFleeThresholdAddress = 0x3B258;
+    public const int AiFleeThresholdCount = 10;
+
     // The shipping 1.02 CD values of the class-group modifier, used purely as a placement check.
     private static readonly short[] ExpectedModifiers = {
         0, -1, -1, -2,
@@ -72,6 +81,11 @@ public static class CombatAffinityReader {
         }
         table.ClassGroupModifier = modifiers;
 
+        table.StatCheckThresholds = ReadInt16Array(exe, FileOffset(exe, StatCheckThresholdAddress),
+            StatCheckThresholdCount);
+        table.AiFleeThresholds = ReadInt16Array(exe, FileOffset(exe, AiFleeThresholdAddress),
+            AiFleeThresholdCount);
+
         int weaknessOffset = FileOffset(exe, WeaknessAddress);
         int resistanceOffset = FileOffset(exe, ResistanceAddress);
         for (var classId = 0; classId < CombatAffinityTables.CreatureClassCount; classId++) {
@@ -85,6 +99,14 @@ public static class CombatAffinityReader {
     }
 
     private static short ReadInt16(byte[] exe, int offset) => (short)ReadUInt16(exe, offset);
+
+    private static int[] ReadInt16Array(byte[] exe, int offset, int count) {
+        var values = new int[count];
+        for (var i = 0; i < count; i++) {
+            values[i] = ReadInt16(exe, offset + (i * 2));
+        }
+        return values;
+    }
 
     private static int ReadUInt16(byte[] exe, int offset) {
         if (offset < 0 || offset + 1 >= exe.Length) {
