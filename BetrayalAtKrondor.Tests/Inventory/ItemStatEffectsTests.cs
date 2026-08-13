@@ -417,4 +417,63 @@ public class ItemStatEffectsTests {
         Assert.Equal(ItemUseOutcome.NotPorted,
             InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Potion(6, 0))).Outcome);
     }
+
+    // ---- category 13, the scroll -----------------------------------------------------
+
+    private static ObjectInfo Scroll() =>
+        new ObjectInfo("s") { Number = 11, ObjectType = ObjectType.MagicalScroll };
+
+    private static ItemUseContext ScrollContext(ushort[] known) =>
+        new ItemUseContext(Stats(), 1, new Flags().Read, new Flags().Write, _ => 0, null, known);
+
+    [Fact]
+    public void TheSpellNumberIsTheScrollsOwnConditionByte() {
+        ushort[] known = GameData.Resources.Spells.SpellBook.Empty();
+        RuntimeContainer pack = Pack(new RuntimeItem(11, 20, 0));   // spell 20
+
+        InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Scroll()), ScrollContext(known));
+
+        Assert.True(GameData.Resources.Spells.SpellBook.IsKnown(known, 20));
+        Assert.False(GameData.Resources.Spells.SpellBook.IsKnown(known, 19));
+    }
+
+    [Fact]
+    public void ReadingAScrollLearnsTheSpellAndSpendsIt() {
+        ushort[] known = GameData.Resources.Spells.SpellBook.Empty();
+        ObjectInfo rec = Scroll();
+        rec.Flags = ObjectFlags.ConsumedOnUse;
+        RuntimeContainer pack = Pack(new RuntimeItem(11, 7, 0));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(rec),
+            ScrollContext(known));
+
+        Assert.Equal(ItemUseOutcome.Applied, result.Outcome);
+        Assert.True(result.SourceRemoved);
+        Assert.Empty(pack.Items);
+    }
+
+    [Fact]
+    public void ButASpellYouAlreadyKnowDoesNothingAndKEEPSTheScroll() {
+        // The whole point of the return value: a wasted read must not eat the scroll.
+        ushort[] known = GameData.Resources.Spells.SpellBook.Empty();
+        GameData.Resources.Spells.SpellBook.Learn(known, 7);
+        ObjectInfo rec = Scroll();
+        rec.Flags = ObjectFlags.ConsumedOnUse;
+        RuntimeContainer pack = Pack(new RuntimeItem(11, 7, 0));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(rec),
+            ScrollContext(known));
+
+        Assert.Equal(ItemUseOutcome.NoEffect, result.Outcome);
+        Assert.False(result.SourceRemoved);
+        Assert.Single(pack.Items);
+    }
+
+    [Fact]
+    public void AContainerWithNoSpellbookStaysSilent() {
+        RuntimeContainer pack = Pack(new RuntimeItem(11, 7, 0));
+
+        Assert.Equal(ItemUseOutcome.NotPorted,
+            InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(Scroll())).Outcome);
+    }
 }

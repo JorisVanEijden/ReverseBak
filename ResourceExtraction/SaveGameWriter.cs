@@ -112,6 +112,16 @@ public static class SaveGameWriter {
                     }
                 }
 
+                if (edit.KnownSpells != null) {
+                    int spellsOffset = SaveGameOffsets.PartyActors
+                        + edit.CharacterIndex * SaveGameOffsets.PartyActorStride
+                        + SaveGameOffsets.ActorKnownSpellsInRecord;
+                    int words = Math.Min(edit.KnownSpells.Length, SaveGameOffsets.ActorKnownSpellWords);
+                    for (int i = 0; i < words; i++) {
+                        PatchI16(spellsOffset + i * 2, unchecked((short)edit.KnownSpells[i]));
+                    }
+                }
+
                 if (edit.Conditions != null) {
                     int ranksOffset = SaveGameOffsets.ActorStatusEffects
                         + edit.CharacterIndex * SaveGameOffsets.ActorStatusEffectsStride;

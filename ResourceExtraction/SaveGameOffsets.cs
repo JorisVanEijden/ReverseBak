@@ -51,6 +51,12 @@ public static class SaveGameOffsets {
     public const int PartyActors = 119;
     public const int PartyActorStride = 95;
 
+    /// <summary>The three known-spell words within an actor record, right after the name pointer.
+    /// Confirmed by <c>combat_actor_bitmap_set_bit</c>, which indexes them as
+    /// <c>record + 2 + (spellId / 16) * 2</c>.</summary>
+    public const int ActorKnownSpellsInRecord = 2;
+    public const int ActorKnownSpellWords = 3;
+
     /// <summary>Attribute quintuples {Maximum, Current, CurrentEffective, Experience, Modifier}
     /// start here within an actor record, one per attribute in ActorAttribute order.</summary>
     public const int ActorAttributesInRecord = 8;

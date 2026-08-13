@@ -2,6 +2,7 @@ namespace GameData.Resources.Inventory;
 
 using GameData.Resources.Character;
 using GameData.Resources.Object;
+using GameData.Resources.Spells;
 using System;
 
 /// <summary>
@@ -15,13 +16,14 @@ using System;
 public sealed class ItemUseContext {
     public ItemUseContext(ActorStat[] stats, int partySlot,
         Func<int, int> readFlag, Action<int, int> writeFlag, Func<int, int> random,
-        ActorConditions conditions = null) {
+        ActorConditions conditions = null, ushort[] knownSpells = null) {
         Stats = stats;
         PartySlot = partySlot;
         ReadFlag = readFlag;
         WriteFlag = writeFlag;
         Random = random;
         Conditions = conditions;
+        KnownSpells = knownSpells;
     }
 
     /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
@@ -29,6 +31,9 @@ public sealed class ItemUseContext {
 
     /// <summary>The character's live afflictions, for the categories that set one.</summary>
     public ActorConditions Conditions { get; }
+
+    /// <summary>The character's live known-spell words, for the scroll that teaches one.</summary>
+    public ushort[] KnownSpells { get; }
 
     /// <summary>1-based character slot — the original's <c>charSlot</c>, which is the 0-based
     /// position in the party record set plus one.</summary>
@@ -209,6 +214,18 @@ public static class InventoryUse {
                 break;
             case ObjectType.Usable:            // 25 — ITEMUSE.C:386-459, two target-directed cases
                 return UsableSpecial(container, sourceIndex, source, target, rec);
+            case ObjectType.MagicalScroll:     // 13 — ITEMUSE.C:262, combat_actor_bitmap_set_bit
+                if (context == null || !context.IsUsable || context.KnownSpells == null) {
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                // The scroll's spell number lives in its condition byte, the same field the shop
+                // prices a scroll by. Learning reports success only when the spell was NOT already
+                // known, and the tail spends the item only on success — so re-reading a scroll you
+                // have already learned says "nothing happens" AND KEEPS THE SCROLL.
+                outcome = SpellBook.Learn(context.KnownSpells, source.Variable)
+                    ? ItemUseOutcome.Applied
+                    : ItemUseOutcome.NoEffect;
+                break;
             case ObjectType.Restorative:       // 19 — ITEMUSE.C:330
                 if (context == null || !context.IsUsable || context.Conditions == null) {
                     return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
