@@ -52,4 +52,37 @@ public sealed class DialogSlotTable {
         }
         return false;
     }
+
+    /// <summary>Returned by <see cref="ResolveActorOperand"/> for the party-wide form.</summary>
+    public const int PartyWide = -1;
+
+    /// <summary>Returned by <see cref="ResolveActorOperand"/> when the slot holds no party member.</summary>
+    public const int Unresolved = -2;
+
+    /// <summary>First operand value that names a speaker slot; 0 and 1 mean the whole party.</summary>
+    public const int FirstSpeakerOperand = 2;
+
+    /// <summary>
+    /// Turns a dialog action's actor operand into a party member id.
+    /// </summary>
+    /// <remarks>
+    /// <para>The operand is <b>not</b> a member id. The original writes it as
+    /// <c>g_speaker_kinds[operand - 2]</c>, and guards that with <c>operand &gt; 1</c> — so 0 and 1
+    /// are reserved to mean "the whole active party" and everything above indexes this table, biased
+    /// by two. Reading the operand directly as a member id would act on the wrong character, and
+    /// would do it silently.</para>
+    /// <para>A slot holding a creature rather than a party member, or never filled, resolves to
+    /// <see cref="Unresolved"/> — the caller must not fall back to "somebody".</para>
+    /// </remarks>
+    public int ResolveActorOperand(int operand) {
+        if (operand <= 1) {
+            return PartyWide;
+        }
+        int slot = operand - FirstSpeakerOperand;
+        if (slot < 0 || slot >= SlotCount) {
+            return Unresolved;
+        }
+        int kind = Kinds[slot];
+        return kind == NoActor || kind == CreatureActor ? Unresolved : kind;
+    }
 }
