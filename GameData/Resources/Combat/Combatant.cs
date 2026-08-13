@@ -69,10 +69,18 @@ public sealed class Combatant {
 
     /// <summary>
     /// Blocked by a status effect (asleep, stunned, and the rest of the set
-    /// <c>combatenc_actor_can_act</c> checks). Held as a flag here because the effect pool is not
-    /// modelled yet; the arena only needs the verdict.
+    /// <c>combatenc_actor_can_act</c> checks). Still a plain verdict flag: the effect pool now
+    /// exists (<c>ActiveSpellEffectPool</c>, reachable via <see cref="ActiveEffectSlot"/>) but which
+    /// spell numbers incapacitate has not been established, so nothing derives this yet.
     /// </summary>
     public bool Incapacitated { get; set; }
+
+    /// <summary>
+    /// Head of this combatant's lingering spell-effect chain — the original's
+    /// <c>combatData.activeSpellEffectSlot_</c>. An index into the encounter's
+    /// <c>ActiveSpellEffectPool</c>, or -1 for none.
+    /// </summary>
+    public int ActiveEffectSlot { get; set; } = -1;
 
     /// <summary>True when this combatant is dead.</summary>
     public bool IsDead => (Flags & CombatantFlags.Dead) != 0;
