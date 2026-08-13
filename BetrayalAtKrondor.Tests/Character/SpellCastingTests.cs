@@ -98,7 +98,7 @@ public class SpellCastingTests {
     public void StarduskIsRefusedOutdoorsInDaylight(int hour, bool expected) {
         SpellCastContext context = ContextKnowing(StarduskId);
         context.ZoneKind = 1;
-        context.GameTimeIn2Seconds = hour * GameClock.UnitsPerHour;
+        context.GameTimeIn2Seconds = hour * GameTime.UnitsPerHour;
 
         Assert.Equal(expected, SpellCasting.IsCastable(StarduskId, SpellWith(), context));
     }
@@ -107,8 +107,8 @@ public class SpellCastingTests {
     public void TheHourMatchesTheOriginalsRawUnitFormula() {
         // cspell_check_castable computes (time % 0xa8c0) / 0x708 directly; SaveGameSection0 goes via
         // seconds. They must agree or one of the two derivations is wrong about the unit.
-        for (var t = 0; t < GameClock.UnitsPerDay * 2; t += 97) {
-            Assert.Equal((t % 0xa8c0) / 0x708, GameClock.HourOfDay(t));
+        for (var t = 0; t < GameTime.UnitsPerDay * 2; t += 97) {
+            Assert.Equal((t % 0xa8c0) / 0x708, GameTime.HourOfDay(t));
         }
     }
 

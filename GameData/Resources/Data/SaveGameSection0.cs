@@ -191,7 +191,7 @@ public class SaveGameStateData {
         return index >= 0 && index < ChapterSpeakers.Length ? ChapterSpeakers[index] : 0;
     }
 
-    private int GetCurrentHourOfDay() => GameState.GameClock.HourOfDay(GameTimeIn2Seconds);
+    private int GetCurrentHourOfDay() => GameState.GameTime.HourOfDay(GameTimeIn2Seconds);
 
     private bool IsNightTime() {
         int hour = GetCurrentHourOfDay();

@@ -140,7 +140,7 @@ public static class SpellCasting {
                     return false;
                 }
                 if (spellId == SpellIds.Stardusk) {
-                    int hour = GameClock.HourOfDay(context.GameTimeIn2Seconds);
+                    int hour = GameTime.HourOfDay(context.GameTimeIn2Seconds);
                     if (hour >= StarduskBlockedFromHour && hour < StarduskBlockedUntilHour) {
                         return false;
                     }
