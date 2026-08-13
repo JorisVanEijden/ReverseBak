@@ -36,13 +36,6 @@ public static class SpellCasting {
     /// </summary>
     public const int EnclosedZoneKind = 2;
 
-    /// <summary>Spell ids the zone-kind and time-of-day rules single out by number.</summary>
-    private const int CandleGlow = 2;
-    private const int Skyfire = 5;
-    private const int MadGodsRage = 0x15;
-    private const int Stardusk = 0x1a;
-    private const int DannonsDelusions = 1;
-
     /// <summary>The summoning spell kind, which needs a free actor slot.</summary>
     private const int SummonKind = 6;
 
@@ -138,14 +131,15 @@ public static class SpellCasting {
             }
 
             if (context.ZoneKind == EnclosedZoneKind) {
-                if (spellId == Skyfire || spellId == Stardusk || spellId == MadGodsRage) {
+                if (spellId == SpellIds.Skyfire || spellId == SpellIds.Stardusk
+                    || spellId == SpellIds.MadGodsRage) {
                     return false;
                 }
             } else {
-                if (spellId == CandleGlow) {
+                if (spellId == SpellIds.CandleGlow) {
                     return false;
                 }
-                if (spellId == Stardusk) {
+                if (spellId == SpellIds.Stardusk) {
                     int hour = GameClock.HourOfDay(context.GameTimeIn2Seconds);
                     if (hour >= StarduskBlockedFromHour && hour < StarduskBlockedUntilHour) {
                         return false;
@@ -153,7 +147,7 @@ public static class SpellCasting {
                 }
             }
 
-            if ((spell.TargetingType == SummonKind || spellId == DannonsDelusions)
+            if ((spell.TargetingType == SummonKind || spellId == SpellIds.DannonsDelusions)
                 && context.CombatActorCount == CombatActorSlots) {
                 castable = false;
             }
