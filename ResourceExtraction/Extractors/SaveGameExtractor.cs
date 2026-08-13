@@ -575,7 +575,12 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         return -1;
     }
 
-    private static SaveGameContainerData ParseContainer(BinaryReader reader) {
+    /// <summary>
+    /// One container record. <b>OBJFIXED.DAT holds the same records in the same layout</b>, which
+    /// is why the engine can read a fixed object out of either the save or the shipped file — so
+    /// this is shared with <c>ObjFixedExtractor</c> rather than duplicated.
+    /// </summary>
+    internal static SaveGameContainerData ParseContainer(BinaryReader reader) {
         byte locationZone = reader.ReadByte();
         byte locationMinMaxChapter = reader.ReadByte();
         short locationWorldItemId = reader.ReadInt16();

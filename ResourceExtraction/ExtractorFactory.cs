@@ -146,6 +146,9 @@ public static class ExtractorFactory {
             // destination by id, so the table must be loadable through the resource system.
             typeof(TeleportDestinationSet), typeof(TeleportExtractor)
         }, {
+            // The second source actorspawn_objfixed reads, after the save's own copy.
+            typeof(FixedObjectSet), typeof(ObjFixedExtractor)
+        }, {
             typeof(TileEventTile), typeof(TileEventExtractor)
         }, {
             typeof(CreatureNames), typeof(MnamesExtractor)

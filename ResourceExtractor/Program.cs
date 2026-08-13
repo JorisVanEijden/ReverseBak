@@ -455,7 +455,9 @@ internal static class Program {
             File.AppendAllText("tempdebug.txt", s);
         }
 
-        var objFixedExtractor = new ObjFixedExtractor();
+        // Fully qualified: the runtime library now has its own OBJFIXED reader (into the save's
+        // container model). This CLI one still emits the legacy JSON shape — see TASK-160.
+        var objFixedExtractor = new ResourceExtractor.Extractors.Container.ObjFixedExtractor();
         string path = "OBJFIXED.DAT";
         List<Container> fixedObjects = objFixedExtractor.Extract(Path.Combine(filePath, path));
         WriteToJsonFile(path, ResourceType.DAT, fixedObjects.ToJson());
