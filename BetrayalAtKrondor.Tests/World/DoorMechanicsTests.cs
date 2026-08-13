@@ -100,6 +100,57 @@ public class DoorMechanicsTests {
         Assert.Equal(DoorMechanics.DoorAction.Close, decision.Action);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(37)]
+    [InlineData(DoorMechanics.MaxDoorId)]
+    public void ASeededDoorRoundTripsItsIdAndOpenState(int id) {
+        int shut = DoorMechanics.SeedState(id, isOpen: false);
+        int open = DoorMechanics.SeedState(id, isOpen: true);
+
+        Assert.Equal(id, DoorMechanics.DoorIdOf(shut));
+        Assert.Equal(id, DoorMechanics.DoorIdOf(open));
+        Assert.False(DoorMechanics.IsOpenState(shut));
+        Assert.True(DoorMechanics.IsOpenState(open));
+    }
+
+    [Fact]
+    public void ASeededDoorStartsAtTheEndOfItsSwingSoItDoesNotAnimateOnArrival() {
+        Assert.Equal(0, DoorMechanics.SeedState(5, isOpen: false) & DoorMechanics.FrameMask);
+        Assert.Equal(7, DoorMechanics.SeedState(5, isOpen: true) & DoorMechanics.FrameMask);
+    }
+
+    [Fact]
+    public void OpenAndShutAreDifferentShapesNotOneShapeAnimated() {
+        Assert.Equal(0x5c, DoorMechanics.ShapeFor(false));
+        Assert.Equal(0x5d, DoorMechanics.ShapeFor(true));
+        Assert.NotEqual(DoorMechanics.ShapeFor(true), DoorMechanics.ShapeFor(false));
+    }
+
+    [Fact]
+    public void ASeededDoorIsImmediatelyActionableInTheDirectionItIsNotAlreadyIn() {
+        // The seed and the decision agree: a door seeded open offers Close, one seeded shut offers
+        // Open. That round trip is what makes a reloaded save behave like the session that saved it.
+        int open = DoorMechanics.SeedState(9, isOpen: true);
+        int shut = DoorMechanics.SeedState(9, isOpen: false);
+
+        Assert.Equal(DoorMechanics.DoorAction.Close,
+            DoorMechanics.Decide(open, 0, true, 5000, 5000).Action);
+        Assert.Equal(DoorMechanics.DoorAction.Open,
+            DoorMechanics.Decide(shut, 0, false, 5000, 5000).Action);
+    }
+
+    [Fact]
+    public void DoorZeroSeededShutIsIndistinguishableFromNotADoor() {
+        // Both are state word 0, and the handler's first test returns Ignored on that. Door id 0
+        // therefore cannot be a shut door that anything will open — worth knowing before treating
+        // id 0 as ordinary.
+        Assert.Equal(0, DoorMechanics.SeedState(0, isOpen: false));
+        Assert.Equal(DoorMechanics.DoorAction.Ignored,
+            DoorMechanics.Decide(DoorMechanics.SeedState(0, false), 0, false, 5000, 5000).Action);
+    }
+
     [Fact]
     public void TheOpenBitAndFrameAreWrittenWithoutDisturbingTheId() {
         int state = Closed(37);

@@ -39,6 +39,46 @@ public static class DoorMechanics {
     /// </summary>
     public const int CloseBlockedRange = 800;
 
+    /// <summary>
+    /// Shape id of a shut door. <b>Open and shut are two different shapes</b>, not one shape with a
+    /// swing frame — the loader swaps the id outright, and the frame bits only drive the animation
+    /// between them.
+    /// </summary>
+    public const int ClosedShapeId = 0x5c;
+
+    /// <summary>Shape id of an open door.</summary>
+    public const int OpenShapeId = 0x5d;
+
+    /// <summary>
+    /// Highest door id. <c>worlddoor_pref_slots_clear_all</c> clears flags for 0..255, which is
+    /// exactly what the eight id bits in the state word can hold.
+    /// </summary>
+    public const int MaxDoorId = 0xff;
+
+    /// <summary>Which shape a door of a given state should be drawn as.</summary>
+    public static int ShapeFor(bool isOpen) => isOpen ? OpenShapeId : ClosedShapeId;
+
+    /// <summary>
+    /// The state word a door starts a zone with — <c>worlddoor_load_door_records</c>.
+    ///
+    /// <para>Built at zone load from the door's saved open flag, so a door left open stays open.
+    /// An open door is seeded at the <i>end</i> of its swing (frame 7) and a shut one at the start
+    /// (frame 0), which is why neither animates on arrival.</para>
+    /// </summary>
+    /// <param name="doorVariant">
+    /// The door id. <b>It does not come from the world file.</b> The WLD record only says a door
+    /// shape stands here; the id and the lock come from the fixed-object actor record at that same
+    /// position — see the task notes on TASK-134 for the full chain.
+    /// </param>
+    public static int SeedState(int doorVariant, bool isOpen) {
+        int state = isOpen ? FrameCount - 1 : 0;
+        state |= (doorVariant & (IdMask >> IdShift)) << IdShift;
+        if (isOpen) {
+            state |= OpenBit;
+        }
+        return state;
+    }
+
     /// <summary>What a click on a door does.</summary>
     public enum DoorAction {
         /// <summary>Not a door, or an uninitialised entity: the original returns immediately.</summary>
