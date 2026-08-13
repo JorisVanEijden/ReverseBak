@@ -213,6 +213,54 @@ public sealed class ActiveSpellEffectPool {
         return None;
     }
 
+    /// <summary>
+    /// Ages one actor's effects by a round and releases the expired ones —
+    /// <c>cspell_actor_tick_status_effects</c>. The arena sweeps every combatant through this.
+    ///
+    /// <para><b>This is where the head-removal defect bites.</b> The walk captures each node's
+    /// successor <i>before</i> releasing it, so when the first effect expires the rest are still
+    /// aged and released normally <i>for this round</i> — but the actor's chain head is now -1, so
+    /// on the next round the walk starts at nothing. Any effect that survived the round in which
+    /// the head expired is stranded: never aged again, never expiring, holding its slot for the
+    /// rest of the encounter. That is the mechanism behind the pool exhaustion, and it is why the
+    /// leak is invisible until a fight runs long.</para>
+    /// </summary>
+    /// <returns>
+    /// True when the actor must be taken off the field. Only Dannon's Delusions does this: it puts
+    /// an illusory combatant on the grid, and on expiry the original fires Final Rest (spell 32) on
+    /// it, clears its grid tile and removes it. Those first two are the arena's to perform — this
+    /// reports only the verdict.
+    /// </returns>
+    /// <remarks>
+    /// Not modelled: in the 1.02 CD build the original reassigns its <c>actor</c> pointer from
+    /// <c>combat_actor_remove</c> mid-loop, so later releases in the same tick act on whichever
+    /// combatant shifted down into the removed one's array slot. That is an artifact of removing
+    /// from an array in place, not a rule about spells, and reproducing it would mean modelling the
+    /// arena's storage rather than its behaviour.
+    /// </remarks>
+    public bool TickActor(Combatant actor) {
+        if (actor == null) {
+            return false;
+        }
+
+        var actorExpired = false;
+        int slot = actor.ActiveEffectSlot;
+        while (slot != None) {
+            ActiveSpellEffect effect = _slots[slot];
+            effect.Duration--;
+            int next = effect.Next; // captured before the release can orphan the rest
+            if (effect.Duration <= 0) {
+                int spellNumber = effect.SpellNumber;
+                Remove(actor, slot);
+                if (spellNumber == SpellIds.DannonsDelusions) {
+                    actorExpired = true;
+                }
+            }
+            slot = next;
+        }
+        return actorExpired;
+    }
+
     /// <summary>Every effect currently chained to an actor, in order.</summary>
     public IEnumerable<ActiveSpellEffect> EffectsOf(Combatant actor) {
         if (actor == null) {

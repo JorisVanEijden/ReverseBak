@@ -174,6 +174,101 @@ public class ActiveSpellEffectPoolTests {
     }
 
     [Fact]
+    public void ATickAgesEveryEffectByOneRound() {
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+        pool.Register(actor, 7, 1, duration: 3);
+        pool.Register(actor, 8, 1, duration: 3);
+
+        Assert.False(pool.TickActor(actor));
+
+        Assert.Equal(new[] { 2, 2 }, pool.EffectsOf(actor).Select(e => e.Duration));
+    }
+
+    [Fact]
+    public void AnEffectIsReleasedWhenItsDurationRunsOut() {
+        // The expiring effect must not be the head, or the defect below takes over and the whole
+        // chain goes with it — which is a different behaviour, pinned separately.
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+        pool.Register(actor, 7, 1, duration: 5);
+        pool.Register(actor, 8, 1, duration: 1);
+
+        pool.TickActor(actor);
+
+        Assert.Equal(new[] { 7 }, pool.EffectsOf(actor).Select(e => e.SpellNumber));
+        Assert.Equal(1, pool.InUse);
+    }
+
+    [Fact]
+    public void EffectsSurvivingTheRoundTheHeadExpiredAreStrandedForever() {
+        // The walk captures each successor before releasing, so the survivors still age THIS round —
+        // but the head is now -1, so the next tick starts at nothing and they are never aged again.
+        // This is the mechanism behind the pool exhaustion.
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+        pool.Register(actor, 7, 1, duration: 1);   // expires on the first tick
+        pool.Register(actor, 8, 1, duration: 5);   // survives it
+
+        pool.TickActor(actor);
+
+        Assert.Empty(pool.EffectsOf(actor));                  // unreachable from the actor
+        Assert.Equal(1, pool.InUse);                          // but still holding a slot
+
+        // Ticking forever will not reclaim it.
+        for (var i = 0; i < 50; i++) {
+            pool.TickActor(actor);
+        }
+        Assert.Equal(1, pool.InUse);
+    }
+
+    [Fact]
+    public void SurvivorsAreStillAgedInTheRoundTheHeadExpires() {
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+        int head = pool.Register(actor, 7, 1, duration: 1);
+        int second = pool.Register(actor, 8, 1, duration: 5);
+
+        pool.TickActor(actor);
+
+        Assert.Equal(4, pool[second].Duration); // aged once despite the head going first
+        Assert.Equal(ActiveSpellEffectPool.None, pool[head].SpellNumber);
+    }
+
+    [Fact]
+    public void AnExpiringSecondEffectIsStillReleasedAfterTheHeadWent() {
+        // Both expire on the same tick: the head orphans the chain, but the survivor's own release
+        // still frees its slot because the free marker does not depend on the chain.
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+        pool.Register(actor, 7, 1, duration: 1);
+        pool.Register(actor, 8, 1, duration: 1);
+
+        pool.TickActor(actor);
+
+        Assert.Equal(0, pool.InUse);
+    }
+
+    [Fact]
+    public void OnlyDannonsDelusionsTakesItsActorOffTheField() {
+        // It puts an illusory combatant on the grid; expiry fires Final Rest on it and removes it.
+        var pool = new ActiveSpellEffectPool();
+        Combatant illusion = Actor(), ordinary = Actor();
+        pool.Register(illusion, SpellIds.DannonsDelusions, 1, duration: 1);
+        pool.Register(ordinary, 8, 1, duration: 1);
+
+        Assert.True(pool.TickActor(illusion));
+        Assert.False(pool.TickActor(ordinary));
+    }
+
+    [Fact]
+    public void AnActorWithNoEffectsTicksToNothing() {
+        var pool = new ActiveSpellEffectPool();
+
+        Assert.False(pool.TickActor(Actor()));
+    }
+
+    [Fact]
     public void AnOutOfRangeSlotIsIgnoredRatherThanWrittenPastTheEnd() {
         // The original's bound admits index 20 and scribbles one node past the pool.
         var pool = new ActiveSpellEffectPool();
