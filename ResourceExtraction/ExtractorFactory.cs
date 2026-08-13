@@ -12,6 +12,7 @@ using GameData.Resources.Creature;
 using GameData.Resources.Credits;
 using GameData.Resources.Data;
 using GameData.Resources.Combat;
+using GameData.Resources.Location;
 using GameData.Resources.Scene;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
@@ -122,6 +123,24 @@ public static class ExtractorFactory {
             typeof(DefFamilyFile<DefCombEntry>), typeof(Extractors.Def.DefCombExtractor)
         }, {
             typeof(DefFamilyFile<DefTrapEntry>), typeof(Extractors.Def.DefTrapExtractor)
+        }, {
+            typeof(DefFamilyFile<DefBkgrEntry>), typeof(Extractors.Def.DefBkgrExtractor)
+        }, {
+            typeof(DefFamilyFile<DefDialEntry>), typeof(Extractors.Def.DefDialExtractor)
+        }, {
+            typeof(DefFamilyFile<DefDisaEntry>), typeof(Extractors.Def.DefDisaExtractor)
+        }, {
+            typeof(DefFamilyFile<DefEnabEntry>), typeof(Extractors.Def.DefEnabExtractor)
+        }, {
+            typeof(DefFamilyFile<DefTownEntry>), typeof(Extractors.Def.DefTownExtractor)
+        }, {
+            typeof(DefFamilyFile<DefZoneEntry>), typeof(Extractors.Def.DefZoneExtractor)
+        }, {
+            typeof(FullMapTowns), typeof(FullMapTownExtractor)
+        }, {
+            typeof(FullMapPositions), typeof(FullMapPositionExtractor)
+        }, {
+            typeof(SpellSymbolLayout), typeof(SpellSymbolExtractor)
         }, {
             typeof(TileEventTile), typeof(TileEventExtractor)
         }, {

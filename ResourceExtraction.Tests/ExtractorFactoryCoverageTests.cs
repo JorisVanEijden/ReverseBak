@@ -35,20 +35,6 @@ public class ExtractorFactoryCoverageTests {
         // reads the POINTER metadata as a resource.
         ["CursorExtractor"] = "CursorManager needs no CursorSet load; it uses the sprite directly",
 
-        // KNOWN GAPS, tracked as TASK-157 — these are NOT judged fine, they are unaudited. None is
-        // referenced by Unity today, so nothing is silently broken yet; each becomes a silent null
-        // the moment someone writes a loader for it. The six Def* ones need a decision about the
-        // key, since that family is registered per closed generic (DefFamilyFile<DefBlocEntry> and
-        // friends) rather than per extractor.
-        ["FullMapTownExtractor"] = "TASK-157",
-        ["FullMapPositionExtractor"] = "TASK-157",
-        ["SpellSymbolExtractor"] = "TASK-157",
-        ["DefBkgrExtractor"] = "TASK-157 — closed-generic key needs deciding",
-        ["DefDialExtractor"] = "TASK-157 — closed-generic key needs deciding",
-        ["DefDisaExtractor"] = "TASK-157 — closed-generic key needs deciding",
-        ["DefEnabExtractor"] = "TASK-157 — closed-generic key needs deciding",
-        ["DefTownExtractor"] = "TASK-157 — closed-generic key needs deciding",
-        ["DefZoneExtractor"] = "TASK-157 — closed-generic key needs deciding",
     };
 
     private static IEnumerable<(Type Extractor, Type Resource)> ConcreteExtractors() {
