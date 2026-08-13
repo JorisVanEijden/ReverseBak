@@ -11,6 +11,8 @@ using GameData.Resources.Config;
 using GameData.Resources.Creature;
 using GameData.Resources.Credits;
 using GameData.Resources.Data;
+using GameData.Resources.Combat;
+using GameData.Resources.Scene;
 using GameData.Resources.Image;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
@@ -68,6 +70,29 @@ public static class ExtractorFactory {
             typeof(MonsterStats), typeof(MonsterStatsExtractor)
         }, {
             typeof(WorldTile), typeof(WorldItemExtractor)
+        }, {
+            // GDS##?.DAT — the interactive location scenes. The extractor has existed since the GDS
+            // work landed but was never reachable through here, so every Unity load of one resolved
+            // to null. Same omission the DEF_COMB/DEF_TRAP extractors had.
+            typeof(GdsScene), typeof(GdsSceneExtractor)
+        }, {
+            typeof(EncampData), typeof(EncampExtractor)
+        }, {
+            typeof(GridData), typeof(GridExtractor)
+        }, {
+            typeof(TrapData), typeof(TrapExtractor)
+        }, {
+            typeof(CreatureBitmaps), typeof(BNamesExtractor)
+        }, {
+            typeof(CastRing), typeof(CastRingExtractor)
+        }, {
+            typeof(ChapterSongMap), typeof(ChapterSongMapExtractor)
+        }, {
+            typeof(SpellAffinityTable), typeof(SpellAffinityExtractor)
+        }, {
+            typeof(SpellBookPage), typeof(SpellBookPageExtractor)
+        }, {
+            typeof(SpellDescriptions), typeof(SpellDocExtractor)
         }, {
             typeof(ZoneBounds), typeof(ZoneBoundsExtractor)
         }, {
