@@ -461,8 +461,13 @@ internal static class Program {
         WriteToJsonFile(path, ResourceType.DAT, fixedObjects.ToJson());
 
         const string teleportDat = "teleport.dat";
-        List<TeleportDestination> teleportDestinations = TeleportExtractor.Extract(Path.Combine(filePath, teleportDat));
-        WriteToJsonFile(teleportDat, ResourceType.DAT, teleportDestinations.ToJson());
+        // The extractor now lives in ResourceExtraction so the table is loadable at runtime too
+        // (dialog Teleport actions name a destination by id). The JSON stays the bare array.
+        using (FileStream teleportStream = File.OpenRead(Path.Combine(filePath, teleportDat))) {
+            TeleportDestinationSet teleport =
+                new ResourceExtraction.Extractors.TeleportExtractor().Extract(teleportDat, teleportStream);
+            WriteToJsonFile(teleportDat, ResourceType.DAT, teleport.Destinations.ToJson());
+        }
     }
 
     // Dumps every sound from FRP.SX to generated/SND/{id}_{name}/{id}_{format}.{mid|wav}.
@@ -1287,7 +1292,10 @@ internal static class Program {
             Console.Error.WriteLine($"[TELEPORT] missing: {Path.Combine(gamePath, "TELEPORT.DAT")}");
             return;
         }
-        List<TeleportDestination> destinations = TeleportExtractor.Extract(files[0]);
+        using FileStream stream = File.OpenRead(files[0]);
+        List<TeleportDestination> destinations =
+            new ResourceExtraction.Extractors.TeleportExtractor()
+                .Extract("teleport.dat", stream).Destinations;
         WriteToJsonFile("teleport.dat", ResourceType.DAT, destinations.ToJson());
         Console.WriteLine($"[TELEPORT] {destinations.Count} destinations written to DAT/teleport.json");
     }

@@ -142,6 +142,10 @@ public static class ExtractorFactory {
         }, {
             typeof(SpellSymbolLayout), typeof(SpellSymbolExtractor)
         }, {
+            // Needed at RUNTIME, not just for the JSON dump: a dialog Teleport action names a
+            // destination by id, so the table must be loadable through the resource system.
+            typeof(TeleportDestinationSet), typeof(TeleportExtractor)
+        }, {
             typeof(TileEventTile), typeof(TileEventExtractor)
         }, {
             typeof(CreatureNames), typeof(MnamesExtractor)
