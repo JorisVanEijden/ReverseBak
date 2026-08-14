@@ -21,6 +21,34 @@ public class ActiveSpellEffectPoolTests {
     }
 
     [Fact]
+    public void ReCastingTheSameSpellStacksRatherThanRefreshing() {
+        // Register never consults Find, even though that is exactly the "is this one already
+        // affected" question it exists to answer — so both copies age independently and the earlier
+        // one expires first. Refreshing instead is the obvious implementation and behaves differently.
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+
+        int first = pool.Register(actor, spellNumber: 7, investedCost: 5, duration: 9);
+        int second = pool.Register(actor, spellNumber: 7, investedCost: 5, duration: 3);
+
+        Assert.NotEqual(first, second);
+        Assert.Equal(2, pool.InUse);
+        Assert.Equal(9, pool[first].Duration);
+        Assert.Equal(3, pool[second].Duration);
+    }
+
+    [Fact]
+    public void FindAnswersWithTheFirstOfTheStackedCopies() {
+        var pool = new ActiveSpellEffectPool();
+        Combatant actor = Actor();
+
+        int first = pool.Register(actor, spellNumber: 7, investedCost: 5, duration: 9);
+        pool.Register(actor, spellNumber: 7, investedCost: 5, duration: 3);
+
+        Assert.Equal(first, pool.Find(actor, 7));
+    }
+
+    [Fact]
     public void TheFirstEffectBecomesTheActorsChainHead() {
         var pool = new ActiveSpellEffectPool();
         Combatant actor = Actor();

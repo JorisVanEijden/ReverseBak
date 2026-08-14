@@ -100,6 +100,12 @@ public sealed class ActiveSpellEffectPool {
     ///
     /// <para>Despite that name the original computes no damage here; the magnitude is
     /// <see cref="SpellEffectMagnitude"/>'s job. This only records that the effect is present.</para>
+    /// <para><b>Nothing is de-duplicated.</b> Casting the same spell on the same actor again appends
+    /// a SECOND node rather than refreshing the first — the original never consults
+    /// <see cref="Find"/> here, even though that is exactly the "is this one already affected"
+    /// question it exists to answer. So a re-cast stacks, both copies age independently, and the
+    /// earlier one expires first. Refreshing instead would be the obvious implementation and would
+    /// change how re-casting a buff behaves.</para>
     /// </summary>
     /// <returns>The slot used, or <see cref="None"/> if the pool was full — in which case
     /// <b>nothing is recorded and the cast silently has no lingering effect</b>.</returns>
