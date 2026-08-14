@@ -27,6 +27,46 @@ public static class DynamicLighting {
     /// <summary>Highest palette entry lit, in either mode.</summary>
     public const int LastLitEntry = 255;
 
+    /// <summary>
+    /// The colours the blends pull toward, as VGA six-bit RGB (0-63).
+    /// </summary>
+    /// <remarks>
+    /// Read from the binary rather than guessed — this was the spec's first open question. Two are
+    /// worth a second look:
+    /// <list type="bullet">
+    ///   <item><b>The candle colour is a dark GREEN</b> (3, 23, 1), not the warm tone its name
+    ///   suggests. It is the underground tint, so caves are cast green rather than firelit. The
+    ///   name and the data disagree and the data wins; if a screenshot ever says otherwise, check
+    ///   the byte order before changing this.</item>
+    ///   <item>The item light (54, 44, 18) IS the warm one — bright amber, the tone a torch would
+    ///   give. So the two are almost opposites of what the names imply.</item>
+    /// </list>
+    /// </remarks>
+    public static class Colors {
+        /// <summary>Dragon's breath, a desaturated blue-grey.</summary>
+        public static readonly (int R, int G, int B) DragonsBreath = (10, 20, 23);
+
+        /// <summary>Darkness, the target every darkening blend uses.</summary>
+        public static readonly (int R, int G, int B) Black = (0, 0, 0);
+
+        /// <summary>Light from a carried item — warm amber.</summary>
+        public static readonly (int R, int G, int B) ItemLight = (54, 44, 18);
+
+        /// <summary>The underground tint. Green, despite the name.</summary>
+        public static readonly (int R, int G, int B) CandleLight = (3, 23, 1);
+
+        /// <summary>Stardusk, a deep blue.</summary>
+        public static readonly (int R, int G, int B) Stardusk = (6, 11, 33);
+    }
+
+    /// <summary>The colour a tint pulls toward.</summary>
+    public static (int R, int G, int B) ColorOf(Tint tint) => tint switch {
+        Tint.Candle => Colors.CandleLight,
+        Tint.Stardusk => Colors.Stardusk,
+        Tint.ItemLight => Colors.ItemLight,
+        _ => Colors.Black,
+    };
+
     /// <summary>Which tint the scene gets, if any.</summary>
     public enum Tint {
         /// <summary>No tint — only darkening.</summary>
