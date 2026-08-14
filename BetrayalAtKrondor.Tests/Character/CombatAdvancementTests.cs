@@ -88,6 +88,7 @@ public class CombatAdvancementTests {
         CombatAdvancement.OnMeleeDeclared(null, null);
         CombatAdvancement.OnMeleeHit(null, null);
         CombatAdvancement.OnSpellHit(null);
+        CombatAdvancement.OnSpellCast(null);
     }
 
     [Fact]
@@ -98,6 +99,33 @@ public class CombatAdvancementTests {
 
         Assert.True(Progress(casting) > 0);
     }
+
+    [Fact]
+    public void CastingAtAllTrainsCastingEvenWhenItMisses() {
+        // The first award is unconditional, exactly as the attacker's is on a declared melee swing.
+        ActorStat casting = Skill();
+
+        CombatAdvancement.OnSpellCast(casting);
+
+        Assert.True(Progress(casting) > 0);
+    }
+
+    [Fact]
+    public void ALandedCastPaysCastingTwiceOverJustAsMeleeDoes() {
+        // Once for trying, once for connecting. Treating the spell award as hit-only under-rewards
+        // every successful cast by half and pays nothing for a miss.
+        ActorStat missed = Skill();
+        ActorStat landed = Skill();
+
+        CombatAdvancement.OnSpellCast(missed);
+
+        CombatAdvancement.OnSpellCast(landed);
+        CombatAdvancement.OnSpellHit(landed);
+
+        Assert.True(Progress(landed) > Progress(missed));
+        Assert.True(Progress(missed) > 0);
+    }
+
 
     private static int Progress(ActorStat stat) => stat.Base * 0x100 + stat.Experience;
 }

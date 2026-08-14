@@ -49,9 +49,30 @@ public static class CombatAdvancement {
     }
 
     /// <summary>
-    /// The award for a successful cast — <c>cspell_resolve_cast</c> pays the caster's
-    /// AccuracyCasting on a hit, the same one-point skill-use award.
+    /// The award made for <b>casting at all</b>, before any roll — the caster improves
+    /// AccuracyCasting.
     /// </summary>
+    /// <remarks>
+    /// Unconditional, exactly as the attacker's award in <see cref="OnMeleeDeclared"/> is. A cast
+    /// that misses still teaches you something.
+    /// </remarks>
+    public static void OnSpellCast(ActorStat casterCasting) {
+        Award(casterCasting, ActorAttribute.AccuracyCasting);
+    }
+
+    /// <summary>
+    /// The <b>second</b> AccuracyCasting award, made when the cast connects.
+    /// </summary>
+    /// <remarks>
+    /// <b>Casting pays the same way melee does: once for trying, once for connecting.</b> This file
+    /// previously described the spell award as a single hit-only payment, which under-rewarded every
+    /// successful cast by half and paid nothing at all for a miss. Corrected 2026-08-14 from
+    /// <c>Cast_Spell</c> @0x68617, where the unconditional award is followed by a second one guarded
+    /// on the hit flag.
+    ///
+    /// <para>Note it is only the delivery categories that reach this pair — the ones that play the
+    /// windup animation. Others take a different branch.</para>
+    /// </remarks>
     public static void OnSpellHit(ActorStat casterCasting) {
         Award(casterCasting, ActorAttribute.AccuracyCasting);
     }
