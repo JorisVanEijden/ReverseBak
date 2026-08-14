@@ -49,4 +49,40 @@ public static class SpellIds {
 
     /// <summary>Registers Grief of 1000 Nights on the target instead of an effect of its own.</summary>
     public const int FettersOfRime = 36;
+
+    /// <summary>Drops all three accuracies by 20 — permanently on a monster, on a timer on a PC.</summary>
+    public const int DespairThyEyes = 3;
+
+    /// <summary>Handler is a sound; the spell is its duration effect.</summary>
+    public const int HochosHaven = 6;
+
+    /// <summary>Zeroes its own magnitude unless the target is a Black Slayer.</summary>
+    public const int BaneOfBlackSlayers = 9;
+
+    /// <summary>Delegates to <c>Cast_Nightfingers</c>.</summary>
+    public const int Nightfingers = 12;
+
+    /// <summary>Handler clears the animation's out-parameter and nothing else.</summary>
+    public const int Mirrorwall = 14;
+
+    /// <summary>Handler is a sound; its duration of -1 makes its effect equal the cost.</summary>
+    public const int SkinOfTheDragon = 23;
+
+    /// <summary>Delegates to <c>Cast_Steelfire</c>.</summary>
+    public const int Steelfire = 25;
+
+    /// <summary>Delegates to <c>Cast_Invitiation</c>.</summary>
+    public const int Invitation = 30;
+
+    /// <summary>Blocks the type-2 delivery outright while active on the caster.</summary>
+    public const int ThoughtsLikeClouds = 31;
+
+    /// <summary>Its entire effect is a percentage roll — see <c>SpellPerSpellHandlers</c>.</summary>
+    public const int BlackNimbus = 37;
+
+    /// <summary>Divides rather than multiplies, and then discards its own magnitude.</summary>
+    public const int StrengthDrain = 42;
+
+    /// <summary>Delegates to <c>Cast_Evil_Seek</c>, then discards its own magnitude.</summary>
+    public const int EvilSeek = 44;
 }
