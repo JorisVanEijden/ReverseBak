@@ -170,12 +170,13 @@ public static class MonsterTurnRoutines {
     /// <summary>A ranged routine's decision, with the numbers that go with it.</summary>
     public readonly struct RangedTurn {
         public RangedTurn(RangedChoice choice, int actionId = 0, int knockbackFrames = 0,
-            int minDamage = 0, int maxDamage = 0) {
+            int minDamage = 0, int maxDamage = 0, bool scalesWithStat = false) {
             Choice = choice;
             ActionId = actionId;
             KnockbackFrames = knockbackFrames;
             MinDamage = minDamage;
             MaxDamage = maxDamage;
+            ScalesWithStat = scalesWithStat;
         }
 
         public RangedChoice Choice { get; }
@@ -191,6 +192,13 @@ public static class MonsterTurnRoutines {
 
         /// <summary>Damage band, inclusive at both ends.</summary>
         public int MaxDamage { get; }
+
+        /// <summary>
+        /// Whether the rolled damage is then scaled by the attacker's base stat percentage. Most
+        /// routines apply their roll raw; the ones that set this hit for less as the creature is
+        /// worn down.
+        /// </summary>
+        public bool ScalesWithStat { get; }
     }
 
     /// <summary>
@@ -270,4 +278,92 @@ public static class MonsterTurnRoutines {
     /// is no nearest actor to find. The floppy build carries on and dereferences it.
     /// </remarks>
     public static bool CanAct(bool hasTarget) => hasTarget;
+
+    // ---- The three routines that shoot when they can and defer when they cannot ----------------
+
+    /// <summary>Minimum range at which the target-clearing routine will shoot.</summary>
+    public const int ChargeRoutineMinimumRange = 3;
+
+    /// <summary>Below this roll the target-clearing routine passes up its shot.</summary>
+    public const int ChargeRoutineSkipRoll = 5;
+
+    /// <summary>Minimum range at which the three-attack routine will shoot.</summary>
+    public const int MixedRoutineMinimumRange = 3;
+
+    /// <summary>Exclusive bound of the roll choosing among the three attacks.</summary>
+    public const int MixedAttackRollBound = 3;
+
+    /// <summary>Minimum range at which the heavy-bolt routine will shoot.</summary>
+    public const int BoltRoutineMinimumRange = 2;
+
+    /// <summary>
+    /// Whether the routine that forgets its target takes its shot.
+    /// </summary>
+    /// <param name="roll">A roll in <c>[0, 100)</c>.</param>
+    /// <remarks>
+    /// <b>It passes up the shot on a roll under five</b> — a 5% flinch, small enough to look like a
+    /// rounding artefact and easy to drop. It also needs a longer range than the other routines
+    /// before it will shoot at all.
+    ///
+    /// <para>The line-of-fire test here is asked in a different mode from the other routines' — the
+    /// trace is called with a different flag. What the two modes differ in is not established, so it
+    /// is passed through rather than assumed equivalent.</para>
+    /// </remarks>
+    public static bool TakesTheDistantShot(int distanceToNearest, bool lineOfFireClear, int roll) =>
+        distanceToNearest >= ChargeRoutineMinimumRange
+        && lineOfFireClear
+        && roll >= ChargeRoutineSkipRoll;
+
+    /// <summary>
+    /// <b>That routine drops its target at the end of every turn, whatever it did.</b>
+    /// </summary>
+    /// <remarks>
+    /// Not a detail: a creature that never carries a target between turns always reads as
+    /// <i>disengaged</i> to the target filters in <see cref="CombatAi"/>, so it can never be found
+    /// by the "engaged" role and is always eligible for the "disengaged" one. Dropping this line
+    /// would quietly change who the rest of the field goes after.
+    /// </remarks>
+    public static bool ClearsTargetAfterActing => true;
+
+    /// <summary>
+    /// One of three attacks, chosen with a flat roll — the creature has no preference among them.
+    /// </summary>
+    /// <param name="roll">A roll in <c>[0, 3)</c>.</param>
+    /// <remarks>
+    /// <b>The knockback runs opposite to the damage</b>: the hardest of the three shoves least and
+    /// the weakest shoves most, so they are not simply three strengths of one attack.
+    ///
+    /// <para>All three scale the rolled damage by the attacker's base stat percentage, which the
+    /// other routines do not do at all — this creature hits for less as it is worn down.</para>
+    /// </remarks>
+    public static RangedTurn MixedAttack(int roll) => roll switch {
+        0 => new RangedTurn(RangedChoice.HeavyShot, 2, 1, 0xf, 0x22, scalesWithStat: true),
+        1 => new RangedTurn(RangedChoice.HeavyShot, 3, 2, 5, 34, scalesWithStat: true),
+        _ => new RangedTurn(RangedChoice.HeavyShot, 4, 3, 5, 14, scalesWithStat: true),
+    };
+
+    /// <summary>
+    /// Whether the three-attack routine shoots. <b>It wants more room than the others</b> — strictly
+    /// beyond two tiles, where the rest settle for beyond one.
+    /// </summary>
+    public static bool TakesTheMixedAttack(int distanceToNearest, bool lineOfFireClear) =>
+        lineOfFireClear && distanceToNearest > MixedRoutineMinimumRange - 1;
+
+    /// <summary>The heaviest single attack in the bespoke set.</summary>
+    public static RangedTurn HeavyBolt() => new RangedTurn(RangedChoice.HeavyShot, 4, 4, 0x2d, 0x4a);
+
+    /// <summary>Whether the heavy-bolt routine shoots rather than deferring.</summary>
+    public static bool TakesTheHeavyBolt(int distanceToNearest, bool lineOfFireClear) =>
+        lineOfFireClear && distanceToNearest > BoltRoutineMinimumRange - 1;
+
+    /// <summary>
+    /// <b>The heavy-bolt creature refills one of its stats to full at the start of every turn</b>,
+    /// before it decides anything.
+    /// </summary>
+    /// <remarks>
+    /// It is a single assignment buried at the top of the routine and trivially missed, but it means
+    /// this creature cannot be worn down through that stat at all — whatever drains it is undone
+    /// each turn. A port without it has a materially weaker monster.
+    /// </remarks>
+    public static bool RefillsStatEachTurn => true;
 }
