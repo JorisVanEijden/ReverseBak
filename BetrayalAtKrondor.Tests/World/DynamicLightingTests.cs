@@ -124,6 +124,22 @@ public class DynamicLightingTests {
     }
 
     [Fact]
+    public void AScreenLeavesLightingOffBehindItRatherThanRestoringWhatWasThere() {
+        // The screens set the mode on the way in and write 0 on the way out; nothing reads the
+        // previous value. So the zone's lighting is live again only once its palette reloads.
+        Assert.False(DynamicLighting.ModeLights(DynamicLighting.ModeOff));
+    }
+
+    [Fact]
+    public void TheModeSaysHowMuchOfThePaletteBelongsToTheScene() {
+        // A zone shares the display with the interface and keeps the low entries back; a screen with
+        // its own palette claims almost everything.
+        Assert.True(DynamicLighting.FirstLitEntry(DynamicLighting.ModeExtended)
+            < DynamicLighting.FirstLitEntry(DynamicLighting.ModeZone));
+        Assert.Equal(DynamicLighting.LastLitEntry, 255);
+    }
+
+    [Fact]
     public void EachTintKnowsWhichNightFloorItsStrengthComesFrom() {
         Assert.Equal(DaylightLevel.StarduskFloor,
             DynamicLighting.TintFloorFor(DynamicLighting.Tint.Stardusk));

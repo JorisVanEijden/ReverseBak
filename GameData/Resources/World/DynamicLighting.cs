@@ -125,7 +125,14 @@ public static class DynamicLighting {
     /// <summary>Mode set whenever a zone palette is loaded.</summary>
     public const int ModeZone = 1;
 
-    /// <summary>The wider mode, lighting almost the whole palette.</summary>
+    /// <summary>
+    /// The wider mode, lighting almost the whole palette — what a screen with its own palette uses.
+    /// </summary>
+    /// <remarks>
+    /// <b>The mode is really "how much of the palette belongs to this scene".</b> A zone shares the
+    /// display with the interface and keeps 0-111 back; a screen that has queued its own palette
+    /// claims everything from 16 up. Read that way the two values stop looking like magic numbers.
+    /// </remarks>
     public const int ModeExtended = 2;
 
     /// <summary>Whether this mode lights anything.</summary>
@@ -145,9 +152,16 @@ public static class DynamicLighting {
     /// the resulting palette is applied AFTER it. Doing both on the same side of the swap is what
     /// produces the tearing the original is avoiding.</para>
     ///
-    /// <para><b>What sets <see cref="ModeExtended"/> is still unestablished.</b> Every screen that
-    /// takes over the display references the mode two or three times, which is the shape of
-    /// save-set-restore, but that has not been read — do not assume it without checking.</para>
+    /// <para><b>A screen that brings its own palette SETS the mode and then CLEARS it — it does not
+    /// save and restore one.</b> The xref pattern looks like save-set-restore and is not: the screen
+    /// writes <see cref="ModeExtended"/> (or <see cref="ModeOff"/>) on the way in and
+    /// <see cref="ModeOff"/> on the way out, with no read of the previous value anywhere. So
+    /// whatever the mode was before, it is 0 afterwards, and the zone's lighting is only live again
+    /// once its palette is reloaded.</para>
+    ///
+    /// <para>Which of the two it writes comes from a global flag rather than from the screen: set,
+    /// and the screen turns lighting <i>off</i> for its duration; clear, and it uses
+    /// <see cref="ModeExtended"/>. What that flag tracks is not established.</para>
     /// </remarks>
     public static bool FrameIsLit(bool palettePending, int mode) => palettePending && ModeLights(mode);
 
