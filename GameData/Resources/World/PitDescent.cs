@@ -17,7 +17,7 @@ public static class PitDescent {
     /// kind-15 polygon in an outdoor zone does nothing at all. Same enclosed zone kind that gates
     /// doors and Candle Glow — see <c>DoorMechanics</c> and <c>SpellCasting</c>.
     /// </summary>
-    public const int RequiredZoneKind = 2;
+    public const int RequiredZoneKind = ZoneDefinition.UndergroundZoneLocation;
 
     /// <summary>Camera frames in the fall.</summary>
     public const int DescentSteps = 9;

@@ -31,7 +31,7 @@ public static class ProximityScan {
     /// The zone kind roaming encounters are checked in — the enclosed/underground one.
     /// <b>The proximity encounter check never runs outdoors.</b>
     /// </summary>
-    public const int EncounterZoneKind = 2;
+    public const int EncounterZoneKind = ZoneDefinition.UndergroundZoneLocation;
 
     /// <summary>
     /// Whether an entity kind takes part in the scan at all. Anything outside this set is skipped

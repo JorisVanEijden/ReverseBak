@@ -2,6 +2,7 @@ namespace GameData.Resources.Spells;
 
 using GameData.Resources.GameState;
 using GameData.Resources.Inventory;
+using GameData.Resources.World;
 
 /// <summary>
 /// Who may cast, what they may cast, how much power they may put behind it, and what that costs.
@@ -34,7 +35,7 @@ public static class SpellCasting {
     /// encounter. The spell data is what makes that unambiguous: Candle Glow is castable only here
     /// and nowhere else, while Skyfire and Stardusk are castable everywhere <i>but</i> here.</para>
     /// </summary>
-    public const int EnclosedZoneKind = 2;
+    public const int EnclosedZoneKind = ZoneDefinition.UndergroundZoneLocation;
 
     /// <summary>The summoning spell kind, which needs a free actor slot.</summary>
     private const int SummonKind = 6;
