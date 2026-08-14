@@ -26,18 +26,6 @@ public static class PartyMemberPicker {
     /// <summary>The last button's label, which is not a party member.</summary>
     public const string CancelLabel = "Cancel";
 
-    /// <summary>Padding added to the widest label to give every button its width.</summary>
-    public const int LabelPadding = 10;
-
-    /// <summary>Added to each button's computed x.</summary>
-    public const int RowInset = 4;
-
-    /// <summary>Added to the font height for each button's height.</summary>
-    public const int HeightPadding = 4;
-
-    /// <summary>Distance the row's top sits above the panel's bottom edge, before the font height.</summary>
-    public const int BottomMargin = 11;
-
     /// <summary>Buttons the row has: one per active member, plus cancel.</summary>
     public static int ButtonCount(int activePartyMembers) => activePartyMembers + 1;
 
@@ -52,35 +40,33 @@ public static class PartyMemberPicker {
     /// </remarks>
     public static int ActionIdFor(int buttonIndex) => FirstActionId + buttonIndex;
 
-    /// <summary>
-    /// Every button's width: the widest label plus padding.
-    /// </summary>
-    /// <param name="widestLabelWidth">The widest measured label, cancel's included or not — see remarks.</param>
-    /// <remarks>
-    /// <b>The measuring pass walks one entry past the party and never measures "Cancel".</b> It asks
-    /// for the actor at the cancel slot's index — one beyond the last member — and measures whatever
-    /// name comes back, then the label is overwritten afterwards. So the row is sized partly by a
-    /// name that is never displayed, and the word actually shown was never measured at all. Sizing
-    /// the row from the labels you intend to draw is more correct and less faithful; if a button
-    /// ever looks the wrong width against the original, this is why.
-    /// </remarks>
-    public static int ButtonWidth(int widestLabelWidth) => widestLabelWidth + LabelPadding;
+    /// <summary>Distance the row's top sits above the panel's bottom edge, before the font height.</summary>
+    public const int BottomMargin = DialogButtonRow.BottomMargin;
 
     /// <summary>
-    /// Where a button sits horizontally.
+    /// Every button's width.
     /// </summary>
+    /// <param name="widestLabelWidth">The widest measured label — see the remark about which.</param>
     /// <remarks>
-    /// The row is spread across the panel by dividing its width into <c>count + 1</c> parts and
-    /// centring each button on a division — so the buttons are evenly spaced with a gap at each end
-    /// rather than packed or edge-aligned.
+    /// Geometry is <see cref="DialogButtonRow"/>'s; what is particular to this menu is <b>what gets
+    /// measured</b>. <b>The measuring pass walks one entry past the party and never measures
+    /// "Cancel".</b> It asks for the actor at the cancel slot's index — one beyond the last member —
+    /// and measures whatever name comes back, then the label is overwritten afterwards. So the row
+    /// is sized partly by a name that is never displayed, and the word actually shown was never
+    /// measured at all. Sizing the row from the labels you intend to draw is more correct and less
+    /// faithful; if a button ever looks the wrong width against the original, this is why.
     /// </remarks>
+    public static int ButtonWidth(int widestLabelWidth) =>
+        DialogButtonRow.ButtonWidth(widestLabelWidth);
+
+    /// <inheritdoc cref="DialogButtonRow.ButtonX"/>
     public static int ButtonX(int buttonIndex, int panelWidth, int buttonCount, int buttonWidth) =>
-        (((buttonIndex + 1) * (panelWidth / (buttonCount + 1))) + RowInset) - (buttonWidth / 2);
+        DialogButtonRow.ButtonX(buttonIndex, panelWidth, buttonCount, buttonWidth);
 
-    /// <summary>The row's top, measured up from the panel's bottom edge.</summary>
+    /// <inheritdoc cref="DialogButtonRow.RowY"/>
     public static int RowY(int panelHeight, int fontHeight) =>
-        panelHeight - (fontHeight + BottomMargin);
+        DialogButtonRow.RowY(panelHeight, fontHeight);
 
-    /// <summary>Each button's height.</summary>
-    public static int ButtonHeight(int fontHeight) => fontHeight + HeightPadding;
+    /// <inheritdoc cref="DialogButtonRow.ButtonHeight"/>
+    public static int ButtonHeight(int fontHeight) => DialogButtonRow.ButtonHeight(fontHeight);
 }
