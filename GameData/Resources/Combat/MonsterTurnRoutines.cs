@@ -136,4 +136,138 @@ public static class MonsterTurnRoutines {
     /// the floppy behaviour would give those creatures a free action every turn.
     /// </remarks>
     public static bool ActsAfterMoving(bool secondFlagSet) => !secondFlagSet;
+
+    /// <summary>Exclusive bound of the roll that can call off a shot the creature could take.</summary>
+    public const int AbortShotRollBound = 100;
+
+    /// <summary>Below this roll the ranged routine does not shoot at all.</summary>
+    public const int AbortShotRoll = 0x32;
+
+    /// <summary>Exclusive bound of the roll choosing the heavy shot over the light one.</summary>
+    public const int HeavyShotRollBound = 4;
+
+    /// <summary>At or below this roll the ranged routine takes its heavy shot.</summary>
+    public const int HeavyShotRoll = 2;
+
+    /// <summary>The creature that always takes the heavy shot, whatever the roll says.</summary>
+    public const int AlwaysHeavyCreature = 0x39;
+
+    /// <summary>Tiles beyond which the volley routine shoots rather than closing.</summary>
+    public const int VolleyMinimumDistance = 2;
+
+    /// <summary>What the ranged routine settles on.</summary>
+    public enum RangedChoice {
+        /// <summary>No shot this turn — hand the turn to the generic move/attack picker.</summary>
+        Reconsider,
+
+        /// <summary>The creature's own heavy attack, with its knockback.</summary>
+        HeavyShot,
+
+        /// <summary>The weak fallback shot every one of them shares.</summary>
+        LightShot,
+    }
+
+    /// <summary>A ranged routine's decision, with the numbers that go with it.</summary>
+    public readonly struct RangedTurn {
+        public RangedTurn(RangedChoice choice, int actionId = 0, int knockbackFrames = 0,
+            int minDamage = 0, int maxDamage = 0) {
+            Choice = choice;
+            ActionId = actionId;
+            KnockbackFrames = knockbackFrames;
+            MinDamage = minDamage;
+            MaxDamage = maxDamage;
+        }
+
+        public RangedChoice Choice { get; }
+
+        /// <summary>Which projectile animation plays.</summary>
+        public int ActionId { get; }
+
+        /// <summary>Knockback frames pushed onto the target; also the damage call's knock argument.</summary>
+        public int KnockbackFrames { get; }
+
+        /// <summary>Damage band, inclusive at both ends.</summary>
+        public int MinDamage { get; }
+
+        /// <summary>Damage band, inclusive at both ends.</summary>
+        public int MaxDamage { get; }
+    }
+
+    /// <summary>
+    /// The heavy shot a creature owns, or <c>null</c> if it has none.
+    /// </summary>
+    /// <remarks>
+    /// <b>The original has no default here and uses the values uninitialised</b> when a creature
+    /// outside these four reaches this routine — a latent bug that the dispatch happens not to
+    /// expose. We refuse instead of reproducing undefined behaviour.
+    /// </remarks>
+    public static RangedTurn? HeavyShotFor(int creatureType) => creatureType switch {
+        0x29 => new RangedTurn(RangedChoice.HeavyShot, 2, 1, 0x14, 0x1d),
+        0x2a => new RangedTurn(RangedChoice.HeavyShot, 3, 3, 0x14, 0x1d),
+        0x2b => new RangedTurn(RangedChoice.HeavyShot, 0x32, 3, 0x14, 0x1d),
+        AlwaysHeavyCreature => new RangedTurn(RangedChoice.HeavyShot, 0x32, 3, 0x14, 0x1d),
+        _ => null,
+    };
+
+    /// <summary>The light shot, which is the same for every creature that uses this routine.</summary>
+    public static RangedTurn LightShot() => new RangedTurn(RangedChoice.LightShot, 5, 1, 4, 8);
+
+    /// <summary>
+    /// The turn of the creatures that spit, breathe or hurl.
+    /// </summary>
+    /// <param name="abortRoll">A roll in <c>[0, 100)</c>.</param>
+    /// <param name="heavyRoll">A roll in <c>[0, 4)</c>.</param>
+    /// <remarks>
+    /// <b>Half the time it does not shoot even with a clear line.</b> The abort roll is checked
+    /// before anything else and hands the turn to the generic move/attack picker, so these creatures
+    /// spend about half their turns repositioning rather than attacking. Skipping that roll would
+    /// roughly double their damage output.
+    ///
+    /// <para>The heavy shot is the common case, not the rare one — three rolls in four take it — and
+    /// <see cref="AlwaysHeavyCreature"/> takes it unconditionally. Its damage band is well over
+    /// double the light one's, so which branch a port picks by default matters a lot.</para>
+    /// </remarks>
+    public static RangedTurn ChooseRangedTurn(bool lineOfFireClear, int abortRoll, int heavyRoll,
+        int creatureType) {
+        if (!lineOfFireClear || abortRoll < AbortShotRoll) {
+            return new RangedTurn(RangedChoice.Reconsider);
+        }
+        if (heavyRoll <= HeavyShotRoll || creatureType == AlwaysHeavyCreature) {
+            return HeavyShotFor(creatureType) ?? LightShot();
+        }
+
+        return LightShot();
+    }
+
+    /// <summary>
+    /// The routine that opens with a volley: it shoots when the target is <b>not</b> adjacent and
+    /// the way is clear, and otherwise falls back to moving or swinging.
+    /// </summary>
+    /// <remarks>
+    /// <b>Despite living among the melee handlers, its preferred action is a ranged one.</b> A port
+    /// that reads the name and closes to melee first would invert the creature's whole behaviour.
+    ///
+    /// <para>The fallback is two-stage in the original: try the move-or-attack picker, and only if
+    /// that declines does the generic action picker run.</para>
+    /// </remarks>
+    public static bool VolleysRatherThanClosing(bool lineOfFireClear, int distanceToNearest) =>
+        lineOfFireClear && distanceToNearest >= VolleyMinimumDistance;
+
+    /// <summary>Damage band of that volley, inclusive at both ends.</summary>
+    public const int VolleyMinDamage = 0xf;
+
+    /// <summary>Damage band of that volley, inclusive at both ends.</summary>
+    public const int VolleyMaxDamage = 0x22;
+
+    /// <summary>Knockback frames the volley steps through, one render apart.</summary>
+    public const int VolleyKnockbackFrames = 4;
+
+    /// <summary>
+    /// Whether the volley routine can act at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Another build difference in our favour:</b> the 1.02 CD release returns early when there
+    /// is no nearest actor to find. The floppy build carries on and dereferences it.
+    /// </remarks>
+    public static bool CanAct(bool hasTarget) => hasTarget;
 }
