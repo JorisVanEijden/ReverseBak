@@ -100,6 +100,42 @@ public class TrapPuzzleGoalTests {
     }
 
     [Fact]
+    public void AnExitTileIsWhatMarksAGridAsAPuzzleAtAll() {
+        // The round transition asks exactly this to decide whether to play the completion burn, so
+        // the same predicate answers "is this a puzzle" and "does the goal test mean anything".
+        Assert.True(TrapPuzzleGoal.IsTrapPuzzle(GridWithExitAt((2, 8))));
+        Assert.False(TrapPuzzleGoal.IsTrapPuzzle(new CombatGrid()));
+    }
+
+    [Fact]
+    public void OnlyOccupiedTilesTakeLightWhenItEnds() {
+        // The fire marks out what was standing on the grid rather than sweeping it.
+        Assert.True(TrapPuzzleGoal.BurnsAtCompletion(tileHoldsCombatant: true));
+        Assert.False(TrapPuzzleGoal.BurnsAtCompletion(tileHoldsCombatant: false));
+    }
+
+    [Fact]
+    public void TheSequenceRunsUntilTheLastFireGoesOut() {
+        // Durations are rolled per tile, so it lasts as long as its longest fire, not a fixed time.
+        Assert.False(TrapPuzzleGoal.BurnComplete(1));
+        Assert.True(TrapPuzzleGoal.BurnComplete(0));
+        Assert.True(TrapPuzzleGoal.MaximumBurnDuration > TrapPuzzleGoal.MinimumBurnDuration);
+    }
+
+    [Fact]
+    public void TheBurnIsTheSameHazardTheRisenLeaveBehind() {
+        // One effect used by two systems, not two that happen to share a number.
+        Assert.Equal(SlayerRevival.RisenTileEffect, TrapPuzzleGoal.BurningTerrain);
+    }
+
+    [Fact]
+    public void CannonsNeverFire() {
+        // Their facing is read in three places — loader, writer, renderer — and nowhere to act.
+        // Recorded because the absence is easy to mistake for a gap.
+        Assert.False(TrapPuzzleGoal.CannonsFire);
+    }
+
+    [Fact]
     public void OnlyTheFourCannonTerrainsAreCannons() {
         Assert.True(TrapPuzzleGoal.IsCannon(CombatTerrain.CannonWest));
         Assert.True(TrapPuzzleGoal.IsCannon(CombatTerrain.CannonSouth));

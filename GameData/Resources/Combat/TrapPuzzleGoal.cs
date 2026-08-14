@@ -113,4 +113,60 @@ public static class TrapPuzzleGoal {
     /// <summary>Whether a terrain value is one of the four cannon facings.</summary>
     public static bool IsCannon(CombatTerrain terrain) =>
         terrain >= CombatTerrain.CannonWest && terrain <= CombatTerrain.CannonSouth;
+
+    // ---- What happens when it ends -------------------------------------------------------------
+
+    /// <summary>
+    /// Terrain kind a burning tile carries. The same effect the risen leave behind — see
+    /// <see cref="SlayerRevival.RisenTileEffect"/> — so this is one hazard used by two systems, not
+    /// two that happen to share a number.
+    /// </summary>
+    public const int BurningTerrain = 9;
+
+    /// <summary>Shortest burn a tile is set alight for, inclusive.</summary>
+    public const int MinimumBurnDuration = 0x190;
+
+    /// <summary>Longest burn a tile is set alight for, inclusive.</summary>
+    public const int MaximumBurnDuration = 0x2bb;
+
+    /// <summary>
+    /// Whether this grid is a trap puzzle at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>The presence of an exit tile is what marks a grid as a puzzle</b> — the round transition
+    /// asks exactly this to decide whether to play the burn. So the same predicate answers two
+    /// questions, "is this a puzzle" and "does the goal test mean anything", which is the reason it
+    /// exists apart from <see cref="ExitRow"/>.
+    /// </remarks>
+    public static bool IsTrapPuzzle(CombatGrid grid) => HasExit(grid);
+
+    /// <summary>
+    /// Whether a tile takes light when the puzzle ends.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only tiles holding a combatant burn</b>, so the fire marks out what was standing on the
+    /// grid rather than sweeping it. Empty ground, crystals and cannons are left alone.
+    /// </remarks>
+    public static bool BurnsAtCompletion(bool tileHoldsCombatant) => tileHoldsCombatant;
+
+    /// <summary>
+    /// Whether the completion sequence is finished.
+    /// </summary>
+    /// <remarks>
+    /// It runs until <b>no tile is still burning</b> — the durations are rolled per tile, so the
+    /// sequence lasts as long as its longest fire rather than a fixed time.
+    /// </remarks>
+    public static bool BurnComplete(int burningTiles) => burningTiles == 0;
+
+    /// <summary>
+    /// <b>Cannons never fire.</b>
+    /// </summary>
+    /// <remarks>
+    /// Recorded as a rule because its absence is easy to mistake for a gap. A cannon's facing is
+    /// read in exactly three places — the loader that places it, the writer that saves it back, and
+    /// the renderer that picks a yaw — and nowhere does anything consult one to act. They are
+    /// scenery that blocks a tile and points somewhere; the puzzle's only damage comes from walking
+    /// onto crystal ground. Do not build a firing mechanic for them.
+    /// </remarks>
+    public static bool CannonsFire => false;
 }
