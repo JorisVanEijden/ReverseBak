@@ -1,6 +1,10 @@
 namespace BetrayalAtKrondor.Tests.Inventory;
 
+using GameData;
+using GameData.Resources.Data;
 using GameData.Resources.Inventory;
+using GameData.Resources.Object;
+using System.Collections.Generic;
 using Xunit;
 
 /// <summary>
@@ -84,6 +88,63 @@ public class NoteMapViewTests {
         Assert.Equal(0x90 - (NoteMapView.MarkerWidth / 2), x);
         Assert.Equal(0xc0 - (NoteMapView.MarkerHeight / 2), y);
     }
+
+    [Fact]
+    public void ReadingTheMapNoteIsSilentAndKeepsTheNote() {
+        // Outcome -2: the tail neither spends the item nor prints a result.
+        var container = new RuntimeContainer { ContainerType = SaveGameContainerType.Inventory, Capacity = 6 };
+        container.Items.Add(new RuntimeItem((byte)NoteMapView.MapNoteItemId, (byte)NoteMapView.RiftMapId, 0));
+        var flags = new Dictionary<int, int>();
+
+        ItemUseResult result = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+
+        Assert.Equal(ItemUseOutcome.Silent, result.Outcome);
+        Assert.Equal(NoteMapView.MapShownDialogId, result.DialogId);
+        Assert.Equal(NoteMapView.RiftMapId, result.DialogVar0);
+        Assert.False(result.SourceRemoved);
+        Assert.Single(container.Items);
+    }
+
+    [Fact]
+    public void AnyOtherNoteAnswersWithALineAndNoMap() {
+        var container = new RuntimeContainer { ContainerType = SaveGameContainerType.Inventory, Capacity = 6 };
+        container.Items.Add(new RuntimeItem((byte)(NoteMapView.MapNoteItemId + 1), 0, 0));
+        var flags = new Dictionary<int, int>();
+
+        ItemUseResult result = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+
+        Assert.Equal(NoteMapView.WrongNoteDialogId, result.DialogId);
+        Assert.Empty(flags);
+    }
+
+    [Fact]
+    public void ReadingItRecordsTheMapAsSeen() {
+        var container = new RuntimeContainer { ContainerType = SaveGameContainerType.Inventory, Capacity = 6 };
+        container.Items.Add(new RuntimeItem((byte)NoteMapView.MapNoteItemId, 7, 0));
+        var flags = new Dictionary<int, int>();
+
+        // Map id 7 has no image, and it is still marked seen.
+        ItemUseResult result = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+
+        Assert.Equal(NoteMapView.PrefaceDialogId, result.DialogId);
+        Assert.Equal(1, flags[NoteMapView.ViewedFlag(7)]);
+    }
+
+    private static ObjectInfoSet Notes() => new ObjectInfoSet("O", new List<ObjectInfo> {
+        Note((byte)NoteMapView.MapNoteItemId),
+        Note((byte)(NoteMapView.MapNoteItemId + 1)),
+    });
+
+    private static ObjectInfo Note(byte id) => new ObjectInfo("O") {
+        Number = id, Name = "note" + id, ObjectType = ObjectType.Note,
+        InventorySlots = 1, MaxAmount = 1,
+    };
+
+    private static ItemUseContext Context(Dictionary<int, int> flags) => new ItemUseContext(
+        null, 1,
+        key => flags.TryGetValue(key, out int v) ? v : 0,
+        (key, value) => flags[key] = value,
+        _ => 0);
 
     [Fact]
     public void TheBackgroundIsAnScxDespiteWhatTheSourceAsksFor() {

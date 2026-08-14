@@ -255,6 +255,11 @@ public static class InventoryUse {
                 // even when the repeat-read roll fails. You pay for the reading, not the learning.
                 outcome = ItemUseOutcome.Applied;
                 break;
+            case ObjectType.Note:              // 16 — ITEMUSE.C:267-299
+                if (context == null) {
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                return UseNote(source, context);
             default:
                 return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
@@ -518,4 +523,34 @@ public static class InventoryUse {
         }
         return new ItemUseResult(outcome, dialogId, source.ObjectId, removed);
     }
+
+    /// <summary>
+    /// Reading a note — <c>ITEMUSE.C</c>'s category-16 branch. See <see cref="NoteMapView"/> for why
+    /// almost none of this category is about maps.
+    /// </summary>
+    /// <returns>
+    /// Always <see cref="ItemUseOutcome.Silent"/>: the original's -2 neither spends the note nor
+    /// prints a result, because the dialog it names has already said everything.
+    /// <see cref="ItemUseResult.DialogVar0"/> carries the <b>map id</b>, which is what a caller needs
+    /// in order to know whether to put a picture behind that dialog.
+    /// </returns>
+    /// <remarks>
+    /// <b>A caller that wants the first-time preface must read the viewed flag BEFORE calling this</b>
+    /// — the flag is written here, so asking afterwards always answers "already seen". That ordering
+    /// is the one thing about this branch a caller can get wrong silently.
+    /// </remarks>
+    private static ItemUseResult UseNote(RuntimeItem source, ItemUseContext context) {
+        if (!NoteMapView.ShowsAMap(source.ObjectId)) {
+            return new ItemUseResult(ItemUseOutcome.Silent, NoteMapView.WrongNoteDialogId, 0, false);
+        }
+
+        int mapId = source.Variable;
+        // Written whichever way the branch goes — a note whose map has no image still marks it seen.
+        context.WriteFlag?.Invoke(NoteMapView.ViewedFlag(mapId), 1);
+
+        return new ItemUseResult(ItemUseOutcome.Silent,
+            NoteMapView.HasImage(mapId) ? NoteMapView.MapShownDialogId : NoteMapView.PrefaceDialogId,
+            mapId, false);
+    }
+
 }
