@@ -16,7 +16,68 @@ public static class SpellEffectApplication {
     /// treats the magnitude function as the whole story gives every duration spell an effect of
     /// zero.
     /// </remarks>
-    public static int DurationMagnitude(int cost, int duration) => cost * duration;
+    public static int DurationMagnitude(int cost, int duration) {
+        if (duration > 0) {
+            return cost * duration;
+        }
+
+        int divisor = duration == MostNegativeDuration ? OverflowGuard : -duration;
+
+        return divisor == 0 ? 0 : cost / divisor;
+    }
+
+    /// <summary>
+    /// The duration value the original guards against negating, because negating it overflows.
+    /// </summary>
+    public const int MostNegativeDuration = unchecked((short)0x8000);
+
+    /// <summary>What the original substitutes for that value rather than negating it.</summary>
+    public const int OverflowGuard = 0x7fff;
+
+    /// <summary>
+    /// <b>A negative duration divides instead of multiplying</b> — the exact mirror of what a
+    /// negative effect does on the cost-times-damage calculation, down to the same guard against
+    /// negating the most-negative value.
+    /// </summary>
+    /// <remarks>
+    /// So the sign of a record field flips the arithmetic from scaling up to scaling down, in two
+    /// separate calculations, with no flag to say so. Reading either field as a plain magnitude
+    /// inverts the spell.
+    /// </remarks>
+    public static bool NegativeDurationDivides => true;
+
+    /// <summary>
+    /// <b>A duration of exactly zero would divide by zero.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original's branches are "greater than zero, multiply" and "otherwise, divide by the
+    /// negated value" — and zero falls into the second, dividing by nothing. No shipped spell pairs
+    /// this calculation with a zero duration, so it never fires; this port answers 0 rather than
+    /// reproducing a divide fault.
+    /// </remarks>
+    public static bool ZeroDurationWouldFault => true;
+
+    /// <summary>
+    /// An effect lasts <b>one tick longer</b> on a target lacking a particular combat-status bit.
+    /// </summary>
+    /// <remarks>
+    /// Applied after the arithmetic and before the effect is registered, so it is a flat bonus
+    /// rather than a scaled one — and it depends on the <i>target's</i> state, not the caster's or
+    /// the spell's. Easy to miss entirely, and it shifts every duration by one.
+    /// </remarks>
+    public static int AdjustDurationForTarget(int duration, bool targetHasStatusBit) =>
+        targetHasStatusBit ? duration : duration + 1;
+
+    /// <summary>
+    /// What the registered effect carries in its per-spell flag byte: <b>the spell's colour</b>.
+    /// </summary>
+    /// <remarks>
+    /// The field the pool calls a flag is fed the record's colour, so a value that reads as
+    /// presentation is doing duty as effect data.
+    /// </remarks>
+    public static bool EffectFlagIsTheSpellColour => true;
+
+
 
     /// <summary>
     /// <b>Resistance is checked here, and it skips the effect outright.</b>
@@ -34,12 +95,13 @@ public static class SpellEffectApplication {
     public static bool ResistanceSkipsEffect(bool targetResists) => targetResists;
 
     /// <summary>
-    /// The strength a grid-effect spell places on the field: <b>duration times cost</b>.
+    /// The strength a grid spell puts on the field: <b>duration times cost</b>.
     /// </summary>
     /// <remarks>
-    /// The same product the duration calculation uses, but applied at delivery rather than to a
-    /// target — so a grid spell's power comes from the record's duration even though nothing about
-    /// it lasts for a duration.
+    /// <b>Both grid paths use this same product</b> — the delivery category that paints an element
+    /// on click, and the calculation that stamps the cell under the target — so it is one rule with
+    /// two call sites rather than a coincidence. Either way a grid spell's power comes from the
+    /// record's duration even though nothing about it lasts for a duration.
     /// </remarks>
     public static int GridElementStrength(int cost, int duration) => cost * duration;
 

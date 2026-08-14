@@ -35,9 +35,48 @@ public class SpellEffectApplicationTests {
 
     [Fact]
     public void AGridSpellsStrengthIsCostTimesDurationToo() {
-        // Even though nothing about it lasts for a duration.
+        // Even though nothing about it lasts for a duration. Both grid paths share the formula.
         Assert.Equal(SpellEffectApplication.DurationMagnitude(6, 7),
             SpellEffectApplication.GridElementStrength(6, 7));
+    }
+
+    [Fact]
+    public void ANegativeDurationDividesInsteadOfMultiplying() {
+        // The exact mirror of what a negative effect does on the cost-times-damage calculation —
+        // the sign of a record field flips scaling up into scaling down, with no flag to say so.
+        Assert.Equal(40, SpellEffectApplication.DurationMagnitude(cost: 8, duration: 5));
+        Assert.Equal(2, SpellEffectApplication.DurationMagnitude(cost: 8, duration: -4));
+        Assert.True(SpellEffectApplication.NegativeDurationDivides);
+    }
+
+    [Fact]
+    public void TheMostNegativeDurationIsGuardedRatherThanNegated() {
+        // Negating it overflows, so the original substitutes the largest positive instead.
+        Assert.Equal(0,
+            SpellEffectApplication.DurationMagnitude(100, SpellEffectApplication.MostNegativeDuration));
+        Assert.Equal(0x7fff, SpellEffectApplication.OverflowGuard);
+    }
+
+    [Fact]
+    public void AZeroDurationWouldFaultAndIsAnsweredWithNothing() {
+        // Zero falls into the divide branch in the original, dividing by nothing. No shipped spell
+        // pairs this calculation with a zero duration.
+        Assert.True(SpellEffectApplication.ZeroDurationWouldFault);
+        Assert.Equal(0, SpellEffectApplication.DurationMagnitude(cost: 8, duration: 0));
+    }
+
+    [Fact]
+    public void AnEffectLastsOneTickLongerOnATargetWithoutTheStatusBit() {
+        // A flat bonus applied after the arithmetic, keyed on the TARGET's state — easy to miss, and
+        // it shifts every duration by one.
+        Assert.Equal(6, SpellEffectApplication.AdjustDurationForTarget(5, targetHasStatusBit: false));
+        Assert.Equal(5, SpellEffectApplication.AdjustDurationForTarget(5, targetHasStatusBit: true));
+    }
+
+    [Fact]
+    public void TheRegisteredEffectCarriesTheSpellsColourAsItsFlag() {
+        // A value that reads as presentation doing duty as effect data.
+        Assert.True(SpellEffectApplication.EffectFlagIsTheSpellColour);
     }
 
     [Fact]
