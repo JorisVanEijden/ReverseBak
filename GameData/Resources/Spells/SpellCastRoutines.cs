@@ -150,4 +150,147 @@ public static class SpellCastRoutines {
     /// switch bills as usual. There is no refund and no message.
     /// </remarks>
     public static bool SteelfireChargesEvenWhenItFindsNothing => true;
+
+    // ---------------------------------------------------------------- Nightfingers
+    // Cast_Nightfingers @0x680ac.
+
+    /// <summary>
+    /// <b>Nightfingers burns a Glory Hand and opens the target's pack.</b>
+    /// </summary>
+    /// <remarks>
+    /// The routine finds the first Glory Hand in the <i>caster's</i> inventory, destroys it, then
+    /// puts the target's inventory on screen for the player to take something out of. So the spell
+    /// does not choose what it steals — the player does, and the theft is a UI interaction rather
+    /// than a rule.
+    ///
+    /// <para>This is what the spell record's otherwise-idle <c>ObjectId</c> field is for: it names
+    /// a consumable the cast requires. <c>SpellCasting</c> already refuses a cast whose
+    /// <c>ObjectId</c> the caster is not carrying, which is why the routine can destroy the item
+    /// without checking it found one. Only two spells use the field.</para>
+    /// </remarks>
+    public const int GloryHandObjectId = 10;
+
+    /// <summary>
+    /// <b>Nothing happens unless the player actually takes something.</b>
+    /// </summary>
+    /// <param name="itemsBefore">The target's item count before the screen opened.</param>
+    /// <param name="itemsAfter">Its count after.</param>
+    /// <remarks>
+    /// The routine compares the counts and returns without animating if they match. The Glory Hand
+    /// is destroyed either way, so backing out of the screen costs the caster the item and the cast
+    /// for nothing.
+    /// </remarks>
+    public static bool NightfingersStoleSomething(int itemsBefore, int itemsAfter) =>
+        itemsAfter != itemsBefore;
+
+    /// <summary>
+    /// <b>Nightfingers' projectile flies the wrong way on purpose.</b>
+    /// </summary>
+    /// <remarks>
+    /// Every other cast animates from the caster to the target; this one passes the target as the
+    /// origin and the caster as the destination, because what is travelling is the stolen item.
+    /// </remarks>
+    public static bool NightfingersProjectileTravelsToTheCaster => true;
+
+    // ---------------------------------------------------------------- Invitation
+    // Cast_Invitiation @0x674af.
+
+    /// <summary>
+    /// <b>Invitation drags the target toward the caster.</b>
+    /// </summary>
+    /// <remarks>
+    /// It writes the caster's grid cell into the target's movement destination and hands it to the
+    /// mover. The spell's name is the whole mechanic: the target is invited over, whether or not it
+    /// wants to come.
+    /// </remarks>
+    public static bool InvitationSetsTheTargetsDestination => true;
+
+    /// <summary>
+    /// How far the target is actually moved: <b>the lesser of the real distance and the power</b>.
+    /// </summary>
+    /// <remarks>
+    /// So a weak Invitation pulls a distant target only part of the way, and a strong one cannot
+    /// overshoot — the cap is the distance itself. Modelling it as "teleport to the caster" makes
+    /// every cast maximal.
+    /// </remarks>
+    public static int InvitationPull(int chebyshevDistance, int power) =>
+        chebyshevDistance < power ? chebyshevDistance : power;
+
+    /// <summary>
+    /// A fleeing target <b>re-picks where it is running to</b> after being invited.
+    /// </summary>
+    /// <remarks>
+    /// Recorded as observed: the routine tests a combat-status bit and, if set, calls the
+    /// flee-destination chooser, which will overwrite the destination the spell just set. Whether
+    /// that defeats the pull or merely redirects the retreat has not been established from the
+    /// chooser itself.
+    /// </remarks>
+    public static bool InvitationRerollsAFleeingTargetsDestination => true;
+
+    // ---------------------------------------------------------------- Evil Seek
+    // Cast_Evil_Seek @0x6734d.
+
+    /// <summary>
+    /// <b>Evil Seek is chain lightning.</b>
+    /// </summary>
+    /// <remarks>
+    /// It hops from victim to victim, arcing from each one to the next and damaging as it goes,
+    /// until it runs out of targets, runs out of power, or has taken as many hops as there are
+    /// combat actors. The dispatcher zeroes its magnitude afterwards precisely because the routine
+    /// has already dealt all the damage itself.
+    /// </remarks>
+    public static bool EvilSeekChains => true;
+
+    /// <summary>The power the chain starts with: <b>twice the cost</b>.</summary>
+    public static int EvilSeekInitialPower(int spellCost) => spellCost * 2;
+
+    /// <summary>What each hop after the first retains, as a percentage.</summary>
+    public const int EvilSeekFalloffPercent = 80;
+
+    /// <summary>
+    /// The damage the given hop deals, hop 0 being the original target.
+    /// </summary>
+    /// <remarks>
+    /// <b>The first hop is at full power.</b> The multiplier starts at 100 and only drops to 80
+    /// after it has been applied once, so the original target takes <c>cost × 2</c> and each
+    /// subsequent victim takes 80% of the one before — integer-truncated, which is what eventually
+    /// ends the chain.
+    /// </remarks>
+    public static int EvilSeekPowerAtHop(int spellCost, int hop) {
+        int power = EvilSeekInitialPower(spellCost);
+        for (int i = 1; i <= hop; i++) {
+            power = power * EvilSeekFalloffPercent / 100;
+        }
+
+        return power;
+    }
+
+    /// <summary>
+    /// <b>Resistance breaks a link's damage but not the chain.</b>
+    /// </summary>
+    /// <remarks>
+    /// The per-hop resistance check skips only that victim's damage; the arc still happens, the
+    /// victim is still recorded as visited, and the chain still passes through them to the next
+    /// target at the reduced power. A resistant creature standing in the middle shields nobody.
+    /// </remarks>
+    public static bool EvilSeekResistanceStopsOnlyThatHop => true;
+
+    /// <summary>
+    /// The chain also ends when the power <b>truncates to zero</b>.
+    /// </summary>
+    public static bool EvilSeekEndsAtZeroPower(int power) => power == 0;
+
+    /// <summary>
+    /// The routine's visited list holds <b>seven</b> entries.
+    /// </summary>
+    /// <remarks>
+    /// Fourteen bytes of stack, written at <c>visited[hop]</c> while the loop is bounded by the
+    /// combat actor count rather than by seven. An eighth hop would write over the variable holding
+    /// the chain's remaining power, which sits immediately after the buffer.
+    ///
+    /// <para>Recorded rather than asserted: whether an eighth hop is reachable depends on the
+    /// target picker, which has not been read. Our port bounds the chain at seven, which matches
+    /// the original for every case where the original is well-defined.</para>
+    /// </remarks>
+    public const int EvilSeekVisitedCapacity = 7;
 }

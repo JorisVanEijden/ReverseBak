@@ -104,6 +104,60 @@ public class SpellCastRoutinesTests {
         Assert.Equal(-1, SpellCastRoutines.SteelfireTarget(null, BuildObjects()));
     }
 
+    [Fact]
+    public void NightfingersDoesNothingIfThePlayerTakesNothing() {
+        Assert.False(SpellCastRoutines.NightfingersStoleSomething(itemsBefore: 4, itemsAfter: 4));
+        Assert.True(SpellCastRoutines.NightfingersStoleSomething(itemsBefore: 4, itemsAfter: 5));
+    }
+
+    [Fact]
+    public void TheGloryHandIsBurnedEitherWay() {
+        // The record's ObjectId field names the consumable, and SpellCasting already refuses the
+        // cast without it — which is why the routine destroys it without checking it found one.
+        Assert.Equal(10, SpellCastRoutines.GloryHandObjectId);
+    }
+
+    [Fact]
+    public void InvitationPullsNoFurtherThanTheTargetActuallyIs() {
+        Assert.Equal(3, SpellCastRoutines.InvitationPull(chebyshevDistance: 3, power: 9));
+    }
+
+    [Fact]
+    public void AndNoFurtherThanThePowerAllows() {
+        // A weak Invitation drags a distant target only part of the way — not a teleport.
+        Assert.Equal(2, SpellCastRoutines.InvitationPull(chebyshevDistance: 7, power: 2));
+    }
+
+    [Fact]
+    public void EvilSeekStartsAtTwiceTheCost() {
+        Assert.Equal(60, SpellCastRoutines.EvilSeekInitialPower(30));
+    }
+
+    [Fact]
+    public void TheFirstHopIsAtFullPower() {
+        // The multiplier only drops to 80 after being applied once, so the original target takes
+        // the undiminished figure.
+        Assert.Equal(60, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 30, hop: 0));
+    }
+
+    [Fact]
+    public void AndEachHopAfterKeepsFourFifthsOfTheOneBefore() {
+        Assert.Equal(48, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 30, hop: 1));
+        Assert.Equal(38, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 30, hop: 2));
+        Assert.Equal(30, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 30, hop: 3));
+    }
+
+    [Fact]
+    public void TheTruncationIsWhatEventuallyEndsTheChain() {
+        // Integer division, not rounding: a chain started weak dies out rather than trailing off
+        // into fractions forever.
+        // A minimum-cost cast starts at 2 and is spent after two hops: 2 -> 1 -> 0.
+        Assert.Equal(2, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 1, hop: 0));
+        Assert.Equal(1, SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 1, hop: 1));
+        Assert.True(SpellCastRoutines.EvilSeekEndsAtZeroPower(
+            SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 1, hop: 2)));
+    }
+
     private static ObjectInfoSet BuildObjects() => new ObjectInfoSet("O", new List<ObjectInfo> {
         new ObjectInfo("sw") {
             Number = 20, Name = "Broadsword", ObjectType = ObjectType.Sword,
