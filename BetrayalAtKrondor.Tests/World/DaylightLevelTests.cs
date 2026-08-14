@@ -89,6 +89,46 @@ public class DaylightLevelTests {
     }
 
     [Fact]
+    public void TheDaylightCurveIsJustTheGeneralOneWithANightFloorOfFifteen() {
+        // One curve, two entry points — not two mechanics to port.
+        for (var unit = 0; unit < GameTime.UnitsPerDay; unit += 53) {
+            Assert.Equal(DaylightLevel.At(unit),
+                DaylightLevel.WithFloor(unit, DaylightLevel.Night));
+        }
+    }
+
+    [Fact]
+    public void ALightSourceLiftsTheNightAndLeavesTheDayAlone() {
+        // Every source converges to the same noon and differs only in how dark midnight gets.
+        // Modelling them as additive brightness would make daylight scenes visibly wrong.
+        Assert.Equal(DaylightLevel.Day, DaylightLevel.WithFloor(At(12), DaylightLevel.StarduskFloor));
+        Assert.Equal(DaylightLevel.Day, DaylightLevel.WithFloor(At(12), DaylightLevel.ItemLightFloor));
+
+        Assert.Equal(DaylightLevel.StarduskFloor,
+            DaylightLevel.WithFloor(At(2), DaylightLevel.StarduskFloor));
+        Assert.Equal(DaylightLevel.ItemLightFloor,
+            DaylightLevel.WithFloor(At(2), DaylightLevel.ItemLightFloor));
+    }
+
+    [Fact]
+    public void ABrighterFloorIsNeverDarkerAtAnyHour() {
+        for (var unit = 0; unit < GameTime.UnitsPerDay; unit += 53) {
+            Assert.True(DaylightLevel.WithFloor(unit, DaylightLevel.ItemLightFloor)
+                >= DaylightLevel.WithFloor(unit, DaylightLevel.Night));
+        }
+    }
+
+    [Fact]
+    public void TheRampsStillMeetTheirPlateausWhateverTheFloor() {
+        foreach (int floor in new[] { DaylightLevel.Night, DaylightLevel.StarduskFloor, DaylightLevel.ItemLightFloor, 0 }) {
+            Assert.Equal(floor, DaylightLevel.WithFloor(At(4), floor));
+            Assert.Equal(DaylightLevel.Day, DaylightLevel.WithFloor(At(8), floor));
+            Assert.Equal(DaylightLevel.Day, DaylightLevel.WithFloor(At(17), floor));
+            Assert.Equal(floor, DaylightLevel.WithFloor(At(20), floor));
+        }
+    }
+
+    [Fact]
     public void FullDaylightAndFullNightAnswerForTheirPlateaus() {
         Assert.True(DaylightLevel.IsFullDaylight(At(12)));
         Assert.False(DaylightLevel.IsFullDaylight(At(6)));

@@ -20,6 +20,12 @@ public static class DaylightLevel {
     /// <summary>The whole swing between them, which both ramps traverse.</summary>
     public const int Swing = Day - Night;
 
+    /// <summary>Night floor a stardusk-lit scene sits at.</summary>
+    public const int StarduskFloor = 30;
+
+    /// <summary>Night floor a scene lit by a carried item sits at.</summary>
+    public const int ItemLightFloor = 37;
+
     /// <summary>Dawn begins; the level starts climbing from <see cref="Night"/>.</summary>
     public const int DawnStartHour = 4;
 
@@ -54,22 +60,43 @@ public static class DaylightLevel {
     /// wider arithmetic the same constants produce numbers roughly nine times too large; this port
     /// subtracts instead, which is what the wrap was for.</para>
     /// </remarks>
-    public static int At(long gameTimeIn2Seconds) {
+    public static int At(long gameTimeIn2Seconds) => WithFloor(gameTimeIn2Seconds, Night);
+
+    /// <summary>
+    /// The same curve with a different night floor — IDA <c>GetTimeOfDayLighting</c>
+    /// (seg031 @0x2d153).
+    /// </summary>
+    /// <param name="nightFloor">What the level falls to at night.</param>
+    /// <remarks>
+    /// <b>This is one curve with two entry points, not two functions.</b> The pair are
+    /// instruction-for-instruction the same shape — same plateaus, same two ramp lengths, same
+    /// 16-bit rebasing constants — and <see cref="At"/> is exactly this called with
+    /// <see cref="Night"/>. The spec listed them separately, which reads as two mechanics to port.
+    ///
+    /// <para><b>So a light source does not brighten the day; it lifts the night.</b> Stardusk and
+    /// item light pass their own floors (<see cref="StarduskFloor"/>, <see cref="ItemLightFloor"/>)
+    /// and the daytime plateau is <see cref="Day"/> for all of them, so every source converges to
+    /// the same noon and differs only in how dark it lets midnight get. Modelling them as an
+    /// additive brightness would make daylight scenes visibly wrong.</para>
+    /// </remarks>
+    public static int WithFloor(long gameTimeIn2Seconds, int nightFloor) {
         int hour = GameTime.HourOfDay(gameTimeIn2Seconds);
         int intoDay = (int)(((gameTimeIn2Seconds % GameTime.UnitsPerDay) + GameTime.UnitsPerDay)
             % GameTime.UnitsPerDay);
+        int swing = Day - nightFloor;
 
         if (hour >= FullDayHour && hour < DuskStartHour) {
             return Day;
         }
         if (hour < DawnStartHour || hour >= FullNightHour) {
-            return Night;
+            return nightFloor;
         }
         if (hour < DuskStartHour) {
-            return Night + (((intoDay - (DawnStartHour * GameTime.UnitsPerHour)) * Swing) / DawnUnits);
+            return nightFloor
+                + (((intoDay - (DawnStartHour * GameTime.UnitsPerHour)) * swing) / DawnUnits);
         }
 
-        return Day - (((intoDay - (DuskStartHour * GameTime.UnitsPerHour)) * Swing) / DuskUnits);
+        return Day - (((intoDay - (DuskStartHour * GameTime.UnitsPerHour)) * swing) / DuskUnits);
     }
 
     /// <summary>Whether the world is at its brightest.</summary>
