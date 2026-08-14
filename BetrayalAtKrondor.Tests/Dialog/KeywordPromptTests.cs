@@ -63,6 +63,33 @@ public class KeywordPromptTests {
     }
 
     [Fact]
+    public void AChosenTopicJumpsStraightToItsBranchTargetRatherThanLatching() {
+        // The opposite of the choice menus, despite the shared builders and action ids.
+        Assert.Equal(DialogChoiceMenu.BranchOffset(0) + 6, KeywordPrompt.BranchTargetOffsetFor(0));
+        Assert.Equal(15, KeywordPrompt.BranchTargetOffsetFor(0));
+        Assert.Equal(25, KeywordPrompt.BranchTargetOffsetFor(1));
+    }
+
+    [Fact]
+    public void TheOnlyFlagItWritesIsTheAskedAboutOne() {
+        // Not the choice latch — that key is never written on this path, so nothing is watching it.
+        Assert.Equal(KeywordMenu.AskedFlag(42), KeywordPrompt.FlagWrittenFor(42));
+        Assert.NotEqual(42, KeywordPrompt.FlagWrittenFor(42));
+    }
+
+    [Fact]
+    public void AskingRecordsTheTopicForNextTimeTheGridIsBuilt() {
+        // Which is what greys it out — the write and the read are the same flag.
+        Assert.True(KeywordMenu.AlreadyAsked(1));
+        Assert.Equal(KeywordMenu.AskedFlag(7), KeywordPrompt.FlagWrittenFor(7));
+    }
+
+    [Fact]
+    public void SayingGoodbyeEndsTheConversationRatherThanFollowingABranch() {
+        Assert.Equal(0, KeywordPrompt.TargetWhenDismissed());
+    }
+
+    [Fact]
     public void AnythingBelowTheEntryBaseIsNotASelection() {
         Assert.Equal(KeywordPrompt.NothingChosen, KeywordPrompt.Result(0));
         Assert.Equal(KeywordPrompt.NothingChosen, KeywordPrompt.Result(0x7f));

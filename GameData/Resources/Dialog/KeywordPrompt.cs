@@ -60,4 +60,41 @@ public static class KeywordPrompt {
 
         return NothingChosen;
     }
+
+    /// <summary>Offset of a branch record's jump target, within the record.</summary>
+    public const int BranchTargetOffset = 6;
+
+    /// <summary>Dialog id meaning the conversation is over.</summary>
+    public const int ConversationOver = 0;
+
+    /// <summary>
+    /// <b>A chosen topic jumps straight to its branch's target — it does not latch a flag.</b>
+    /// </summary>
+    /// <remarks>
+    /// This is where the keyword path and the choice path genuinely diverge, and it is the opposite
+    /// of what the shared menu code suggests. A choice menu writes
+    /// <see cref="DialogChoiceMenu.ValueWrittenForChoice"/> to the branch's key and lets the
+    /// conditional branch loop discover it; a keyword reads the <b>target dialog id straight out of
+    /// the branch record</b> and goes there. No condition is evaluated and no latch is involved.
+    ///
+    /// <para>Implementing keywords by latching, on the strength of the menus sharing their builders
+    /// and their action ids, produces a conversation that goes nowhere: nothing is watching those
+    /// keys on this path.</para>
+    /// </remarks>
+    public static int BranchTargetOffsetFor(int branchIndex) =>
+        DialogChoiceMenu.BranchOffset(branchIndex) + BranchTargetOffset;
+
+    /// <summary>
+    /// The flag a chosen topic writes: <b>the asked-about flag</b>, not the choice latch.
+    /// </summary>
+    /// <remarks>
+    /// It is the same <c>7500 + key</c> flag the grid reads back to grey a topic out — see
+    /// <see cref="KeywordMenu.AskedFlag"/>. So asking about something is recorded for the next time
+    /// the grid is built, and that is the <i>only</i> flag the keyword path writes.
+    /// </remarks>
+    public static int FlagWrittenFor(int branchGlobalKey) => KeywordMenu.AskedFlag(branchGlobalKey);
+
+    /// <summary>What the conversation continues with when the player says goodbye.</summary>
+    /// <remarks>Zero — the dialog ends rather than falling through to a branch.</remarks>
+    public static int TargetWhenDismissed() => ConversationOver;
 }

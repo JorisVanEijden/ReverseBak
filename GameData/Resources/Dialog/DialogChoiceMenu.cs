@@ -4,9 +4,11 @@ namespace GameData.Resources.Dialog;
 /// What happens when the player picks something out of a dialog menu — IDA
 /// <c>ShowDialogChoiceMenu</c> (ovr144 @0x4b54c).
 ///
-/// <para><b>This is what follows a chosen keyword</b>, and it is not a jump: the menu writes a flag
-/// and lets the ordinary branch dispatch find its way there. The function named
-/// <c>ProcessKeywordSelection</c> does not do it — see <see cref="PartyMemberPicker"/>.</para>
+/// <para><b>This handles the choice menus, NOT the keyword grid.</b> A choice selection is not a
+/// jump: the menu writes a flag and lets the ordinary branch dispatch find its way there. The
+/// keyword grid resolves somewhere else entirely and by a different mechanism — see
+/// <see cref="KeywordPrompt.BranchTargetOffsetFor"/>. The two menus share their builders, their
+/// layout and their action ids, which makes it very easy to assume they share this too.</para>
 /// </summary>
 public static class DialogChoiceMenu {
     /// <summary>Poll result meaning the player dismissed the menu rather than clicking an entry.</summary>
@@ -65,9 +67,10 @@ public static class DialogChoiceMenu {
     /// <b>Choosing a branch latches its global key to 1 — it does not follow the branch.</b>
     /// </summary>
     /// <remarks>
-    /// The menu's whole effect on a keyword or choice selection is one flag write. The dialog's main
+    /// The menu's whole effect on a <b>choice</b> selection is one flag write. The dialog's main
     /// branch loop then finds the branch whose condition matches that key and goes there, so the
-    /// navigation is the ordinary conditional dispatch rather than anything the menu does.
+    /// navigation is the ordinary conditional dispatch rather than anything the menu does. The
+    /// keyword grid does not come through here at all.
     ///
     /// <para>The keys are transient latches, reset when the menu's entries are rebuilt — they are not
     /// durable story flags, even though they live in the same global space. Treating them as
