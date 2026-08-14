@@ -17,20 +17,30 @@ public static class SlayerRevival {
     public const int TransformingType = 23;
 
     /// <summary>
-    /// The actor flag that marks a candidate.
+    /// The actor flag that marks a candidate: <b>dead</b>.
     /// </summary>
     /// <remarks>
     /// The same flag gates a creature out of acting after it moves (see
     /// <see cref="MonsterTurnRoutines.ActsAfterMoving"/>), which is consistent — the actors that do
     /// not act are the ones waiting to get up.
     /// </remarks>
-    public const int DownFlag = 2;
+    public const int DeadFlag = 0x02;
 
     /// <summary>
-    /// A second flag that bars an otherwise-eligible actor from rising. What sets it is not
-    /// established; it is reproduced as a gate rather than interpreted.
+    /// The flag that bars an otherwise-eligible corpse from rising: it <b>fled</b>.
     /// </summary>
-    public const int RevivalBarredFlag = 0x10;
+    /// <remarks>
+    /// A creature that ran off the field is barred twice over — it keeps this flag, and the exit
+    /// path kills it without playing the death animation, which is the only place the countdown is
+    /// ever set. Either alone would be enough.
+    /// </remarks>
+    public const int FledFlag = 0x10;
+
+    /// <summary>Shortest countdown rolled when one of these creatures dies.</summary>
+    public const int MinimumCountdown = 4;
+
+    /// <summary>Longest countdown rolled when one of these creatures dies.</summary>
+    public const int MaximumCountdown = 10;
 
     /// <summary>Grid coordinate meaning the actor is not on the field.</summary>
     public const int OffGrid = -1;
@@ -50,10 +60,12 @@ public static class SlayerRevival {
     /// the transforming creature in it never sees a single revival — the first riser needs one to
     /// already be there.
     ///
-    /// <para><b>Open question, deliberately not answered here:</b> the count is taken by creature
-    /// type with <i>no test that the actor is alive</i>. Whether killing them stops the revivals
-    /// therefore depends on whether the encounter list drops the dead, which this code does not
-    /// say. Do not assume either way without checking that list.</para>
+    /// <para><b>And killing them does not stop it.</b> The count is taken by creature type with no
+    /// test that the actor is alive, and the encounter's combatant list never shrinks — the only
+    /// write to its length sets it to zero at setup, and the one removal routine compacts a
+    /// different list. So a dead one keeps the sweep running, and since it is itself an eligible
+    /// corpse with a countdown of its own, it gets back up too. The mechanic is self-sustaining:
+    /// killing the risers is not the way to end it.</para>
     /// </remarks>
     public static bool SweepRuns(int slayersPresent) => slayersPresent != 0;
 
@@ -65,16 +77,17 @@ public static class SlayerRevival {
     /// Whether this actor is a candidate at all — before the countdown is consulted.
     /// </summary>
     public static bool IsCandidate(int creatureType, int flags) =>
-        (flags & DownFlag) != 0
-        && (flags & RevivalBarredFlag) == 0
+        (flags & DeadFlag) != 0
+        && (flags & FledFlag) == 0
         && IsEligibleSpecies(creatureType);
 
     /// <summary>
     /// What the sweep does with a candidate this tick.
     /// </summary>
     /// <param name="countdown">
-    /// Ticks left before it rises. The original reuses the actor's damage-float frame counter for
-    /// this, so the field means two different things depending on whether the actor is down.
+    /// Ticks left before it rises, rolled at death as <see cref="MinimumCountdown"/> to
+    /// <see cref="MaximumCountdown"/>. The original reuses the actor's damage-float frame counter
+    /// for this, so the field means two different things depending on whether the actor is dead.
     /// </param>
     /// <param name="gridX">The actor's grid column, or <see cref="OffGrid"/>.</param>
     /// <returns>True to rise now; false to count down one tick.</returns>

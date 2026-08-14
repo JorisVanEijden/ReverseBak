@@ -9,7 +9,7 @@ using Xunit;
 /// this encounter behave the way it does.
 /// </summary>
 public class SlayerRevivalTests {
-    private const int Down = SlayerRevival.DownFlag;
+    private const int Dead = SlayerRevival.DeadFlag;
 
     [Fact]
     public void AFallenNighthawkRisesAsABlackSlayer() {
@@ -47,15 +47,33 @@ public class SlayerRevivalTests {
     }
 
     [Fact]
-    public void OnlyADownActorIsACandidate() {
-        Assert.True(SlayerRevival.IsCandidate((int)CreatureType.Nighthawk, Down));
+    public void OnlyADeadActorIsACandidate() {
+        Assert.True(SlayerRevival.IsCandidate((int)CreatureType.Nighthawk, Dead));
         Assert.False(SlayerRevival.IsCandidate((int)CreatureType.Nighthawk, 0));
     }
 
     [Fact]
-    public void TheSecondFlagBarsAnOtherwiseEligibleActor() {
+    public void OneThatFledIsBarredEvenThoughItIsDead() {
+        // Barred twice over: it keeps the flag, and the exit path kills it without the death
+        // animation, which is the only place a countdown is ever set.
         Assert.False(SlayerRevival.IsCandidate((int)CreatureType.Nighthawk,
-            Down | SlayerRevival.RevivalBarredFlag));
+            Dead | SlayerRevival.FledFlag));
+    }
+
+    [Fact]
+    public void KillingTheRisersDoesNotEndTheMechanic() {
+        // The sweep counts by creature type with no alive test, and the combatant list never
+        // shrinks — so a dead Black Slayer keeps it running AND is itself an eligible corpse.
+        Assert.True(SlayerRevival.SweepRuns(1));
+        Assert.True(SlayerRevival.IsCandidate((int)CreatureType.BlackSlayer, Dead));
+    }
+
+    [Fact]
+    public void TheCountdownRolledAtDeathIsFourToTen() {
+        Assert.Equal(4, SlayerRevival.MinimumCountdown);
+        Assert.Equal(10, SlayerRevival.MaximumCountdown);
+        Assert.True(SlayerRevival.MinimumCountdown > 0,
+            "a zero roll would let a corpse rise on the very tick it fell");
     }
 
     [Fact]
