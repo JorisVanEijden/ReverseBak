@@ -91,6 +91,10 @@ public static class SpellEffectApplication {
     ///
     /// <para>Note also that this is where the real resistance test lives — the copy inside the
     /// magnitude function is on a path that returns 0 either way, and is vestigial.</para>
+    ///
+    /// <para>It is not the only one, though: the tail checks resistance three more times, each for
+    /// a different purpose. See <see cref="SpellCastTail.ResistanceCheckSites"/> — one boolean
+    /// applied once will not reproduce it.</para>
     /// </remarks>
     public static bool ResistanceSkipsEffect(bool targetResists) => targetResists;
 
@@ -136,14 +140,14 @@ public static class SpellEffectApplication {
         && deliveryCategory != 6;
 
     /// <summary>
-    /// <b>Skyfire is tested a second time here, and what that test does is unresolved.</b>
+    /// <b>Skyfire is tested a second time here, and the second test aborts the cast.</b>
     /// </summary>
     /// <remarks>
-    /// The fixed-amount case re-checks whether the target is using metal — the same question
-    /// <see cref="SpellEffectMagnitude"/> already answers — and on a non-metal target clears the
-    /// register holding the spell record pointer before falling into the shared tail. What that is
-    /// meant to achieve has not been established, so it is recorded rather than modelled. Do not
-    /// assume it is redundant with the magnitude rule without reading the tail.
+    /// The fixed-amount arm exists only to re-check whether the target is using metal, and on a
+    /// non-metal target it clears the register holding the spell record pointer. That register is the
+    /// tail's continue flag — see <see cref="SpellCastTail.RecordPointerDoublesAsContinueFlag"/> — so
+    /// the second test is not redundant with the magnitude rule: the first makes Skyfire's damage
+    /// zero, the second stops the cast before it animates, bills or lands.
     /// </remarks>
     public static bool SkyfireIsRecheckedAtApplication => true;
 }
