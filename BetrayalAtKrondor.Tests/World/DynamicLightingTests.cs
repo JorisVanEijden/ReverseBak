@@ -104,6 +104,26 @@ public class DynamicLightingTests {
     }
 
     [Fact]
+    public void TheModeIsTheOnOffSwitchAndItTracksTheZonePalette() {
+        // Loading a zone palette sets mode 1; disposing them sets 0. Lighting is live exactly while
+        // a zone's palette is resident.
+        Assert.False(DynamicLighting.ModeLights(DynamicLighting.ModeOff));
+        Assert.True(DynamicLighting.ModeLights(DynamicLighting.ModeZone));
+        Assert.True(DynamicLighting.ModeLights(DynamicLighting.ModeExtended));
+    }
+
+    [Fact]
+    public void APaletteQueuedWithNoZoneLoadedIsAppliedRaw() {
+        Assert.False(DynamicLighting.FrameIsLit(palettePending: true, DynamicLighting.ModeOff));
+        Assert.True(DynamicLighting.FrameIsLit(palettePending: true, DynamicLighting.ModeZone));
+    }
+
+    [Fact]
+    public void NoPendingPaletteMeansNoLightingWorkAtAll() {
+        Assert.False(DynamicLighting.FrameIsLit(palettePending: false, DynamicLighting.ModeZone));
+    }
+
+    [Fact]
     public void EachTintKnowsWhichNightFloorItsStrengthComesFrom() {
         Assert.Equal(DaylightLevel.StarduskFloor,
             DynamicLighting.TintFloorFor(DynamicLighting.Tint.Stardusk));

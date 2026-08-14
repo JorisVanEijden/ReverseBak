@@ -119,9 +119,37 @@ public static class DynamicLighting {
         public bool AppliesTint => Tint != Tint.None && TintStrength < MaximumLight;
     }
 
+    /// <summary>Mode set while no zone palette is loaded; nothing is lit.</summary>
+    public const int ModeOff = 0;
+
+    /// <summary>Mode set whenever a zone palette is loaded.</summary>
+    public const int ModeZone = 1;
+
+    /// <summary>The wider mode, lighting almost the whole palette.</summary>
+    public const int ModeExtended = 2;
+
     /// <summary>Whether this mode lights anything.</summary>
     /// <remarks>Any mode other than 1 or 2 <b>returns before touching the palette</b>.</remarks>
-    public static bool ModeLights(int mode) => mode == 1 || mode == 2;
+    public static bool ModeLights(int mode) => mode == ModeZone || mode == ModeExtended;
+
+    /// <summary>
+    /// Whether a frame's pending palette goes through lighting at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>The mode is the on/off switch for the whole system, and it tracks the zone palette.</b>
+    /// Loading one sets it to <see cref="ModeZone"/>; disposing them sets it back to
+    /// <see cref="ModeOff"/>. So lighting is live exactly while a zone's palette is resident, and a
+    /// palette queued with no zone loaded is applied raw.
+    ///
+    /// <para>The frame path also decides <i>when</i>: the lighting runs BEFORE the buffer swap and
+    /// the resulting palette is applied AFTER it. Doing both on the same side of the swap is what
+    /// produces the tearing the original is avoiding.</para>
+    ///
+    /// <para><b>What sets <see cref="ModeExtended"/> is still unestablished.</b> Every screen that
+    /// takes over the display references the mode two or three times, which is the shape of
+    /// save-set-restore, but that has not been read — do not assume it without checking.</para>
+    /// </remarks>
+    public static bool FrameIsLit(bool palettePending, int mode) => palettePending && ModeLights(mode);
 
     /// <summary>The first palette entry a mode lights.</summary>
     /// <remarks>
