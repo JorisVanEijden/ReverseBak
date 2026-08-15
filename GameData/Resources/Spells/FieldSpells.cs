@@ -123,8 +123,10 @@ public static class FieldSpells {
     public static bool UnknownSpellDoesNothing => true;
 
     // ---------------------------------------------------------------- the handlers
-    // Read so far: Cast_Dragons_Breath @0x6cb44, Cast_Candle_Glow @0x6cbbe,
-    // Cast_Scent_of_Sarig @0x6cd6a, Cast_Eyes_of_Ishap @0x6cdbf. The other five are not read yet.
+    // Read: Cast_Dragons_Breath @0x6cb44, Cast_Candle_Glow @0x6cbbe, Cast_Scent_of_Sarig @0x6cd6a,
+    // Cast_Union @0x6cd15, Cast_Eyes_of_Ishap @0x6cdbf, Cast_The_Unseen @0x6ce0f,
+    // Cast_Nacre_Cicatrix @0x6ce5f. NOT yet read: Cast_Stardusk @0x6cc3f,
+    // Cast_And_the_Light_Shall_Lie @0x6ccc0.
 
     /// <summary>Ticks a minute of spell duration is worth.</summary>
     public const int TicksPerDurationUnit = 30;
@@ -147,8 +149,8 @@ public static class FieldSpells {
 
     /// <summary>Whether the power invested lengthens this spell.</summary>
     /// <remarks>
-    /// True for the two that also drive the lighting; false for Scent of Sarig. Recorded per spell
-    /// rather than derived, because nothing in the record distinguishes them.
+    /// True for the two that also drive the lighting; false for Scent of Sarig and Union. Recorded per
+    /// spell rather than derived, because nothing in the record distinguishes them.
     /// </remarks>
     public static bool PowerExtendsDuration(int spellId) =>
         spellId == DragonsBreath || spellId == CandleGlow;
@@ -199,5 +201,61 @@ public static class FieldSpells {
     public static bool LocatorSucceeds(int rollUnder100, int cost) => rollUnder100 <= cost * 10;
 
     /// <summary>Whether this spell is a percentage-roll locator rather than a timed effect.</summary>
-    public static bool IsLocatorRoll(int spellId) => spellId == EyesOfIshap;
+    /// <remarks>
+    /// All three of the no-duration field spells turn out to be locators, and they share one shape:
+    /// charge, roll, then either open the map picker or say "complete waste of time".
+    /// </remarks>
+    public static bool IsLocatorRoll(int spellId) => IsInstantaneous(spellId);
+
+    /// <summary>
+    /// The power a locator subtracts before scaling — <b>zero for two of them and four for Nacre
+    /// Cicatrix</b>.
+    /// </summary>
+    /// <remarks>
+    /// Eyes of Ishap and The Unseen roll against <c>cost × 10</c>; Nacre Cicatrix rolls against
+    /// <c>(cost − 4) × 10</c>. The offset is not a mistake: its cost band starts at 5 rather than 1,
+    /// so the subtraction lines the curve back up. <b>All three reach exactly 100% at their maximum
+    /// cost</b> — 10 × 10 for the first two, (14 − 4) × 10 for the third — which is what shows the
+    /// offset to be deliberate.
+    ///
+    /// <para>Below the offset the arithmetic goes negative and the original's comparison is
+    /// unsigned, so a sub-4 cast would read as always succeeding. That is unreachable: the slider
+    /// cannot go below the record's minimum of 5. Recorded because the model must not be handed a
+    /// smaller cost from a mod without the reachability argument being re-checked.</para>
+    /// </remarks>
+    public static int LocatorCostOffset(int spellId) => spellId == NacreCicatrix ? 4 : 0;
+
+    /// <summary>The chance a locator succeeds, as a percentage.</summary>
+    public static int LocatorChancePercent(int spellId, int cost) =>
+        (cost - LocatorCostOffset(spellId)) * 10;
+
+    /// <summary>Whether the roll lands for a named locator, honouring its offset.</summary>
+    public static bool LocatorSucceeds(int spellId, int rollUnder100, int cost) =>
+        rollUnder100 <= LocatorChancePercent(spellId, cost);
+
+    /// <summary>
+    /// <b>A locator charges before it rolls, so a failure costs full price.</b>
+    /// </summary>
+    /// <remarks>
+    /// The cost is applied as the routine's first act, ahead of the random number. The same shape as
+    /// Black Nimbus in combat, and the reason a run of bad luck on a locator is expensive rather
+    /// than merely disappointing.
+    /// </remarks>
+    public static bool LocatorChargesBeforeRolling => true;
+
+    /// <summary>
+    /// <b>The field cost function is confirmed against the disassembly.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>SpellCasting.ApplyCost</c> was modelled from the canassa reconstruction. Reading
+    /// <c>ApplySpellCost</c> (ovr179 @0x6d2c7) confirms every part of it: the pool change is
+    /// <c>ChangeAttributeValue(actor, HealthStaminaCombo, −cost × 256, 100)</c>, the chapter-8 drain
+    /// scans for the Crystal Staff <b>and does require the equipped flag</b>, and it floors the
+    /// remaining charge at zero rather than wrapping.
+    ///
+    /// <para>That last point matters: the equipped-flag requirement is exactly where this function
+    /// and the power slider diverge, and both sides are now disassembly-verified rather than
+    /// inherited.</para>
+    /// </remarks>
+    public static bool FieldCostMatchesTheDisassembly => true;
 }

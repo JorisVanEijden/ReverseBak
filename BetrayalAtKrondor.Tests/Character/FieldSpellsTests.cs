@@ -130,4 +130,51 @@ public class FieldSpellsTests {
         Assert.True(FieldSpells.IsLocatorRoll(FieldSpells.EyesOfIshap));
         Assert.True(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.EyesOfIshap));
     }
+    [Fact]
+    public void AllThreeNoDurationSpellsAreLocators() {
+        foreach (int id in new[] { FieldSpells.EyesOfIshap, FieldSpells.TheUnseen,
+                     FieldSpells.NacreCicatrix }) {
+            Assert.True(FieldSpells.IsLocatorRoll(id));
+        }
+        Assert.False(FieldSpells.IsLocatorRoll(FieldSpells.DragonsBreath));
+    }
+
+    [Fact]
+    public void NacreCicatrixSubtractsFourBeforeScaling() {
+        Assert.Equal(4, FieldSpells.LocatorCostOffset(FieldSpells.NacreCicatrix));
+        Assert.Equal(0, FieldSpells.LocatorCostOffset(FieldSpells.EyesOfIshap));
+    }
+
+    [Fact]
+    public void AndTheOffsetIsDeliberateBecauseAllThreeReachExactlyOneHundred() {
+        // Eyes of Ishap and The Unseen cost 1..10; Nacre Cicatrix costs 5..14.
+        Assert.Equal(100, FieldSpells.LocatorChancePercent(FieldSpells.EyesOfIshap, cost: 10));
+        Assert.Equal(100, FieldSpells.LocatorChancePercent(FieldSpells.TheUnseen, cost: 10));
+        Assert.Equal(100, FieldSpells.LocatorChancePercent(FieldSpells.NacreCicatrix, cost: 14));
+    }
+
+    [Fact]
+    public void AtTheirMinimumCostsTheOddsAreDeliberatelyPoor() {
+        Assert.Equal(10, FieldSpells.LocatorChancePercent(FieldSpells.EyesOfIshap, cost: 1));
+        Assert.Equal(10, FieldSpells.LocatorChancePercent(FieldSpells.NacreCicatrix, cost: 5));
+    }
+
+    [Fact]
+    public void TheLocatorRollIsInclusive() {
+        Assert.True(FieldSpells.LocatorSucceeds(FieldSpells.NacreCicatrix, rollUnder100: 10,
+            cost: 5));
+        Assert.False(FieldSpells.LocatorSucceeds(FieldSpells.NacreCicatrix, rollUnder100: 11,
+            cost: 5));
+    }
+
+    [Fact]
+    public void AndAFailureCostsFullPrice() {
+        Assert.True(FieldSpells.LocatorChargesBeforeRolling);
+    }
+
+    [Fact]
+    public void UnionIgnoresThePowerJustLikeScentOfSarig() {
+        Assert.False(FieldSpells.PowerExtendsDuration(FieldSpells.Union));
+        Assert.False(FieldSpells.DrivesWorldLighting(FieldSpells.Union));
+    }
 }
