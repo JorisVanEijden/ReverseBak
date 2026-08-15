@@ -123,10 +123,8 @@ public static class FieldSpells {
     public static bool UnknownSpellDoesNothing => true;
 
     // ---------------------------------------------------------------- the handlers
-    // Read: Cast_Dragons_Breath @0x6cb44, Cast_Candle_Glow @0x6cbbe, Cast_Scent_of_Sarig @0x6cd6a,
-    // Cast_Union @0x6cd15, Cast_Eyes_of_Ishap @0x6cdbf, Cast_The_Unseen @0x6ce0f,
-    // Cast_Nacre_Cicatrix @0x6ce5f. NOT yet read: Cast_Stardusk @0x6cc3f,
-    // Cast_And_the_Light_Shall_Lie @0x6ccc0.
+    // All nine read: 0x6cb44, 0x6cbbe, 0x6cc3f, 0x6ccc0, 0x6cd15, 0x6cd6a, 0x6cdbf, 0x6ce0f,
+    // 0x6ce5f. They fall into three groups of three.
 
     /// <summary>Ticks a minute of spell duration is worth.</summary>
     public const int TicksPerDurationUnit = 30;
@@ -149,11 +147,9 @@ public static class FieldSpells {
 
     /// <summary>Whether the power invested lengthens this spell.</summary>
     /// <remarks>
-    /// True for the two that also drive the lighting; false for Scent of Sarig and Union. Recorded per
-    /// spell rather than derived, because nothing in the record distinguishes them.
+    /// True for the three that also drive the lighting; false for the other three timed ones.
     /// </remarks>
-    public static bool PowerExtendsDuration(int spellId) =>
-        spellId == DragonsBreath || spellId == CandleGlow;
+    public static bool PowerExtendsDuration(int spellId) => DrivesWorldLighting(spellId);
 
     /// <summary>
     /// The two field spells that also drive the world lighting.
@@ -161,10 +157,15 @@ public static class FieldSpells {
     /// <remarks>
     /// They set a <i>second</i> timer against the light system and refresh the light sources
     /// immediately, so the change is visible at once rather than at the next tick. Dragon's Breath
-    /// darkens and Candle Glow lightens — the same machinery to opposite ends.
+    /// darkens; Candle Glow and Stardusk lighten.
+    ///
+    /// <para><b>These are exactly the three whose duration scales with the power</b>, which is why
+    /// <see cref="PowerExtendsDuration"/> defers to this. Nothing in the record marks them out — the
+    /// two properties happen to name the same three spells, and a port should keep them tied rather
+    /// than maintaining two lists that could drift apart.</para>
     /// </remarks>
     public static bool DrivesWorldLighting(int spellId) =>
-        spellId == DragonsBreath || spellId == CandleGlow;
+        spellId == DragonsBreath || spellId == CandleGlow || spellId == Stardusk;
 
     /// <summary>
     /// <b>Candle Glow does nothing at all above ground.</b>
@@ -178,14 +179,43 @@ public static class FieldSpells {
     public static bool RequiresUnderground(int spellId) => spellId == CandleGlow;
 
     /// <summary>
+    /// <b>Stardusk is Candle Glow's mirror: it does nothing at all <i>below</i> ground.</b>
+    /// </summary>
+    /// <remarks>
+    /// The same test against the same zone value, with the branch the other way round — and like
+    /// Candle Glow it returns before the sound, the text, the timers and the cost. Two light spells,
+    /// complementary zones, and each a complete no-op in the other's territory.
+    /// </remarks>
+    public static bool RequiresAboveGround(int spellId) => spellId == Stardusk;
+
+    /// <summary>Whether this spell is refused outright by the zone it is cast in.</summary>
+    public static bool RefusedInZone(int spellId, bool underground) =>
+        (RequiresUnderground(spellId) && !underground)
+        || (RequiresAboveGround(spellId) && underground);
+
+    /// <summary>
+    /// <b>"And the Light Shall Lie" does not touch the lighting.</b>
+    /// </summary>
+    /// <remarks>
+    /// Its name and its flavour text both talk about light, and its handler sets one plain spell
+    /// timer with no light timer and no zone gate. The text says as much — the effect is invisible
+    /// and "specifically designed for Moraeulf" — but the name invites the wrong grouping, so it is
+    /// worth stating that it belongs with Scent of Sarig and Union rather than with the three that
+    /// change what the world looks like.
+    /// </remarks>
+    public static bool NameSuggestsLightingButDoesNot(int spellId) =>
+        spellId == AndTheLightShallLie;
+
+    /// <summary>
     /// <b>A timed field spell charges even when it produces no effect.</b>
     /// </summary>
     /// <remarks>
     /// The cost is applied outside the branch that sets the timers, so a computed time of zero means
-    /// no timer, no light change — and the caster pays anyway. Candle Glow above ground is the one
-    /// exception, because it returns before reaching either.
+    /// no timer, no light change — and the caster pays anyway. The two zone-gated spells are the
+    /// exceptions, because in the wrong zone they return before reaching either.
     /// </remarks>
-    public static bool ChargesEvenWithNoEffect(int spellId) => !RequiresUnderground(spellId);
+    public static bool ChargesEvenWithNoEffect(int spellId) =>
+        !RequiresUnderground(spellId) && !RequiresAboveGround(spellId);
 
     /// <summary>
     /// Eyes of Ishap's success chance: <b>ten percent per point of power</b>.

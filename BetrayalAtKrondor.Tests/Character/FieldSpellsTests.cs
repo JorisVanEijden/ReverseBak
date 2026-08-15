@@ -177,4 +177,63 @@ public class FieldSpellsTests {
         Assert.False(FieldSpells.PowerExtendsDuration(FieldSpells.Union));
         Assert.False(FieldSpells.DrivesWorldLighting(FieldSpells.Union));
     }
+    [Fact]
+    public void TheNineFallIntoThreeGroupsOfThree() {
+        var lighting = 0;
+        var timedOnly = 0;
+        var locators = 0;
+        foreach (int id in FieldSpells.All) {
+            if (FieldSpells.IsLocatorRoll(id)) { locators++; }
+            else if (FieldSpells.DrivesWorldLighting(id)) { lighting++; }
+            else { timedOnly++; }
+        }
+
+        Assert.Equal(3, lighting);
+        Assert.Equal(3, timedOnly);
+        Assert.Equal(3, locators);
+    }
+
+    [Fact]
+    public void ThePowerExtendsExactlyTheSpellsThatDriveTheLighting() {
+        // Two properties naming the same three spells; kept tied so they cannot drift.
+        foreach (int id in FieldSpells.All) {
+            Assert.Equal(FieldSpells.DrivesWorldLighting(id), FieldSpells.PowerExtendsDuration(id));
+        }
+    }
+
+    [Fact]
+    public void StarduskIsCandleGlowsMirror() {
+        Assert.True(FieldSpells.RequiresUnderground(FieldSpells.CandleGlow));
+        Assert.True(FieldSpells.RequiresAboveGround(FieldSpells.Stardusk));
+        Assert.True(FieldSpells.RefusedInZone(FieldSpells.CandleGlow, underground: false));
+        Assert.True(FieldSpells.RefusedInZone(FieldSpells.Stardusk, underground: true));
+        Assert.False(FieldSpells.RefusedInZone(FieldSpells.CandleGlow, underground: true));
+        Assert.False(FieldSpells.RefusedInZone(FieldSpells.Stardusk, underground: false));
+    }
+
+    [Fact]
+    public void AndNoOtherFieldSpellCaresWhereItIsCast() {
+        foreach (int id in FieldSpells.All) {
+            if (id == FieldSpells.CandleGlow || id == FieldSpells.Stardusk) {
+                continue;
+            }
+            Assert.False(FieldSpells.RefusedInZone(id, underground: true));
+            Assert.False(FieldSpells.RefusedInZone(id, underground: false));
+        }
+    }
+
+    [Fact]
+    public void BothZoneGatedSpellsAreFreeInTheWrongZone() {
+        // They return before the sound, the text, the timers and the cost.
+        Assert.False(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.CandleGlow));
+        Assert.False(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.Stardusk));
+    }
+
+    [Fact]
+    public void AndTheLightShallLieDoesNotTouchTheLighting() {
+        // Its name and flavour text both talk about light; its handler sets one plain spell timer.
+        Assert.True(FieldSpells.NameSuggestsLightingButDoesNot(FieldSpells.AndTheLightShallLie));
+        Assert.False(FieldSpells.DrivesWorldLighting(FieldSpells.AndTheLightShallLie));
+        Assert.False(FieldSpells.PowerExtendsDuration(FieldSpells.AndTheLightShallLie));
+    }
 }
