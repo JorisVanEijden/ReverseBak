@@ -96,4 +96,56 @@ public static class CastRingLayout {
         }
         return -1;
     }
+    // ---------------------------------------------------------------- the power slider
+    // UI_SelectSpellCost @0x69718.
+
+    /// <summary>
+    /// The power a ring position stands for: <b>the position plus one</b>.
+    /// </summary>
+    /// <remarks>
+    /// Positions are zero-based and powers are one-based, and the routine converts at every single
+    /// use — the hit test returns a position, the info preview is shown the position plus one, and
+    /// the committed cost is the position plus one. Carrying the position through as if it were the
+    /// power makes every cast one point weak.
+    /// </remarks>
+    public static int PowerAtPosition(int ringPosition) => ringPosition + 1;
+
+    /// <summary>The position that offers a given power.</summary>
+    public static int PositionForPower(int power) => power - 1;
+
+    /// <summary>
+    /// <b>A click commits the hovered power outright — there is no confirm step.</b>
+    /// </summary>
+    /// <remarks>
+    /// The click is tested <i>inside</i> the branch that runs only when the cursor is over a
+    /// selectable position, so clicking anywhere off the affordable band does nothing at all: not a
+    /// cancel, not a clamp, just no effect. Together with the hit test refusing positions outside
+    /// the band, that means the slider has no way to select an unaffordable power even momentarily.
+    /// </remarks>
+    public static bool ClickCommitsImmediately => true;
+
+    /// <summary>
+    /// <b>The info panel previews the power under the cursor, not the one selected.</b>
+    /// </summary>
+    /// <remarks>
+    /// Every frame the panel is redrawn for the hovered position, so the damage and cost readout
+    /// tracks the mouse before anything is committed. When the cursor is over no valid position it
+    /// is redrawn with a cost of zero rather than left showing the last value — so the readout
+    /// resets as you leave the band instead of going stale.
+    /// </remarks>
+    public static int PreviewPower(int hoveredPosition) =>
+        hoveredPosition < 0 ? 0 : PowerAtPosition(hoveredPosition);
+
+    /// <summary>The value returned when the slider is cancelled.</summary>
+    public const int Cancelled = -1;
+
+    /// <summary>
+    /// Escape cancels, and the routine <b>waits for the key to come back up</b> before returning.
+    /// </summary>
+    /// <remarks>
+    /// Without that wait the same keypress would be seen again by the screen underneath and cancel
+    /// that too. It is the sort of thing a port on event-driven input gets for free and a port
+    /// polling a key table does not.
+    /// </remarks>
+    public static bool CancelWaitsForKeyRelease => true;
 }
