@@ -556,4 +556,88 @@ public static class MonsterSpellcasting {
     /// action in its row.
     /// </remarks>
     public static bool TurnAndActionGatesMeasureDifferentPools => true;
+
+    // ---------------------------------------------------------------- picking the target
+    // combat_selectTargetByMode @0x63ce6 and its clustering filter @0x6442f.
+
+    /// <summary>What each selection mode looks for in a candidate.</summary>
+    public enum TargetCriterion {
+        /// <summary>Mode 0 — anyone in range.</summary>
+        Anyone,
+
+        /// <summary>Mode 1 — a spellcaster.</summary>
+        Spellcaster,
+
+        /// <summary>Mode 2 — stamina at or below half.</summary>
+        Winded,
+
+        /// <summary>Mode 3 — someone who can shoot a crossbow.</summary>
+        Archer,
+
+        /// <summary>Mode 4 — someone engaging a target that can still act.</summary>
+        EngagingSomeoneStillFighting,
+
+        /// <summary>Mode 5 — someone engaging one particular actor.</summary>
+        EngagingTheFavouredActor,
+
+        /// <summary>Mode 6 — someone engaging a target that has been put out of the fight.</summary>
+        EngagingSomeoneIncapacitated,
+    }
+
+    /// <summary>
+    /// The criterion a selection mode applies.
+    /// </summary>
+    /// <remarks>
+    /// <b>Modes 4 and 6 are a matched pair</b>, and reading either alone is misleading: both require
+    /// the candidate to have a target, and they differ only in whether that target still has the
+    /// combat-status bit that lets it act. One finds an enemy busy with a live opponent, the other
+    /// finds one still hitting somebody who is already down.
+    ///
+    /// <para>Only seven modes exist, and the six caster action slots use modes 0-5 — so mode 6 is
+    /// never reached from the caster AI at all.</para>
+    /// </remarks>
+    public static TargetCriterion CriterionOf(int mode) =>
+        mode >= 0 && mode <= 6 ? (TargetCriterion)mode : TargetCriterion.Anyone;
+
+    /// <summary>The stamina percentage at or below which mode 2 accepts a candidate.</summary>
+    public const int WindedStaminaPercent = 50;
+
+    /// <summary>
+    /// <b>Nearest wins, and ties go to the candidate found later.</b>
+    /// </summary>
+    /// <remarks>
+    /// The scan does not track a best-so-far separately: every time a candidate is accepted it is
+    /// written straight into the actor's target slot <i>and the range bound is tightened to that
+    /// candidate's distance</i>. Since the range test is "at or below", a later candidate at the same
+    /// distance passes and overwrites the earlier one. So equal-distance ties are broken by table
+    /// order, last one winning — the opposite of the usual first-match convention.
+    /// </remarks>
+    public static bool NearestWinsAndTiesGoToTheLater => true;
+
+    /// <summary>
+    /// <b>The casting factor is an exclusion radius, which is why skill makes it smaller.</b>
+    /// </summary>
+    /// <param name="castingFactor">From <see cref="CastingFactor"/> — 4 at no skill, 0 at 100.</param>
+    /// <param name="othersWithinRadius">How many roster actors sit within that radius of the candidate.</param>
+    /// <remarks>
+    /// A candidate is <b>rejected</b> when anyone else is clustered within the factor of it. So the
+    /// factor is a keep-clear distance, and shrinking it as skill rises <i>widens</i> the set of legal
+    /// targets rather than narrowing it — which resolves the formula that looked inverted when it was
+    /// first read.
+    ///
+    /// <para>At full skill the factor is zero, and the counter short-circuits on a zero radius before
+    /// looking at anybody. <b>A maximally skilled caster rejects no one.</b></para>
+    /// </remarks>
+    public static bool CandidateIsTooCrowded(int castingFactor, int othersWithinRadius) =>
+        castingFactor != 0 && othersWithinRadius > 0;
+
+    /// <summary>
+    /// A candidate that is already out of the fight is skipped, whatever the mode.
+    /// </summary>
+    /// <remarks>
+    /// Tested before the mode switch, so it applies to all seven — including mode 0, which otherwise
+    /// accepts anyone. Note the asymmetry with modes 4 and 6, which test the same bit on the
+    /// candidate's <i>target</i> rather than on the candidate.
+    /// </remarks>
+    public static bool CandidateIsEligible(bool candidateIncapacitated) => !candidateIncapacitated;
 }
