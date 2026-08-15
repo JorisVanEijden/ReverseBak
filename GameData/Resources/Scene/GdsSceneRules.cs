@@ -1,5 +1,8 @@
 namespace GameData.Resources.Scene;
 
+using GameData.Resources.Animation;
+using System.Collections.Generic;
+
 using GameData.Resources.GameState;
 using System;
 
@@ -196,4 +199,50 @@ public static class GdsSceneRules {
     /// cannot generate those labels from the hotspot's name text.
     /// </remarks>
     public const string CursorSetResource = "POINTERG.BMX";
+    // ---------------------------------------------------------------- animation tags
+
+    /// <summary>
+    /// The ADS tag name for one of a scene's animation fields.
+    /// </summary>
+    /// <param name="animations">The animation resource's scripts.</param>
+    /// <param name="sceneAnimationTag">
+    /// <see cref="GdsScene.EntryAnimationTag"/>, <see cref="GdsScene.IdleAnimationTag"/> or
+    /// <see cref="GdsScene.TransitionAnimationTag"/>.
+    /// </param>
+    /// <returns>The tag name, or null when the animation has no such script.</returns>
+    /// <remarks>
+    /// <b>A scene's animation fields are ADS script <i>ids</i>, not tag names.</b> The player selects
+    /// scripts by their tag <i>string</i>, so handing it the number — or the number formatted as text
+    /// — matches nothing, and the failure is a log line and a blank screen rather than an exception.
+    /// That is the whole reason this exists.
+    ///
+    /// <para>Confirmed against the shipped data: <c>GDS10A</c> asks <c>g_town</c> for entry 10, which
+    /// is that resource's "ARMANGAR" script, and <c>GDS11A</c> asks for 11, which is
+    /// "SILDEN(CHEAM)". Both towns get their own arrival animation and both share idle 13, the
+    /// resource's "DISPLAY" loop.</para>
+    /// </remarks>
+    public static string AnimationTagFor(IEnumerable<AnimatorScript> animations,
+        int sceneAnimationTag) {
+        if (animations == null) {
+            return null;
+        }
+
+        foreach (AnimatorScript script in animations) {
+            if (script != null && script.Id == sceneAnimationTag) {
+                return script.Tag;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// A scene animation field of zero means <b>there is no such animation</b>.
+    /// </summary>
+    /// <remarks>
+    /// ADS script ids start at one, so zero cannot name a script. Scenes with no transition carry
+    /// zero in that field, and asking the player for it would produce the same silent miss as passing
+    /// an id where a name belongs.
+    /// </remarks>
+    public static bool HasAnimation(int sceneAnimationTag) => sceneAnimationTag > 0;
 }
