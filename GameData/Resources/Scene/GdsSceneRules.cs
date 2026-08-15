@@ -152,4 +152,48 @@ public static class GdsSceneRules {
 
     /// <summary>The global is cleared after banking, so nothing carries to the next location.</summary>
     public static bool BardingRewardGlobalIsScratch => true;
+    // ---------------------------------------------------------------- what a scene actually draws
+    // GDS_RunScene @0x4de9d, the entry sequence.
+
+    /// <summary>
+    /// <b>A location's picture is its animation, not a background image.</b>
+    /// </summary>
+    /// <remarks>
+    /// Verified from the entry sequence rather than inferred: the scene file is loaded, and the very
+    /// next thing drawn is <c>playAnimationScene</c> on the scene's own animation id. There is no
+    /// background bitmap load anywhere near it.
+    ///
+    /// <para>The one SCX at entry is <c>Dialog.scr</c>, loaded <b>once</b> per run and into a
+    /// <i>different</i> video buffer — it is the dialogue panel's frame, not the location. Reading it
+    /// as the backdrop is the obvious mistake, and it would put the dialogue border behind every
+    /// town gate.</para>
+    ///
+    /// <para>So rendering a location means driving the cutscene engine and holding on its last
+    /// frame. A port looking for a static image per scene will not find one.</para>
+    /// </remarks>
+    public static bool PictureComesFromTheAnimation => true;
+
+    /// <summary>The single SCX the scene loop loads at entry, and what it is for.</summary>
+    public const string DialogueFrameResource = "Dialog.scr";
+
+    /// <summary>
+    /// <b>The dialogue frame is loaded once, not per sub-scene.</b>
+    /// </summary>
+    /// <remarks>
+    /// Guarded by a flag that is set the first time through, so re-entering a sub-scene does not
+    /// reload it. Cheap to get wrong in a port built around per-scene setup, and the symptom would be
+    /// a flicker on every hotspot that changes scene.
+    /// </remarks>
+    public static bool DialogueFrameLoadsOncePerRun => true;
+
+    /// <summary>
+    /// The cursor set interactive locations use.
+    /// </summary>
+    /// <remarks>
+    /// Loaded at entry: an arrow, a torch, an hourglass, a magnifier and then a run of baked gothic
+    /// text labels — the hotspot names are <i>pictures</i>, not strings rendered at runtime. Which
+    /// hotspot shows which is data-driven by the scene, the same pattern REQ elements use, so a port
+    /// cannot generate those labels from the hotspot's name text.
+    /// </remarks>
+    public const string CursorSetResource = "POINTERG.BMX";
 }
