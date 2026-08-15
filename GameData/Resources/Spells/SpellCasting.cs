@@ -252,6 +252,36 @@ public static class SpellCasting {
     /// </remarks>
     public static bool FieldCostIsAlwaysCharged => true;
 
+    /// <summary>
+    /// Whether the world-loop cast button is usable — <c>UI_UpdateCastingIcon</c> @0x6c9c8.
+    /// </summary>
+    /// <param name="activeCastingSkills">The three active party members' casting-skill maxima.</param>
+    /// <remarks>
+    /// The button is enabled when <b>any</b> of the three active members can cast, and it is
+    /// recomputed as the party changes rather than being set once. It does not consider whether
+    /// anyone can afford anything — only whether a caster is present.
+    ///
+    /// <para><b>The flag it writes is inverted:</b> the routine stores 0 when a caster exists and 1
+    /// when none does, so the stored value is "disabled" rather than "enabled". A port that reads it
+    /// the natural way round greys the button out for exactly the parties that should have it.</para>
+    /// </remarks>
+    public static bool CastButtonIsUsable(System.Collections.Generic.IReadOnlyList<int> activeCastingSkills) {
+        if (activeCastingSkills == null) {
+            return false;
+        }
+
+        foreach (int skill in activeCastingSkills) {
+            if (IsCaster(skill)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The value stored for a usable cast button — zero, not one.</summary>
+    public static int CastButtonFlag(bool usable) => usable ? 0 : 1;
+
     private static RuntimeItem FindPowerSource(SpellCastContext context, bool requireReadyFlag) {
         if (context.Inventory == null) {
             return null;

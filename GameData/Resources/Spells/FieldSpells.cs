@@ -288,4 +288,53 @@ public static class FieldSpells {
     /// inherited.</para>
     /// </remarks>
     public static bool FieldCostMatchesTheDisassembly => true;
+    // ---------------------------------------------------------------- the locator screen
+    // CastLocatorSpell @0x6d062.
+
+    /// <summary>What a locator spell actually searches for.</summary>
+    public enum LocatorTarget {
+        /// <summary>Nothing — not a locator.</summary>
+        None,
+
+        /// <summary>Valuables.</summary>
+        Valuables,
+
+        /// <summary>Food.</summary>
+        Food,
+
+        /// <summary>Magic.</summary>
+        Magic,
+    }
+
+    /// <summary>
+    /// Which search a locator runs.
+    /// </summary>
+    /// <remarks>
+    /// <b>The three locators share one screen and differ only in this.</b> Eyes of Ishap finds
+    /// valuables, The Unseen finds food and Nacre Cicatrix finds magic — and nothing in
+    /// <c>SPELLS.DAT</c> says so. They are told apart by a three-way comparison on the spell number
+    /// inside the shared screen, so the search is the entire difference between them.
+    /// </remarks>
+    public static LocatorTarget TargetOf(int spellId) {
+        switch (spellId) {
+            case EyesOfIshap: return LocatorTarget.Valuables;
+            case TheUnseen: return LocatorTarget.Food;
+            case NacreCicatrix: return LocatorTarget.Magic;
+            default: return LocatorTarget.None;
+        }
+    }
+
+    /// <summary>
+    /// <b>The locator screen borrows the world view rather than being a map screen.</b>
+    /// </summary>
+    /// <remarks>
+    /// It saves the render viewport, shrinks it to an inset, raises the camera to the map's maximum
+    /// height, draws the map into the clipped region and overlays <c>REQ_CMAP</c> — then puts the
+    /// viewport and the camera back on the way out. So a port should treat this as a camera and
+    /// clip-rect change over the live world, not as a separate screen with its own art.
+    /// </remarks>
+    public static bool LocatorReusesTheWorldViewport => true;
+
+    /// <summary>The inset the world view is clipped to while the locator is open.</summary>
+    public static (int X, int Y, int Width, int Height) LocatorViewport => (134, 16, 167, 89);
 }
