@@ -8,19 +8,36 @@ public enum CombatantFlags {
     /// <summary>Nothing set.</summary>
     None = 0,
 
+    /// <summary>Has not yet acted this round. Cleared when the actor takes its turn and set again
+    /// by the round reset.</summary>
+    /// <remarks>
+    /// <b>0x01, verified from the encodings.</b> The round reset ORs 0x01 into every combatant
+    /// (<c>80 4f 08 01</c>), the turn advance ANDs it out of whoever just acted, and Defend clears
+    /// it with <c>80 67 08 fe</c>. This was previously modelled as 0x04 — the bit the round reset
+    /// <i>clears</i> — which was harmless only because nothing yet reads a raw status byte into this
+    /// enum.
+    /// </remarks>
+    Ready = 0x01,
+
     /// <summary>Down. A dead combatant is skipped by turn order and by targeting.</summary>
     Dead = 0x02,
 
-    /// <summary>Has not yet acted this round. Cleared when the actor takes its turn and set again
-    /// by the round reset.</summary>
-    Ready = 0x04,
+    /// <summary>
+    /// Cleared for every combatant at the start of a round. <b>What it means is not established</b>
+    /// — only that the round reset clears it (<c>80 67 08 fb</c>) — so it is here to reserve the bit
+    /// rather than to be used.
+    /// </summary>
+    ClearedEachRound = 0x04,
 
     /// <summary>Parrying — the Defend command. Raises an attacker's roll by 20, and is cleared the
     /// moment this combatant is picked to act again, so it lasts exactly one round.</summary>
+    /// <remarks>0x08, verified: <c>combat_defend</c> @0x64201 sets exactly this bit.</remarks>
     Parry = 0x08,
 
     /// <summary>Defend was ordered this round (the regen half of Defend, distinct from
     /// <see cref="Parry"/>).</summary>
+    /// <remarks>Not yet verified against the original's byte; <c>combat_defend</c> sets only
+    /// <see cref="Parry"/>.</remarks>
     Defending = 0x10,
 
     /// <summary>Routed: heading for the edge of the field to leave the battle.</summary>

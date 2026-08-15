@@ -142,4 +142,53 @@ public static class CombatActionDispatch {
 
     /// <summary>Screen Y at which the combat field gives way to the menu bar.</summary>
     public const int FieldBottomY = 0x8C;
+
+    // ---------------------------------------------------------------- round and turn transitions
+    // combatenc_begin_round_reset_flags @0x640ff, combat_arena_advance_turn @0x6141c.
+
+    /// <summary>
+    /// What a new round does to every combatant.
+    /// </summary>
+    /// <remarks>
+    /// Three things per actor, and only three: <see cref="CombatantFlags.Ready"/> is set,
+    /// <see cref="CombatantFlags.ClearedEachRound"/> is cleared, and a target that has been put out
+    /// of the fight is dropped.
+    ///
+    /// <para><b>Parry is not touched here.</b> It is cleared when a combatant is next picked to act,
+    /// which is what makes Defend last exactly one round rather than until the next round boundary —
+    /// a distinction that matters for anyone acting late in the round after the defender.</para>
+    /// </remarks>
+    public static CombatantFlags BeginRound(CombatantFlags flags) =>
+        (flags | CombatantFlags.Ready) & ~CombatantFlags.ClearedEachRound;
+
+    /// <summary>
+    /// <b>A stale target is dropped at the round boundary, not when it falls.</b>
+    /// </summary>
+    /// <param name="targetCanStillAct">The current target is not out of the fight.</param>
+    /// <remarks>
+    /// The reset clears any target whose cannot-act bit is set. Within a round an actor can still be
+    /// pointed at somebody who has just gone down — the engine only tidies up between rounds, which
+    /// is visible if anything reads the target during the round it happens.
+    /// </remarks>
+    public static bool KeepsTargetIntoNextRound(bool targetCanStillAct) => targetCanStillAct;
+
+    /// <summary>
+    /// <b>Ending a turn faces the actor before spending it.</b>
+    /// </summary>
+    /// <remarks>
+    /// The turn advance turns the outgoing actor toward its target (or the nearest enemy if it has
+    /// none) and only then clears its ready flag. So a combatant's final facing is a property of the
+    /// turn it just took, not of whatever happens next.
+    /// </remarks>
+    public static bool TurnEndFacesBeforeSpending => true;
+
+    /// <summary>
+    /// <b>The turn loop skips over anyone who cannot act, rather than ending the round.</b>
+    /// </summary>
+    /// <remarks>
+    /// After picking the next actor the advance re-tests its cannot-act bit and, if set, picks again
+    /// — a loop, not a single retry. So a round in which several combatants are incapacitated
+    /// advances straight past all of them to the first one that can move.
+    /// </remarks>
+    public static bool AdvanceSkipsIncapacitatedActors => true;
 }

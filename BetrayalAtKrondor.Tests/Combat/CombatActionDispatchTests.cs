@@ -73,4 +73,43 @@ public class CombatActionDispatchTests {
     public void HandingControlOverSpendsThePreviousTurn() {
         Assert.True(CombatActionDispatch.SwitchingActorSpendsTheCurrentTurn);
     }
+    [Fact]
+    public void ANewRoundMakesEveryoneReadyAndClearsTheRoundBit() {
+        CombatantFlags after = CombatActionDispatch.BeginRound(CombatantFlags.ClearedEachRound);
+        Assert.Equal(CombatantFlags.Ready, after & CombatantFlags.Ready);
+        Assert.Equal(CombatantFlags.None, after & CombatantFlags.ClearedEachRound);
+    }
+
+    [Fact]
+    public void ButItDoesNotTouchParry() {
+        // Parry is cleared when the defender is next picked, which is what makes Defend last
+        // exactly one round rather than until the next boundary.
+        CombatantFlags after = CombatActionDispatch.BeginRound(CombatantFlags.Parry);
+        Assert.Equal(CombatantFlags.Parry, after & CombatantFlags.Parry);
+    }
+
+    [Fact]
+    public void TheReadyBitIsTheOriginalsLowBit() {
+        // Previously modelled as 0x04 — the bit the round reset clears.
+        Assert.Equal(0x01, (int)CombatantFlags.Ready);
+        Assert.Equal(0x02, (int)CombatantFlags.Dead);
+        Assert.Equal(0x04, (int)CombatantFlags.ClearedEachRound);
+        Assert.Equal(0x08, (int)CombatantFlags.Parry);
+    }
+
+    [Fact]
+    public void ATargetThatHasFallenIsDroppedBetweenRounds() {
+        Assert.False(CombatActionDispatch.KeepsTargetIntoNextRound(targetCanStillAct: false));
+        Assert.True(CombatActionDispatch.KeepsTargetIntoNextRound(targetCanStillAct: true));
+    }
+
+    [Fact]
+    public void EndingATurnFacesTheActorFirst() {
+        Assert.True(CombatActionDispatch.TurnEndFacesBeforeSpending);
+    }
+
+    [Fact]
+    public void AndTheAdvanceSkipsPastEveryoneWhoCannotAct() {
+        Assert.True(CombatActionDispatch.AdvanceSkipsIncapacitatedActors);
+    }
 }
