@@ -1,6 +1,7 @@
 namespace GameData.Resources.Spells;
 
 using GameData;
+using GameData.Resources.Character;
 using GameData.Resources.Inventory;
 using GameData.Resources.Object;
 
@@ -55,11 +56,10 @@ public static class SpellCastRoutines {
     /// <c>handleActorDeath</c> — and the routine returns there, so the caster gains nothing from the
     /// kill. Nothing in <c>SPELLS.DAT</c> or the creature data says a wind elemental is made of the
     /// attribute this spell steals; it is a hard-coded creature check inside the routine.
-    /// </remarks>
-    /// <remarks>
-    /// 54 — read from the compare's own bytes (<c>83 7f 02 36</c>) rather than from the symbol, and
-    /// it lands inside the band of creature types Grief of 1000 Nights also exempts, which is a
-    /// useful corroboration that this is the elemental/mindless range.
+    ///
+    /// <para>54 — read from the compare's own bytes (<c>83 7f 02 36</c>) rather than from the
+    /// symbol, and it lands inside the band of creature types Grief of 1000 Nights also exempts,
+    /// which corroborates it as the elemental/mindless range.</para>
     /// </remarks>
     public const int WindElementalCreatureType = 54;
 
@@ -383,4 +383,98 @@ public static class SpellCastRoutines {
     /// wearing another's identity, after The Fetters of Rime.
     /// </remarks>
     public static bool KnockbackWearsRiverSong => true;
+
+    // ---------------------------------------------------------------- The heal (targeting type 2)
+    // Spell_HealTarget @0x682f3.
+
+    /// <summary>
+    /// The heal's ceiling: <b>80% of the target's combined health and stamina maximum</b>.
+    /// </summary>
+    /// <remarks>
+    /// Passed straight through as <c>StatEngine.ModifyHealthPool</c>'s <c>healTargetPercent</c>, which
+    /// already models the consequence: a positive delta only applies while the pool is <i>below</i>
+    /// the target, and is clamped to it. So <b>a spell heal cannot take anyone past four fifths of
+    /// full</b>, and casting on someone already there does nothing at all — while still costing.
+    ///
+    /// <para>The same four fifths that <see cref="CharacterHeal.PartialHealPercent"/> lands on,
+    /// reached by a different route: the rest-and-dialog heal fills the pool outright and then gives
+    /// a fifth back, while the spell heal simply caps. Two arithmetics, one ceiling — so 80% of
+    /// maximum is the engine's idea of "as good as magic gets", and only an exact-100 heal goes
+    /// past it.</para>
+    /// </remarks>
+    public const int HealTargetPercent = 80;
+
+    /// <summary>
+    /// The afflictions that <b>block a heal outright</b>.
+    /// </summary>
+    /// <remarks>
+    /// Six of the seven, tested one after another; any non-zero rank skips the heal entirely — not
+    /// reduces it. <see cref="ActorCondition.Healing"/> is the one deliberately left out, which is
+    /// the only sensible exclusion: being under a healing effect should not stop another.
+    ///
+    /// <para>So a poisoned or starving character cannot be healed by magic at all, which is a
+    /// substantial tactical rule that no part of the spell data expresses.</para>
+    /// </remarks>
+    public static readonly ActorCondition[] AfflictionsThatBlockHealing = {
+        ActorCondition.Sick,
+        ActorCondition.Plagued,
+        ActorCondition.Poisoned,
+        ActorCondition.Drunk,
+        ActorCondition.Starving,
+        ActorCondition.NearDeath,
+    };
+
+    /// <summary>
+    /// Whether the heal lands, given the target's afflictions.
+    /// </summary>
+    /// <param name="targetActorNumber">0 for a monster; 1-6 for a member of the party.</param>
+    /// <param name="conditions">The target's affliction ranks, or null for an actor without a row.</param>
+    /// <remarks>
+    /// <b>A monster is always healable</b> — the routine tests the actor number first and jumps
+    /// straight to the heal when it is zero, because non-party actors have no affliction row at all.
+    /// </remarks>
+    public static bool HealApplies(int targetActorNumber, ActorConditions conditions) {
+        if (targetActorNumber == 0 || conditions == null) {
+            return true;
+        }
+
+        foreach (ActorCondition condition in AfflictionsThatBlockHealing) {
+            if (conditions[condition] != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// <b>Thoughts Like Clouds on the caster blocks the heal before the caster is charged.</b>
+    /// </summary>
+    /// <remarks>
+    /// The test is the routine's first act, ahead of the sound, the charge and everything else — so
+    /// this is the one case in which a targeting-type-2 delivery does not bill. Contrast
+    /// <see cref="SpellCastTail.CasterPays"/>, which holds for every type-2 cast that gets past this
+    /// gate, including a negative-cost one.
+    /// </remarks>
+    public static bool HealIsBlockedForFree(bool casterHasThoughtsLikeClouds) =>
+        casterHasThoughtsLikeClouds;
+
+    /// <summary>
+    /// The floating number the heal shows: <b>the total gain, negated</b>.
+    /// </summary>
+    /// <remarks>
+    /// Computed from health and stamina snapshots taken before the change and summed, then negated —
+    /// so healing displays as a negative figure and damage as a positive one. Showing the gain as a
+    /// positive number puts the sign the wrong way round against every other floating number in
+    /// combat.
+    ///
+    /// <para>It is also computed on the blocked path, where the delta is zero, so a heal that an
+    /// affliction refused still flashes a 0 over the target rather than nothing.</para>
+    /// </remarks>
+    public static int HealFloatingNumber(int healthBefore, int healthAfter,
+        int staminaBefore, int staminaAfter) =>
+        -((healthAfter - healthBefore) + (staminaAfter - staminaBefore));
+
+    /// <summary>How many frames that number stays on screen.</summary>
+    public const int HealFloatingNumberFrames = 8;
 }

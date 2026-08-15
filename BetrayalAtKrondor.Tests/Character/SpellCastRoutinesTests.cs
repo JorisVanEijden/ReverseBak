@@ -2,6 +2,7 @@ namespace BetrayalAtKrondor.Tests.Character;
 
 using System.Collections.Generic;
 using GameData;
+using GameData.Resources.Character;
 using GameData.Resources.Data;
 using GameData.Resources.Inventory;
 using GameData.Resources.Object;
@@ -200,6 +201,83 @@ public class SpellCastRoutinesTests {
         for (int direction = 1; direction <= 7; direction++) {
             Assert.False(SpellCastRoutines.KnockbackIsInert(direction));
         }
+    }
+
+    [Fact]
+    public void SixOfTheSevenAfflictionsBlockASpellHealEntirely() {
+        foreach (ActorCondition condition in SpellCastRoutines.AfflictionsThatBlockHealing) {
+            var conditions = new ActorConditions();
+            conditions[condition] = 1;
+            Assert.False(SpellCastRoutines.HealApplies(targetActorNumber: 2, conditions));
+        }
+    }
+
+    [Fact]
+    public void HealingIsTheOneDeliberatelyLeftOut() {
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Healing] = 50;
+        Assert.True(SpellCastRoutines.HealApplies(targetActorNumber: 2, conditions));
+        Assert.DoesNotContain(ActorCondition.Healing, SpellCastRoutines.AfflictionsThatBlockHealing);
+    }
+
+    [Fact]
+    public void AMonsterIsAlwaysHealable() {
+        // Tested before the afflictions are read at all — non-party actors have no row.
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Poisoned] = 90;
+        Assert.True(SpellCastRoutines.HealApplies(targetActorNumber: 0, conditions));
+    }
+
+    [Fact]
+    public void AHealthyPartyMemberIsHealed() {
+        Assert.True(SpellCastRoutines.HealApplies(targetActorNumber: 3, new ActorConditions()));
+    }
+
+    [Fact]
+    public void ThoughtsLikeCloudsBlocksTheHealBeforeTheCasterIsCharged() {
+        // The one case where a type-2 delivery does not bill.
+        Assert.True(SpellCastRoutines.HealIsBlockedForFree(casterHasThoughtsLikeClouds: true));
+        Assert.True(SpellCastTail.CasterPays(costWasNegated: true, targetingType: 2));
+    }
+
+    [Fact]
+    public void ASpellHealCannotPassFourFifthsOfTheCombinedPool() {
+        var health = new ActorStat { Base = 50, Max = 50 };
+        var stamina = new ActorStat { Base = 20, Max = 50 };
+        int sum = StatEngine.ModifyHealthPool(health, stamina, 200L << 8,
+            SpellCastRoutines.HealTargetPercent, out _);
+
+        Assert.Equal(80, sum);
+    }
+
+    [Fact]
+    public void AndDoesNothingAtAllForSomeoneAlreadyThere() {
+        var health = new ActorStat { Base = 50, Max = 50 };
+        var stamina = new ActorStat { Base = 45, Max = 50 };
+        int sum = StatEngine.ModifyHealthPool(health, stamina, 200L << 8,
+            SpellCastRoutines.HealTargetPercent, out _);
+
+        Assert.Equal(95, sum);
+    }
+
+    [Fact]
+    public void TheSpellHealAndTheRestHealAgreeOnTheCeiling() {
+        // Reached two different ways — the rest heal fills and gives a fifth back, the spell heal
+        // caps — and they land on the same number.
+        Assert.Equal(CharacterHeal.PartialHealPercent, SpellCastRoutines.HealTargetPercent);
+    }
+
+    [Fact]
+    public void TheFloatingNumberIsTheGainNegated() {
+        // Healing shows negative, damage positive — the sign convention is shared.
+        Assert.Equal(-12, SpellCastRoutines.HealFloatingNumber(
+            healthBefore: 10, healthAfter: 18, staminaBefore: 4, staminaAfter: 8));
+    }
+
+    [Fact]
+    public void AndABlockedHealStillFlashesAZero() {
+        Assert.Equal(0, SpellCastRoutines.HealFloatingNumber(
+            healthBefore: 10, healthAfter: 10, staminaBefore: 4, staminaAfter: 4));
     }
 
     private static ObjectInfoSet BuildObjects() => new ObjectInfoSet("O", new List<ObjectInfo> {
