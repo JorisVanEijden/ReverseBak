@@ -1,0 +1,76 @@
+namespace BetrayalAtKrondor.Tests.Combat;
+
+using GameData.Resources.Combat;
+using Xunit;
+
+/// <summary>
+/// What a click on the combat field selects: two melee attacks on two mouse buttons, and a guard
+/// action that quietly becomes a rest.
+/// </summary>
+public class CombatActionDispatchTests {
+    [Fact]
+    public void TheTwoMeleeAttacksAreOnTheTwoMouseButtons() {
+        Assert.Equal(CombatActionDispatch.MeleeAttack.Thrust,
+            CombatActionDispatch.AttackFor(CombatActionDispatch.LeftButton));
+        Assert.Equal(CombatActionDispatch.MeleeAttack.Swing,
+            CombatActionDispatch.AttackFor(CombatActionDispatch.RightButton));
+        Assert.Equal(CombatActionDispatch.MeleeAttack.None, CombatActionDispatch.AttackFor(0));
+    }
+
+    [Fact]
+    public void OnlyTheThrustClosesTheDistance() {
+        // So the same click on the same enemy either moves you or refuses, by button.
+        Assert.True(CombatActionDispatch.ApproachesTarget(CombatActionDispatch.MeleeAttack.Thrust));
+        Assert.False(CombatActionDispatch.ApproachesTarget(CombatActionDispatch.MeleeAttack.Swing));
+    }
+
+    [Fact]
+    public void AnExhaustedCharacterCanStillThrustButNotSwing() {
+        Assert.True(CombatActionDispatch.HasReservesFor(CombatActionDispatch.MeleeAttack.Thrust,
+            healthStaminaPool: 1));
+        Assert.False(CombatActionDispatch.HasReservesFor(CombatActionDispatch.MeleeAttack.Swing,
+            healthStaminaPool: 1));
+        Assert.True(CombatActionDispatch.HasReservesFor(CombatActionDispatch.MeleeAttack.Swing,
+            healthStaminaPool: 2));
+    }
+
+    [Fact]
+    public void ReachAndMovementAreTheSameBudget() {
+        // You cannot strike something you could not have walked to.
+        Assert.True(CombatActionDispatch.WithinReach(cursorDistance: 3, movementAllowance: 3));
+        Assert.False(CombatActionDispatch.WithinReach(cursorDistance: 4, movementAllowance: 3));
+    }
+
+    [Fact]
+    public void WalkingIntoTroubleCostsTheThrust() {
+        Assert.False(CombatActionDispatch.ThrustSurvivesTheApproach(
+            attackerIncapacitatedAfterApproach: true));
+        Assert.True(CombatActionDispatch.ThrustSurvivesTheApproach(
+            attackerIncapacitatedAfterApproach: false));
+    }
+
+    [Fact]
+    public void AHealthyCharacterGuardsAndAHurtOneRests() {
+        // One menu action, two behaviours, and the player is not told which they got.
+        Assert.Equal(CombatActionDispatch.GuardAction.Defend, CombatActionDispatch.GuardFor(80));
+        Assert.Equal(CombatActionDispatch.GuardAction.Defend, CombatActionDispatch.GuardFor(100));
+        Assert.Equal(CombatActionDispatch.GuardAction.Rest, CombatActionDispatch.GuardFor(79));
+    }
+
+    [Fact]
+    public void TheThresholdIsFourFifths() {
+        Assert.Equal(80, CombatActionDispatch.DefendThresholdPercent);
+    }
+
+    [Fact]
+    public void ClicksInTheMenuBarAreNotFieldActions() {
+        Assert.True(CombatActionDispatch.ClickIsOnTheField(
+            CombatActionDispatch.FieldBottomY - 1));
+        Assert.False(CombatActionDispatch.ClickIsOnTheField(CombatActionDispatch.FieldBottomY));
+    }
+
+    [Fact]
+    public void HandingControlOverSpendsThePreviousTurn() {
+        Assert.True(CombatActionDispatch.SwitchingActorSpendsTheCurrentTurn);
+    }
+}
