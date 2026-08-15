@@ -280,6 +280,56 @@ public class SpellCastRoutinesTests {
             healthBefore: 10, healthAfter: 10, staminaBefore: 4, staminaAfter: 4));
     }
 
+    [Fact]
+    public void MadGodsRageChargesThreeHealthPerActorPerRound() {
+        // Charged from inside the loop, which is why the spell also clears the continue flag.
+        Assert.Equal(3, SpellCastRoutines.MadGodsRageCostPerActorPerRound);
+        Assert.False(SpellCastTail.EndingEarlyIsFree(SpellIds.MadGodsRage));
+    }
+
+    [Fact]
+    public void TheSurchargeRaisesMadGodsRageASecondTime() {
+        // It already added half again to the cost in the dispatcher's prologue.
+        Assert.Equal(15, SpellCastRoutines.MadGodsRageBase(surcharged: false));
+        Assert.Equal(22, SpellCastRoutines.MadGodsRageBase(surcharged: true));
+    }
+
+    [Fact]
+    public void TheExplosionAddsFiveOnTopOfTheRoll() {
+        Assert.Equal(18, SpellCastRoutines.MadGodsRageDamage(
+            surcharged: false, rollUnder5: 3, exploded: false));
+        Assert.Equal(23, SpellCastRoutines.MadGodsRageDamage(
+            surcharged: false, rollUnder5: 3, exploded: true));
+    }
+
+    [Fact]
+    public void TheStrikeChanceIsNotACoinFlipAndShiftsWithTheFieldSize() {
+        // count/2 + 1 out of count: four in six, but four in seven with one more actor present.
+        int six = 0, seven = 0;
+        for (int roll = 0; roll < 6; roll++) {
+            if (SpellCastRoutines.MadGodsRageStrikes(6, roll)) { six++; }
+        }
+        for (int roll = 0; roll < 7; roll++) {
+            if (SpellCastRoutines.MadGodsRageStrikes(7, roll)) { seven++; }
+        }
+
+        Assert.Equal(4, six);
+        Assert.Equal(4, seven);
+    }
+
+    [Fact]
+    public void AnEmptyFieldStrikesNobody() {
+        Assert.False(SpellCastRoutines.MadGodsRageStrikes(0, 0));
+    }
+
+    [Fact]
+    public void ThePoolCanHoldASpellNobodyCast() {
+        // Four sites register an effect with zero cost and duration purely to borrow its
+        // presentation, then remove the slot — so a pool entry is not proof of a cast.
+        Assert.True(SpellCastRoutines.SpellsBorrowEachOthersIdentities);
+        Assert.True(SpellCastRoutines.KnockbackWearsRiverSong);
+    }
+
     private static ObjectInfoSet BuildObjects() => new ObjectInfoSet("O", new List<ObjectInfo> {
         new ObjectInfo("sw") {
             Number = 20, Name = "Broadsword", ObjectType = ObjectType.Sword,

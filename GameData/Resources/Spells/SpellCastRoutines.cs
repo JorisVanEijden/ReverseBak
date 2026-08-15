@@ -477,4 +477,96 @@ public static class SpellCastRoutines {
 
     /// <summary>How many frames that number stays on screen.</summary>
     public const int HealFloatingNumberFrames = 8;
+
+    // ---------------------------------------------------------------- Mad God's Rage
+    // Cast_Mad_Gods_Rage @0x67acc.
+
+    /// <summary>
+    /// <b>Mad God's Rage does not resolve once — it keeps going until the caster is spent.</b>
+    /// </summary>
+    /// <remarks>
+    /// After each pass over the combat actors the routine pauses, then loops back and does the whole
+    /// thing again, and it only stops when <i>either</i> no actor is eligible any more <i>or</i> the
+    /// caster has nothing left to pay with. Every actor struck costs the caster
+    /// <see cref="MadGodsRageCostPerActorPerRound"/> health, charged from inside the loop.
+    ///
+    /// <para>That is why its record's damage of 15 looks so modest: it is per actor per round, and
+    /// the number of rounds is however many the caster survives. A port that resolves it once turns
+    /// the game's most dangerous spell into a weak area attack.</para>
+    /// </remarks>
+    public static bool MadGodsRageRepeatsUntilTheCasterIsSpent => true;
+
+    /// <summary>What each struck actor costs the caster, in health, every round.</summary>
+    public const int MadGodsRageCostPerActorPerRound = 3;
+
+    /// <summary>The base damage, before the surcharge and the per-actor roll.</summary>
+    public const int MadGodsRageBaseDamage = 15;
+
+    /// <summary>
+    /// <b>The surcharge global raises Mad God's Rage twice.</b>
+    /// </summary>
+    /// <remarks>
+    /// It has already added half again to the cast's <i>cost</i> in the dispatcher's prologue, and
+    /// the routine reads the same flag once more to add half again to its <i>damage</i> — then
+    /// clears it. So a surcharged Mad God's Rage is boosted on both dials from one flag, which is
+    /// invisible unless you notice the global is read in two places.
+    /// </remarks>
+    public static int MadGodsRageBase(bool surcharged) =>
+        surcharged ? MadGodsRageBaseDamage + MadGodsRageBaseDamage / 2 : MadGodsRageBaseDamage;
+
+    /// <summary>One in this many struck actors gets the louder explosion.</summary>
+    public const int MadGodsRageExplosionOneIn = 3;
+
+    /// <summary>What the explosion adds on top.</summary>
+    public const int MadGodsRageExplosionBonus = 5;
+
+    /// <summary>
+    /// The damage one actor takes on one round.
+    /// </summary>
+    /// <param name="surcharged">Whether the surcharge flag was set when the cast began.</param>
+    /// <param name="rollUnder5">The per-actor roll, 0-4.</param>
+    /// <param name="exploded">Whether this actor drew the one-in-three explosion.</param>
+    public static int MadGodsRageDamage(bool surcharged, int rollUnder5, bool exploded) =>
+        MadGodsRageBase(surcharged) + rollUnder5 + (exploded ? MadGodsRageExplosionBonus : 0);
+
+    /// <summary>
+    /// Whether this actor is struck this round: <b>just over half the time</b>.
+    /// </summary>
+    /// <remarks>
+    /// The roll is taken modulo the combat actor count and compared against <c>count / 2 + 1</c>, so
+    /// the odds are not a flat 50% and they shift with how many actors are on the grid — four in six
+    /// with a full field, four in seven with one more. Reading it as a coin flip is close but never
+    /// right.
+    /// </remarks>
+    public static bool MadGodsRageStrikes(int combatActorCount, int rollUnderActorCount) =>
+        combatActorCount > 0 && rollUnderActorCount < (combatActorCount / 2) + 1;
+
+    /// <summary>
+    /// <b>Resistance is checked twice per actor per round, for one decision.</b>
+    /// </summary>
+    /// <remarks>
+    /// Once before the strike roll and again immediately before the damage, on the same actor and
+    /// the same spell with nothing in between that could change the answer. Harmless, and worth
+    /// knowing so a port does not go looking for the difference between them.
+    /// </remarks>
+    public static bool MadGodsRageChecksResistanceTwice => true;
+
+    /// <summary>
+    /// <b>A spell can wear another spell's identity for the length of one action.</b>
+    /// </summary>
+    /// <remarks>
+    /// Four sites now use the same idiom — register an effect with zero cost and zero duration, do
+    /// the thing, then remove the slot:
+    /// <list type="bullet">
+    /// <item>Mad God's Rage borrows <b>Skyfire</b> for the strike, and <b>Bane of Black Slayers</b>
+    /// again for the explosion;</item>
+    /// <item>Winds of Eortis borrows <b>River Song</b> for the length of the knockback;</item>
+    /// <item>The Fetters of Rime registers <b>Grief of 1000 Nights</b> — the one case where the
+    /// borrowed effect is left in place.</item>
+    /// </list>
+    /// So an entry in the active-effect pool is not proof that the named spell was cast: it may be
+    /// another spell holding a presentation for a few frames. Anything that reads the pool to decide
+    /// what is affecting an actor has to tolerate that.
+    /// </remarks>
+    public static bool SpellsBorrowEachOthersIdentities => true;
 }
