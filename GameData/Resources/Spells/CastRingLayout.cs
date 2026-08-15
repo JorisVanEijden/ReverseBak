@@ -27,6 +27,52 @@ public static class CastRingLayout {
     /// <summary>
     /// Which category a ring position belongs to.
     /// </summary>
+    /// <summary>The bitmap set the ring's icons come from.</summary>
+    public const string IconSet = "CASTFACE.BMX";
+
+    /// <summary>
+    /// Added to the base icon for a category anchor.
+    /// </summary>
+    /// <remarks>
+    /// Two, not one — the set is not a plain sequence, so an anchor is the base icon's index plus
+    /// two rather than the next one along.
+    /// </remarks>
+    public const int AnchorIconOffset = 2;
+
+    /// <summary>
+    /// The icon a ring position draws.
+    /// </summary>
+    /// <param name="baseIcon">The icon the caller is drawing the ring with.</param>
+    /// <param name="position">Ring position, 0-based.</param>
+    /// <param name="markAnchors">
+    /// Whether the six category anchors are drawn differently. The caller passes this per pass —
+    /// the ring is drawn more than once, and not every pass distinguishes them.
+    /// </param>
+    /// <remarks>
+    /// <b>The anchor test is on the position, not on the data.</b> The original computes
+    /// <c>(position + 1) % 5 == 0</c> rather than reading a flag, which is the same six slots
+    /// <see cref="RingPosition.IsCategoryAnchor"/> carries — verified against the extracted RING.DAT,
+    /// where the flagged indices are exactly 4, 9, 14, 19, 24 and 29.
+    /// </remarks>
+    public static int IconFor(int baseIcon, int position, bool markAnchors) =>
+        markAnchors && IsAnchor(position) ? baseIcon + AnchorIconOffset : baseIcon;
+
+    /// <summary>Whether a ring position is one of the six category anchors.</summary>
+    public static bool IsAnchor(int position) => (position + 1) % PositionsPerCategory == 0;
+
+    /// <summary>
+    /// <b>Each icon is drawn one pixel up and left of its stored position.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original passes <c>x - 1, y - 1</c> for every ring icon. One VGA pixel, so five canonical
+    /// units across and six down — small, but it is the difference between the icon sitting on its
+    /// ring position and sitting just off it, thirty times over.
+    /// </remarks>
+    public const int IconDrawOffsetX = -5;
+
+    /// <inheritdoc cref="IconDrawOffsetX"/>
+    public const int IconDrawOffsetY = -6;
+
     public static int CategoryOf(int position) => position / PositionsPerCategory;
 
     /// <summary>

@@ -2,6 +2,7 @@ namespace BetrayalAtKrondor.Tests.Character;
 
 using GameData.Resources.Spells;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 /// <summary>
@@ -110,5 +111,27 @@ public class CastRingLayoutTests {
         Assert.Equal(-1, CastRingLayout.PositionAt(Ring(), 0, 0));
         Assert.Equal(-1, CastRingLayout.PositionAt(null, 0, 0));
         Assert.Equal(-1, CastRingLayout.SymbolAt(null, 0, 0, _ => true));
+    }
+
+    [Fact]
+    public void TheSixAnchorsAreEveryFifthPosition() {
+        // The original tests (position + 1) % 5 rather than reading a flag; the extracted RING.DAT
+        // flags exactly these six, which is the cross-check that the two agree.
+        var anchors = Enumerable.Range(0, CastRingLayout.PositionCount)
+            .Where(CastRingLayout.IsAnchor)
+            .ToArray();
+
+        Assert.Equal(new[] { 4, 9, 14, 19, 24, 29 }, anchors);
+    }
+
+    [Fact]
+    public void AnAnchorDrawsTwoIconsOnFromTheBaseNotOne() {
+        Assert.Equal(30, CastRingLayout.IconFor(30, position: 0, markAnchors: true));
+        Assert.Equal(32, CastRingLayout.IconFor(30, position: 4, markAnchors: true));
+    }
+
+    [Fact]
+    public void APassThatDoesNotMarkAnchorsDrawsThemLikeAnyOtherPosition() {
+        Assert.Equal(30, CastRingLayout.IconFor(30, position: 4, markAnchors: false));
     }
 }
