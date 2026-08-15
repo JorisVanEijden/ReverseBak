@@ -93,6 +93,88 @@ public static class GdsSceneInteraction {
     /// </remarks>
     public static bool ExamineInvalidatesPalette(ExamineStyle style) => style == ExamineStyle.InScene;
 
+    // ---------------------------------------------------------------- the in-scene description
+    // sub_ovr149_3FB @0x4dbcb (render) and sub_ovr149_49E @0x4dc6e (dismiss).
+
+    /// <summary>
+    /// <b>The in-scene description redraws the picture before writing on it.</b>
+    /// </summary>
+    /// <remarks>
+    /// The renderer's first act is to replay the scene's animation, so the location is drawn afresh
+    /// and the text goes on top of it. A port that only draws text — or that hands the description to
+    /// a full-screen dialog — loses the picture for as long as the description is up, which is not
+    /// what the original shows.
+    /// </remarks>
+    public static bool InSceneExamineRedrawsTheScene => true;
+
+    /// <summary>Marks an action block at the front of a description.</summary>
+    public const char ActionBlockMarker = '#';
+
+    /// <summary>
+    /// Splits a description into the action block that runs and the text that is shown.
+    /// </summary>
+    /// <returns>
+    /// <c>Actions</c> is the script to execute (null when there is none) and <c>Text</c> is what to
+    /// display.
+    /// </returns>
+    /// <remarks>
+    /// <b>A description beginning with <c>#</c> carries a command block, not text.</b> The original
+    /// takes everything up to the next <c>#</c> (or the end), runs it through the dialog-action
+    /// executor, and displays only what follows. Showing the raw string instead would print the
+    /// script at the player, and — worse — silently skip whatever the block was supposed to do.
+    /// </remarks>
+    public static (string Actions, string Text) SplitExamineText(string description) {
+        if (string.IsNullOrEmpty(description) || description[0] != ActionBlockMarker) {
+            return (null, description);
+        }
+
+        int end = description.IndexOf(ActionBlockMarker, 1);
+        if (end < 0) {
+            // Unterminated: the original's scan stops at the NUL, leaving nothing to display.
+            return (description.Substring(1), string.Empty);
+        }
+        return (description.Substring(1, end - 1), description.Substring(end + 1));
+    }
+
+    /// <summary>How far the mouse may drift before the description is taken down.</summary>
+    /// <remarks>
+    /// Compared against the <b>sum</b> of the absolute x and y movement, not a radius, and the test
+    /// is <c>&lt;= 10</c> to keep waiting — so 10 still holds and 11 dismisses.
+    /// </remarks>
+    public const int ExamineDismissMouseDrift = 10;
+
+    /// <summary>
+    /// Whether the description stays up after the mouse has moved this far.
+    /// </summary>
+    /// <param name="dx">Movement in x since the description appeared.</param>
+    /// <param name="dy">Movement in y since the description appeared.</param>
+    /// <remarks>
+    /// <b>Moving the mouse dismisses the description</b> — it is not click-to-continue. The wait
+    /// loop polls dialog input and, failing that, compares the pointer against where it was when the
+    /// text appeared; a small nudge is enough. A port that waits only for a click leaves
+    /// descriptions on screen far longer than the original ever did.
+    /// </remarks>
+    public static bool ExamineSurvivesMouseMove(int dx, int dy) =>
+        Abs(dx) + Abs(dy) <= ExamineDismissMouseDrift;
+
+    // The original clamps the negation of the most-negative value rather than overflowing it.
+    private static int Abs(int v) {
+        if (v == short.MinValue) {
+            return short.MaxValue;
+        }
+        return v < 0 ? -v : v;
+    }
+
+    /// <summary>
+    /// <b>Dialog input dismisses the description too.</b>
+    /// </summary>
+    /// <remarks>
+    /// The loop breaks on either condition, so the description ends on a keypress or click as well
+    /// as on movement — whichever comes first.
+    /// </remarks>
+    public static bool ExamineEndsOn(bool dialogInput, int dx, int dy) =>
+        dialogInput || !ExamineSurvivesMouseMove(dx, dy);
+
     /// <summary>
     /// <b>A shop's repair categories are published to a global before its examine dialog runs.</b>
     /// </summary>
