@@ -293,4 +293,94 @@ public static class SpellCastRoutines {
     /// the original for every case where the original is well-defined.</para>
     /// </remarks>
     public const int EvilSeekVisitedCapacity = 7;
+
+    // ---------------------------------------------------------------- Winds of Eortis
+    // Cast_Winds_of_Eortis @0x67526, Spell_KnockbackAlongDirection @0x66dd1.
+
+    /// <summary>
+    /// <b>Winds of Eortis bills the caster itself — and that is why it ends the cast.</b>
+    /// </summary>
+    /// <remarks>
+    /// It is one of only two spells that call the payment routine directly (Mad God's Rage is the
+    /// other), and they are exactly the two whose handler clears the continue flag. The clearing is
+    /// not "this cast was cancelled"; it is "do not charge again". See
+    /// <see cref="SpellCastTail.EndingEarlyIsFree"/>.
+    /// </remarks>
+    public static bool WindsOfEortisBillsItself => true;
+
+    /// <summary>
+    /// <b>The knockback lands on whoever the projectile actually hit.</b>
+    /// </summary>
+    /// <remarks>
+    /// The routine takes the sweep's return value — the actor it struck — and runs the resistance
+    /// check and the knockback on that, not on the actor the player aimed at. Same shape as Strength
+    /// Drain's return leg: the sweep, not the targeting, decides who is affected.
+    /// </remarks>
+    public static bool WindsOfEortisAffectsTheActorStruck => true;
+
+    /// <summary>How many cells the victim is pushed: <b>one per point of cost</b>.</summary>
+    public static int KnockbackCells(int spellCost) => spellCost;
+
+    /// <summary>
+    /// The horizontal step for a caster-to-victim direction, 0-7.
+    /// </summary>
+    /// <remarks>
+    /// The compass runs 0 = away along -Y, 2 = +X, 4 = +Y, 6 = -X. This axis follows the textbook
+    /// pattern exactly.
+    /// </remarks>
+    public static int KnockbackDx(int direction) {
+        if (direction >= 1 && direction <= 3) {
+            return 1;
+        }
+
+        return direction >= 5 && direction <= 7 ? -1 : 0;
+    }
+
+    /// <summary>
+    /// The vertical step for a caster-to-victim direction, 0-7.
+    /// </summary>
+    /// <remarks>
+    /// <b>Direction 0 answers 0 where the symmetric pattern wants -1.</b> The original's branches
+    /// give -1 for directions 1 and 7 but let 0 fall through to the "no movement" arm, while the
+    /// horizontal axis handles its own equivalent cases correctly. The consequence is concrete: a
+    /// victim standing directly along direction 0 from the caster gets a step of (0, 0) and is not
+    /// pushed at all — the loop still runs, decrementing its allowance and moving nobody.
+    ///
+    /// <para>Reproduced rather than corrected, because it is decidable from the branches and changes
+    /// what the player sees. Flagged for confirmation against the running game.</para>
+    /// </remarks>
+    public static int KnockbackDy(int direction) {
+        if (direction >= 3 && direction <= 5) {
+            return 1;
+        }
+
+        return direction == 1 || direction == 7 ? -1 : 0;
+    }
+
+    /// <summary>Whether this direction produces no movement at all.</summary>
+    public static bool KnockbackIsInert(int direction) =>
+        KnockbackDx(direction) == 0 && KnockbackDy(direction) == 0;
+
+    /// <summary>
+    /// <b>The push stops at the first cell the victim cannot enter.</b>
+    /// </summary>
+    /// <remarks>
+    /// Each step sets a destination one cell along and hands the victim to the mover with an
+    /// allowance of exactly one cell — the same global Invitation writes. Afterwards the routine
+    /// compares the destination against the position; if they still differ the victim did not move,
+    /// and the allowance is zeroed so the loop ends. So a wall two cells away caps a ten-point cast
+    /// at one cell rather than shoving the victim into it.
+    /// </remarks>
+    public static bool KnockbackStopsWhenBlocked => true;
+
+    /// <summary>
+    /// <b>Winds of Eortis registers River Song on the victim and then takes it away again.</b>
+    /// </summary>
+    /// <remarks>
+    /// A different spell's effect, applied with zero cost and zero duration before the push starts
+    /// and removed by slot once it finishes — so it is a transient marker for "currently being blown
+    /// along" rather than an effect the victim keeps. The second spell in the catalogue found
+    /// wearing another's identity, after The Fetters of Rime.
+    /// </remarks>
+    public static bool KnockbackWearsRiverSong => true;
 }

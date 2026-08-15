@@ -158,6 +158,50 @@ public class SpellCastRoutinesTests {
             SpellCastRoutines.EvilSeekPowerAtHop(spellCost: 1, hop: 2)));
     }
 
+    [Fact]
+    public void TheTwoSpellsThatEndTheCastAreTheTwoThatBillThemselves() {
+        // So clearing the continue flag means "already charged", not "cancelled".
+        Assert.False(SpellCastTail.EndingEarlyIsFree(SpellIds.WindsOfEortis));
+        Assert.False(SpellCastTail.EndingEarlyIsFree(SpellIds.MadGodsRage));
+    }
+
+    [Fact]
+    public void ASuppressedCastIsStillGenuinelyFree() {
+        Assert.True(SpellCastTail.EndingEarlyIsFree(SpellIds.Skyfire));
+        Assert.True(SpellCastTail.EndingEarlyIsFree(SpellIds.TouchOfLimsKragma));
+    }
+
+    [Fact]
+    public void TheKnockbackRunsOneCellPerPointOfCost() {
+        Assert.Equal(14, SpellCastRoutines.KnockbackCells(14));
+    }
+
+    [Fact]
+    public void TheHorizontalStepFollowsTheCompass() {
+        Assert.Equal(0, SpellCastRoutines.KnockbackDx(0));
+        Assert.Equal(1, SpellCastRoutines.KnockbackDx(2));
+        Assert.Equal(0, SpellCastRoutines.KnockbackDx(4));
+        Assert.Equal(-1, SpellCastRoutines.KnockbackDx(6));
+    }
+
+    [Fact]
+    public void TheVerticalStepDoesNotAtDirectionZero() {
+        // 4 pushes one way and 0 should push the other; the original's branches let 0 fall through
+        // to the no-movement arm while 1 and 7 are handled.
+        Assert.Equal(1, SpellCastRoutines.KnockbackDy(4));
+        Assert.Equal(-1, SpellCastRoutines.KnockbackDy(1));
+        Assert.Equal(-1, SpellCastRoutines.KnockbackDy(7));
+        Assert.Equal(0, SpellCastRoutines.KnockbackDy(0));
+    }
+
+    [Fact]
+    public void SoAVictimDirectlyAlongDirectionZeroIsNotPushedAtAll() {
+        Assert.True(SpellCastRoutines.KnockbackIsInert(0));
+        for (int direction = 1; direction <= 7; direction++) {
+            Assert.False(SpellCastRoutines.KnockbackIsInert(direction));
+        }
+    }
+
     private static ObjectInfoSet BuildObjects() => new ObjectInfoSet("O", new List<ObjectInfo> {
         new ObjectInfo("sw") {
             Number = 20, Name = "Broadsword", ObjectType = ObjectType.Sword,

@@ -33,10 +33,26 @@ public static class SpellCastTail {
     /// <remarks>
     /// The animation, the post-animation hooks, the resisted-cast sound, and the entire
     /// targeting-type delivery switch — which is where damage is dealt <i>and where the caster is
-    /// billed</i>. So a cast that ends early <b>costs the caster nothing</b>. The one thing that
-    /// still happens is the surcharge flag being cleared, because that is done at the shared return.
+    /// billed</i>. The one thing that still happens is the surcharge flag being cleared, because
+    /// that is done at the shared return.
     /// </remarks>
-    public static bool EndingEarlyIsFree => true;
+    public static bool EndingEarlySkipsTheDeliverySwitch => true;
+
+    /// <summary>
+    /// Whether a cast that ends early costs the caster anything.
+    /// </summary>
+    /// <remarks>
+    /// <b>It depends on why it ended, and the two reasons are opposites.</b> A <i>suppressed</i>
+    /// cast — Skyfire against an unarmoured target, Touch of Lims-Kragma at point blank — never
+    /// reaches the payment call and is genuinely free. A cast ended by its own handler is not: Winds
+    /// of Eortis and Mad God's Rage are the only two spells that call the payment routine
+    /// themselves, and clearing the continue flag is precisely how they stop the delivery switch
+    /// billing a <i>second</i> time.
+    ///
+    /// <para>So the flag does not mean "this cast was cancelled". It means "the caster has already
+    /// been dealt with". Reading it as the former makes two spells free and the wrong two.</para>
+    /// </remarks>
+    public static bool EndingEarlyIsFree(int spellId) => !HandlerEndsTheCast(spellId);
 
     /// <summary>
     /// Skyfire against a target carrying no metal <b>ends the cast on the spot</b>.
