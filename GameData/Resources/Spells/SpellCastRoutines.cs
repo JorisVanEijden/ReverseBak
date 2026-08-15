@@ -6,8 +6,9 @@ using GameData.Resources.Inventory;
 using GameData.Resources.Object;
 
 /// <summary>
-/// The dedicated <c>Cast_*</c> routines that <c>Cast_Spell</c>'s per-spell switch delegates to —
-/// where a handful of spells keep the behaviour that makes them worth casting.
+/// The routines around <c>Cast_Spell</c>: the dedicated <c>Cast_*</c> handlers its per-spell switch
+/// delegates to — where a handful of spells keep the behaviour that makes them worth casting — and
+/// the synthetic-caster entry point that calls into it from outside the combat roster.
 ///
 /// <para>Ported one routine at a time as each is read end to end; see
 /// <see cref="SpellPerSpellHandlers"/> for the dispatch layer that reaches them.</para>
@@ -477,6 +478,50 @@ public static class SpellCastRoutines {
 
     /// <summary>How many frames that number stays on screen.</summary>
     public const int HealFloatingNumberFrames = 8;
+
+    // ---------------------------------------------------------------- casting with no caster
+    // castCombatSpell @0x681e2.
+
+    /// <summary>
+    /// <b>A spell can be cast by nobody.</b>
+    /// </summary>
+    /// <remarks>
+    /// This entry point fabricates a caster on the stack — no name, no inventory, a maximum health
+    /// of 1, its creature type set from a caller-supplied id and its grid position taken from a pair
+    /// of globals — and hands that to <c>Cast_Spell</c>. It is how something that is not a combatant
+    /// (a trap, an item, a scripted event) puts a spell on the field.
+    ///
+    /// <para>The fake caster is stamped with the same combat-status bit that marks an actor unable
+    /// to act, so nothing downstream mistakes it for a participant.</para>
+    /// </remarks>
+    public static bool SyntheticCasterIsFabricatedOnTheStack => true;
+
+    /// <summary>
+    /// <b>The power is negated on the way in — and that is what makes it work.</b>
+    /// </summary>
+    /// <remarks>
+    /// A negative cost is the dispatcher's exemption from two things at once: the cast cannot miss
+    /// (<see cref="SpellHitResolution.CanMiss"/>) and the caster is never billed
+    /// (<see cref="SpellCastTail.CasterPays"/>). Both are exactly what a caster that does not exist
+    /// needs — it has no skill to roll and no health to spend.
+    ///
+    /// <para>So the negative-cost path recorded earlier as "the surprising exemption" is not an edge
+    /// case at all: this is the caller it was written for.</para>
+    /// </remarks>
+    public static int SyntheticCasterPower(int power) => -power;
+
+    /// <summary>
+    /// <b>Strength Drain is refused outright on this path.</b>
+    /// </summary>
+    /// <remarks>
+    /// The only spell the entry point rejects by number, before it even plays a sound. It is also
+    /// the one spell that <i>transfers to the caster</i> — and there is no caster to receive it, so
+    /// half the spell would land nowhere. A refusal rather than a half-effect.
+    /// </remarks>
+    public static bool SyntheticCasterRefuses(int spellId) => spellId == SpellIds.StrengthDrain;
+
+    /// <summary>The surcharge global is cleared on entry, before anything else.</summary>
+    public static bool SyntheticCastClearsTheSurcharge => true;
 
     // ---------------------------------------------------------------- Mad God's Rage
     // Cast_Mad_Gods_Rage @0x67acc.

@@ -515,4 +515,45 @@ public static class MonsterSpellcasting {
 
     /// <summary>The more generous threshold the dead slot reserved for one specific actor.</summary>
     public const int DeadSlotFavouredThreshold = 80;
+
+    // ---------------------------------------------------------------- the health gate
+    // enoughHealthCheck @0x63995 and its threshold table at 0x3b246.
+
+    /// <summary>
+    /// The health an actor must exceed before an action will run — <b>the same 10 for every
+    /// bracket that is used</b>.
+    /// </summary>
+    /// <remarks>
+    /// The check is <c>health &gt; table[bracket]</c>, and the caller picks the bracket: the two
+    /// target passes use 0 and 1, and both heal slots use 2. That reads like three tunable
+    /// thresholds — and the shipped table holds 10, 10, 10, so all three are the same number and the
+    /// distinction is notional. The remaining entries are zero, so an unused bracket would mean
+    /// "merely alive".
+    ///
+    /// <para>Recorded rather than collapsed, because the indirection is real: a mod that edits the
+    /// table gets three independent knobs, and a port that hard-codes one constant silently removes
+    /// them.</para>
+    /// </remarks>
+    public static readonly int[] HealthGateThresholds = { 10, 10, 10, 0, 0, 0, 0, 0 };
+
+    /// <summary>Whether an actor clears the health gate for the given bracket.</summary>
+    public static bool ClearsHealthGate(int health, int bracket) {
+        if (bracket < 0 || bracket >= HealthGateThresholds.Length) {
+            return false;
+        }
+
+        return health > HealthGateThresholds[bracket];
+    }
+
+    /// <summary>
+    /// <b>The two gates on a caster's turn measure different things.</b>
+    /// </summary>
+    /// <remarks>
+    /// The turn-level gate compares the <i>combined</i> health-and-stamina pool against
+    /// <see cref="MinimumPoolToAct"/>; every action-level gate compares <i>health alone</i> against
+    /// the table. So a monster with plenty of stamina and almost no health passes the first and
+    /// fails the second, which is how it ends up entering the action loop and then declining every
+    /// action in its row.
+    /// </remarks>
+    public static bool TurnAndActionGatesMeasureDifferentPools => true;
 }
