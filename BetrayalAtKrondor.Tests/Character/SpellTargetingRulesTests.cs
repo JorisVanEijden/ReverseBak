@@ -72,6 +72,50 @@ public class SpellTargetingRulesTests {
     }
 
     [Fact]
+    public void TheGroundAimedTypesReachTheDispatcherUntargeted() {
+        // The other half of SpellCostModifiers.DiscardsTarget: type 8's target is nulled on the way
+        // in, and for 5 and 6 the UI never supplies one.
+        foreach (int type in new[] { 5, 6, 8 }) {
+            Assert.True(SpellTargetingRules.CastsWithoutATarget(type));
+        }
+        Assert.True(SpellCostModifiers.DiscardsTarget(8));
+    }
+
+    [Fact]
+    public void AndTheActorAimedOnesDoNot() {
+        foreach (int type in new[] { 0, 1, 2, 3, 4, 7 }) {
+            Assert.False(SpellTargetingRules.CastsWithoutATarget(type));
+        }
+    }
+
+    [Fact]
+    public void AClickInTheMenuBarDoesNotCommitTheCast() {
+        Assert.False(SpellTargetingRules.ClickCommitsTheCast(
+            mouseY: SpellTargetingRules.FieldBottomY, cursorDistance: 3));
+        Assert.True(SpellTargetingRules.ClickCommitsTheCast(
+            mouseY: SpellTargetingRules.FieldBottomY - 1, cursorDistance: 3));
+    }
+
+    [Fact]
+    public void NorDoesOneWithTheCursorOffTheGrid() {
+        Assert.False(SpellTargetingRules.ClickCommitsTheCast(
+            mouseY: 10, cursorDistance: SpellTargetingRules.OffGridDistance));
+    }
+
+    [Fact]
+    public void AnEmptyCellOnlyCastsForTheGroundAimedTypes() {
+        Assert.True(SpellTargetingRules.EmptyCellStillCasts(8));
+        Assert.True(SpellTargetingRules.EmptyCellStillCasts(5));
+        Assert.False(SpellTargetingRules.EmptyCellStillCasts(0));
+        Assert.False(SpellTargetingRules.EmptyCellStillCasts(7));
+    }
+
+    [Fact]
+    public void ACastAlwaysEndsTheTurn() {
+        Assert.True(SpellTargetingRules.CastingEndsTheTurn);
+    }
+
+    [Fact]
     public void TheGroupingIsNotInNumericOrder() {
         // 0 and 1/4 share a rule that 2/3 do not, and 7 and 8 each stand alone.
         Assert.Equal(SpellTargetingRules.AimOf(0), SpellTargetingRules.AimOf(4));

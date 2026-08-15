@@ -136,4 +136,63 @@ public static class SpellTargetingRules {
     /// decide it.
     /// </remarks>
     public static bool CursorBoundsAreOneWiderThanTheGrid => true;
+
+    // ---------------------------------------------------------------- committing the cast
+    // combat_arena_resolve_menu_action @0x626ca, case 4.
+
+    /// <summary>
+    /// <b>The ground-aimed types reach the dispatcher with no target at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// Types 5 and 6 are handed to <c>Cast_Spell</c> with a null target actor outright, and type 8
+    /// gets there by the empty-cell branch — so all three of the types that aim at floor rather than
+    /// at anybody arrive untargeted.
+    ///
+    /// <para>That is the other half of <see cref="SpellCostModifiers.DiscardsTarget"/>, which
+    /// records the dispatcher nulling type 8's target on the way in. For 5 and 6 there was never a
+    /// target to null: the UI simply never supplies one.</para>
+    /// </remarks>
+    public static bool CastsWithoutATarget(int targetingType) =>
+        AimOf(targetingType) == Aim.ClearGround || AimOf(targetingType) == Aim.Crystal;
+
+    /// <summary>
+    /// <b>Casting ends the turn.</b>
+    /// </summary>
+    /// <remarks>
+    /// Every path that reaches <c>Cast_Spell</c> clears the caster's ready bit immediately
+    /// afterwards, the same bit the move and melee actions clear. There is no cast-and-then-move.
+    /// </remarks>
+    public static bool CastingEndsTheTurn => true;
+
+    /// <summary>
+    /// Whether a click commits the cast.
+    /// </summary>
+    /// <param name="mouseY">Screen Y of the click.</param>
+    /// <param name="cursorDistance">The cursor's grid distance, or <see cref="OffGridDistance"/>.</param>
+    /// <remarks>
+    /// Two independent rejections before any spell rule is consulted: a click at or below
+    /// <see cref="FieldBottomY"/> is in the menu bar rather than the field, and a distance of
+    /// <see cref="OffGridDistance"/> is the sentinel for a cursor that is not over a cell. Both leave
+    /// the action pending rather than cancelling it.
+    /// </remarks>
+    public static bool ClickCommitsTheCast(int mouseY, int cursorDistance) =>
+        mouseY < FieldBottomY && cursorDistance != OffGridDistance;
+
+    /// <summary>Screen Y at which the combat field gives way to the menu bar.</summary>
+    public const int FieldBottomY = 0x8C;
+
+    /// <summary>The distance value standing for "the cursor is not over a grid cell".</summary>
+    public const int OffGridDistance = 1000;
+
+    /// <summary>
+    /// With nothing under the cursor, <b>only a crystal-aimed spell may still be cast at an
+    /// actor</b>.
+    /// </summary>
+    /// <remarks>
+    /// The empty-cell branch lets type 8 through to the same call the actor path uses, passing the
+    /// null it found. Every other type falls to the ground-cast test instead, so an empty cell and a
+    /// type that wants an actor simply does not commit.
+    /// </remarks>
+    public static bool EmptyCellStillCasts(int targetingType) =>
+        AimOf(targetingType) == Aim.Crystal || AimOf(targetingType) == Aim.ClearGround;
 }
