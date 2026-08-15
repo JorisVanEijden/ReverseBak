@@ -68,6 +68,51 @@ public static class SpellSymbolDisplay {
         baseColour + (pass * colourStep);
 
     /// <summary>
+    /// The multiplier the settled draw uses, after the fade has finished.
+    /// </summary>
+    /// <remarks>
+    /// <b>Twelve, not the fade's last pass.</b> The fade brightens to
+    /// <c>base + 6 * step</c> and the settled draw then jumps to <c>base + 12 * step</c>, so the
+    /// symbols land brighter than the animation left them. Reusing the last fade colour as the
+    /// resting colour leaves the whole ring dimmer than the game shows it.
+    /// </remarks>
+    public const int SettledColourMultiplier = 12;
+
+    /// <summary>The colour an unselected symbol rests at.</summary>
+    public static int SettledColour(int baseColour, int colourStep) =>
+        baseColour + (colourStep * SettledColourMultiplier);
+
+    /// <summary>First colour of the selected symbol's cycle.</summary>
+    public const int SelectionColourBase = 208;
+
+    /// <summary>Colours the selection cycles through.</summary>
+    public const int SelectionColourCount = 8;
+
+    /// <summary>Ticks the selection holds each colour.</summary>
+    public const int SelectionTicksPerColour = 4;
+
+    /// <summary>
+    /// The colour of the selected symbol on a given tick.
+    /// </summary>
+    /// <remarks>
+    /// <b>The selected symbol shimmers; it is not merely a different colour.</b> It cycles through
+    /// eight colours from <see cref="SelectionColourBase"/>, advancing every four ticks off a global
+    /// counter the routine increments as it draws. A port that paints the selection one fixed colour
+    /// loses the only thing marking it as live.
+    /// </remarks>
+    public static int SelectedColour(int tick) =>
+        SelectionColourBase + ((tick / SelectionTicksPerColour) % SelectionColourCount);
+
+    /// <summary>
+    /// <b>The spell font is selected for the draw and the game font restored on the way out.</b>
+    /// </summary>
+    /// <remarks>
+    /// Anything drawing text after this routine gets the normal font back. A port that leaves the
+    /// spell font active finds the next label rendered in spell glyphs.
+    /// </remarks>
+    public static bool RestoresTheGameFont => true;
+
+    /// <summary>
     /// Whether the fade runs at all.
     /// </summary>
     /// <remarks>
