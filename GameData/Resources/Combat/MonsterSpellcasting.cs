@@ -459,4 +459,60 @@ public static class MonsterSpellcasting {
 
     /// <summary>Only one ally is healed per action; the scan stops at the first it treats.</summary>
     public static bool HealsOneAllyPerAction => true;
+
+    // ---------------------------------------------------------------- action slot 8: dead
+    // sub_ovr171_648 @0x65d58.
+
+    /// <summary>
+    /// <b>Action slot 8 can never do anything. Its guard is always false.</b>
+    /// </summary>
+    /// <remarks>
+    /// The slot walks the actor table looking for someone worth healing, and the test that decides
+    /// whether a candidate qualifies compiles to <c>neg ax / sbb ax, ax / inc ax</c> — a logical NOT,
+    /// yielding 0 or 1 — followed by <c>test ax, 2</c>. Testing bit 1 of a value that is only ever 0
+    /// or 1 is always zero, so the branch is always taken and the rest of the loop body is
+    /// unreachable. Verified from the bytes (<c>f7 d8 1b c0 40 a9 02 00 74 72</c>), whose jump lands
+    /// on the loop's increment.
+    ///
+    /// <para>The shape is the classic C precedence slip: <c>!x &amp; 2</c> where <c>!(x &amp; 2)</c>
+    /// was meant. <c>!</c> binds tighter than <c>&amp;</c>, so the mask is applied to the negation
+    /// rather than to the status.</para>
+    /// </remarks>
+    public static bool SlotEightIsDeadCode => true;
+
+    /// <summary>
+    /// Which attempt each pattern wastes on the dead slot.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every one of the eight patterns contains slot 8</b>, so every caster burns one of its
+    /// eight attempts on an action that cannot succeed. It is worst for a pattern-8 monster, whose
+    /// row leads with it — <b>its preferred action never fires</b> and it always falls through to
+    /// its second choice. Pattern 1 and pattern 6 lose their second attempt to it.
+    /// </remarks>
+    public static int DeadSlotAttemptFor(int spellcastPattern) {
+        for (int attempt = 0; attempt < SlotCount; attempt++) {
+            if (SlotFor(spellcastPattern, attempt) == 8) {
+                return attempt;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// The health thresholds slot 8 <i>would</i> have used, had its guard worked.
+    /// </summary>
+    /// <remarks>
+    /// Recorded for completeness and explicitly not wired to anything: below 70% normally, and below
+    /// 80% for one particular actor held in a global — a more generous threshold for whoever that
+    /// is. The spell would have been Gift of Sung, the same one the working heal slot prefers.
+    ///
+    /// <para>Which side of the fight the scan reads is <b>not established</b> — it walks one actor
+    /// table and follows each entry's current target. Because the body is unreachable that ambiguity
+    /// changes no behaviour, so it is left open rather than guessed at.</para>
+    /// </remarks>
+    public const int DeadSlotOrdinaryThreshold = 70;
+
+    /// <summary>The more generous threshold the dead slot reserved for one specific actor.</summary>
+    public const int DeadSlotFavouredThreshold = 80;
 }

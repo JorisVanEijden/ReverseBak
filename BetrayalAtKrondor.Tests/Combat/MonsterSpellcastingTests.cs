@@ -230,6 +230,34 @@ public class MonsterSpellcastingTests {
     }
 
     [Fact]
+    public void EveryPatternWastesAnAttemptOnTheDeadSlot() {
+        // Slot 8's guard is always false, and every row contains it.
+        Assert.True(MonsterSpellcasting.SlotEightIsDeadCode);
+        for (int pattern = 1; pattern <= MonsterSpellcasting.MaxPattern; pattern++) {
+            Assert.InRange(MonsterSpellcasting.DeadSlotAttemptFor(pattern), 0,
+                MonsterSpellcasting.SlotCount - 1);
+        }
+    }
+
+    [Fact]
+    public void APatternEightMonstersPreferredActionNeverFires() {
+        // Its row leads with the dead slot, so it always falls through to its second choice.
+        Assert.Equal(0, MonsterSpellcasting.DeadSlotAttemptFor(8));
+        Assert.Equal(2, MonsterSpellcasting.SlotFor(8, 1));
+    }
+
+    [Fact]
+    public void AndPatternsOneAndSixLoseTheirSecondAttempt() {
+        Assert.Equal(1, MonsterSpellcasting.DeadSlotAttemptFor(1));
+        Assert.Equal(1, MonsterSpellcasting.DeadSlotAttemptFor(6));
+    }
+
+    [Fact]
+    public void APatternThatNeverCastsHasNoDeadAttemptEither() {
+        Assert.Equal(-1, MonsterSpellcasting.DeadSlotAttemptFor(0));
+    }
+
+    [Fact]
     public void AnExcludedSpellIsRefusedEvenWhenEverythingElsePasses() {
         Assert.False(MonsterSpellcasting.Selects(SpellIds.Invitation, matchesFilters: true,
             castable: true, coinFlipHeads: true, alreadyOnTarget: false));
