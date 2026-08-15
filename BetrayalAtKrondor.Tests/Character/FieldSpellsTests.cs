@@ -76,4 +76,58 @@ public class FieldSpellsTests {
         Assert.False(FieldSpells.IsFieldSpell(-1));
         Assert.False(FieldSpells.IsFieldSpell(44));
     }
+    [Fact]
+    public void ThePowerDoesNotAlwaysBuyTime() {
+        // Dragon's Breath scales with the power; Scent of Sarig ignores it entirely.
+        Assert.True(FieldSpells.PowerExtendsDuration(FieldSpells.DragonsBreath));
+        Assert.False(FieldSpells.PowerExtendsDuration(FieldSpells.ScentOfSarig));
+    }
+
+    [Fact]
+    public void SoTheSameInputsGiveVeryDifferentLifetimes() {
+        Assert.Equal(10 * 20 * 30, FieldSpells.DurationTicks(10, 20, powerExtendsIt: true));
+        Assert.Equal(10 * 30, FieldSpells.DurationTicks(10, 20, powerExtendsIt: false));
+    }
+
+    [Fact]
+    public void TwoOfThemDriveTheWorldLighting() {
+        // Same machinery to opposite ends: one darkens, one lightens.
+        Assert.True(FieldSpells.DrivesWorldLighting(FieldSpells.DragonsBreath));
+        Assert.True(FieldSpells.DrivesWorldLighting(FieldSpells.CandleGlow));
+        Assert.False(FieldSpells.DrivesWorldLighting(FieldSpells.ScentOfSarig));
+    }
+
+    [Fact]
+    public void CandleGlowAboveGroundIsACompleteNoOp() {
+        // It returns before the sound, the text, the timers and the cost — silent and free.
+        Assert.True(FieldSpells.RequiresUnderground(FieldSpells.CandleGlow));
+        Assert.False(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.CandleGlow));
+    }
+
+    [Fact]
+    public void ButEveryOtherTimedSpellChargesEvenWithNoEffect() {
+        // The cost sits outside the branch that sets the timers.
+        Assert.True(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.DragonsBreath));
+        Assert.True(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.ScentOfSarig));
+        Assert.Equal(0, FieldSpells.DurationTicks(0, 20, powerExtendsIt: true));
+    }
+
+    [Fact]
+    public void EyesOfIshapIsTenPercentPerPointOfPower() {
+        Assert.True(FieldSpells.LocatorSucceeds(rollUnder100: 30, cost: 3));
+        Assert.False(FieldSpells.LocatorSucceeds(rollUnder100: 31, cost: 3));
+    }
+
+    [Fact]
+    public void AndTheThresholdItselfSucceeds() {
+        // Inclusive comparison, so a roll equal to cost * 10 lands.
+        Assert.True(FieldSpells.LocatorSucceeds(rollUnder100: 50, cost: 5));
+    }
+
+    [Fact]
+    public void AFailedLocatorStillCostsFullPrice() {
+        // The cost is applied before the roll is taken.
+        Assert.True(FieldSpells.IsLocatorRoll(FieldSpells.EyesOfIshap));
+        Assert.True(FieldSpells.ChargesEvenWithNoEffect(FieldSpells.EyesOfIshap));
+    }
 }

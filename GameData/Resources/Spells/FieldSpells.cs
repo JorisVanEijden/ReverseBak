@@ -121,4 +121,83 @@ public static class FieldSpells {
     /// same shape as a cancelled cast, which returns -1 and also matches nothing.
     /// </remarks>
     public static bool UnknownSpellDoesNothing => true;
+
+    // ---------------------------------------------------------------- the handlers
+    // Read so far: Cast_Dragons_Breath @0x6cb44, Cast_Candle_Glow @0x6cbbe,
+    // Cast_Scent_of_Sarig @0x6cd6a, Cast_Eyes_of_Ishap @0x6cdbf. The other five are not read yet.
+
+    /// <summary>Ticks a minute of spell duration is worth.</summary>
+    public const int TicksPerDurationUnit = 30;
+
+    /// <summary>
+    /// How long a timed field spell lasts.
+    /// </summary>
+    /// <param name="duration">The record's duration.</param>
+    /// <param name="cost">The power invested.</param>
+    /// <param name="powerExtendsIt">Whether this spell's lifetime scales with the power.</param>
+    /// <remarks>
+    /// <b>The power does not always buy time.</b> Dragon's Breath and Candle Glow compute
+    /// <c>duration × cost × 30</c>, so pouring power in makes them last longer. Scent of Sarig
+    /// computes <c>duration × 30</c> and ignores the cost entirely — the slider changes what it costs
+    /// and nothing else. Assuming one formula for all of them makes a maximum-power Scent of Sarig
+    /// last twenty times too long.
+    /// </remarks>
+    public static int DurationTicks(int duration, int cost, bool powerExtendsIt) =>
+        powerExtendsIt ? duration * cost * TicksPerDurationUnit : duration * TicksPerDurationUnit;
+
+    /// <summary>Whether the power invested lengthens this spell.</summary>
+    /// <remarks>
+    /// True for the two that also drive the lighting; false for Scent of Sarig. Recorded per spell
+    /// rather than derived, because nothing in the record distinguishes them.
+    /// </remarks>
+    public static bool PowerExtendsDuration(int spellId) =>
+        spellId == DragonsBreath || spellId == CandleGlow;
+
+    /// <summary>
+    /// The two field spells that also drive the world lighting.
+    /// </summary>
+    /// <remarks>
+    /// They set a <i>second</i> timer against the light system and refresh the light sources
+    /// immediately, so the change is visible at once rather than at the next tick. Dragon's Breath
+    /// darkens and Candle Glow lightens — the same machinery to opposite ends.
+    /// </remarks>
+    public static bool DrivesWorldLighting(int spellId) =>
+        spellId == DragonsBreath || spellId == CandleGlow;
+
+    /// <summary>
+    /// <b>Candle Glow does nothing at all above ground.</b>
+    /// </summary>
+    /// <remarks>
+    /// Its handler tests the zone first and returns before the sound, the text, the timers
+    /// <i>and the cost</i>. So casting it outdoors is not a wasted cast — it is a complete no-op,
+    /// silent and free. A port that charges for it and shows a failure message is being more
+    /// informative than the original and wrong about the cost.
+    /// </remarks>
+    public static bool RequiresUnderground(int spellId) => spellId == CandleGlow;
+
+    /// <summary>
+    /// <b>A timed field spell charges even when it produces no effect.</b>
+    /// </summary>
+    /// <remarks>
+    /// The cost is applied outside the branch that sets the timers, so a computed time of zero means
+    /// no timer, no light change — and the caster pays anyway. Candle Glow above ground is the one
+    /// exception, because it returns before reaching either.
+    /// </remarks>
+    public static bool ChargesEvenWithNoEffect(int spellId) => !RequiresUnderground(spellId);
+
+    /// <summary>
+    /// Eyes of Ishap's success chance: <b>ten percent per point of power</b>.
+    /// </summary>
+    /// <remarks>
+    /// A d100 rolled against <c>cost × 10</c>, and the comparison is inclusive — so a roll equal to
+    /// the threshold still succeeds. On success it plays a sound and opens the locator; on failure it
+    /// shows a "complete waste of time" message.
+    ///
+    /// <para><b>The cost is charged before the roll</b>, so a failed cast still costs full price. The
+    /// same shape as Black Nimbus in combat, which also rolls after committing.</para>
+    /// </remarks>
+    public static bool LocatorSucceeds(int rollUnder100, int cost) => rollUnder100 <= cost * 10;
+
+    /// <summary>Whether this spell is a percentage-roll locator rather than a timed effect.</summary>
+    public static bool IsLocatorRoll(int spellId) => spellId == EyesOfIshap;
 }
