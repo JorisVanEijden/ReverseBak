@@ -268,11 +268,20 @@ public static class MonsterSpellcasting {
     /// Fifteen spells satisfy this across the shipped catalogue. Every buff and utility spell is
     /// excluded by the martial flag, and Final Rest — the one that kills outright — is excluded by
     /// its targeting type, so no monster can ever cast it at the party.
+    ///
+    /// <para><b>This is not the whole repertoire.</b> It covers the six targeted-cast slots, which
+    /// are the only ones that go through the selector. The heal slot bypasses it entirely and names
+    /// two more spells by number — see <see cref="HealSpells"/> — neither of which could ever come
+    /// back from here.</para>
     /// </remarks>
     public static bool InMonsterRepertoire(int spellId, bool isMartial, int targetingType) =>
         isMartial
         && (targetingType == 0 || targetingType == 1)
         && !NeverSelected(spellId);
+
+    /// <summary>Everything a monster can cast: the selector's fifteen plus the heal slot's two.</summary>
+    public static bool CastableByAMonster(int spellId, bool isMartial, int targetingType) =>
+        InMonsterRepertoire(spellId, isMartial, targetingType) || IsHealSpell(spellId);
 
     /// <summary>
     /// <b>The action makes two attempts at finding a target, and they are not the same attempt.</b>
@@ -349,4 +358,105 @@ public static class MonsterSpellcasting {
     /// misses this way is indistinguishable from one that simply turned.
     /// </remarks>
     public static bool AMissedCastOnlyTurnsToFace => true;
+
+    // ---------------------------------------------------------------- action slot 1: heal an ally
+    // sub_ovr171_4BD @0x65bcd and its spell chooser sub_ovr171_40C @0x65b1c.
+
+    /// <summary>Gift of Sung — the heal proper, and a targeting-type-2 spell.</summary>
+    public const int GiftOfSung = 7;
+
+    /// <summary>Hocho's Haven — the fallback, a lingering effect rather than a heal.</summary>
+    public const int HochosHaven = 6;
+
+    /// <summary>The two spells the heal slot names directly.</summary>
+    public static readonly int[] HealSpells = { GiftOfSung, HochosHaven };
+
+    /// <summary>
+    /// <b>The heal action does not use the selector at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// It names Gift of Sung and Hocho's Haven by number. Neither is martial-with-type-0-or-1, so
+    /// neither could ever come back from <see cref="Selects"/> — which is why the repertoire is
+    /// seventeen spells and not the fifteen the targeted slots imply. Gift of Sung is targeting type
+    /// 2, so it lands in the heal delivery with its six-affliction gate and its 80% ceiling.
+    /// </remarks>
+    public static bool IsHealSpell(int spellId) =>
+        spellId == GiftOfSung || spellId == HochosHaven;
+
+    /// <summary>The value the minimum-health search starts from, above any real health.</summary>
+    public const int HealSearchSentinel = 110;
+
+    /// <summary>The bound of the roll the heal decision is taken against.</summary>
+    public const int HealUrgencyRollBound = 80;
+
+    /// <summary>
+    /// Which heal spell to cast, or -1.
+    /// </summary>
+    /// <param name="allyHealthConsulted">The ally health the decision actually reads — see the remarks.</param>
+    /// <param name="urgencyRoll">A roll in 0..79.</param>
+    /// <param name="giftOfSungAvailable">Gift of Sung is affordable and known.</param>
+    /// <param name="hochosHavenAvailable">Hocho's Haven is affordable and known.</param>
+    /// <param name="targetAlreadyHasHochosHaven">The candidate already carries that effect.</param>
+    /// <remarks>
+    /// Gift of Sung when the consulted health is below the roll and the spell is available;
+    /// otherwise Hocho's Haven, provided it is available and the candidate does not already have it.
+    /// Neither, and the action does nothing.
+    ///
+    /// <para>The roll makes urgency probabilistic rather than a threshold: a badly hurt ally is
+    /// <i>likely</i> to draw the real heal, never certain, and a lightly hurt one can draw it on a
+    /// low roll.</para>
+    /// </remarks>
+    public static int ChooseHealSpell(int allyHealthConsulted, int urgencyRoll,
+        bool giftOfSungAvailable, bool hochosHavenAvailable, bool targetAlreadyHasHochosHaven) {
+        if (allyHealthConsulted < urgencyRoll && giftOfSungAvailable) {
+            return GiftOfSung;
+        }
+
+        return hochosHavenAvailable && !targetAlreadyHasHochosHaven ? HochosHaven : -1;
+    }
+
+    /// <summary>
+    /// <b>The chooser computes the worst-off ally's health and then ignores it.</b>
+    /// </summary>
+    /// <remarks>
+    /// The loop walks the allies keeping a running minimum in one slot and overwriting a second slot
+    /// with every ally's health as it goes. After the loop the decision reads the <i>second</i> slot
+    /// — the last ally examined — and the minimum is never read again. Verified from the encoded
+    /// displacements (<c>bp-4</c> for the minimum, <c>bp-2</c> for the value tested), not from the
+    /// frame labels.
+    ///
+    /// <para>So "is anyone hurt enough to need the real heal" is answered by whoever happens to sit
+    /// last in the actor table. Our port takes the value the original tests, so the behaviour
+    /// matches; the parameter is named for what it is rather than what it was meant to be.</para>
+    /// </remarks>
+    public static bool HealUrgencyReadsTheLastAllyNotTheWorst => true;
+
+    /// <summary>
+    /// A monster <b>never heals itself</b> with this action.
+    /// </summary>
+    /// <remarks>
+    /// Both the fast path and the full scan skip a candidate that is the caster, so a wounded lone
+    /// caster with a heal spell will not use it on itself — it falls through to the next action in
+    /// its pattern row.
+    /// </remarks>
+    public static bool HealsSelf => false;
+
+    /// <summary>
+    /// Whether an ally is a valid heal target: <b>alive and below full</b>.
+    /// </summary>
+    public static bool IsHealTarget(int statPercent) => statPercent > 0 && statPercent < 100;
+
+    /// <summary>
+    /// <b>The heal spell is chosen against the first actor and then cast at whoever is found.</b>
+    /// </summary>
+    /// <remarks>
+    /// The chooser runs once, before any target is settled, with the table's first actor as its
+    /// candidate. If that actor turns out not to need healing the action scans the rest of the field
+    /// — and casts the spell already chosen. So the "does the target already have Hocho's Haven"
+    /// test was asked about a different actor than the one that receives it.
+    /// </remarks>
+    public static bool HealSpellIsChosenBeforeTheTarget => true;
+
+    /// <summary>Only one ally is healed per action; the scan stops at the first it treats.</summary>
+    public static bool HealsOneAllyPerAction => true;
 }
