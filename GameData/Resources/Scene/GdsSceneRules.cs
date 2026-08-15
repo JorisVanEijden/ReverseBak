@@ -25,6 +25,30 @@ public static class GdsSceneRules {
     public static int ActionIdFor(int index) => HotspotActionIdBase + index;
 
     /// <summary>
+    /// Splits a scene number that carries its sub-scene letter in the high byte.
+    /// </summary>
+    /// <param name="number">The number as a caller supplies it, possibly packed.</param>
+    /// <param name="letter">The letter the caller asked for; kept when nothing is packed.</param>
+    /// <remarks>
+    /// <b>A high byte on the number IS the letter, and it overrides the argument.</b>
+    /// <c>GDS_RunScene</c> does this before anything else: if the number has anything in its high
+    /// byte it moves that byte into the letter and masks the number down. So the letter parameter is
+    /// only a default.
+    ///
+    /// <para>It is not an edge case. Every <c>Bkgr</c> world trigger in the game — all nine — names a
+    /// packed value: 2856, 2344 and 3368 are scene 40 letters K, I and M. Reading them as plain scene
+    /// numbers asks for <c>GDS2856A</c> and gets nothing, so a port that skips this loses every one of
+    /// them. The twelve town gates are unpacked (1..12) and are unaffected either way, which is what
+    /// makes it easy to miss.</para>
+    /// </remarks>
+    public static (int Number, int Letter) UnpackScene(int number, int letter) {
+        if ((number & 0xFF00) == 0) {
+            return (number, letter);
+        }
+        return (number & 0xFF, (number >> 8) & 0xFF);
+    }
+
+    /// <summary>
     /// Whether a hotspot is interactive right now.
     /// </summary>
     /// <param name="chapter">The current chapter, 1-based.</param>

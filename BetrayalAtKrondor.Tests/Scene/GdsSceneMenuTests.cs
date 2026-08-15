@@ -80,4 +80,18 @@ public class GdsSceneMenuTests {
         // The rebase cannot be skipped, so there is no meaningful result without the layout.
         Assert.Empty(GdsSceneMenu.BuildElements(Scene(Spot()), null, 1, false, null));
     }
+
+    [Fact]
+    public void APlainSceneNumberKeepsTheLetterItWasAskedFor() {
+        Assert.Equal((11, 1), GdsSceneRules.UnpackScene(11, 1));
+        Assert.Equal((12, 3), GdsSceneRules.UnpackScene(12, 3));
+    }
+
+    [Fact]
+    public void AHighByteIsTheLetterAndOverridesTheArgument() {
+        // The three packed values every Bkgr trigger in the game uses.
+        Assert.Equal((40, 11), GdsSceneRules.UnpackScene(2856, 1));  // GDS40K
+        Assert.Equal((40, 9), GdsSceneRules.UnpackScene(2344, 1));   // GDS40I
+        Assert.Equal((40, 13), GdsSceneRules.UnpackScene(3368, 1));  // GDS40M
+    }
 }
