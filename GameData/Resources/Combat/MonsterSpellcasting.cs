@@ -302,4 +302,51 @@ public static class MonsterSpellcasting {
     /// monster act twice.
     /// </remarks>
     public static bool PreCheckReportsTheTurnSpent => true;
+
+    // ---------------------------------------------------------------- the power invested
+    // sub_ovr173_4D4 @0x66bd4, reached from both cast routines.
+
+    /// <summary>
+    /// The power a monster invests in a cast: <b>the spell's maximum, capped at one below its own
+    /// combined health and stamina</b>.
+    /// </summary>
+    /// <param name="spellMaximumCost">The record's maximum cost.</param>
+    /// <param name="healthStaminaPool">The caster's current combined pool.</param>
+    /// <remarks>
+    /// <b>Monsters never hold back.</b> Where the player picks a power on a slider, a monster always
+    /// asks for the record's maximum — so a monster Evil Seek is always the 30-point version, and
+    /// every cost-scaled effect in <see cref="SpellCostModifiers"/> lands at full strength.
+    ///
+    /// <para>The cap is the interesting half. Casting is paid for in health (see
+    /// <c>SpellCastRoutines</c>), and the cap is <i>pool − 1</i> rather than the pool itself — so a
+    /// monster will spend itself down to a single point but <b>never kill itself casting</b>. A port
+    /// that caps at the pool instead would let casters suicide, and one that ignores the cap would
+    /// let them spend health they do not have.</para>
+    /// </remarks>
+    public static int InvestedPower(int spellMaximumCost, int healthStaminaPool) =>
+        spellMaximumCost >= healthStaminaPool ? healthStaminaPool - 1 : spellMaximumCost;
+
+    /// <summary>
+    /// <b>Only the second pass rolls to hit.</b>
+    /// </summary>
+    /// <remarks>
+    /// The two cast routines differ in more than which one they are. The first-pass routine hands
+    /// straight to <c>Cast_Spell</c> — the line-of-fire trace it already passed is its whole
+    /// verification. The second-pass routine, which skipped that trace, instead rolls the ranged
+    /// to-hit formula keyed on the caster's casting skill and only casts if it lands.
+    ///
+    /// <para>So the two passes verify the shot in different currencies: geometry on the first,
+    /// probability on the second. Neither is a superset of the other.</para>
+    /// </remarks>
+    public static bool RollsToHit(int pass) => pass == 2;
+
+    /// <summary>
+    /// What a missed second-pass cast does: <b>turn to face the target, and nothing else</b>.
+    /// </summary>
+    /// <remarks>
+    /// No sound, no animation of a failed cast, no cost — the routine computes the direction to the
+    /// target and plays the caster's idle animation facing it. From the player's side a monster that
+    /// misses this way is indistinguishable from one that simply turned.
+    /// </remarks>
+    public static bool AMissedCastOnlyTurnsToFace => true;
 }

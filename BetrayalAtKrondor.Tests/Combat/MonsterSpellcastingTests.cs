@@ -195,6 +195,41 @@ public class MonsterSpellcastingTests {
     }
 
     [Fact]
+    public void AMonsterAlwaysCastsAtTheSpellsMaximum() {
+        // No slider, no holding back — a monster Evil Seek is always the 30-point version.
+        Assert.Equal(30, MonsterSpellcasting.InvestedPower(spellMaximumCost: 30,
+            healthStaminaPool: 90));
+    }
+
+    [Fact]
+    public void ButNeverEnoughToKillItself() {
+        // Casting is paid in health and the cap is pool - 1, so a monster spends down to one point
+        // and stops.
+        Assert.Equal(19, MonsterSpellcasting.InvestedPower(spellMaximumCost: 30,
+            healthStaminaPool: 20));
+        Assert.Equal(0, MonsterSpellcasting.InvestedPower(spellMaximumCost: 30,
+            healthStaminaPool: 1));
+    }
+
+    [Fact]
+    public void TheCapBitesExactlyAtTheBoundary() {
+        // maximumCost >= pool takes the capped branch, so a pool of exactly the cost still caps.
+        Assert.Equal(29, MonsterSpellcasting.InvestedPower(spellMaximumCost: 30,
+            healthStaminaPool: 30));
+        Assert.Equal(30, MonsterSpellcasting.InvestedPower(spellMaximumCost: 30,
+            healthStaminaPool: 31));
+    }
+
+    [Fact]
+    public void TheTwoPassesVerifyTheShotInDifferentCurrencies() {
+        // Geometry on the first, probability on the second — neither is a superset of the other.
+        Assert.True(MonsterSpellcasting.RequiresLineOfFire(1));
+        Assert.False(MonsterSpellcasting.RollsToHit(1));
+        Assert.False(MonsterSpellcasting.RequiresLineOfFire(2));
+        Assert.True(MonsterSpellcasting.RollsToHit(2));
+    }
+
+    [Fact]
     public void AnExcludedSpellIsRefusedEvenWhenEverythingElsePasses() {
         Assert.False(MonsterSpellcasting.Selects(SpellIds.Invitation, matchesFilters: true,
             castable: true, coinFlipHeads: true, alreadyOnTarget: false));
