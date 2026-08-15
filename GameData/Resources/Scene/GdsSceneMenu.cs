@@ -43,21 +43,35 @@ public static class GdsSceneMenu {
                 continue;
             }
 
-            elements.Add(new UiElement {
-                ElementType = ElementType.ClickArea,
-                ActionId = GdsSceneRules.ActionIdFor(i),
-                XPosition = RebaseX(hotspot, frame),
-                YPosition = RebaseY(hotspot, frame),
-                Width = hotspot.Width,
-                Height = hotspot.Height,
-                Cursor = CursorIndexFor(hotspot),
-                // A click area carries no artwork: the picture underneath is the scene's animation.
-                Visible = false,
-            });
+            elements.Add(ElementFor(i, hotspot, frame));
         }
 
         return elements.ToArray();
     }
+
+    /// <summary>
+    /// Converts one hotspot into its click area, for callers that have already decided which
+    /// hotspots are live.
+    /// </summary>
+    /// <param name="index">The hotspot's index in the scene, which fixes its action id.</param>
+    /// <remarks>
+    /// The conversion half of <see cref="BuildElements"/>, split out so a host that already owns the
+    /// visibility pass does not run a second one. The index must be the hotspot's position in the
+    /// scene's own array, not its position among the visible ones — see
+    /// <see cref="GdsSceneRules.ActionIdFor"/>.
+    /// </remarks>
+    public static UiElement ElementFor(int index, GdsHotspot hotspot, UserInterface frame) =>
+        new UiElement {
+            ElementType = ElementType.ClickArea,
+            ActionId = GdsSceneRules.ActionIdFor(index),
+            XPosition = RebaseX(hotspot, frame),
+            YPosition = RebaseY(hotspot, frame),
+            Width = hotspot?.Width ?? 0,
+            Height = hotspot?.Height ?? 0,
+            Cursor = CursorIndexFor(hotspot),
+            // A click area carries no artwork: the picture underneath is the scene's animation.
+            Visible = false,
+        };
 
     /// <summary>
     /// A hotspot's left edge <b>relative to the layout it is written into</b>.
