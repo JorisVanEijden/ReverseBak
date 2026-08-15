@@ -204,6 +204,54 @@ public static class SpellCasting {
         return applied;
     }
 
+    /// <summary>
+    /// <b>A cast in combat is billed through the damage pipeline, not off the pool directly.</b>
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ApplyCost"/> models the field path, which takes the cost straight off the combined
+    /// pool. The combat path (<c>Spell_ChargeCasterForCast</c>) hands it to the central
+    /// apply-damage routine instead, with <b>armour off and the shield flag set</b> — which switches
+    /// off the armour reduction, the Hocho's Haven absorb <i>and</i> the Skin of the Dragon negate.
+    /// So none of the ordinary defences make casting cheaper, which is what you would want.
+    ///
+    /// <para>The immunity tests at the top of that routine are <b>not</b> gated by those flags,
+    /// though — see <see cref="CombatCostIsWaived"/>. That is the real difference between the two
+    /// cost paths, and it is easy to miss because it sits above everything the flags control.</para>
+    /// </remarks>
+    public static bool CombatCostBypassesArmourAndShields => true;
+
+    /// <summary>
+    /// Whether a combat cast costs the caster nothing at all.
+    /// </summary>
+    /// <param name="casterIsWindElemental">The caster's creature type is the wind elemental.</param>
+    /// <param name="casterUnderDannonsDelusions">An active Dannon's Delusions effect on the caster.</param>
+    /// <param name="casterCreatureTypeIsMinusOne">The creature type the cast prologue can install.</param>
+    /// <param name="casterIncapacitated">The caster carries the cannot-act status bit.</param>
+    /// <remarks>
+    /// The apply-damage routine returns without doing anything for any of these, and those checks
+    /// run before the flags that the cost call uses to switch the defences off. So a caster in any of
+    /// these states <b>casts for free in combat</b> while paying normally in the field.
+    ///
+    /// <para>The creature-type case is the one with a trap in it: the cast dispatcher's own prologue
+    /// rewrites a creature type of -2 to -1 before anything else happens, and -1 is on this list. So
+    /// whether a cast is free can be decided by a value the cast itself installed.</para>
+    /// </remarks>
+    public static bool CombatCostIsWaived(bool casterIsWindElemental,
+        bool casterUnderDannonsDelusions, bool casterCreatureTypeIsMinusOne,
+        bool casterIncapacitated) =>
+        casterIsWindElemental || casterUnderDannonsDelusions || casterCreatureTypeIsMinusOne
+        || casterIncapacitated;
+
+    /// <summary>
+    /// <b>The field cost path has no waivers.</b>
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ApplyCost"/> goes straight to the health pool, so none of the combat immunities
+    /// apply to a spell cast outside an encounter. Sharing one cost function between the two would
+    /// make overworld casting free in states where the original still charges.
+    /// </remarks>
+    public static bool FieldCostIsAlwaysCharged => true;
+
     private static RuntimeItem FindPowerSource(SpellCastContext context, bool requireReadyFlag) {
         if (context.Inventory == null) {
             return null;
