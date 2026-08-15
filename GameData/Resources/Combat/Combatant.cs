@@ -68,11 +68,18 @@ public sealed class Combatant {
     public Combatant Target { get; set; }
 
     /// <summary>
-    /// Blocked by a status effect (asleep, stunned, and the rest of the set
-    /// <c>combatenc_actor_can_act</c> checks). Still a plain verdict flag: the effect pool now
-    /// exists (<c>ActiveSpellEffectPool</c>, reachable via <see cref="ActiveEffectSlot"/>) but which
-    /// spell numbers incapacitate has not been established, so nothing derives this yet.
+    /// Blocked by a lingering spell effect — <c>CanActInCombat</c> @0x63fa2.
     /// </summary>
+    /// <remarks>
+    /// <b>Derived, not set by hand.</b> Exactly three spells incapacitate — Dannon's Delusions,
+    /// Despair Thy Eyes and Grief of 1000 Nights — and <c>ActiveSpellEffectPool</c> recomputes this
+    /// whenever the actor's chain changes. The original stores no such flag at all; it walks the
+    /// chain on every question. Setting it directly is still possible and is what <c>Kill</c> does,
+    /// but anything else that writes it is working around the pool rather than with it.
+    ///
+    /// <para>The two combat-status bits the original also tests belong to the caller's strict flag,
+    /// not here — see <see cref="CanAct"/>.</para>
+    /// </remarks>
     public bool Incapacitated { get; set; }
 
     /// <summary>

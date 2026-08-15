@@ -136,6 +136,8 @@ public sealed class ActiveSpellEffectPool {
             effect.Age = 0;
             effect.Next = None;
         }
+
+        RefreshIncapacitation(actor);
         return slot;
     }
 
@@ -179,6 +181,7 @@ public sealed class ActiveSpellEffectPool {
         }
 
         _slots[slot].SpellNumber = None;
+        RefreshIncapacitation(actor);
     }
 
     /// <summary>
@@ -195,6 +198,7 @@ public sealed class ActiveSpellEffectPool {
             _slots[slot].SpellNumber = None;
         }
         actor.ActiveEffectSlot = None;
+        actor.Incapacitated = false;
     }
 
     /// <summary>
@@ -264,6 +268,8 @@ public sealed class ActiveSpellEffectPool {
             }
             slot = next;
         }
+
+        RefreshIncapacitation(actor);
         return actorExpired;
     }
 
@@ -274,6 +280,66 @@ public sealed class ActiveSpellEffectPool {
         }
         for (int slot = actor.ActiveEffectSlot; slot != None; slot = _slots[slot].Next) {
             yield return _slots[slot];
+        }
+    }
+
+    /// <summary>
+    /// The three spells that stop an actor acting — <c>CanActInCombat</c> @0x63fa2.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only three, and they are not the ones you would guess.</b> The engine asks the effect pool
+    /// three times, for Dannon's Delusions, Despair Thy Eyes and Grief of 1000 Nights, and any one of
+    /// them present means the actor cannot act. Nothing else in the catalogue incapacitates — not
+    /// the paralysis-sounding names, not the ones with long durations.
+    ///
+    /// <para>Two of them are already known here for other reasons, and both now make more sense.
+    /// Dannon's Delusions is the effect whose expiry <i>removes</i> its actor from the field, so it
+    /// spends its whole life on a combatant that was never going to act. And Despair Thy Eyes is the
+    /// spell that also drops all three accuracies by 20 — the accuracy penalty is what it does to a
+    /// victim who survives it, and this is what it does while it lasts.</para>
+    /// </remarks>
+    public static readonly int[] IncapacitatingSpells = {
+        SpellIds.DannonsDelusions,
+        SpellIds.DespairThyEyes,
+        SpellIds.GriefOfAThousandNights,
+    };
+
+    /// <summary>
+    /// Whether any effect currently on this actor stops it acting.
+    /// </summary>
+    /// <remarks>
+    /// The original walks the chain once per spell and short-circuits; one walk testing membership
+    /// gives the same answer. It is checked <b>regardless</b> of the caller's strict flag — the two
+    /// combat-status bits are the strict-only half, and these three spells always count.
+    /// </remarks>
+    public bool IsIncapacitated(Combatant actor) {
+        if (actor == null) {
+            return false;
+        }
+
+        foreach (ActiveSpellEffect effect in EffectsOf(actor)) {
+            foreach (int spellNumber in IncapacitatingSpells) {
+                if (effect.SpellNumber == spellNumber) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Recomputes <see cref="Combatant.Incapacitated"/> from the actor's current chain.
+    /// </summary>
+    /// <remarks>
+    /// The original stores no such flag — it calls <c>CanActInCombat</c> and walks the chain every
+    /// time. This port keeps the flag because <see cref="Combatant.CanAct"/> reads it and
+    /// <c>Kill</c> clears it, but the pool is now its only other writer: every operation that can
+    /// change an actor's chain refreshes it, so it is derived rather than set by hand.
+    /// </remarks>
+    public void RefreshIncapacitation(Combatant actor) {
+        if (actor != null) {
+            actor.Incapacitated = IsIncapacitated(actor);
         }
     }
 
