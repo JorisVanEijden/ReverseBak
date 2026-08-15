@@ -1,8 +1,11 @@
 namespace GameData.Resources.Combat;
 
 /// <summary>
-/// What happens when a tactical encounter starts — <c>combat_arena_mode_enter</c>
-/// (ovr168 @0x5f2c0).
+/// What happens when a tactical encounter starts and ends — <c>combat_arena_mode_enter</c>
+/// (ovr168 @0x5f2c0) and <c>combat_arena_mode_exit</c> (@0x5f459).
+///
+/// <para>The two are an exact mirror: every load has a matching dispose in reverse order, the
+/// bitmap-slot swap is undone, and the world zone is reloaded.</para>
 /// </summary>
 public static class CombatModeEntry {
     /// <summary>
@@ -79,4 +82,62 @@ public static class CombatModeEntry {
     /// same data has two different lifetimes depending on where you are casting from.
     /// </remarks>
     public static bool CatalogueIsResidentForTheEncounter => true;
+
+    // ---------------------------------------------------------------- leaving
+    // combat_arena_mode_exit @0x5f459.
+
+    /// <summary>
+    /// <b>The previous song is saved on entry and replayed on exit.</b>
+    /// </summary>
+    /// <remarks>
+    /// The call that starts the combat track <i>returns</i> whatever was playing, and mode entry
+    /// keeps it; exit passes that value straight back. So the overworld music resumes as the track it
+    /// was, rather than being restarted from a default or from silence — which is what a port
+    /// stopping and restarting music around a fight would get wrong.
+    /// </remarks>
+    public static bool PreviousSongIsRestoredOnExit => true;
+
+    /// <summary>
+    /// <b>Exit disposes the active-effect pool.</b>
+    /// </summary>
+    /// <remarks>
+    /// Confirms from the other end what the pool itself records: it is encounter-scoped and never
+    /// saved. Nothing a spell hung on a combatant survives the fight, so there is no lingering state
+    /// to carry back to the overworld.
+    /// </remarks>
+    public static bool EffectPoolIsDisposedOnExit => true;
+
+    /// <summary>
+    /// <b>The world zone is reloaded on the way out.</b>
+    /// </summary>
+    /// <remarks>
+    /// The mirror of the unload at entry, and the other half of why leaving a fight is a load rather
+    /// than a resume: the world the party returns to is freshly loaded, not the one they left
+    /// suspended.
+    /// </remarks>
+    public static bool ReloadsTheWorldZoneOnExit => true;
+
+    /// <summary>
+    /// Everything mode entry acquires and mode exit releases, in the order exit releases it.
+    /// </summary>
+    /// <remarks>
+    /// Listed because the pairing is the useful part: a port that acquires these at different
+    /// lifetimes than the original will not notice until something outlives an encounter that should
+    /// not have. Exit runs the spell tables, the effect pool, the encounter, the actor pool, the two
+    /// REQ layouts, the two bitmap sets, the combat sounds, the object table — then the zone.
+    /// </remarks>
+    public static readonly string[] TeardownOrder = {
+        "spell weakness/resistance tables",
+        "spell catalogue",
+        "active spell-effect pool",
+        "encounter",
+        "combat actor pool",
+        "shoot.dat layout",
+        "combat.dat layout",
+        "figs.bmx",
+        "parch.bmx",
+        "combat sounds",
+        "object table",
+        "world zone (reloaded)",
+    };
 }

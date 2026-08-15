@@ -59,4 +59,30 @@ public class CombatModeEntryTests {
         Assert.True(CombatModeEntry.CatalogueIsResidentForTheEncounter);
         Assert.True(FieldSpells.CatalogueIsLoadedOnlyForTheCastScreen);
     }
+    [Fact]
+    public void TheOverworldTrackResumesRatherThanRestarting() {
+        // Entry keeps whatever the music call returned; exit passes it back.
+        Assert.True(CombatModeEntry.PreviousSongIsRestoredOnExit);
+    }
+
+    [Fact]
+    public void NothingASpellHungOnACombatantSurvivesTheFight() {
+        Assert.True(CombatModeEntry.EffectPoolIsDisposedOnExit);
+    }
+
+    [Fact]
+    public void TheWorldIsReloadedOnTheWayOut() {
+        Assert.True(CombatModeEntry.UnloadsTheWorldZone);
+        Assert.True(CombatModeEntry.ReloadsTheWorldZoneOnExit);
+    }
+
+    [Fact]
+    public void TeardownReleasesEverythingEntryAcquired() {
+        // The pairing is the point: acquiring these at different lifetimes than the original is how
+        // something ends up outliving an encounter.
+        Assert.Equal(12, CombatModeEntry.TeardownOrder.Length);
+        Assert.Equal("spell weakness/resistance tables", CombatModeEntry.TeardownOrder[0]);
+        Assert.Equal("world zone (reloaded)",
+            CombatModeEntry.TeardownOrder[CombatModeEntry.TeardownOrder.Length - 1]);
+    }
 }
