@@ -93,4 +93,63 @@ public static class GdsSceneRules {
         long scaled = (long)baseUnit * (chapter + 19) / 20;
         return scaled > 0xfa ? 0xfa : (int)scaled;
     }
+    // ---------------------------------------------------------------- the click outcome
+    // GDS_RunScene @0x4de9d, the dispatch after a hotspot's dialog returns.
+
+    /// <summary>
+    /// The scene outcome a hotspot dialog's return value maps to.
+    /// </summary>
+    /// <param name="dialogResult">What the dialog returned.</param>
+    /// <param name="currentOutcome">The outcome so far, kept when the result is not in the table.</param>
+    /// <remarks>
+    /// <b>Five results are translated and everything else is ignored.</b> The mapping is neither the
+    /// identity, nor a negation, nor ordered — <c>-1</c> becomes 0, <c>-2</c> becomes 5, <c>-3</c>
+    /// becomes 7, <c>-4</c> becomes 3 and <c>-5</c> becomes 10 — so there is nothing to derive it
+    /// from and a port has to carry the table.
+    ///
+    /// <para>Any other return leaves the outcome exactly as it was, which is how a dialog that merely
+    /// said something falls through without disturbing the scene.</para>
+    /// </remarks>
+    public static int OutcomeFor(int dialogResult, int currentOutcome) {
+        switch (dialogResult) {
+            case -1: return 0;
+            case -2: return 5;
+            case -3: return 7;
+            case -4: return 3;
+            case -5: return 10;
+            default: return currentOutcome;
+        }
+    }
+
+    /// <summary>
+    /// <b>One outcome invalidates the palette.</b>
+    /// </summary>
+    /// <remarks>
+    /// The <c>-2</c> arm additionally clears the current-palette pointer, so whatever runs next has
+    /// to reload it. None of the other four touch it. A port that treats the outcomes as
+    /// interchangeable numbers loses the reload and keeps the scene's colours into whatever follows.
+    /// </remarks>
+    public static bool InvalidatesPalette(int dialogResult) => dialogResult == -2;
+
+    /// <summary>The most barding earnings a shop will hold.</summary>
+    public const int MaxBardingReward = 250;
+
+    /// <summary>
+    /// <b>Barding earnings travel through a global and are banked per shop, capped.</b>
+    /// </summary>
+    /// <param name="pendingReward">The global's value when the dialog returns.</param>
+    /// <remarks>
+    /// Before the dialog the shop's stored reward is loaded into a global; after it, the global is
+    /// written back into the shop clamped to <see cref="MaxBardingReward"/> and then zeroed. So the
+    /// credit is per-location rather than per-party, it survives leaving and re-entering, and it
+    /// stops accumulating at 250.
+    ///
+    /// <para>The zeroing matters as much as the cap: the global is scratch space for one visit, so
+    /// carrying it between locations would pay a second innkeeper for the same performance.</para>
+    /// </remarks>
+    public static int BankedBardingReward(int pendingReward) =>
+        pendingReward > MaxBardingReward ? MaxBardingReward : pendingReward;
+
+    /// <summary>The global is cleared after banking, so nothing carries to the next location.</summary>
+    public static bool BardingRewardGlobalIsScratch => true;
 }
