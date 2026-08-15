@@ -211,4 +211,95 @@ public static class MonsterSpellcasting {
     public static bool Selects(int spellId, bool matchesFilters, bool castable, bool coinFlipHeads,
         bool alreadyOnTarget) =>
         matchesFilters && castable && coinFlipHeads && !NeverSelected(spellId) && !alreadyOnTarget;
+
+    // ---------------------------------------------------------------- executing the action
+    // monster_castSpellAtSelectedTarget @0x65a0f, and the six wrappers that differ only in mode.
+
+    /// <summary>
+    /// The selection parameter every one of the six wrappers passes: <b>6, always</b>.
+    /// </summary>
+    /// <remarks>
+    /// Each wrapper packs its arguments into one dword as <c>(mode &lt;&lt; 16) | 6</c>, so the six
+    /// differ in the selection mode and in nothing else. Verified for all six rather than inferred
+    /// from the first.
+    /// </remarks>
+    public const int TargetSelectionParameter = 6;
+
+    /// <summary>
+    /// How much slack the target picker is given: <b>four, less a quarter of the casting skill</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A better caster gets a smaller number.</b> It runs from 4 at no skill down to 0 at 100, so
+    /// whatever the picker does with it, skill makes the search stricter rather than wider — the
+    /// opposite of the obvious reading, and easy to invert.
+    /// </remarks>
+    public static int CastingFactor(int accuracyCasting) => 4 - (accuracyCasting / 25);
+
+    /// <summary>
+    /// <b>Monsters only ever cast martial spells.</b>
+    /// </summary>
+    /// <remarks>
+    /// Every call to the selector passes a martial flag of 1, on both passes. Half the catalogue is
+    /// non-martial and no monster can reach any of it — Dragon's Breath, Nightfingers, Stardusk and
+    /// the rest are player-only by this rule alone, with nothing in the creature data saying so.
+    /// </remarks>
+    public static bool OnlyCastsMartialSpells => true;
+
+    /// <summary>
+    /// The targeting types asked for, in order, on the first pass.
+    /// </summary>
+    /// <remarks>
+    /// Type 0 first — the only type that can miss — and type 1 as the fallback. Together with the
+    /// martial rule and the two struck-out spells, this is what bounds the whole monster repertoire
+    /// to fifteen of the catalogue's forty-five.
+    /// </remarks>
+    public static readonly int[] FirstPassTargetingTypes = { 0, 1 };
+
+    /// <summary>The single targeting type the second pass will accept.</summary>
+    public static readonly int[] SecondPassTargetingTypes = { 1 };
+
+    /// <summary>
+    /// Whether a monster could ever choose this spell, from its catalogue fields alone.
+    /// </summary>
+    /// <param name="spellId">The spell.</param>
+    /// <param name="isMartial">Its martial flag.</param>
+    /// <param name="targetingType">Its targeting type.</param>
+    /// <remarks>
+    /// Fifteen spells satisfy this across the shipped catalogue. Every buff and utility spell is
+    /// excluded by the martial flag, and Final Rest — the one that kills outright — is excluded by
+    /// its targeting type, so no monster can ever cast it at the party.
+    /// </remarks>
+    public static bool InMonsterRepertoire(int spellId, bool isMartial, int targetingType) =>
+        isMartial
+        && (targetingType == 0 || targetingType == 1)
+        && !NeverSelected(spellId);
+
+    /// <summary>
+    /// <b>The action makes two attempts at finding a target, and they are not the same attempt.</b>
+    /// </summary>
+    /// <remarks>
+    /// The first asks the picker with the casting factor; if it yields a target, the spell must pass
+    /// a health check <i>and a clear line of fire</i> before the cast goes through the normal
+    /// routine. If it yields no target at all, the second asks again with a factor of zero — and
+    /// that path accepts only targeting type 1, checks health with a different argument, <b>skips
+    /// the line-of-fire test entirely</b>, and casts through a different routine.
+    ///
+    /// <para>So a monster that cannot see anything it likes will still cast, at something, through
+    /// a wall. Modelling this as one retry of the same logic loses the distinction.</para>
+    /// </remarks>
+    public static bool RequiresLineOfFire(int pass) => pass == 1;
+
+    /// <summary>The casting factor the second pass uses instead of the skill-derived one.</summary>
+    public const int SecondPassCastingFactor = 0;
+
+    /// <summary>
+    /// Whether the turn is already spent before any of this runs.
+    /// </summary>
+    /// <remarks>
+    /// A pre-check ahead of everything returns "acted" without casting. What it tests has not been
+    /// read (<c>sub_ovr171_86</c> @0x65796), so this only records that the early exit exists and
+    /// reports success rather than failure — a caller treating it as "did nothing" would let the
+    /// monster act twice.
+    /// </remarks>
+    public static bool PreCheckReportsTheTurnSpent => true;
 }

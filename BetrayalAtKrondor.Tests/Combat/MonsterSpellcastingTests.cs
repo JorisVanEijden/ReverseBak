@@ -132,6 +132,69 @@ public class MonsterSpellcastingTests {
     }
 
     [Fact]
+    public void SkillMakesTheTargetSearchStricterNotWider() {
+        // 4 down to 0 as casting skill runs 0 to 100 — the opposite of the obvious reading.
+        Assert.Equal(4, MonsterSpellcasting.CastingFactor(0));
+        Assert.Equal(2, MonsterSpellcasting.CastingFactor(50));
+        Assert.Equal(0, MonsterSpellcasting.CastingFactor(100));
+    }
+
+    [Fact]
+    public void TheFirstPassPrefersTheOnlyTypeThatCanMiss() {
+        Assert.Equal(SpellHitResolution.MissableTargetingType,
+            MonsterSpellcasting.FirstPassTargetingTypes[0]);
+        Assert.Equal(1, MonsterSpellcasting.FirstPassTargetingTypes[1]);
+    }
+
+    [Fact]
+    public void AndTheSecondPassAcceptsOnlyTypeOne() {
+        Assert.Single(MonsterSpellcasting.SecondPassTargetingTypes);
+        Assert.Equal(1, MonsterSpellcasting.SecondPassTargetingTypes[0]);
+    }
+
+    [Fact]
+    public void OnlyTheFirstPassNeedsAClearLineOfFire() {
+        // So a monster that finds nothing it likes still casts, at something, through a wall.
+        Assert.True(MonsterSpellcasting.RequiresLineOfFire(1));
+        Assert.False(MonsterSpellcasting.RequiresLineOfFire(2));
+    }
+
+    [Fact]
+    public void NonMartialSpellsAreOutOfReachEntirely() {
+        // Nightfingers is not martial, so no monster can ever cast it whatever its book says.
+        Assert.False(MonsterSpellcasting.InMonsterRepertoire(SpellIds.Nightfingers,
+            isMartial: false, targetingType: 4));
+        Assert.False(MonsterSpellcasting.InMonsterRepertoire(SpellIds.DannonsDelusions,
+            isMartial: false, targetingType: 3));
+    }
+
+    [Fact]
+    public void AndSoIsFinalRestByItsTargetingType() {
+        // The one spell that kills outright — a monster can never point it at the party.
+        Assert.False(MonsterSpellcasting.InMonsterRepertoire(SpellIds.FinalRest,
+            isMartial: true, targetingType: 7));
+    }
+
+    [Fact]
+    public void WhatIsLeftIsTheMonsterRepertoire() {
+        Assert.True(MonsterSpellcasting.InMonsterRepertoire(SpellIds.Skyfire,
+            isMartial: true, targetingType: 1));
+        Assert.True(MonsterSpellcasting.InMonsterRepertoire(SpellIds.Flamecast,
+            isMartial: true, targetingType: 0));
+        Assert.True(MonsterSpellcasting.InMonsterRepertoire(SpellIds.MadGodsRage,
+            isMartial: true, targetingType: 1));
+    }
+
+    [Fact]
+    public void ExceptTheTwoStruckOutByNumberWhichPassEveryFieldTest() {
+        // Both are martial with targeting type 1, so only the by-number exclusion stops them.
+        Assert.False(MonsterSpellcasting.InMonsterRepertoire(SpellIds.Invitation,
+            isMartial: true, targetingType: 1));
+        Assert.False(MonsterSpellcasting.InMonsterRepertoire(SpellIds.ThoughtsLikeClouds,
+            isMartial: true, targetingType: 1));
+    }
+
+    [Fact]
     public void AnExcludedSpellIsRefusedEvenWhenEverythingElsePasses() {
         Assert.False(MonsterSpellcasting.Selects(SpellIds.Invitation, matchesFilters: true,
             castable: true, coinFlipHeads: true, alreadyOnTarget: false));
