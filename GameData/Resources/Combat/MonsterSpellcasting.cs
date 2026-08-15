@@ -640,4 +640,82 @@ public static class MonsterSpellcasting {
     /// candidate's <i>target</i> rather than on the candidate.
     /// </remarks>
     public static bool CandidateIsEligible(bool candidateIncapacitated) => !candidateIncapacitated;
+
+    // ---------------------------------------------------------------- the pre-check: disengage
+    // sub_ovr172_0 @0x65f70, the first thing monster_chooseSpellcastAction calls.
+
+    /// <summary>
+    /// <b>A caster with an enemy in contact does not cast. It backs away.</b>
+    /// </summary>
+    /// <param name="nearestLivingEnemyDistance">Chebyshev distance to the nearest living enemy.</param>
+    /// <remarks>
+    /// This is the pre-check recorded earlier as "returns acted without casting, what it tests has
+    /// not been read". It tests engagement: if the nearest living enemy is farther than
+    /// <see cref="EngagementRange"/> the caster proceeds to its action row, and if it is at or inside
+    /// that range the caster spends the whole turn repositioning instead.
+    ///
+    /// <para>So a spellcasting monster that the party closes with stops casting — which is a real
+    /// tactic against them, and something no part of the pattern table hints at.</para>
+    /// </remarks>
+    public static bool MustDisengageBeforeCasting(int nearestLivingEnemyDistance) =>
+        nearestLivingEnemyDistance <= EngagementRange;
+
+    /// <summary>The distance at or within which a caster counts as engaged.</summary>
+    public const int EngagementRange = 1;
+
+    /// <summary>
+    /// How the retreat cell is chosen: <b>by simulating standing in every free cell</b>.
+    /// </summary>
+    /// <remarks>
+    /// The search walks the whole grid, and for each cell that is unblocked and reachable it
+    /// <i>temporarily writes the caster's position there</i>, re-runs the nearest-living-enemy
+    /// search, and restores the position. The cell that leaves the greatest distance wins. It is a
+    /// genuine "where am I safest" evaluation rather than a step away from the threat, so a caster
+    /// can cross the field in one turn if that is what puts the most ground between it and the party.
+    /// </remarks>
+    public static bool RetreatEvaluatesEveryCell => true;
+
+    /// <summary>
+    /// Whether a candidate cell replaces the best so far.
+    /// </summary>
+    /// <param name="candidateDistance">Nearest-enemy distance if the caster stood there.</param>
+    /// <param name="bestDistance">The best found so far, starting at the caster's current distance.</param>
+    /// <param name="tieRoll">A roll in 0..99, consulted only on an exact tie.</param>
+    /// <remarks>
+    /// Strictly better always wins; an exact tie switches on a <b>51%</b> roll, not a coin flip — the
+    /// comparison is <c>&lt; 0x33</c> against a d100. So equally safe cells are shuffled slightly in
+    /// favour of the later one.
+    /// </remarks>
+    public static bool RetreatCellIsBetter(int candidateDistance, int bestDistance, int tieRoll) =>
+        candidateDistance > bestDistance
+        || (candidateDistance == bestDistance && tieRoll < RetreatTieBreakPercent);
+
+    /// <summary>The chance an equally safe cell displaces the incumbent.</summary>
+    public const int RetreatTieBreakPercent = 0x33;
+
+    /// <summary>The chance of abandoning a found retreat and deferring to the movement AI.</summary>
+    public const int RetreatAbandonPercent = 15;
+
+    /// <summary>
+    /// Whether the caster hands its turn to the general movement AI instead of taking the retreat.
+    /// </summary>
+    /// <param name="foundSomewhereBetter">The search improved on where the caster already stands.</param>
+    /// <param name="roll">A roll in 0..99.</param>
+    /// <remarks>
+    /// Two ways in: the search found nowhere better, or it found somewhere better and a 15% roll
+    /// throws it away anyway. Either way the movement AI takes over — so a cornered caster is not
+    /// simply stuck, it falls through to ordinary movement behaviour.
+    /// </remarks>
+    public static bool DefersToMovementAi(bool foundSomewhereBetter, int roll) =>
+        !foundSomewhereBetter || roll < RetreatAbandonPercent;
+
+    /// <summary>
+    /// <b>The pre-check reports engagement, not whether anything happened.</b>
+    /// </summary>
+    /// <remarks>
+    /// Its return value is set from the engagement test alone, before any of the movement work — so
+    /// an engaged caster consumes its turn whether it retreated, deferred to the movement AI, or
+    /// found nothing at all to do. The caller reads that as "acted" and skips the action row.
+    /// </remarks>
+    public static bool DisengageReturnsEngagementNotSuccess => true;
 }
