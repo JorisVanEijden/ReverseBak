@@ -37,13 +37,13 @@ public static class TempleHealMenu {
             : afflictionPrice;
 
     /// <summary>Conditions the cure touches — the whole table, from 0 to this bound exclusive.</summary>
-    public const int ConditionCount = 7;
+    public const int ConditionCount = ActorConditions.Count;
 
     /// <summary>
     /// The one beneficial condition. Never charged for, and <b>granted</b> by a cure rather than
     /// cleared.
     /// </summary>
-    public const int HealingCondition = 4;
+    public const int HealingCondition = (int)GameData.ActorCondition.Healing;
 
     /// <summary>Healing granted by an ordinary cure.</summary>
     public const int HealingGrantedByCure = 20;
