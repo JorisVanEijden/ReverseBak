@@ -1,5 +1,7 @@
 namespace GameData.Resources.Character;
 
+using GameData.Resources;
+
 /// <summary>
 /// One line of the character sheet's rating list — where it sits, how it reads, and whether it
 /// carries a bar. Faithful port of <c>charscreen_draw_sheet_stat_row</c> @0x57dec (ovr160).
@@ -94,12 +96,22 @@ public static class CharacterSheetRow {
 
     // ---- the value ------------------------------------------------------------------------------
 
-    /// <summary>What a rating with no maximum reads as.</summary>
+    /// <summary>Catalog key for what a rating with no maximum reads as.</summary>
     /// <remarks>
-    /// Tested on the MAXIMUM, not the current value — so a rating the character has never had shows
-    /// as unavailable, while one they have merely lost all of shows as 0%.
+    /// The text is <b>catalogued, not literal</b> — it is one of the strings lifted out of the
+    /// executable, so a translation or an override reaches it like any other. Shown when the
+    /// MAXIMUM is zero, not the current value: a rating the character has never had reads
+    /// differently from one they have merely lost all of.
     /// </remarks>
-    public const string NotApplicableText = "N/A";
+    public const string NotApplicableKey = "base:uistring:attribute.value_unavailable";
+
+    /// <summary>The name of an attribute, by its number.</summary>
+    /// <remarks>
+    /// The original indexes a 15-byte-stride table in the executable with the same number; the
+    /// extractor lifted that table into the catalog under these keys, so the ordering is shared
+    /// rather than restated.
+    /// </remarks>
+    public static string NameKey(string attributeName) => "base:uistring:attribute." + attributeName;
 
     /// <summary>How a rating reads: a percentage, padded to three columns.</summary>
     /// <remarks>
@@ -110,7 +122,7 @@ public static class CharacterSheetRow {
     /// </remarks>
     public static string ValueText(int maximum, int percentage) =>
         maximum == 0
-            ? NotApplicableText
+            ? Text.UiStrings.Get(NotApplicableKey)
             : ClampPercentage(percentage)
                 .ToString(System.Globalization.CultureInfo.InvariantCulture)
                 .PadLeft(3) + "%";

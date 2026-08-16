@@ -6,6 +6,7 @@ using Xunit;
 /// <summary>
 /// A rating row on the character sheet (<c>charscreen_draw_sheet_stat_row</c> @0x57dec).
 /// </summary>
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class CharacterSheetRowTests {
     // ---- the two columns ----------------------------------------------------------------------
 
@@ -72,8 +73,10 @@ public class CharacterSheetRowTests {
 
     [Fact]
     public void ARatingWithNoMaximumReadsAsUnavailable() =>
-        // Tested on the MAXIMUM: never had it, versus lost all of it.
-        Assert.Equal(CharacterSheetRow.NotApplicableText, CharacterSheetRow.ValueText(maximum: 0, percentage: 40));
+        // Tested on the MAXIMUM: never had it, versus lost all of it. The text comes from the
+        // catalog rather than a literal, so a translation reaches it.
+        Assert.Equal(GameData.Resources.Text.UiStrings.Get(CharacterSheetRow.NotApplicableKey),
+            CharacterSheetRow.ValueText(maximum: 0, percentage: 40));
 
     [Fact]
     public void ARatingDrainedToNothingStillReadsAsAPercentage() =>

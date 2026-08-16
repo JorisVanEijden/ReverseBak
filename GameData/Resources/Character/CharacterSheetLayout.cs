@@ -87,8 +87,22 @@ public static class CharacterSheetLayout {
     /// </remarks>
     public const int NormalY = 168;
 
-    /// <summary>The word an unafflicted character gets under Condition.</summary>
-    public const string NormalText = "Normal";
+    /// <summary>Catalog key for the word an unafflicted character gets under Condition.</summary>
+    /// <remarks>
+    /// The catalog names this and the two headings with an <c>item.</c> prefix, which is a
+    /// misnomer inherited from where they were first found — they are the character sheet's, not an
+    /// item's. Left as they are: the keys are the catalog's contract, and renaming them would break
+    /// any override already written against them for the sake of a tidier string.
+    /// </remarks>
+    public const string NormalKey = "base:uistring:item.condition_normal";
+
+    /// <summary>Catalog key for the left column's heading.</summary>
+    /// <inheritdoc cref="NormalKey"/>
+    public const string RatingsHeadingKey = "base:uistring:item.ratings_header";
+
+    /// <summary>Catalog key for the right column's heading.</summary>
+    /// <inheritdoc cref="NormalKey"/>
+    public const string ConditionHeadingKey = "base:uistring:item.condition_label";
 
     /// <summary>How a listed condition reads: its name and its strength as a percentage.</summary>
     public const string ConditionFormat = "{0} ({1}%)";
