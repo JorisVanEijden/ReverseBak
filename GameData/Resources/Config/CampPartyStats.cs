@@ -30,6 +30,22 @@ public static class CampPartyStats {
     public const int NameX = 695;
 
     /// <summary>
+    /// The two value columns' base x, in canonical space — VGA 84 and 144.
+    /// </summary>
+    /// <remarks>
+    /// Read from the original's own column table rather than measured off a screenshot. A heading
+    /// centres on <c>base + <see cref="HeadingCentreOffsetX"/></c>, i.e. VGA 218 and 278, which is
+    /// where they sit in a capture of the original.
+    /// </remarks>
+    public static readonly IReadOnlyList<int> ColumnX = new[] { 84 * 5, 144 * 5 };
+
+    /// <summary>The centre a column's heading is laid out around.</summary>
+    public static int HeadingCentreX(int column) => ColumnX[column] + HeadingCentreOffsetX;
+
+    /// <summary>Columns in the table: health-and-stamina, then rations.</summary>
+    public const int ColumnCount = 2;
+
+    /// <summary>
     /// The baseline of a member's row, by active-roster slot.
     /// </summary>
     /// <remarks>VGA <c>slot * 16 + 37</c>.</remarks>

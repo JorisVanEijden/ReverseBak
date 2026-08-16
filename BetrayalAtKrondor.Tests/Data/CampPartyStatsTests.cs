@@ -22,6 +22,15 @@ public class CampPartyStatsTests {
         Assert.Equal(16 * 6, CampPartyStats.RowY(2) - CampPartyStats.RowY(1));
     }
 
+    [Fact]
+    public void TheHeadingsCentreWhereTheOriginalPutsThem() {
+        // Column bases 84 and 144 from the original's own table, plus the 134 centring offset —
+        // VGA 218 and 278, which is where a capture of the original shows them.
+        Assert.Equal(218 * 5, CampPartyStats.HeadingCentreX(0));
+        Assert.Equal(278 * 5, CampPartyStats.HeadingCentreX(1));
+        Assert.Equal(CampPartyStats.ColumnCount, CampPartyStats.ColumnX.Count);
+    }
+
     // ---- the name's ink -----------------------------------------------------------------------
 
     [Fact]
