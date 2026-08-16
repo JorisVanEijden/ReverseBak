@@ -11,10 +11,12 @@ namespace GameData.Resources.Dialog;
 /// through.</para>
 /// </summary>
 public sealed class DialogPlay {
-    public DialogPlay(DialogEntry entry, DialogSlotTable slots, DialogSlotContext context) {
+    public DialogPlay(DialogEntry entry, DialogSlotTable slots, DialogSlotContext context,
+        Dialog dialog = null) {
         Entry = entry;
         Slots = slots;
         Context = context;
+        Dialog = dialog;
     }
 
     /// <summary>The leaf the branch walk stopped on — the entry whose text is shown.</summary>
@@ -27,4 +29,14 @@ public sealed class DialogPlay {
     /// <summary>The state the slots were filled from. Carried so the renderer can resolve a bare
     /// <c>@</c> to the same actor the slots were built against.</summary>
     public DialogSlotContext Context { get; }
+
+    /// <summary>
+    /// The dialog <see cref="Entry"/> came from, so a conversation can find its next line.
+    /// </summary>
+    /// <remarks>
+    /// Carried rather than re-loaded: continuing a conversation asks the SAME dialog for the entry
+    /// after this one, and reloading it per line would re-seed the slots this play has been
+    /// accumulating. Null for plays built before the chain existed, which simply cannot continue.
+    /// </remarks>
+    public Dialog Dialog { get; }
 }

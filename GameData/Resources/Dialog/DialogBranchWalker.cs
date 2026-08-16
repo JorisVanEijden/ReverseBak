@@ -45,6 +45,37 @@ public static class DialogBranchWalker {
         return current;
     }
 
+    /// <summary>
+    /// The next LINE of a conversation, or null when this one ends it.
+    /// </summary>
+    /// <param name="dialog">The dialog the entry belongs to.</param>
+    /// <param name="current">A line that has just been shown.</param>
+    /// <param name="getGlobal">Reads a global, for a continuation that branches on state.</param>
+    /// <remarks>
+    /// <b>A branch out of an entry that HAS text means "then say this".</b> Most spoken dialog in
+    /// the game is a flat chain of such entries — 3464 of 5932 text-bearing entries across the
+    /// shipped DDX carry one — and <see cref="WalkToLeaf"/> deliberately stops at the first of them,
+    /// because for CONDITIONAL ROUTING (an item description, say) the first text IS the answer. This
+    /// is the other question: having shown a line, is there another?
+    ///
+    /// <para>Returns null for an entry with no text, so this can only ever continue a conversation
+    /// that has started — and null at a dead end, which is how the last line is recognised.</para>
+    ///
+    /// <para>Branch choice goes through the same <c>ChooseBranch</c> the routing walk uses rather
+    /// than assuming an unconditional default, so a continuation that depends on state picks the
+    /// same successor the original would.</para>
+    /// </remarks>
+    public static DialogEntry NextLine(Dialog dialog, DialogEntry current, Func<int, int?> getGlobal) {
+        if (dialog == null || current == null || string.IsNullOrEmpty(current.Text)) {
+            return null;
+        }
+        DialogBranchBase chosen = ChooseBranch(current, getGlobal);
+        if (chosen?.TargetKey == null) {
+            return null;
+        }
+        return BuildKeyIndex(dialog).TryGetValue(chosen.TargetKey, out DialogEntry next) ? next : null;
+    }
+
     // De-indexed entry index: entries keyed by their stable content key (base:ddx:<file>:<offset>).
     // A branch/push TargetKey resolves here only for same-file offset targets; a cross-file
     // base:dialog:<id> key is absent (that DialogEntry lives in another DDX) and reads as a dead end,
