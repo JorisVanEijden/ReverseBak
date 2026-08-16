@@ -2,6 +2,7 @@ namespace GameData.Resources.Config;
 
 using GameData;
 using GameData.Resources.Character;
+using GameData.Resources.Text;
 using System.Collections.Generic;
 
 /// <summary>
@@ -90,6 +91,72 @@ public static class CampPartyStats {
     /// <summary>The colour a member's name is drawn in.</summary>
     public static int NameColour(ActorConditions conditions) =>
         IsAfflicted(conditions) ? AfflictedTextColour : HealthyTextColour;
+
+    // ---- the value columns --------------------------------------------------------------------
+
+    /// <summary>Catalog key for the first column's heading.</summary>
+    public const string HealthStaminaLabelKey = "base:uistring:encamp.health_stamina_label";
+
+    /// <summary>Catalog key for the second column's heading.</summary>
+    public const string RationsLabelKey = "base:uistring:encamp.rations_label";
+
+    /// <summary>
+    /// Catalog key for the separator between current and maximum.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is not <c>attribute.current_of_max_separator</c>.</b> That one is a different call
+    /// site and is bare <c>"of"</c>; this one is <c>" of "</c> and its spaces ARE the layout,
+    /// because the original concatenates rather than formatting. Reaching for the other key renders
+    /// "100of100".
+    /// </remarks>
+    public const string SeparatorKey = "base:uistring:encamp.current_of_max_separator";
+
+    /// <summary>A member's health-and-stamina reading, e.g. "100 of 100".</summary>
+    public static string HealthStaminaText(int current, int maximum) =>
+        current.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        + Text.UiStrings.Get(SeparatorKey)
+        + maximum.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Every value is centred on its column, exactly as the headings are.
+    /// </summary>
+    /// <remarks>
+    /// Confirmed from the code rather than measured off a capture: the value draw repeats the
+    /// heading's <c>columnX + 134 - width/2</c> verbatim.
+    /// </remarks>
+    public static int ValueCentreX(int column) => HeadingCentreX(column);
+
+    // ---- the wounded highlight -------------------------------------------------------------------
+
+    /// <summary>Below this percentage of maximum, the current figure is highlighted.</summary>
+    /// <remarks>
+    /// <b>The same 80% the rest loop stops at.</b> Camping runs until every member is above it, and
+    /// the table highlights anyone below it — one threshold wearing two hats, so a rest ends exactly
+    /// when the last highlight clears.
+    /// </remarks>
+    public const int WoundedPercent = 80;
+
+    /// <summary>Colour the current figure is redrawn in when the member is below the threshold.</summary>
+    /// <remarks>The same ink an afflicted name uses; see <see cref="AfflictedTextColour"/>.</remarks>
+    public const int WoundedTextColour = AfflictedTextColour;
+
+    /// <summary>Whether a member's health-and-stamina is low enough to highlight.</summary>
+    /// <remarks>
+    /// The original computes <c>max * 80 / 100 &gt; current</c> — integer arithmetic, and the
+    /// comparison is strict, so a member sitting exactly on the threshold is NOT highlighted.
+    /// </remarks>
+    public static bool IsWounded(int current, int maximum) => maximum * WoundedPercent / 100 > current;
+
+    /// <summary>
+    /// The highlight is drawn by <b>overprinting the current figure alone</b>, at the same position
+    /// the whole "N of M" string starts.
+    /// </summary>
+    /// <remarks>
+    /// That works because the current figure is the leading part of the string, so redrawing just
+    /// it recolours the number and leaves " of M" in the plain ink. Recolouring the whole line would
+    /// tint the maximum too, which the original never does.
+    /// </remarks>
+    public static bool HighlightOverprintsTheCurrentValueOnly => true;
 
     // ---- the rations column ---------------------------------------------------------------------
 

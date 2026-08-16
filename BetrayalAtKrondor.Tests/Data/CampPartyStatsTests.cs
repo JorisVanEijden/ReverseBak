@@ -8,6 +8,7 @@ using Xunit;
 /// <summary>
 /// The camp screen's party table (<c>UI_show_actor_healthStatus</c> @0x70d2d).
 /// </summary>
+[Collection(BetrayalAtKrondor.Tests.Text.UiStringsCollection.Name)]
 public class CampPartyStatsTests {
     private static ActorConditions With(ActorCondition condition, int rank = 50) {
         var c = new ActorConditions();
@@ -74,6 +75,53 @@ public class CampPartyStatsTests {
     [Fact]
     public void NoConditionsAtAllIsSafe() =>
         Assert.False(CampPartyStats.IsAfflicted(null));
+
+    // ---- the value columns ----------------------------------------------------------------
+
+    [Fact]
+    public void HealthStaminaReadsAsCurrentOfMax() =>
+        // The separator's SPACES are the layout — the original concatenates rather than formatting.
+        Assert.Equal("100 of 100", CampPartyStats.HealthStaminaText(100, 100));
+
+    [Fact]
+    public void TheSeparatorIsTheEncampOneNotTheAttributeOne() {
+        // attribute.current_of_max_separator is bare "of" for a different call site; reaching for it
+        // here renders "100of100".
+        Assert.Equal(" of ", GameData.Resources.Text.UiStrings.Get(CampPartyStats.SeparatorKey));
+        Assert.Contains(" of ", CampPartyStats.HealthStaminaText(85, 85));
+    }
+
+    [Fact]
+    public void ValuesCentreOnTheSameColumnsAsTheirHeadings() {
+        Assert.Equal(CampPartyStats.HeadingCentreX(0), CampPartyStats.ValueCentreX(0));
+        Assert.Equal(CampPartyStats.HeadingCentreX(1), CampPartyStats.ValueCentreX(1));
+    }
+
+    // ---- the wounded highlight --------------------------------------------------------------
+
+    [Fact]
+    public void AFullyHealedMemberIsNotHighlighted() =>
+        Assert.False(CampPartyStats.IsWounded(100, 100));
+
+    [Fact]
+    public void ExactlyOnTheThresholdIsNotHighlighted() =>
+        // max*80/100 > current, strictly — 80 of 100 sits ON the line and stays plain.
+        Assert.False(CampPartyStats.IsWounded(80, 100));
+
+    [Fact]
+    public void BelowTheThresholdIsHighlighted() =>
+        Assert.True(CampPartyStats.IsWounded(79, 100));
+
+    [Fact]
+    public void TheHighlightThresholdIsTheOneTheRestLoopStopsAt() =>
+        // One threshold, two hats: camping runs until everyone is above it, and the table highlights
+        // anyone below it — so a rest ends exactly when the last highlight clears.
+        Assert.Equal(80, CampPartyStats.WoundedPercent);
+
+    [Fact]
+    public void AMemberWithNoMaximumIsNotHighlighted() =>
+        // Guards the divide: 0 * 80 / 100 is 0, which is never > current.
+        Assert.False(CampPartyStats.IsWounded(0, 0));
 
     // ---- rations ------------------------------------------------------------------------------
 
