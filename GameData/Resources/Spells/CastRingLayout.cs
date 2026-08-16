@@ -76,6 +76,28 @@ public static class CastRingLayout {
     /// </remarks>
     public const int SliderFilledIcon = 1;
 
+    /// <summary>
+    /// The icon drawn over the single position under the cursor.
+    /// </summary>
+    /// <remarks>
+    /// <b>A third icon, over one position only.</b> After the ring and the band, the hovered
+    /// position alone is redrawn with this — <c>from = position, to = position + 1</c>. So the
+    /// slider has three visual roles, not two: the untouched ring, the chosen band, and the cursor
+    /// itself. Without it the player cannot see which position they are on, only how far the band
+    /// reaches.
+    /// </remarks>
+    public const int SliderHoverIcon = 5;
+
+    /// <summary>
+    /// <b>The info panel's cost updates as the cursor moves.</b>
+    /// </summary>
+    /// <remarks>
+    /// The loop calls the info panel every pass with the hovered power, and with a cost of zero when
+    /// nothing is hovered — which is what puts the shipped "Cost: 5-15" template back. So the panel
+    /// is a live readout of the slider rather than something shown once when the spell is picked.
+    /// </remarks>
+    public static bool InfoPanelFollowsTheCursor => true;
+
     /// <summary>Whether a ring position falls inside the chosen band.</summary>
     /// <param name="position">Ring position, 0-based.</param>
     /// <param name="minimumPower">The spell's minimum cost — where the band always starts.</param>

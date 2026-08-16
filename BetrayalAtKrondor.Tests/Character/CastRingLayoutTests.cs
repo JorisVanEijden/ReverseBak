@@ -149,4 +149,11 @@ public class CastRingLayoutTests {
         // Whole ring first, chosen band overdrawn — the same icon for both would show no band.
         Assert.NotEqual(CastRingLayout.SliderRingIcon, CastRingLayout.SliderFilledIcon);
     }
+
+    [Fact]
+    public void TheSliderHasThreeIconRolesNotTwo() {
+        // Ring, band, and the single hovered position — all distinct, or the cursor is invisible.
+        Assert.NotEqual(CastRingLayout.SliderRingIcon, CastRingLayout.SliderHoverIcon);
+        Assert.NotEqual(CastRingLayout.SliderFilledIcon, CastRingLayout.SliderHoverIcon);
+    }
 }
