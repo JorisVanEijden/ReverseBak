@@ -57,6 +57,36 @@ public static class CastRingLayout {
     public static int IconFor(int baseIcon, int position, bool markAnchors) =>
         markAnchors && IsAnchor(position) ? baseIcon + AnchorIconOffset : baseIcon;
 
+    /// <summary>
+    /// The icon the whole ring is drawn with while a power is being chosen.
+    /// </summary>
+    /// <remarks>
+    /// <b>The slider is two draws, not one.</b> The ring is painted whole with this icon (anchors
+    /// marked), and the chosen band is then <i>overdrawn</i> with
+    /// <see cref="SliderFilledIcon"/>. Drawing only the band leaves the rest of the ring stale,
+    /// and drawing the band first has it painted over.
+    /// </remarks>
+    public const int SliderRingIcon = 2;
+
+    /// <summary>The icon the chosen band is overdrawn with — anchors are <b>not</b> marked in it.</summary>
+    /// <remarks>
+    /// The band pass passes zero for the anchor flag, so a category anchor inside the chosen band
+    /// loses its marker. That is what makes the band read as one continuous run rather than a ring
+    /// with six studs in it.
+    /// </remarks>
+    public const int SliderFilledIcon = 1;
+
+    /// <summary>Whether a ring position falls inside the chosen band.</summary>
+    /// <param name="position">Ring position, 0-based.</param>
+    /// <param name="minimumPower">The spell's minimum cost — where the band always starts.</param>
+    /// <param name="chosenPower">The power currently under the cursor.</param>
+    /// <remarks>
+    /// The band runs from the spell's <i>minimum</i> power, not from zero: the low end of the band is
+    /// fixed by the spell and only its top end follows the cursor.
+    /// </remarks>
+    public static bool IsInChosenBand(int position, int minimumPower, int chosenPower) =>
+        position >= PositionForPower(minimumPower) && position <= PositionForPower(chosenPower);
+
     /// <summary>Whether a ring position is one of the six category anchors.</summary>
     public static bool IsAnchor(int position) => (position + 1) % PositionsPerCategory == 0;
 

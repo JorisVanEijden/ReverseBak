@@ -134,4 +134,19 @@ public class CastRingLayoutTests {
     public void APassThatDoesNotMarkAnchorsDrawsThemLikeAnyOtherPosition() {
         Assert.Equal(30, CastRingLayout.IconFor(30, position: 4, markAnchors: false));
     }
+
+    [Fact]
+    public void TheChosenBandStartsAtTheSpellsMinimumNotAtZero() {
+        // Minimum power 5, cursor on power 9 -> positions 4..8 inclusive.
+        Assert.False(CastRingLayout.IsInChosenBand(3, minimumPower: 5, chosenPower: 9));
+        Assert.True(CastRingLayout.IsInChosenBand(4, minimumPower: 5, chosenPower: 9));
+        Assert.True(CastRingLayout.IsInChosenBand(8, minimumPower: 5, chosenPower: 9));
+        Assert.False(CastRingLayout.IsInChosenBand(9, minimumPower: 5, chosenPower: 9));
+    }
+
+    [Fact]
+    public void TheTwoSliderIconsAreDistinct() {
+        // Whole ring first, chosen band overdrawn — the same icon for both would show no band.
+        Assert.NotEqual(CastRingLayout.SliderRingIcon, CastRingLayout.SliderFilledIcon);
+    }
 }
