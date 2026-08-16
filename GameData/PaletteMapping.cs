@@ -29,6 +29,11 @@ public static class PaletteMapping {
             // Synthesized parchment variants (even = BOOK.SCX, odd = vertically flipped) share BOOK.PAL.
             "BOOK_EVEN" => "BOOK.PAL",
             "BOOK_ODD" => "BOOK.PAL",
+            // CASTFACE.BMX ships without a CASTFACE.PAL, so the ring icons resolve to null sprites
+            // and the ring silently does not draw. OPTIONS.PAL to match its sibling CAST.BMX below:
+            // the binary contains no CAST.PAL reference at all (only the "castface.bmp" string), so
+            // the casting screen never loads a palette of its own.
+            "CASTFACE" => "OPTIONS.PAL",
             "C11" => "C11B.PAL",
             "C11A1" => "C11A.PAL",
             "C11A2" => "C11A.PAL",
