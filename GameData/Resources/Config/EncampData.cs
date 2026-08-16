@@ -47,6 +47,40 @@ public class EncampData : IResource {
 
     /// <summary>Dial needle/hand vertex positions (27 shipped), canonical space.</summary>
     public List<EncampPoint> NeedleEntries { get; set; } = new();
+
+    /// <summary>Nothing under the cursor.</summary>
+    public const int NoEntry = -1;
+
+    /// <summary>
+    /// The hour whose dial position is under a point, or <see cref="NoEntry"/>.
+    /// Faithful port of <c>encamp_getClockEntryAtMouse</c> @0x70b2f.
+    /// </summary>
+    /// <remarks>
+    /// <b>The hit box is NOT centred on the dial position.</b> Its left edge sits
+    /// <c>(IconWidth - IconAnchorX) / 2</c> to the left, and it then runs a full
+    /// <see cref="IconWidth"/> to the right — so with the shipped geometry it reaches 15 canonical
+    /// units left of the point and 30 to the right. Centring it, which is what the numbers invite,
+    /// shifts every hour's target and makes the dial read as misaligned with its own artwork.
+    ///
+    /// <para>Both edges are inclusive, so the box is one unit wider and taller than
+    /// <see cref="IconWidth"/> by <see cref="IconHeight"/>. First match in table order wins; the
+    /// shipped positions do not overlap, so the tie-break never arises, but it is the original's
+    /// and costs nothing to keep.</para>
+    /// </remarks>
+    public int ClockEntryAt(int x, int y) {
+        int halfWidth = (IconWidth - IconAnchorX) / 2;
+        int halfHeight = (IconHeight - IconAnchorY) / 2;
+
+        for (var entry = 0; entry < ClockEntries.Count; entry++) {
+            int left = ClockEntries[entry].X - halfWidth;
+            int top = ClockEntries[entry].Y - halfHeight;
+            if (x >= left && x <= left + IconWidth && y >= top && y <= top + IconHeight) {
+                return entry;
+            }
+        }
+
+        return NoEntry;
+    }
 }
 
 /// <summary>A 2D point in canonical 1600×1200 space.</summary>
