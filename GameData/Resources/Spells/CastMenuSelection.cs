@@ -56,10 +56,8 @@ public static class CastMenuSelection {
     public const int FirstPartySlotActionId = 128;
 
     /// <summary>The active-roster slot a click area refers to, or -1.</summary>
-    public static int PartySlotForAction(int actionId) {
-        int slot = actionId - FirstPartySlotActionId;
-        return slot >= 0 && slot < 3 ? slot : -1;
-    }
+    public static int PartySlotForAction(int actionId) =>
+        Character.ActiveParty.SlotForAction(actionId, FirstPartySlotActionId);
     /// <summary>Nothing remembered yet — the value a new game starts at.</summary>
     public const int None = -1;
 
@@ -72,7 +70,8 @@ public static class CastMenuSelection {
     public const int DefaultSchool = CastRingLayout.CategoryCount - 1;
 
     /// <summary>Party slots the screen offers faces for.</summary>
-    public const int PartySlots = 3;
+    /// <inheritdoc cref="Character.ActiveParty.Slots"/>
+    public const int PartySlots = Character.ActiveParty.Slots;
 
     /// <summary>Dialog played when a face that cannot cast is clicked.</summary>
     public const int CannotCastDialogId = 0xd8;
