@@ -88,4 +88,25 @@ public class MusicSelectionTests {
         Assert.Equal(MusicPlayback.QueryOnly, MusicSelection.ForBookPage(0x1d4));
         Assert.Equal(MusicPlayback.QueryOnly, MusicSelection.ForBookPage(0));
     }
+
+    // ---- the options menu ----------------------------------------------------------------------
+
+    [Fact]
+    public void TheMenuHasOneTrackForBothOfItsForms() =>
+        // openedFromGame picks REQ_OPT1 over REQ_OPT0; it does not change the music.
+        Assert.Equal(0x3f7, MusicSelection.MainMenuTrack);
+
+    [Fact]
+    public void ClosingBackToTheGameRestoresWhatWasPlaying() =>
+        Assert.True(MusicSelection.RestoresPreviousTrack(MusicSelection.MenuExit.Resume));
+
+    [Theory]
+    [InlineData(MusicSelection.MenuExit.NewGame)]
+    [InlineData(MusicSelection.MenuExit.LoadGame)]
+    [InlineData(MusicSelection.MenuExit.Contents)]
+    [InlineData(MusicSelection.MenuExit.Quit)]
+    public void LeavingForSomewhereElseDoesNotRestore(MusicSelection.MenuExit exit) =>
+        // Each destination sets its own music as it comes up; putting the old track back for the
+        // moment it takes to load is a stutter the original does not have.
+        Assert.False(MusicSelection.RestoresPreviousTrack(exit));
 }

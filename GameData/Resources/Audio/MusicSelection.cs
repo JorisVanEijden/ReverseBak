@@ -132,4 +132,41 @@ public static class MusicSelection {
         displayNumber == BookPageA ? BookPageTrackA
         : displayNumber == BookPageB ? BookPageTrackB
         : MusicPlayback.QueryOnly;
+
+    // ---- the options menu ----------------------------------------------------------------------
+    // UI_showMainMenu @0x6de78. The same track for both forms of the menu: the openedFromGame flag
+    // picks REQ_OPT1 over REQ_OPT0, it does not change the music.
+
+    /// <summary>How the options menu was left — what decides whether the music is put back.</summary>
+    public enum MenuExit {
+        /// <summary>Closed back to whatever was underneath (the in-game menu's Cancel).</summary>
+        Resume,
+
+        /// <summary>Start a new game.</summary>
+        NewGame,
+
+        /// <summary>Load a save.</summary>
+        LoadGame,
+
+        /// <summary>Open the table of contents.</summary>
+        Contents,
+
+        /// <summary>Leave the game.</summary>
+        Quit,
+    }
+
+    /// <summary>
+    /// Whether closing the options menu restores the track that was playing when it opened.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only <see cref="MenuExit.Resume"/> restores.</b> The original tests the four departing
+    /// choices by name and returns before the restore call — exit, new game, load game and contents
+    /// all leave the menu's own theme playing, because each destination sets its own music as it
+    /// comes up. Restoring on those would put the previous track back for the moment it takes the
+    /// destination to load, which is a stutter the original does not have.
+    ///
+    /// <para>The saved value comes from the menu's opening call: <c>audio_music_play</c> returns
+    /// what was playing, which is the whole reason it has a return value.</para>
+    /// </remarks>
+    public static bool RestoresPreviousTrack(MenuExit exit) => exit == MenuExit.Resume;
 }
