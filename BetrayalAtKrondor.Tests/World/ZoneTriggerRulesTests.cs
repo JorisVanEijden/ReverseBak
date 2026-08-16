@@ -36,6 +36,23 @@ public class ZoneTriggerRulesTests {
         Assert.True(ZoneTriggerRules.CanCross(SomePrompt));
 
     [Fact]
+    public void TheBooleanAndIntFormsAgree() {
+        // The remake's confirm helper returns chosen==0 as a bool — the same polarity the boundary
+        // wants. A helper that returned true for "No" would invert every border in the game and
+        // nothing would look wrong, so the agreement is pinned rather than assumed.
+        Assert.Equal(
+            ZoneTriggerRules.CrossesAfterPrompt(SomePrompt, ZoneTriggerRules.ProceedResult),
+            ZoneTriggerRules.CrossesAfterPrompt(SomePrompt, true));
+        Assert.Equal(
+            ZoneTriggerRules.CrossesAfterPrompt(SomePrompt, 1),
+            ZoneTriggerRules.CrossesAfterPrompt(SomePrompt, false));
+    }
+
+    [Fact]
+    public void APromptlessBoundaryIgnoresEvenAYes() =>
+        Assert.False(ZoneTriggerRules.CrossesAfterPrompt(0, true));
+
+    [Fact]
     public void TheArrivalMessageIsOptional() {
         Assert.False(ZoneTriggerRules.AnnouncesArrival(0));
         Assert.True(ZoneTriggerRules.AnnouncesArrival(1800001));

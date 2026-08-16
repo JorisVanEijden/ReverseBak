@@ -42,6 +42,19 @@ public static class ZoneTriggerRules {
         CanCross(confirmDialogId) && dialogResult == ProceedResult;
 
     /// <summary>
+    /// Whether the party crosses, given a confirm dialog's boolean answer.
+    /// </summary>
+    /// <remarks>
+    /// The remake's confirm path already collapses the original's <c>result == 0</c> to a bool with
+    /// <b>the same polarity</b> — its true is literally <c>chosen == 0</c> — so this overload and
+    /// the int one agree by construction rather than by coincidence. Worth stating, because a
+    /// confirm helper that returned true for "No" would invert every boundary in the game and
+    /// nothing would look wrong.
+    /// </remarks>
+    public static bool CrossesAfterPrompt(uint confirmDialogId, bool accepted) =>
+        CanCross(confirmDialogId) && accepted;
+
+    /// <summary>
     /// Whether phase 2 says anything before moving the party.
     /// </summary>
     /// <remarks>
