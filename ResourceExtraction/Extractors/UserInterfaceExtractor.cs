@@ -67,7 +67,7 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
             }
         }
         userInterface.Title = titleOffset >= 0 ? GetZeroTerminatedString(stringBuffer, titleOffset) : null;
-        userInterface.MenuEntries = AppendCompassWindowIfMain(id, uiElements);
+        userInterface.MenuEntries = AppendCompassWindow(id, uiElements);
 
         CanonicalSpace.Apply(userInterface);
         AdjustNavArrowClickBoxesIfMain(id, userInterface);
@@ -108,13 +108,21 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
         }
     }
 
-    // REQ_MAIN ships no compass element, but the travel HUD's scrolling compass needs a window
-    // rect. Synthesize a data-only marker at the fixed FRAME.SCR compass window (drawCompass @
-    // KRONDOR.EXE 0x4691f: renderView VGA 144,121..175,131 => x144,y121,w31,h10). ElementType.CompassWindow
-    // (synthetic, non-rendered) so no renderer draws it; added here (VGA coords) so CanonicalSpace.Apply
-    // scales it like the rest.
-    private static UiElement[] AppendCompassWindowIfMain(string id, UiElement[] uiElements) {
-        if (id == null || id.IndexOf("REQ_MAIN", StringComparison.OrdinalIgnoreCase) < 0) {
+    // Screens drawn inside the game frame ship no compass element, but the frame's scrolling
+    // compass needs a window rect. Synthesize a data-only marker at the fixed FRAME.SCR compass
+    // window (drawCompass @ KRONDOR.EXE 0x4691f: renderView VGA 144,121..175,131 =>
+    // x144,y121,w31,h10). ElementType.CompassWindow (synthetic, non-rendered) so no renderer draws
+    // it; added here (VGA coords) so CanonicalSpace.Apply scales it like the rest.
+    //
+    // REQ_MAIN and REQ_CAST both get one. The compass and the party portraits sit in the frame's
+    // bottom strip (VGA y=121 and y=142), which the casting screen shares — REQ_CAST ships its own
+    // portrait ClickAreas 128..130 at REQ_MAIN's positions for exactly that reason, and the compass
+    // is the same furniture minus a shipped element to hang it on.
+    private static readonly string[] CompassWindowScreens = { "REQ_MAIN", "REQ_CAST" };
+
+    private static UiElement[] AppendCompassWindow(string id, UiElement[] uiElements) {
+        if (id == null || Array.FindIndex(CompassWindowScreens,
+                s => id.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0) < 0) {
             return uiElements;
         }
         var withCompass = new UiElement[uiElements.Length + 1];
