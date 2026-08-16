@@ -45,4 +45,41 @@ public class EncampDialTests {
         // Both are -1 when nothing is latched and nothing is under the cursor; equal, but not a
         // choice. Guarding only on equality would start a rest from a stray click on the backdrop.
         Assert.False(EncampDial.Commits(EncampData.NoEntry, EncampData.NoEntry));
+
+    // ---- stone icons (sub_ovr182_67A @0x70a4a) ------------------------------------------------
+
+    [Fact]
+    public void AnOrdinaryStoneIsDarkBlue() =>
+        // The gold stones painted into ENCAMP.SCX are backdrop the game covers over; drawing
+        // nothing leaves the artwork's gold showing, which is the bug this fixes.
+        Assert.Equal(EncampDial.StoneIconPlain, EncampDial.IconFor(stone: 5, currentHour: 9));
+
+    [Fact]
+    public void TheCurrentHoursStoneIsRed() =>
+        Assert.Equal(EncampDial.StoneIconMarked, EncampDial.IconFor(stone: 9, currentHour: 9));
+
+    [Fact]
+    public void TheHoveredStoneIsGold() =>
+        Assert.Equal(EncampDial.StoneIconHovered,
+            EncampDial.IconFor(stone: 5, currentHour: 9, hoveredStone: 5));
+
+    [Fact]
+    public void HoverBeatsTheCurrentHour() =>
+        // The original tests hover BEFORE "now", so pointing at the current hour turns it gold.
+        Assert.Equal(EncampDial.StoneIconHovered,
+            EncampDial.IconFor(stone: 9, currentHour: 9, hoveredStone: 9));
+
+    [Fact]
+    public void NoHoverIsNotStoneZero() =>
+        // -1 means nothing hovered; reading it as a stone index would light up midnight.
+        Assert.Equal(EncampDial.StoneIconMarked,
+            EncampDial.IconFor(stone: 0, currentHour: 0, hoveredStone: -1));
+
+    [Fact]
+    public void EveryStoneGetsAnIcon() {
+        for (var stone = 0; stone < EncampDial.Stones; stone++) {
+            int icon = EncampDial.IconFor(stone, currentHour: 13);
+            Assert.True(icon == EncampDial.StoneIconPlain || icon == EncampDial.StoneIconMarked);
+        }
+    }
 }

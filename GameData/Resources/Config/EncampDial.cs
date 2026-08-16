@@ -46,4 +46,48 @@ public static class EncampDial {
 
     /// <summary>Right-clicking a stone explains what the dial is for.</summary>
     public const int StoneHelpDialog = 240;
+
+    // ---- what colour a stone is drawn -----------------------------------------------------------
+    // sub_ovr182_67A @0x70a4a picks one of ENCAMP.BMX's icons per stone and blits it at the stone's
+    // ClockEntry position. The dial artwork in ENCAMP.SCX already has stones painted on it, in GOLD
+    // -- those are just the backdrop, and the game covers every one of them. Leaving them uncovered
+    // is why our dial read gold where the original's reads dark blue.
+
+    /// <summary>ENCAMP.BMX — the stone icons the dial is drawn with.</summary>
+    public const string StoneIconSet = "ENCAMP.BMX";
+
+    /// <summary>The ordinary stone: dark blue.</summary>
+    public const int StoneIconPlain = 1;
+
+    /// <summary>The stone under the cursor: gold.</summary>
+    public const int StoneIconHovered = 2;
+
+    /// <summary>A marked stone — the current hour, and every hour of a running rest: red.</summary>
+    public const int StoneIconMarked = 3;
+
+    /// <summary>
+    /// The icon a stone is drawn with while the dial is idle.
+    /// </summary>
+    /// <param name="stone">The stone, which is also its hour — see <see cref="HourFor"/>.</param>
+    /// <param name="currentHour">The hour the game clock is in.</param>
+    /// <param name="hoveredStone">The stone under the cursor, or -1 for none.</param>
+    /// <remarks>
+    /// The branch ORDER is the original's: hover is tested before "now", so moving the cursor onto
+    /// the current hour turns that stone gold rather than leaving it red.
+    ///
+    /// <para><b>Only the idle case is modelled here.</b> <c>sub_ovr182_67A</c> has three further
+    /// branches that paint a whole SPAN of stones red while a rest is running, driven by a start
+    /// time, an end time and a wrap-past-midnight flag. Those are deliberately left out: the call
+    /// site that supplies them (@0x70526) is guarded on a rest being in progress, and reading the
+    /// span rules off the branches alone would mean guessing which of the three times the caller
+    /// passes for a rest that has not started. Our rest is a loop that advances an hour at a time
+    /// rather than a scheduled span, so nothing needs them yet.</para>
+    /// </remarks>
+    public static int IconFor(int stone, int currentHour, int hoveredStone = -1) {
+        if (hoveredStone >= 0 && stone == hoveredStone) {
+            return StoneIconHovered;
+        }
+
+        return stone == currentHour ? StoneIconMarked : StoneIconPlain;
+    }
 }
