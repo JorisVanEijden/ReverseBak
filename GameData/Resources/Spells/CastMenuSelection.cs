@@ -16,6 +16,50 @@ using System.Collections.Generic;
 /// combat into the same state would leak the overworld's selection into battle and back.</para>
 /// </summary>
 public static class CastMenuSelection {
+    /// <summary>The REQ action id of the first school button.</summary>
+    /// <remarks>
+    /// <b>The six school buttons are action ids 2..7, in school order.</b> The dispatch is a jump
+    /// table with one arm per id, each setting the symbol file to <c>id - 2</c> — so the mapping is
+    /// positional and does not need a lookup table of its own.
+    /// </remarks>
+    public const int FirstSchoolActionId = 2;
+
+    /// <summary>The REQ action id of the exit button.</summary>
+    public const int ExitActionId = 1;
+
+    /// <summary>The school a button selects, or -1 when the id is not a school button.</summary>
+    public static int SchoolForAction(int actionId) {
+        int school = actionId - FirstSchoolActionId;
+        return school >= 0 && school < CastRingLayout.CategoryCount ? school : -1;
+    }
+
+    /// <summary>Help shown when a school button is right-clicked.</summary>
+    public const int SchoolButtonHelpDialog = 311;
+
+    /// <summary>Help shown when the exit button is right-clicked.</summary>
+    public const int ExitButtonHelpDialog = 312;
+
+    /// <summary>Shown when a party member who cannot cast is picked.</summary>
+    /// <remarks>
+    /// <b>Picking a non-caster is refused out loud, not ignored.</b> The screen says so rather than
+    /// silently keeping the previous caster, which is the difference between a button that looks
+    /// broken and one that explains itself.
+    /// </remarks>
+    public const int NotASpellcasterDialog = 216;
+
+    /// <summary>The REQ action id of the first party-member click area.</summary>
+    /// <remarks>
+    /// <b>Clicking a party portrait switches who is casting.</b> Ids 128..130 are the three active
+    /// slots; the dispatch indexes the active roster by <c>id - 128</c>. Re-picking the current
+    /// caster is a no-op rather than a reload.
+    /// </remarks>
+    public const int FirstPartySlotActionId = 128;
+
+    /// <summary>The active-roster slot a click area refers to, or -1.</summary>
+    public static int PartySlotForAction(int actionId) {
+        int slot = actionId - FirstPartySlotActionId;
+        return slot >= 0 && slot < 3 ? slot : -1;
+    }
     /// <summary>Nothing remembered yet — the value a new game starts at.</summary>
     public const int None = -1;
 
