@@ -21,4 +21,8 @@ public enum CurrencyStyle {
     /// <c>UI_DrawInventory</c> @0x56dd0 rather than by the formatter: "123s 4r", collapsing to a
     /// bare sovereign count past 9999.</summary>
     Abbreviated = 3,
+
+    /// <summary>The teleport screen's fare quote, written inline by <c>drawTeleportMenu</c>
+    /// @0x4ecff: "12 sovereigns", always plural and with the royals dropped.</summary>
+    TeleportQuote = 4,
 }

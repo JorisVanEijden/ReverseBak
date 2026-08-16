@@ -26,6 +26,11 @@ public static class MoneyFormatter {
     private const string KeyRoyalOnly = "base:uistring:money.royal_only";
     private const string KeyAbbreviated = "base:uistring:money.abbreviated";
 
+    // "%d sovereigns" — the teleport fare, and the one wording with no singular form and no royals
+    // part at all. Both are the original's, not an omission here: see FormatMoneyToString's callers
+    // versus drawTeleportMenu's inline sprintf.
+    private const string KeyTeleportCost = "base:uistring:money.teleport_cost";
+
     /// <summary>Ten royals to the sovereign (DDX 1800034; the <c>idiv 10</c> at 0x42dab).</summary>
     public const int RoyalsPerSovereign = 10;
 
@@ -49,6 +54,7 @@ public static class MoneyFormatter {
         return style switch {
             CurrencyStyle.GoldAndSilver => FormatGoldAndSilver(sovereigns, royals),
             CurrencyStyle.Abbreviated => FormatAbbreviated(sovereigns, royals),
+            CurrencyStyle.TeleportQuote => CFormat.Apply(UiStrings.Get(KeyTeleportCost), sovereigns),
             _ => FormatSovereignsAndRoyals(sovereigns, royals),
         };
     }

@@ -72,4 +72,18 @@ public class MoneyFormatterTests {
     [InlineData(100009, "10000")]
     public void AbbreviatedCollapsesPastTheLimit(int amount, string expected) =>
         Assert.Equal(expected, MoneyFormatter.Format(amount, CurrencyStyle.Abbreviated));
+
+    // ---- the teleport fare ----------------------------------------------------------------
+    //
+    // Two quirks, both the original's (drawTeleportMenu @0x4ecff, spec §3.4). Neither is worth
+    // "fixing": the fare is the only place they show, and the amount actually deducted is the full
+    // royal figure regardless of what the quote rounded off.
+
+    [Theory]
+    [InlineData(120, "12 sovereigns")]
+    [InlineData(10, "1 sovereigns")]  // always plural, even at one
+    [InlineData(0, "0 sovereigns")]
+    [InlineData(129, "12 sovereigns")] // the 9 royals are dropped from the quote, not from the bill
+    public void FormatsTheTeleportQuote(int amount, string expected) =>
+        Assert.Equal(expected, MoneyFormatter.Format(amount, CurrencyStyle.TeleportQuote));
 }
