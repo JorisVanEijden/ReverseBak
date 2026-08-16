@@ -257,6 +257,24 @@ public static class TeleportMenu {
     /// <summary>Centre of the left-hand panel, which every line but the fare is centred on.</summary>
     public const int PanelCentreX = 300;
 
+    /// <summary>
+    /// Pen the captions are drawn in — "From:", "To:" and "Cost:", flat with no shadow behind them.
+    /// </summary>
+    /// <remarks>
+    /// <b>Captions and values are drawn differently on purpose.</b> A caption is a flat pen-0 word
+    /// with the shadow argument passed as -2 (the original's "none"); a value is pen 10 over a pen-1
+    /// drop shadow, which lifts it off the map behind. That contrast is the only thing separating
+    /// the label from the answer in a panel with no rules or boxes in it, so drawing both the same
+    /// makes "From: Temple of Sung" read as one run-on line.
+    /// </remarks>
+    public const int CaptionPen = 0;
+
+    /// <summary>Pen the values are drawn in — the temple names and the fare.</summary>
+    public const int ValuePen = 10;
+
+    /// <summary>Pen of the drop shadow behind a value. Captions have none.</summary>
+    public const int ValueShadowPen = 1;
+
     /// <summary>Top of the "Teleport" heading.</summary>
     public const int TitleY = 60;
 

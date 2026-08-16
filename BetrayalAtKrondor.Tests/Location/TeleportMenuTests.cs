@@ -146,6 +146,12 @@ public class TeleportMenuTests {
     public void AZeroLengthFlightDoesNotDivideByZero() =>
         Assert.Equal(0, TeleportMenu.FlightArcOffset(step: 0, length: 0));
 
+    [Fact]
+    public void CaptionsAndValuesAreDrawnDifferently() =>
+        // The only thing separating "From:" from the temple name under it. Same pen for both and the
+        // panel reads as run-on lines.
+        Assert.NotEqual(TeleportMenu.CaptionPen, TeleportMenu.ValuePen);
+
     // ---- fares from the real map ---------------------------------------------------------------
     //
     // REQ_TELE ships its pins in CANONICAL 1600x1200, but the fare is measured in the original's
