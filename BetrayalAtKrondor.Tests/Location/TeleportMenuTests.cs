@@ -146,6 +146,41 @@ public class TeleportMenuTests {
     public void AZeroLengthFlightDoesNotDivideByZero() =>
         Assert.Equal(0, TeleportMenu.FlightArcOffset(step: 0, length: 0));
 
+    // ---- fares from the real map ---------------------------------------------------------------
+    //
+    // REQ_TELE ships its pins in CANONICAL 1600x1200, but the fare is measured in the original's
+    // 320x200 pixels — and that scale is anisotropic (x5 across, x6 down). Divide back before
+    // measuring or every north-south journey is mispriced against every east-west one. These are the
+    // reference figures, hand-checked against the disassembly; TeleportScreen.FareTo must reproduce
+    // them from the loaded REQ.
+
+    private const int BaseCost = 20;
+    private const int PerUnit = 3;
+
+    // Canonical pin positions straight out of generated/REQ/REQ_TELE.json.
+    private static long Fare((int X, int Y) from, (int X, int Y) to) =>
+        TeleportCost.Price(from.X / 5, from.Y / 6, to.X / 5, to.Y / 6, BaseCost, PerUnit);
+
+    [Fact]
+    public void AShortHopFromSungToAstalon() {
+        // (930,816) -> (945,894) is VGA (186,136) -> (189,149): d(3,13) -> 13 + 3*3/8 = 14.
+        Assert.Equal(62, Fare((930, 816), (945, 894)));
+    }
+
+    [Fact]
+    public void ALongHaulFromSungToIshap() {
+        // (930,816) -> (830,468) is VGA (186,136) -> (166,78): d(20,58) -> 58 + 20*3/8 = 65.
+        Assert.Equal(215, Fare((930, 816), (830, 468)));
+    }
+
+    [Fact]
+    public void MeasuringInCanonicalSpaceWouldMispriceIt() =>
+        // The trap this guards: same two pins, canonical coordinates, no unscaling. It does not just
+        // come out bigger — the 5-vs-6 stretch changes the shape of the distance too.
+        Assert.NotEqual(
+            Fare((930, 816), (830, 468)),
+            TeleportCost.Price(930, 816, 830, 468, BaseCost, PerUnit));
+
     // ---- help --------------------------------------------------------------------------------
 
     [Fact]
