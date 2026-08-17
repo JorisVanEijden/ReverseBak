@@ -119,14 +119,28 @@ public class DialogLayout {
     public float SpeakerPillBorderWidth { get; set; } = 6f;
 
     /// <summary>
-    /// Top inset of the body text when the entry has NO speaker — the tuned offset the borderless
-    /// narrative strips (<c>PlainWithoutBox</c> / <c>PlainFullScreen</c>) keep. VGA 30 x6 -> 180.
+    /// Top inset of the body text when the entry has NO speaker.
+    /// </summary>
+    /// <remarks>
+    /// <b>Defaults to <see cref="LayoutLength.Auto"/>, meaning "use the style row's own inset".</b>
+    /// The original takes this from the row, not from one screen-wide number:
+    /// <c>RenderDialogText</c> does <c>y += field_7</c> at 0x49050 and shrinks the wrap height by
+    /// <c>field_7 + field_8</c> at 0x4906e — modelled as
+    /// <see cref="DialogStyle.TextPadTop"/>/<see cref="DialogStyle.TextPadBottom"/>. The shipped
+    /// insets differ per row (1 VGA px for the full-screen row, 5 for the strips, 3 for the boxes),
+    /// so a single value here cannot be faithful for all of them.
+    ///
+    /// <para>This property stays because it is an <b>authoring knob</b>: set it and it wins,
+    /// keeping its unit, so a mod can restate the inset as a percentage. Auto is how it says "I am
+    /// not overriding this", which is exactly what an override document omitting it should mean.
+    /// It previously defaulted to <c>Px(180)</c> — VGA 30 — which is thirty times row 6's real
+    /// inset and pushed a long full-screen narrative out of the bottom of its own panel.</para>
     ///
     /// <para>Also the fallback the renderer falls back to when a speaker IS present but
     /// <see cref="SpeakerTop"/> is a percentage, so the body's top inset cannot be summed (see
     /// <see cref="SpeakerToBodyGap"/>).</para>
-    /// </summary>
-    public LayoutLength NarrativeBodyTop { get; set; } = LayoutLength.Px(180f);
+    /// </remarks>
+    public LayoutLength NarrativeBodyTop { get; set; } = LayoutLength.Auto;
 
     /// <summary>
     /// Top inset of the speaker name (the plain centred title branch of

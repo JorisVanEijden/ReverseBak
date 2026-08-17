@@ -70,14 +70,33 @@ public class DialogLayoutTests {
         Assert.Equal(LayoutLength.Auto, _layout.SpeakerPill.Top);
     }
 
+    /// <summary>
+    /// <b>The narrative body top is deliberately NOT here.</b> It used to assert
+    /// <c>ScaleVgaY(30)</c> = 180 as "the original's vertical inset", and that was wrong: the
+    /// original reads the body's top inset off the STYLE ROW (<c>y += field_7</c> at 0x49050, wrap
+    /// height <c>-= field_7 + field_8</c> at 0x4906e), and no row carries 30 — the strips carry 5,
+    /// the bordered boxes 3, the full-screen row 1. The real numbers are asserted against the table
+    /// in <c>BetrayalAtKrondor.Tests.Dialog.DialogStyleTableInsetTests</c>.
+    ///
+    /// <para><see cref="DialogLayout.NarrativeBodyTop"/> now defaults to
+    /// <see cref="LayoutLength.Auto"/> — "not overridden" — which is what
+    /// <see cref="NarrativeBodyTop_DefaultsToAuto_SoTheStyleRowDecides"/> pins.</para>
+    /// </summary>
     [Fact]
     public void BodyTextOffsets_AreTheOriginalsVerticalInsets() {
-        Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(30)), _layout.NarrativeBodyTop);
         Assert.Equal(LayoutLength.Px(AspectCorrection.ScaleVgaY(6)), _layout.SpeakerTop);
         // A plain float, not a LayoutLength — see SpeakerToBodyGap's remarks: it is only ever a
         // term in a px sum, so a percentage there could never resolve.
         Assert.Equal((float)AspectCorrection.ScaleVgaY(20), _layout.SpeakerToBodyGap);
     }
+
+    /// <summary>
+    /// Auto is the shipped value, and it means "the style row decides". A concrete default here
+    /// cannot be faithful: one number would have to serve rows whose insets differ 5 : 3 : 1.
+    /// </summary>
+    [Fact]
+    public void NarrativeBodyTop_DefaultsToAuto_SoTheStyleRowDecides() =>
+        Assert.Equal(LayoutLength.Auto, _layout.NarrativeBodyTop);
 
     /// <summary>
     /// The three single-scalar rims all carry the VERTICAL factor on BOTH axes. That is what
@@ -138,9 +157,14 @@ public class DialogLayoutTests {
         string json = new DialogStyleTable().ToJson();
 
         Assert.Contains("\"Layout\"", json);
-        // Lengths travel as unit-bearing strings, not {Value,Unit} objects.
-        Assert.Contains("\"NarrativeBodyTop\": \"180px\"", json);
-        Assert.DoesNotContain("\"NarrativeBodyTop\": 180", json);
+        // Lengths travel as unit-bearing strings, not {Value,Unit} objects. Asserted on a
+        // property that carries a NUMBER — NarrativeBodyTop is Auto now, and "auto" would prove
+        // only that a string came out, not that the value and its unit survived together.
+        Assert.Contains("\"SpeakerTop\": \"36px\"", json);
+        Assert.DoesNotContain("\"SpeakerTop\": 36", json);
+        // Auto is a real shipped value and must survive as itself: an author's override document
+        // omitting the inset has to keep meaning "the style row decides", not "zero".
+        Assert.Contains("\"NarrativeBodyTop\": \"auto\"", json);
         // ...and the plain-float scalars travel as bare numbers, so no unit an author writes
         // there can look like it survived. (SpeakerToBodyGap used to be a LayoutLength.)
         Assert.Contains("\"SpeakerToBodyGap\": 120", json);
