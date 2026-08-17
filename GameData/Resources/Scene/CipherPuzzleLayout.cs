@@ -107,4 +107,38 @@ public static class CipherPuzzleLayout {
 
     /// <summary>The pen the readable body of the riddle is drawn in.</summary>
     public const int TextBodyPen = 16;
+
+    // ---- the wheel's roll -----------------------------------------------------------------------
+
+    /// <summary>
+    /// How many frames a column takes to roll from one letter to the next.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is a slot machine, not a swap.</b> The loop at 0x79455-0x7954c draws BOTH letters at
+    /// once — the outgoing one and the incoming one stacked above it — clipped to the column's
+    /// inset box (<see cref="BevelRect"/>, which is what that rect is really for), and moves the
+    /// pair down one pixel per frame. So the old letter falls out of the bottom of the box while
+    /// the new one arrives from the top.
+    ///
+    /// <para>The loop runs <c>fontHeight + 3</c> times and then steps back one (0x7954f), which is
+    /// why the travel is <see cref="RollTravel"/> rather than the frame count: the last iteration
+    /// overshoots by design and is undone.</para>
+    /// </remarks>
+    public static int RollFrames(int fontHeight) => fontHeight + 3;
+
+    /// <summary>
+    /// How far the pair actually travels — and where the incoming letter starts, negated.
+    /// </summary>
+    /// <remarks>
+    /// <c>fontHeight + 2</c>. The incoming letter is drawn exactly this far ABOVE the outgoing one
+    /// (compare the body pass at <c>y - fontHeight - 2</c> against the outgoing's <c>y</c>), so
+    /// after this much travel it has landed precisely where the old letter was. Any other figure
+    /// leaves the wheel stopped between two letters.
+    /// </remarks>
+    public static int RollTravel(int fontHeight) => fontHeight + 2;
+
+    /// <summary>
+    /// Where the incoming letter sits relative to the outgoing one at the start of a roll.
+    /// </summary>
+    public static int IncomingLetterOffset(int fontHeight) => -RollTravel(fontHeight);
 }

@@ -114,4 +114,32 @@ public class CipherPuzzleLayoutTests {
         Assert.Equal(0, passes[^1].YOffset);
         Assert.All(passes[..^1], p => Assert.NotEqual(0, p.YOffset));
     }
+
+    // ---- the wheel's roll ---------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    [InlineData(16)]
+    public void TheIncomingLetterLANDSExactlyWhereTheOldOneWas(int fontHeight) {
+        // The whole point of the two figures differing: the loop overshoots by one frame and steps
+        // back, so travel is frames - 1, and the incoming letter starts exactly that far above.
+        int start = CipherPuzzleLayout.IncomingLetterOffset(fontHeight);
+        int travel = CipherPuzzleLayout.RollTravel(fontHeight);
+
+        Assert.Equal(0, start + travel);
+        Assert.Equal(CipherPuzzleLayout.RollFrames(fontHeight) - 1, travel);
+    }
+
+    [Fact]
+    public void TheRollIsALWAYSSomeFramesLong() {
+        // Even a degenerate font must not produce a zero-frame roll, which would read as a swap.
+        Assert.True(CipherPuzzleLayout.RollFrames(0) > 0);
+        Assert.True(CipherPuzzleLayout.RollFrames(1) > 0);
+    }
+
+    [Fact]
+    public void TheIncomingLetterStartsABOVETheOutgoingOne() =>
+        // Negative, because it falls in from the top of the clipped box.
+        Assert.True(CipherPuzzleLayout.IncomingLetterOffset(10) < 0);
 }
