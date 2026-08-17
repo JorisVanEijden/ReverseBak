@@ -1,0 +1,80 @@
+namespace BetrayalAtKrondor.Tests.Scene;
+
+using GameData.Resources.Scene;
+using Xunit;
+
+/// <summary>The cipher screen's column geometry — <c>sub_ovr191_6EA</c> @0x7934a.</summary>
+public class CipherPuzzleLayoutTests {
+    // REQ_PUZL's own first column: canonical (150, 192), 75 x 90.
+    private const int ColumnX = 150;
+    private const int ColumnY = 192;
+    private const int ColumnW = 75;
+    private const int ColumnH = 90;
+
+    [Fact]
+    public void ColumnsAreConsecutiveActionIdsFrom128() {
+        Assert.Equal(128, CipherPuzzleLayout.ActionIdFor(0));
+        Assert.Equal(142, CipherPuzzleLayout.ActionIdFor(14));
+    }
+
+    [Fact]
+    public void AColumnPastWhatTheScreenShipsHasNoActionId() {
+        // REQ_PUZL ships fifteen areas, so a longer word cannot be posed on this screen.
+        Assert.Equal(-1, CipherPuzzleLayout.ActionIdFor(CipherPuzzleLayout.MaxColumns));
+        Assert.Equal(-1, CipherPuzzleLayout.ActionIdFor(-1));
+    }
+
+    [Fact]
+    public void TheGlyphIsCentredInTheColumnAndLeansONEPixelRight() {
+        // x is centred then nudged (inc dx, 0x79412); y is centred with no counterpart. Applying
+        // the nudge to both axes, or to neither, is the easy way to get this subtly wrong.
+        Assert.Equal(ColumnX + 37 - 10 + 1, CipherPuzzleLayout.GlyphX(ColumnX, ColumnW, 20));
+        Assert.Equal(ColumnY + 45 - 15, CipherPuzzleLayout.GlyphY(ColumnY, ColumnH, 30));
+    }
+
+    [Fact]
+    public void AGlyphWiderThanItsColumnStillStartsInsideIt() {
+        // Degenerate but reachable with an override font: the centring must not run off the left.
+        int x = CipherPuzzleLayout.GlyphX(ColumnX, ColumnW, ColumnW);
+
+        Assert.Equal(ColumnX + 1, x);
+    }
+
+    [Fact]
+    public void TheBevelIsINSETAndDeliberatelyAsymmetric() {
+        // One pixel in at the top-left, two at the bottom-right — what makes the box read pressed.
+        (int x, int y, int right, int bottom) =
+            CipherPuzzleLayout.BevelRect(ColumnX, ColumnY, ColumnW, ColumnH);
+
+        Assert.Equal(ColumnX + 1, x);
+        Assert.Equal(ColumnY + 1, y);
+        Assert.Equal(ColumnX + ColumnW - 2, right);
+        Assert.Equal(ColumnY + ColumnH - 2, bottom);
+        Assert.True(right - x < ColumnW - 2, "the inset must be narrower than the box");
+    }
+
+    [Fact]
+    public void AClickROTATESTheColumnAndWrapsAtTheEnd() {
+        // The whole interaction: a wheel of dial rows, never a typed letter.
+        Assert.Equal(1, CipherPuzzleLayout.NextRow(0, 4));
+        Assert.Equal(3, CipherPuzzleLayout.NextRow(2, 4));
+        Assert.Equal(0, CipherPuzzleLayout.NextRow(3, 4));
+    }
+
+    [Fact]
+    public void RotatingAColumnWithNoRowsIsNotADivideByZero() =>
+        Assert.Equal(0, CipherPuzzleLayout.NextRow(0, 0));
+
+    [Fact]
+    public void EveryRowIsReachableByClickingRepeatedly() {
+        var seen = new System.Collections.Generic.HashSet<int>();
+        var row = 0;
+        for (var click = 0; click < 5; click++) {
+            seen.Add(row);
+            row = CipherPuzzleLayout.NextRow(row, 5);
+        }
+
+        Assert.Equal(5, seen.Count);
+        Assert.Equal(0, row);   // and it is back where it started
+    }
+}
