@@ -104,4 +104,22 @@ public class CipherPuzzleTests {
         Assert.Equal(0, puzzle.Width);
         Assert.Empty(puzzle.DialRows);
     }
+
+    [Fact]
+    public void TheRIDDLEItselfIsKept() {
+        // The screen holds the puzzle, not the record it came out of, so the words the player is
+        // meant to solve have to survive the parse.
+        CipherPuzzle p = CipherPuzzle.Parse(
+            "FIRE\n#\nWSTE\nAINL\nFORN\nBREH\n#\nThe chill of its death,\nYou may soon mourn.");
+
+        Assert.StartsWith("The chill of its death", p.Description);
+        Assert.Contains("soon mourn", p.Description);
+    }
+
+    [Fact]
+    public void APuzzleWithNoTrailingTextHasAnEmptyRiddleRatherThanThrowing() {
+        CipherPuzzle p = CipherPuzzle.Parse("FIRE\n#\nWSTE\nAINL\nFORN\nBREH\n#\n");
+
+        Assert.NotNull(p.Description);
+    }
 }

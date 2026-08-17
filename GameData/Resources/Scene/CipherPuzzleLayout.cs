@@ -85,4 +85,26 @@ public static class CipherPuzzleLayout {
     /// </remarks>
     public static int NextRow(int currentRow, int rowCount) =>
         rowCount <= 0 ? 0 : (currentRow + 1) % rowCount;
+
+    // ---- the riddle's text ----------------------------------------------------------------------
+
+    /// <summary>
+    /// The three passes the riddle is drawn in, as (y offset, pen).
+    /// </summary>
+    /// <remarks>
+    /// <b>One block of text drawn three times, not three blocks.</b> UI_RunCipherPuzzle renders the
+    /// same string at y-1 in pen 65, at y+1 in pen 149, and then on the baseline in pen 16
+    /// (0x78e0b-0x78e4e) — a highlight above and a shadow below, with the body last on top. Drawing
+    /// it once loses the emboss that makes it readable against the chest lid.
+    ///
+    /// <para>Order matters: the body is drawn LAST so it covers the middle of the other two.</para>
+    /// </remarks>
+    public static (int YOffset, int Pen)[] TextPasses() => new[] {
+        (-1, 65),
+        (1, 149),
+        (0, 16),
+    };
+
+    /// <summary>The pen the readable body of the riddle is drawn in.</summary>
+    public const int TextBodyPen = 16;
 }

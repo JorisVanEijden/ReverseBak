@@ -94,4 +94,24 @@ public class CipherPuzzleLayoutTests {
         Assert.Equal(5, seen.Count);
         Assert.Equal(0, row);   // and it is back where it started
     }
+
+    [Fact]
+    public void TheRiddleIsDrawnTHREETIMESForTheEmboss() {
+        // A highlight above, a shadow below, the body last on top. Drawing it once loses the
+        // emboss that makes it readable against the chest lid.
+        (int YOffset, int Pen)[] passes = CipherPuzzleLayout.TextPasses();
+
+        Assert.Equal(3, passes.Length);
+        Assert.Equal((-1, 65), passes[0]);
+        Assert.Equal((1, 149), passes[1]);
+        Assert.Equal((0, CipherPuzzleLayout.TextBodyPen), passes[2]);
+    }
+
+    [Fact]
+    public void TheBodyIsDrawnLASTSoItCoversTheOtherTwo() {
+        (int YOffset, int Pen)[] passes = CipherPuzzleLayout.TextPasses();
+
+        Assert.Equal(0, passes[^1].YOffset);
+        Assert.All(passes[..^1], p => Assert.NotEqual(0, p.YOffset));
+    }
 }

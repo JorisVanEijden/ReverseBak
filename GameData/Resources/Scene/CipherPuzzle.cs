@@ -39,6 +39,16 @@ public class CipherPuzzle {
     public int TextOffset { get; private set; }
 
     /// <summary>
+    /// The riddle itself — everything past <see cref="TextOffset"/>.
+    /// </summary>
+    /// <remarks>
+    /// Kept rather than left as an offset into a string the caller no longer holds: the screen has
+    /// the puzzle, not the record it came out of, and re-reading the tail to find the words the
+    /// player is meant to solve would mean passing the raw table around beside the parsed thing.
+    /// </remarks>
+    public string Description { get; private set; } = string.Empty;
+
+    /// <summary>
     /// Reads the table out of a DDX record's tail.
     /// </summary>
     /// <remarks>
@@ -68,6 +78,8 @@ public class CipherPuzzle {
             at += stride;
         }
         puzzle.TextOffset = Math.Min(at + 2, table.Length);
+        puzzle.Description = table.Substring(puzzle.TextOffset);
+
         return puzzle;
     }
 
