@@ -15,11 +15,28 @@ public class CipherPuzzleLayoutTests {
     public void ColumnsAreConsecutiveActionIdsFrom128() {
         Assert.Equal(128, CipherPuzzleLayout.ActionIdFor(0));
         Assert.Equal(142, CipherPuzzleLayout.ActionIdFor(14));
+        Assert.Equal(147, CipherPuzzleLayout.ActionIdFor(19));
+    }
+
+    [Fact]
+    public void ThereAreTWENTYEntriesButOnlyFIFTEENPositions() {
+        // 143..147 are parked on top of 142. A screen that sizes its enable/disable loop to the
+        // fifteen visible ones leaves those five in the state the data shipped them in — and the
+        // loader keeps faceless click areas navigable, so they linger in the keyboard ring.
+        Assert.Equal(20, CipherPuzzleLayout.MaxColumns);
+        Assert.Equal(15, CipherPuzzleLayout.DistinctColumns);
+    }
+
+    [Fact]
+    public void EveryShippedTargetFitsWithoutStacking() {
+        // The longest in the base game is "EYE TO EYE" at ten.
+        Assert.True(CipherPuzzleLayout.FitsWithoutOverlap(10));
+        Assert.True(CipherPuzzleLayout.FitsWithoutOverlap(15));
+        Assert.False(CipherPuzzleLayout.FitsWithoutOverlap(16));
     }
 
     [Fact]
     public void AColumnPastWhatTheScreenShipsHasNoActionId() {
-        // REQ_PUZL ships fifteen areas, so a longer word cannot be posed on this screen.
         Assert.Equal(-1, CipherPuzzleLayout.ActionIdFor(CipherPuzzleLayout.MaxColumns));
         Assert.Equal(-1, CipherPuzzleLayout.ActionIdFor(-1));
     }

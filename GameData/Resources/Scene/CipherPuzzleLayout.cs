@@ -19,8 +19,29 @@ public static class CipherPuzzleLayout {
     /// <summary>The first column's action id; the rest run consecutively.</summary>
     public const int FirstColumnActionId = 128;
 
-    /// <summary>How many columns REQ_PUZL ships — the longest word the screen can pose.</summary>
-    public const int MaxColumns = 15;
+    /// <summary>
+    /// How many column entries REQ_PUZL ships — <b>twenty</b>, not the fifteen the artwork has room
+    /// for.
+    /// </summary>
+    /// <remarks>
+    /// Ids 128..142 step across the panel at 85 apart; <b>143..147 are all parked on top of 142</b>
+    /// at canonical x=1340. The authoring ran out of width and stacked the surplus rather than
+    /// dropping it, so the count and the number of DISTINCT positions differ — see
+    /// <see cref="DistinctColumns"/>.
+    ///
+    /// <para>The count is what matters to a screen switching entries on and off: sizing that loop
+    /// to fifteen leaves the last five in whatever state the data shipped them in, and the loader
+    /// keeps faceless click areas navigable, so they sit in the keyboard ring as five invisible
+    /// duplicates of the last column. The longest shipped target is ten letters, so the stacking
+    /// itself is never reached in the base game.</para>
+    /// </remarks>
+    public const int MaxColumns = 20;
+
+    /// <summary>How many columns have a position of their own — past this they overlap.</summary>
+    public const int DistinctColumns = 15;
+
+    /// <summary>Whether a target of this length can be shown without stacking letters.</summary>
+    public static bool FitsWithoutOverlap(int width) => width <= DistinctColumns;
 
     /// <summary>The action id of a column, or -1 when it is past what the screen can show.</summary>
     public static int ActionIdFor(int column) =>
