@@ -68,6 +68,10 @@ public static class PaletteMapping {
             // does not exist in the archive.
             "HEADS" => "OPTIONS.PAL",
             "INT_BORD" => "INT_DYN.PAL",
+            // The picklock screen's lock graphic. Same family as its INVSHP/INVMISC siblings and
+            // the same palette; without an entry the sprite converter has no palette to bake and
+            // silently answers null, so the lock simply does not draw.
+            "INVLOCK" => "INVENTOR.PAL",
             "INVSHP1" => "INVENTOR.PAL",
             "INVSHP2" => "INVENTOR.PAL",
             // Container-type images (dead body / chest / etc.) drawn in the loot screen's detail

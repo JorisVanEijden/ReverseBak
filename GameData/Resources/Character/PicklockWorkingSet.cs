@@ -45,6 +45,67 @@ public static class PicklockWorkingSet {
     public static int EntryCount(int sharedItemCount, int partyWideLockpickCount) =>
         sharedItemCount + (HasPickStack(partyWideLockpickCount) ? 1 : 0);
 
+    // ---- the lock graphic (UI_DrawLock @0x5bca0) ------------------------------------------------
+
+    /// <summary>The image set the lock is drawn from.</summary>
+    public const string LockIconSet = "INVLOCK.BMX";
+
+    /// <summary>The latch, drawn over the lock body and animated when it opens.</summary>
+    public const int LatchImageIndex = 0;
+
+    /// <summary>
+    /// The lock body's image index, 1..4, chosen by the lock's difficulty.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same thresholds <see cref="LockPicking.DifficultyTier"/> already carries</b> — this
+    /// is what that tier is FOR, which its own doc could only say was "the figure the UI shows".
+    /// A harder lock is drawn as a heavier lock.
+    /// </remarks>
+    public static int LockImageIndexFor(int lockDifficulty) =>
+        LockPicking.DifficultyTier(lockDifficulty);
+
+    /// <summary>Where the lock is drawn, in VGA px: the narrow panel's own box.</summary>
+    /// <remarks>
+    /// (13, 11, 82, 121) — byte-identical to the narrow background <c>UI_DrawInventory</c> draws
+    /// when the mode flag is set, which is why lock mode needs
+    /// <see cref="Inventory.InventoryPanelMode.ShopMode.On"/>: the lock sits IN that box.
+    /// </remarks>
+    public const int PanelVgaX = 13;
+
+    /// <inheritdoc cref="PanelVgaX"/>
+    public const int PanelVgaY = 11;
+
+    /// <inheritdoc cref="PanelVgaX"/>
+    public const int PanelVgaWidth = 82;
+
+    /// <inheritdoc cref="PanelVgaX"/>
+    public const int PanelVgaHeight = 121;
+
+    /// <summary>The latch's position in VGA px, and it is FIXED.</summary>
+    /// <remarks>
+    /// Drawn BEFORE the body, so the body overlaps it — a padlock hanging from a hasp. Drawing the
+    /// latch last puts it in front of the lock, which looks like a separate object lying on top.
+    /// (The open animation walks this y upward; the closed state is the resting position here.)
+    /// </remarks>
+    public const int LatchVgaX = 29;
+
+    /// <inheritdoc cref="LatchVgaX"/>
+    public const int LatchVgaY = 34;
+
+    /// <summary>The body's baseline in VGA px.</summary>
+    public const int BodyVgaY = 63;
+
+    /// <summary>
+    /// The body's left edge in VGA px — <b>centred in the panel, not placed at its origin</b>.
+    /// </summary>
+    /// <remarks>
+    /// <c>13 + (82 - bodyWidth) / 2</c> (0x5bd10). The four difficulty images are different widths,
+    /// so a fixed x would step the lock sideways as the difficulty changed. Placing it at the panel
+    /// origin — the obvious guess, since that is where the box is drawn — puts it in the corner.
+    /// </remarks>
+    public static int BodyVgaX(int bodyWidthVga) =>
+        PanelVgaX + ((PanelVgaWidth - bodyWidthVga) / 2);
+
     /// <summary>
     /// The item flags the appended pick stack carries.
     /// </summary>
