@@ -24,7 +24,8 @@ public static class DialogBranchWalker {
     /// Skipping them leaves those tokens showing the seeded default instead of what the dialog
     /// meant.</param>
     public static DialogEntry WalkToLeaf(Dialog dialog, DialogEntry start, Func<int, int?> getGlobal,
-        Action<Effect> applyEffect = null, Action<DialogEntry> onEntryVisited = null) {
+        Action<Effect> applyEffect = null, Action<DialogEntry> onEntryVisited = null,
+        Func<int> roll = null) {
         if (dialog == null || start == null) {
             return start;
         }
@@ -36,7 +37,7 @@ public static class DialogBranchWalker {
             if (!string.IsNullOrEmpty(current.Text)) {
                 return current; // leaf
             }
-            DialogBranchBase chosen = ChooseBranch(current, getGlobal);
+            DialogBranchBase chosen = ChooseBranch(current, getGlobal, roll);
             if (chosen?.TargetKey == null || !byKey.TryGetValue(chosen.TargetKey, out DialogEntry next)) {
                 return current; // dead end (incl. sentinel target / cross-file id key)
             }
@@ -65,11 +66,12 @@ public static class DialogBranchWalker {
     /// than assuming an unconditional default, so a continuation that depends on state picks the
     /// same successor the original would.</para>
     /// </remarks>
-    public static DialogEntry NextLine(Dialog dialog, DialogEntry current, Func<int, int?> getGlobal) {
+    public static DialogEntry NextLine(Dialog dialog, DialogEntry current, Func<int, int?> getGlobal,
+        Func<int> roll = null) {
         if (dialog == null || current == null || string.IsNullOrEmpty(current.Text)) {
             return null;
         }
-        DialogBranchBase chosen = ChooseBranch(current, getGlobal);
+        DialogBranchBase chosen = ChooseBranch(current, getGlobal, roll);
         if (chosen?.TargetKey == null) {
             return null;
         }
@@ -146,13 +148,52 @@ public static class DialogBranchWalker {
         return null;
     }
 
-    private static DialogBranchBase ChooseBranch(DialogEntry entry, Func<int, int?> getGlobal) {
+    /// <summary>
+    /// The roll's range — the original's <c>GetRandomNumber() &amp; 0xFFF</c>, so 0..4095.
+    /// </summary>
+    /// <remarks>
+    /// Kept as the raw window rather than folded into a "pick one of n" helper because the original
+    /// takes the remainder of THIS number, and 4096 does not divide evenly by most branch counts.
+    /// The resulting bias towards the low branches is the shipped behaviour; a uniform pick would
+    /// be a different distribution.
+    /// </remarks>
+    public const int RandomBranchRollWindow = 0x1000;
+
+    private static DialogBranchBase ChooseBranch(DialogEntry entry, Func<int, int?> getGlobal,
+        Func<int> roll = null) {
+        if ((entry.Flags & DialogEntryFlags.TakeRandomBranch) != 0 && entry.Branches.Count > 0) {
+            return RandomBranch(entry, roll);
+        }
+
         DialogBranchBase fallback = null;
         foreach (DialogBranchBase b in entry.Branches) {
             if (b is DefaultBranch) { fallback = b; continue; }
             if (b is ConditionalBranch cb && Holds(cb.Condition, getGlobal)) { return cb; }
         }
         return fallback;
+    }
+
+    /// <summary>
+    /// One branch chosen at random — the <c>TakeRandomBranch</c> arm at 0x4a47a.
+    /// </summary>
+    /// <remarks>
+    /// <b>No branch condition is evaluated at all.</b> The flag test comes first and jumps clean
+    /// past the condition loop, so a conditional branch on a random entry is never consulted and a
+    /// DefaultBranch has no special standing — every branch is equally a candidate, including ones
+    /// whose condition is false. Filtering by condition first, which is the natural thing to write,
+    /// would change which lines can come up.
+    ///
+    /// <para>With no roll supplied this takes the first branch, so a caller that has not wired an
+    /// RNG gets a stable, valid line rather than an exception — but it gets the SAME one every
+    /// time, which is why the executor always passes one.</para>
+    /// </remarks>
+    private static DialogBranchBase RandomBranch(DialogEntry entry, Func<int> roll) {
+        if (roll == null) {
+            return entry.Branches[0];
+        }
+
+        int index = Math.Abs(roll()) % entry.Branches.Count;
+        return entry.Branches[index];
     }
 
     // Faithful for FlagCondition (the corpse path) and VarCondition (the named-variable range
