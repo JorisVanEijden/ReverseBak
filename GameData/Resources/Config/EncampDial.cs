@@ -59,35 +59,116 @@ public static class EncampDial {
     /// <summary>The ordinary stone: dark blue.</summary>
     public const int StoneIconPlain = 1;
 
-    /// <summary>The stone under the cursor: gold.</summary>
+    /// <summary>The highlighted stone: gold. The cursor's on the camp screen, the waking hour's
+    /// at an inn — see <see cref="IconFor"/>.</summary>
     public const int StoneIconHovered = 2;
 
     /// <summary>A marked stone — the current hour, and every hour of a running rest: red.</summary>
     public const int StoneIconMarked = 3;
 
     /// <summary>
-    /// The icon a stone is drawn with while the dial is idle.
+    /// The icon a stone is drawn with.
     /// </summary>
     /// <param name="stone">The stone, which is also its hour — see <see cref="HourFor"/>.</param>
-    /// <param name="currentHour">The hour the game clock is in.</param>
-    /// <param name="hoveredStone">The stone under the cursor, or -1 for none.</param>
+    /// <param name="markedHour">
+    /// One hour always drawn red whatever else is going on — the game clock's own hour on both
+    /// screens (<c>arg_A</c>).
+    /// </param>
+    /// <param name="highlightedStone">
+    /// The one stone drawn GOLD, or -1 for none (<c>arg_4</c>). <b>Not only a cursor.</b> The camp
+    /// screen passes the stone under the mouse; the inn passes its WAKING HOUR (0x50186), so the
+    /// gold stone there tells you when you will be woken and never moves. Naming it "hovered" is
+    /// what made the inn's use look like a different feature.
+    /// </param>
+    /// <param name="spanStartHour">
+    /// First hour of a range drawn red, or -1 for no range (<c>arg_6</c>).
+    /// </param>
+    /// <param name="spanEndHour">Last hour of that range (<c>arg_8</c>).</param>
     /// <remarks>
-    /// The branch ORDER is the original's: hover is tested before "now", so moving the cursor onto
-    /// the current hour turns that stone gold rather than leaving it red.
+    /// The branch ORDER is the original's: gold is tested before red, so the highlighted stone wins
+    /// even when it is also the current hour.
     ///
-    /// <para><b>Only the idle case is modelled here.</b> <c>sub_ovr182_67A</c> has three further
-    /// branches that paint a whole SPAN of stones red while a rest is running, driven by a start
-    /// time, an end time and a wrap-past-midnight flag. Those are deliberately left out: the call
-    /// site that supplies them (@0x70526) is guarded on a rest being in progress, and reading the
-    /// span rules off the branches alone would mean guessing which of the three times the caller
-    /// passes for a rest that has not started. Our rest is a loop that advances an hour at a time
-    /// rather than a scheduled span, so nothing needs them yet.</para>
+    /// <para><b>The range is how a rest shows its progress.</b> The camp screen passes the hour the
+    /// rest began and the hour the clock has reached (0x70526), so the red arc grows around the rim
+    /// as the night passes; the inn passes the same hour for both (0x5017a) and gets a single red
+    /// stone. It <b>wraps past midnight</b> — when the start is later than the end the test becomes
+    /// "at or after the start OR at or before the end", which is the only way an overnight rest can
+    /// be drawn at all.</para>
+    ///
+    /// <para>A range whose ends are equal marks just that one hour. Without that guard the wrapping
+    /// test would read as "at or after N or at or before N" and paint the entire ring — which is
+    /// why the original carries a separate flag for it (<c>arg_2</c>, passed as 1 by both callers).</para>
+    ///
+    /// <para><b>Still not modelled:</b> <c>arg_0</c>, which collapses the whole thing to "mark only
+    /// the range's end hour". The inn passes 0 and the camp screen passes a variable
+    /// (<c>var_14</c>) whose meaning would take reading <c>UI_Encamp</c>'s state machine to pin
+    /// down. Nothing here needs it, and guessing it would be worse than saying so.</para>
     /// </remarks>
-    public static int IconFor(int stone, int currentHour, int hoveredStone = -1) {
-        if (hoveredStone >= 0 && stone == hoveredStone) {
+    public static int IconFor(int stone, int markedHour, int highlightedStone = -1,
+        int spanStartHour = -1, int spanEndHour = -1) {
+        if (highlightedStone >= 0 && stone == highlightedStone) {
             return StoneIconHovered;
         }
+        if (stone == markedHour || InSpan(stone, spanStartHour, spanEndHour)) {
+            return StoneIconMarked;
+        }
 
-        return stone == currentHour ? StoneIconMarked : StoneIconPlain;
+        return StoneIconPlain;
+    }
+
+    /// <summary>Whether a stone falls in the marked range, wrapping past midnight.</summary>
+    public static bool InSpan(int stone, int spanStartHour, int spanEndHour) {
+        if (spanStartHour < 0 || spanEndHour < 0) {
+            return false;
+        }
+        if (spanStartHour == spanEndHour) {
+            return stone == spanStartHour;
+        }
+
+        return spanStartHour < spanEndHour
+            ? stone >= spanStartHour && stone <= spanEndHour
+            : stone >= spanStartHour || stone <= spanEndHour;
+    }
+
+    // ---- the sundial's shadow -------------------------------------------------------------------
+    // encamp_drawDialNeedle? @0x70c9b. Despite the provisional name it is not a needle: it fills a
+    // THREE-POINT polygon in pen 0 -- a black wedge from a fixed apex pair down to a point that
+    // walks the dial's arc, i.e. the shadow a gnomon casts as the sun crosses the sky.
+
+    /// <summary>The wedge's two fixed vertices are entries 0 and 1 of <c>NeedleEntries</c>; the
+    /// third is one of the 24 that follow, and entry 2 is the scratch slot it is copied into.</summary>
+    public const int ShadowArcFirstEntry = 3;
+
+    /// <summary>First hour the shadow is drawn — dawn.</summary>
+    public const int ShadowFirstHour = 6;
+
+    /// <summary>Last hour the shadow is drawn — dusk.</summary>
+    public const int ShadowLastHour = 18;
+
+    /// <summary>
+    /// Which <c>NeedleEntries</c> point the shadow reaches to, or -1 when no shadow is drawn.
+    /// </summary>
+    /// <param name="ticksOfDay">Time within the day, in the clock's two-second units.</param>
+    /// <remarks>
+    /// <b>Only between 6am and 6pm, and never at noon.</b> The original returns without drawing
+    /// outside <c>[10800, 32400]</c> — the daylight window — so the dial simply has no shadow at
+    /// night, and it also returns at exactly midday, where the shadow would be the degenerate line
+    /// straight down the gnomon. Those two skips are why the arc holds 24 points for what looks like
+    /// a 25-step sweep: noon is the missing one, and every half-hour past it shifts down by one.
+    /// </remarks>
+    public static int ShadowArcPointFor(int ticksOfDay) {
+        const int noon = 12;
+        if (ticksOfDay < ShadowFirstHour * TicksPerHour
+            || ticksOfDay > ShadowLastHour * TicksPerHour) {
+            return -1;
+        }
+
+        int halfHoursSinceDawn = ticksOfDay * 2 / TicksPerHour - noon;
+        if (halfHoursSinceDawn == noon) {
+            return -1;
+        }
+
+        return ShadowArcFirstEntry
+            + (halfHoursSinceDawn > noon ? halfHoursSinceDawn - 1 : halfHoursSinceDawn);
     }
 }
