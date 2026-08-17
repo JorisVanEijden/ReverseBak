@@ -13,6 +13,21 @@ public sealed class RuntimeContainer {
     public SaveGameContainerType ContainerType;
     public short OwnerActorNumber;
 
+    /// <summary>
+    /// The party has opened this container's lock this session.
+    /// </summary>
+    /// <remarks>
+    /// <b>Runtime only — this does NOT survive a save.</b> Lock state lives on the immutable
+    /// <c>SaveGameContainerData</c> snapshot, and the save writer re-emits only a container's ITEM
+    /// bytes (see <c>ContainerGeometry</c>, which computes the lock subrecord's offset but never
+    /// rewrites it). So a chest picked open reads as locked again after a reload.
+    ///
+    /// <para>Kept here rather than faked on the snapshot because the snapshot is deliberately
+    /// immutable — it is what the writer diffs against — and because a runtime flag states the
+    /// limitation instead of hiding it. Persisting it is writer work, not a flag rename.</para>
+    /// </remarks>
+    public bool Unlocked;
+
     private bool _dirty;
 
     /// <summary>
