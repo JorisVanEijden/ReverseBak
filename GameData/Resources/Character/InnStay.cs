@@ -81,6 +81,30 @@ public static class InnStay {
         (int)(((ticks % TicksPerDay) + TicksPerDay) % TicksPerDay / TicksPerHour);
 
     /// <summary>
+    /// How many hours a stay actually runs, given the hour it is booked at.
+    /// </summary>
+    /// <param name="startHourOfDay">The hour the clock reads when the offer is accepted, 0–23.</param>
+    /// <param name="innWakeHour">The inn's waking hour — <c>InnRestHours</c>.</param>
+    /// <remarks>
+    /// <b>Never fewer than two hours, even when the waking hour is minutes away.</b> The original
+    /// advances the clock once on accepting (0x50219) and again at the top of each pass before it
+    /// compares (0x502d5, 0x50310), so the earliest the target can be seen is two hours in — and a
+    /// stay booked AT the waking hour, or an hour before it, therefore runs a full extra day rather
+    /// than ending immediately.
+    ///
+    /// <para>Expressed as arithmetic rather than left implicit in a loop because that off-by-one is
+    /// the entire difference between selling a night and selling a doze, and a
+    /// test-before-advance loop gets it silently wrong.</para>
+    /// </remarks>
+    public static int HoursOfStay(int startHourOfDay, int innWakeHour) {
+        const int hoursPerDay = 24;
+        int difference = (((innWakeHour - startHourOfDay) % hoursPerDay) + hoursPerDay) % hoursPerDay;
+
+        return difference >= 2 ? difference : difference + hoursPerDay;
+    }
+
+    /// <summary>
+    /// The rest quality an inn's hourly tick is given.    /// <summary>
     /// The rest quality an inn's hourly tick is given.
     /// </summary>
     /// <remarks>

@@ -72,4 +72,25 @@ public class InnStayTests {
         Assert.True(InnStay.OfferAnotherNight(everyMemberAtFullPool: false));
         Assert.False(InnStay.OfferAnotherNight(everyMemberAtFullPool: true));
     }
+
+    [Theory]
+    [InlineData(20, 5, 9)]    // the ordinary case: book in the evening, wake at dawn
+    [InlineData(22, 5, 7)]
+    [InlineData(0, 5, 5)]
+    [InlineData(3, 5, 2)]     // exactly two hours — the earliest a stay can end
+    [InlineData(4, 5, 25)]    // ONE hour short, so the clock is never tested on it: a whole day more
+    [InlineData(5, 5, 24)]    // booked at the waking hour: a full day, not nothing
+    public void AStayNeverEndsBeforeTwoHours(int start, int wake, int expected) =>
+        Assert.Equal(expected, InnStay.HoursOfStay(start, wake));
+
+    [Fact]
+    public void EveryStayLandsOnTheWakingHour() {
+        for (var start = 0; start < 24; start++) {
+            foreach (int wake in new[] { 5, 6, 7 }) {   // the hours the shipped inns store
+                int hours = InnStay.HoursOfStay(start, wake);
+                Assert.True(hours >= 2, $"{start}->{wake} sold a {hours}-hour stay");
+                Assert.Equal(wake, (start + hours) % 24);
+            }
+        }
+    }
 }
