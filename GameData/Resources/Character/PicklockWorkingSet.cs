@@ -107,6 +107,29 @@ public static class PicklockWorkingSet {
         PanelVgaX + ((PanelVgaWidth - bodyWidthVga) / 2);
 
     /// <summary>
+    /// The latch's y offsets as the lock swings open, in VGA px — the whole animation.
+    /// </summary>
+    /// <remarks>
+    /// <c>UI_DrawLock(bIsOpen=1)</c> walks a counter 0..24 in steps of two and draws the latch at
+    /// <c>34 - offset</c>, clearing and redrawing the panel each pass. <b>The last pass is not 24</b>:
+    /// at 24 the original subtracts two again (0x5bcca), so the latch settles at 22 and the final
+    /// frame is a repeat. Ending at 24 lifts the latch two pixels too far and the animation stops
+    /// on a frame the player never saw in 1993.
+    ///
+    /// <para>Offsets, not positions, because they are what the original computes; subtract from
+    /// <see cref="LatchVgaY"/> to place the sprite.</para>
+    /// </remarks>
+    public static int[] OpeningLatchOffsets() {
+        var frames = new int[13];
+        for (var i = 0; i < frames.Length; i++) {
+            frames[i] = i * 2;
+        }
+        frames[frames.Length - 1] = frames[frames.Length - 2];
+
+        return frames;
+    }
+
+    /// <summary>
     /// The item flags the appended pick stack carries.
     /// </summary>
     /// <remarks>

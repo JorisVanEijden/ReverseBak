@@ -10,6 +10,41 @@ namespace GameData.Resources.Character;
 /// part that is easy to get wrong — WHERE a broken tool has to be removed from.
 /// </remarks>
 public static class PicklockDrop {
+    // ---- sound and pacing -----------------------------------------------------------------------
+
+    /// <summary>The cue that the tool has gone in — played the moment it is dropped.</summary>
+    /// <remarks>
+    /// <b>The two tools have different cues</b>: <c>sound_lock</c> (5) for a key, <c>sound_openlock</c>
+    /// (30) for picks (0x5beee, 0x5bfc4). Using one for both loses the only signal, before the
+    /// verdict arrives, of what the player just tried.
+    /// </remarks>
+    public static int AttemptSound(bool usedPicklocks) => usedPicklocks ? 30 : 5;
+
+    /// <summary>The cue that the lock has given — played with the opening animation.</summary>
+    /// <remarks>
+    /// Also two: <c>sound_chains</c> (41) for a key, <c>sound_unlock</c> (22) for picks (0x5bf0f,
+    /// 0x5c001).
+    /// </remarks>
+    public static int OpenedSound(bool usedPicklocks) => usedPicklocks ? 22 : 41;
+
+    /// <summary><c>sound_break</c> (43) — the snap, for either tool (0x5bf83, 0x5c07a).</summary>
+    public const int BrokeSound = 43;
+
+    /// <summary>
+    /// The pause between the attempt and the verdict, in engine ticks.
+    /// </summary>
+    /// <remarks>
+    /// The original sets <c>autoDecreasingTimer = 175</c> and spins until it reaches zero, on both
+    /// paths (0x5bef6, 0x5bfcc) — about 0.74 s at the engine's ~236.7 Hz timer. <b>It is the whole
+    /// drama of the screen</b>: without it the sound, the message and the animation all land on the
+    /// same frame as the drop and the attempt reads as instant.
+    /// </remarks>
+    public const int VerdictDelayTicks = 175;
+
+    /// <summary>That pause in seconds.</summary>
+    public static double VerdictDelaySeconds =>
+        VerdictDelayTicks / Config.DialogTextSpeed.TicksPerSecond;
+
     /// <summary>A key's object id, from the lock number it fits.</summary>
     /// <remarks>The original adds 60 to the lock number (0x5bf8d).</remarks>
     public const int KeyObjectIdBase = 60;

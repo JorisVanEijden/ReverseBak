@@ -52,4 +52,27 @@ public class PicklockWorkingSetTests {
         // Explicitly cleared: it inherits no condition, equipped bit or modifier from whichever
         // member's picks it stands for.
         Assert.Equal(0, PicklockWorkingSet.PickStackItemFlags);
+
+    [Fact]
+    public void TheLatchSwingsUpInThirteenFramesAndSETTLESATTWENTYTWO() {
+        // Not 24. The original's counter reaches 24 but then subtracts two again (0x5bcca), so the
+        // last frame repeats 22 — ending at 24 lifts the latch two pixels past where it rests.
+        int[] frames = PicklockWorkingSet.OpeningLatchOffsets();
+
+        Assert.Equal(13, frames.Length);
+        Assert.Equal(0, frames[0]);
+        Assert.Equal(22, frames[11]);
+        Assert.Equal(22, frames[12]);
+        Assert.DoesNotContain(24, frames);
+    }
+
+    [Fact]
+    public void TheLatchRisesTwoPixelsAFrameAndNeverFallsBack() {
+        int[] frames = PicklockWorkingSet.OpeningLatchOffsets();
+
+        for (var i = 1; i < frames.Length; i++) {
+            Assert.True(frames[i] - frames[i - 1] is 0 or 2,
+                $"frame {i} jumped from {frames[i - 1]} to {frames[i]}");
+        }
+    }
 }
