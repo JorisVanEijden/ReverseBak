@@ -2,8 +2,8 @@ namespace GameData.Resources.Data;
 
 public class SaveGameContainerEncounterData {
     public SaveGameContainerEncounterData(
-        short globalDataKey1,
-        short globalDataKey2,
+        int globalDataKey1,
+        int globalDataKey2,
         byte gdsNumber,
         byte gdsLetter,
         byte firesTrapEncounter,
@@ -19,8 +19,23 @@ public class SaveGameContainerEncounterData {
         Y = y;
     }
 
-    public short GlobalDataKey1 { get; }
-    public short GlobalDataKey2 { get; }
+    /// <summary>
+    /// The global whose value gates this encounter — a key for <c>GetGlobalValue</c> @0x42250.
+    /// </summary>
+    /// <remarks>
+    /// <b>Unsigned, and it must be: the key space runs past 32767.</b> <c>GetGlobalValue</c>
+    /// compares the key with <c>jb</c>/<c>jnb</c> — unsigned branches — and its top band is the
+    /// 56000+ range backed by <c>global_flags2[]</c>. Reading the field as a signed 16-bit turns
+    /// key 56012 into -9524, which no band then matches.
+    ///
+    /// <para>This is not hypothetical: the shipped OBJFIXED.DAT has one such record and the save
+    /// games have more (56012 and 56315 both appear). Held as <c>int</c> rather than
+    /// <c>ushort</c> so the value reads as the number the engine uses.</para>
+    /// </remarks>
+    public int GlobalDataKey1 { get; }
+
+    /// <inheritdoc cref="GlobalDataKey1"/>
+    public int GlobalDataKey2 { get; }
     public byte GdsNumber { get; }
     public byte GdsLetter { get; }
 

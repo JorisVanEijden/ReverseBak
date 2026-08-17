@@ -654,8 +654,11 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         SaveGameContainerEncounterData? encounterData = null;
         if (dataTypes.HasFlag(SaveGameContainerDataType.Encounter)) {
             encounterData = new SaveGameContainerEncounterData(
-                reader.ReadInt16(),
-                reader.ReadInt16(),
+                // UNSIGNED: the global key space runs past 32767 (the 56000+ global_flags2 band),
+                // and GetGlobalValue @0x42250 compares it with unsigned branches. A signed read
+                // turns key 56012 into -9524, which matches no band.
+                reader.ReadUInt16(),
+                reader.ReadUInt16(),
                 reader.ReadByte(),
                 reader.ReadByte(),
                 reader.ReadByte(),
