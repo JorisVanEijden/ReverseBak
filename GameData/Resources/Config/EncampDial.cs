@@ -135,9 +135,22 @@ public static class EncampDial {
     // THREE-POINT polygon in pen 0 -- a black wedge from a fixed apex pair down to a point that
     // walks the dial's arc, i.e. the shadow a gnomon casts as the sun crosses the sky.
 
-    /// <summary>The wedge's two fixed vertices are entries 0 and 1 of <c>NeedleEntries</c>; the
-    /// third is one of the 24 that follow, and entry 2 is the scratch slot it is copied into.</summary>
+    /// <summary>The wedge's tip — the top of the gnomon, <c>NeedleEntries[0]</c>.</summary>
+    public const int ShadowApexEntry = 0;
+
+    /// <summary>The wedge's pivot — the dial's centre, <c>NeedleEntries[1]</c>.</summary>
+    /// <remarks>
+    /// Entry 2 is neither: it is the SCRATCH slot the original copies the chosen arc point into
+    /// before handing the three-entry array to the polygon fill (0x70cff, 0x70d15). It holds
+    /// whatever the last frame drew, so reading it as geometry gives a stale vertex.
+    /// </remarks>
+    public const int ShadowPivotEntry = 1;
+
+    /// <summary>The first of the 24 arc points, at <c>NeedleEntries[3]</c>.</summary>
     public const int ShadowArcFirstEntry = 3;
+
+    /// <summary>The wedge is filled in pen 0 — a shadow, not a highlight.</summary>
+    public const int ShadowPen = 0;
 
     /// <summary>First hour the shadow is drawn — dawn.</summary>
     public const int ShadowFirstHour = 6;

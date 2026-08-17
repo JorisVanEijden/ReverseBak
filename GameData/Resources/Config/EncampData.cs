@@ -18,9 +18,10 @@ namespace GameData.Resources.Config;
 /// hit-test (<c>encamp_clock?_sub_ovr182_75F</c> @ 0x70b2f) builds the box
 /// <c>[X-(IconWidth-IconAnchorX)/2 .. +IconWidth] × [Y-(IconHeight-IconAnchorY)/2 .. +IconHeight]</c>
 /// around each point and returns the clock entry under the cursor.
-/// <see cref="NeedleEntries"/> are the dial needle/hand vertex positions;
-/// <c>sub_ovr182_8CB</c> (@ 0x70c9b) maps the selected rest time to one of these and draws
-/// the hand.
+/// <see cref="NeedleEntries"/> are NOT a needle, despite the name this file was reversed under:
+/// <c>encamp_drawSundialShadow</c> (@ 0x70c9b) fills a THREE-point polygon from them — entry 0 is
+/// the gnomon's tip, entry 1 the dial's centre, entry 2 a scratch slot, and entries 3..26 are the
+/// 24 arc points the third vertex sweeps through the daylight hours. See <see cref="EncampDial"/>.
 /// </summary>
 public class EncampData : IResource {
     public EncampData(string id) {
@@ -45,7 +46,8 @@ public class EncampData : IResource {
     /// <summary>Clickable hour positions on the rest dial (24 shipped), canonical space.</summary>
     public List<EncampPoint> ClockEntries { get; set; } = new();
 
-    /// <summary>Dial needle/hand vertex positions (27 shipped), canonical space.</summary>
+    /// <summary>Sundial-shadow polygon vertices (27 shipped), canonical space — see the type's
+    /// own remarks for what the three groups are.</summary>
     public List<EncampPoint> NeedleEntries { get; set; } = new();
 
     /// <summary>Nothing under the cursor.</summary>
