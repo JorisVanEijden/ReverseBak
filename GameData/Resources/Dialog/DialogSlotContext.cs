@@ -59,9 +59,29 @@ public sealed class DialogSlotContext {
     public int Global30018 { get; set; }
 
     /// <summary>Whether the NPC being spoken to runs an inn rather than a shop — the engine's
-    /// <c>g_bIsRestEncounter</c>, set from the container's nightly rate (CMBINV.C:67). Kind 28 says
-    /// "tavernkeeper" when true and "shopkeeper" when false.</summary>
+    /// <c>shopOrTavern</c> (canassa <c>g_bIsRestEncounter</c>). Kind 28 says "tavernkeeper" when
+    /// true and "shopkeeper" when false.</summary>
+    /// <remarks>Set it with <see cref="RunsAnInn"/> rather than by hand, so the two-part rule
+    /// stays in one place.</remarks>
     public bool IsRestEncounter { get; set; }
+
+    /// <summary>
+    /// Whether a location's shop block makes its keeper a TAVERNKEEPER.
+    /// </summary>
+    /// <param name="innCostPerNight">
+    /// The block's <c>InnCostPerNight</c>, or null when the container carries no shop block at all.
+    /// </param>
+    /// <remarks>
+    /// <b>The nightly COST is the discriminator, not the rest hours</b> —
+    /// <c>sub_ovr157_0</c> @0x5426e tests <c>innCostPerNight != 0</c> and nothing else. A location
+    /// that states hours but charges nothing is a shop, which is the sort of thing only the
+    /// disassembly settles.
+    ///
+    /// <para>A container with NO shop block is a shop too: the original clears the flag first
+    /// (0x5425c) and skips the test entirely when the block is absent, so "no data" and "free" give
+    /// the same answer rather than the absent case being undefined.</para>
+    /// </remarks>
+    public static bool RunsAnInn(int? innCostPerNight) => innCostPerNight is not null and not 0;
 
     /// <summary>Creature id → name (MNAMES.DAT), for kind 17. Null yields an empty name.</summary>
     public Func<int, string> CreatureNameOf { get; set; }
