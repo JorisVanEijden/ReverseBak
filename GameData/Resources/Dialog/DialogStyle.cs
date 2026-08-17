@@ -115,6 +115,32 @@ public class DialogStyle {
     /// </summary>
     public float TextPadRightPct { get; set; }
 
+    /// <summary>
+    /// Top text inset in design-frame px — the original's <c>field_7</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>RenderDialogText</c> @0x49050 does <c>y += field_7</c> and @0x4906e shrinks the wrap
+    /// height by <c>field_7 + field_8</c>, exactly mirroring what it does horizontally with
+    /// <c>field_9</c>/<c>field_A</c>.
+    ///
+    /// <para><b>Stored as px, not a percentage, unlike the left/right pair.</b> Those are
+    /// normalised against the row's width because the wrap region has to stay proportional when an
+    /// override restates the area; a top inset is a fixed gap under the border and does not want to
+    /// grow with a taller panel. Row 6 is the case that shows why: 1 VGA px of inset on a
+    /// 160-VGA-px-tall panel is a hairline, and as a percentage it would round to nothing useful.</para>
+    ///
+    /// <para>Shipped values are small — 1 VGA px for the full-screen row, 5 for the narrative
+    /// strips, 3 for the bordered boxes. A renderer that substitutes a larger "tuned" offset
+    /// pushes long text out of the bottom of its own panel.</para>
+    /// </remarks>
+    public float TextPadTop { get; set; }
+
+    /// <summary>
+    /// Bottom text inset in design-frame px — the original's <c>field_8</c>. Only ever consumed as
+    /// the second half of the wrap-height reduction at 0x4906e; nothing positions against it.
+    /// </summary>
+    public float TextPadBottom { get; set; }
+
     // The five properties below are DERIVED — read-only convenience over the pen fields above.
     // They are ignored by both serializers on purpose: DIALSTYL.json is not just an extractor
     // output, it is the document a mod author copies and edits, and a field that looks settable

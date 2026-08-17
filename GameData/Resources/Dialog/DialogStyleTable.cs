@@ -202,6 +202,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(40, 720, 1525, 450),
             TextPadLeftPct = 2.62295f,
             TextPadRightPct = 2.62295f,
+            // field_7=5 / field_8=2 VGA px -> canonical (x6).
+            TextPadTop = 30f,
+            TextPadBottom = 12f,
         },
 
         // Row 2: the *default fallback*. Dispatcher returns 2 when no
@@ -221,6 +224,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(65, 66, 1470, 606),
             TextPadLeftPct = 3.40136f,
             TextPadRightPct = 3.40136f,
+            // field_7=3 / field_8=3 VGA px -> canonical (x6).
+            TextPadTop = 18f,
+            TextPadBottom = 18f,
         },
 
         // Row 3: source DialogType.PlainWithoutBox (cutscene narrative strip).
@@ -241,6 +247,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(40, 708, 1525, 438),
             TextPadLeftPct = 2.62295f,
             TextPadRightPct = 2.62295f,
+            // field_7=5 / field_8=2 VGA px -> canonical (x6).
+            TextPadTop = 30f,
+            TextPadBottom = 12f,
         },
 
         // Row 4: unreachable. Identical to row 1; no source byte produces 4
@@ -255,6 +264,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(40, 720, 1525, 450),
             TextPadLeftPct = 2.62295f,
             TextPadRightPct = 2.62295f,
+            // field_7=5 / field_8=2 VGA px -> canonical (x6).
+            TextPadTop = 30f,
+            TextPadBottom = 12f,
         },
 
         // Row 5: source DialogType.NormalInGame, OR forced by the in-game
@@ -275,6 +287,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(65, 66, 1470, 726),
             TextPadLeftPct = 3.40136f,
             TextPadRightPct = 3.40136f,
+            // field_7=3 / field_8=3 VGA px -> canonical (x6).
+            TextPadTop = 18f,
+            TextPadBottom = 18f,
         },
 
         // Row 6: source DialogType.PlainFullScreen, OR forced by either
@@ -294,6 +309,9 @@ public class DialogStyleTable : IResource {
             DefaultArea = LayoutHint.PxRect(125, 126, 1350, 960),
             TextPadLeftPct = 0.37037f,
             TextPadRightPct = 0.37037f,
+            // field_7=1 / field_8=1 VGA px -> canonical (x6).
+            TextPadTop = 6f,
+            TextPadBottom = 6f,
         },
     };
 }
