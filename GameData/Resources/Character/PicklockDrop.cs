@@ -90,4 +90,55 @@ public static class PicklockDrop {
             : usedPicklocks
                 ? BreakageTarget.PartyAtLarge
                 : BreakageTarget.SharedInventory;
+
+    /// <summary>
+    /// Destroys the tool that just snapped, in both the places it has to come out of.
+    /// </summary>
+    /// <param name="droppedObjectId">
+    /// <b>The object actually dropped on the lock</b>, which the caller must carry through from the
+    /// drop. It cannot be recovered afterwards by looking at the working set: the party can hold
+    /// several keys at once, so "the key in there" is not a question with one answer, and answering
+    /// it by picking the first one destroys a key the player never touched.
+    /// </param>
+    /// <param name="workingSet">The screen's scratch container — always loses one.</param>
+    /// <param name="sharedInventory">
+    /// The party's shared stock. Loses the key as well; ignored for a picklock, which was never in
+    /// it.
+    /// </param>
+    /// <param name="partyPacks">
+    /// Each member's pack in roster order, walked only for a picklock. The first pack holding one
+    /// loses it — the engine's own consume-by-kind walk, and the reason the synthetic pick stack
+    /// does not need an owner.
+    /// </param>
+    /// <param name="lookup">Object id to record; pass <c>objectInfoSet.GetById</c>.</param>
+    /// <returns>Whether anything was destroyed — false when nothing broke.</returns>
+    public static bool ApplyBreakage(bool usedPicklocks, PicklockAttempt.AttemptResult result,
+        int droppedObjectId, Inventory.RuntimeContainer workingSet,
+        Inventory.RuntimeContainer sharedInventory,
+        System.Collections.Generic.IEnumerable<Inventory.RuntimeContainer> partyPacks,
+        System.Func<int, Object.ObjectInfo> lookup) {
+        BreakageTarget target = BreakageFor(usedPicklocks, result);
+        if (target == BreakageTarget.None) {
+            return false;
+        }
+
+        if (workingSet != null) {
+            Inventory.InventoryConsume.TryConsumeOne(workingSet, droppedObjectId, lookup);
+        }
+
+        if (target == BreakageTarget.SharedInventory) {
+            return sharedInventory != null
+                && Inventory.InventoryConsume.TryConsumeOne(sharedInventory, droppedObjectId, lookup);
+        }
+
+        foreach (Inventory.RuntimeContainer pack in partyPacks
+            ?? System.Array.Empty<Inventory.RuntimeContainer>()) {
+            if (pack != null
+                && Inventory.InventoryConsume.TryConsumeOne(pack, droppedObjectId, lookup)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
