@@ -25,29 +25,51 @@ public class InnStayTests {
     }
 
     [Fact]
-    public void TheStayEndsOnTheStatedHour() =>
-        Assert.True(InnStay.StayComplete(hoursRested: 8, innRestHours: 8));
+    public void TheStayEndsWhenTheCLOCKREACHESTheInnsWakingHour() =>
+        Assert.True(InnStay.StayComplete(hourOfDay: 5, innWakeHour: 5));
 
     [Fact]
-    public void TheStayIsNotOverEarly() =>
-        Assert.False(InnStay.StayComplete(7, 8));
+    public void TheStayIsNotOverBeforeThatHour() =>
+        Assert.False(InnStay.StayComplete(4, 5));
 
     [Fact]
-    public void OvershootingDoesNotCountAsComplete() =>
-        // Exact equality, faithfully. A >= reading behaves the same while the rest loop is the only
-        // thing advancing the clock, and diverges as soon as anything else can — the party would
-        // sail past the end and never be charged or healed.
-        Assert.False(InnStay.StayComplete(9, 8));
+    public void ANightBookedInTheEVENINGRunsPastMidnight() {
+        // The whole point of reading the byte as an hour of day. Booking at 20:00 with a waking
+        // hour of 5 is a NINE-hour night; read as a duration it would end at 01:00 after five.
+        var hour = 20;
+        var hours = 0;
+        while (!InnStay.StayComplete(hour, 5)) {
+            hour = (hour + 1) % 24;
+            hours++;
+        }
 
-    [Fact]
-    public void HoursComeFromTheGameClocksOwnUnits() {
-        Assert.Equal(0, InnStay.HoursFrom(1799));
-        Assert.Equal(1, InnStay.HoursFrom(1800));
-        Assert.Equal(8, InnStay.HoursFrom(8 * 1800));
+        Assert.Equal(9, hours);
+        Assert.Equal(5, hour);
     }
 
     [Fact]
-    public void AnInnRestsHarderThanACamp() =>
-        // The mechanical difference the price buys: camp passes 80, the inn passes 100.
+    public void TheHourOfDayWrapsWithTheClock() {
+        Assert.Equal(0, InnStay.HourOfDay(0));
+        Assert.Equal(0, InnStay.HourOfDay(1799));
+        Assert.Equal(1, InnStay.HourOfDay(1800));
+        Assert.Equal(23, InnStay.HourOfDay(23 * 1800));
+        Assert.Equal(0, InnStay.HourOfDay(24 * 1800));          // a new day, not hour 24
+        Assert.Equal(5, InnStay.HourOfDay(3 * InnStay.TicksPerDay + 5 * 1800));
+    }
+
+    [Fact]
+    public void AnInnRestsHarderThanACamp() {
+        // Two effects from one figure, and the port has to pass the figure rather than the result:
+        // gstate_hourly_tick reads exactly PartialRestQuality as "cap at 80%" and anything else as
+        // "fill", and scales the hour's regeneration by quality/100.
+        Assert.NotEqual(UpkeepEngine.PartialRestQuality, InnStay.RestQuality);
+        Assert.Equal(133, InnStay.RestQuality);
         Assert.Equal(100, InnStay.RestedPercent);
+    }
+
+    [Fact]
+    public void TheInnKeepsOfferingUntilThePartyIsWhole() {
+        Assert.True(InnStay.OfferAnotherNight(everyMemberAtFullPool: false));
+        Assert.False(InnStay.OfferAnotherNight(everyMemberAtFullPool: true));
+    }
 }

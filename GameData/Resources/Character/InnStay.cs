@@ -48,34 +48,81 @@ public static class InnStay {
         costPerNight * MoneyFormatter.RoyalsPerSovereign;
 
     /// <summary>
-    /// Whether the stay is over, given how long the party has been resting.
+    /// Whether the stay is over — <b>the clock has reached the inn's waking hour</b>.
     /// </summary>
-    /// <param name="hoursRested">Whole hours elapsed since the stay began.</param>
-    /// <param name="innRestHours">
-    /// The location's stated length — <c>SaveGameContainerShopData.InnRestHours</c>.
+    /// <param name="hourOfDay">The hour the game clock currently reads, 0–23.</param>
+    /// <param name="innWakeHour">
+    /// <c>SaveGameContainerShopData.InnRestHours</c>, which despite its name is an HOUR OF DAY.
     /// </param>
     /// <remarks>
-    /// <b>Exact equality, not "at least".</b> The original compares the two and only completes when
-    /// they match, advancing an hour per pass; a <c>&gt;=</c> reading behaves the same while the
-    /// loop is the only caller, and diverges the moment anything else can advance the clock
-    /// mid-stay — the party would sail past the end and never be charged or healed.
+    /// <b>The stored byte is when you are woken, not how long you sleep, and the field name says
+    /// the opposite.</b> The original divides the clock by a day, then the remainder by an hour, and
+    /// compares THAT against the byte (0x50310–0x5033c) — so it is comparing an hour of day, and the
+    /// function is called <c>UI_RestUntilTime</c> for a reason. The shipped inns store 5, 6 and 7:
+    /// they wake you at dawn. Read as a duration, a night booked at 8pm ends at 1am after five
+    /// hours instead of at 5am after nine.
+    ///
+    /// <para>Exact equality, not "at least" — the loop advances exactly one hour per pass, so it
+    /// cannot step over the target. A <c>&gt;=</c> reading would behave identically here and break
+    /// the moment the clock wraps past midnight, which every one of these stays does.</para>
     /// </remarks>
-    public static bool StayComplete(int hoursRested, int innRestHours) =>
-        hoursRested == innRestHours;
+    public static bool StayComplete(int hourOfDay, int innWakeHour) =>
+        hourOfDay == innWakeHour;
 
-    /// <summary>Game-clock units in an hour, the divisor the elapsed count uses.</summary>
+    /// <summary>Game-clock units in an hour.</summary>
     public const int TicksPerHour = 1800;
 
-    /// <summary>Whole hours in a tick count.</summary>
-    public static int HoursFrom(long ticks) => (int)(ticks / TicksPerHour);
+    /// <summary>Game-clock units in a day.</summary>
+    public const int TicksPerDay = 24 * TicksPerHour;
+
+    /// <summary>The hour of day (0–23) a clock reading falls in — what <see cref="StayComplete"/>
+    /// tests.</summary>
+    public static int HourOfDay(long ticks) =>
+        (int)(((ticks % TicksPerDay) + TicksPerDay) % TicksPerDay / TicksPerHour);
 
     /// <summary>
-    /// How far an inn rests the party, as a percentage of each pool.
+    /// The rest quality an inn's hourly tick is given.
     /// </summary>
     /// <remarks>
-    /// <b>A hundred, where camping passes eighty.</b> Both call the same clock-advance with a
-    /// quality figure — camp passes 0x50 (80), the inn passes 0x64 (100) — which is the mechanical
-    /// difference the price buys: you leave an inn whole, and a camp merely rested.
+    /// <b>133, and it is not a percentage of anything the player sees.</b> It is the figure
+    /// <c>gstate_hourly_tick</c> takes as its rest argument (0x5021e pushes 0x85; camping pushes
+    /// 0x64 at 0x7061a), and that function does two things with it: it picks the pool ceiling —
+    /// <see cref="UpkeepEngine.PartialRestQuality"/> exactly means the 80% cap, ANY other non-zero
+    /// value means 100% — and it scales the hour's regeneration by <c>quality / 100</c>.
+    ///
+    /// <para>So the price buys BOTH halves: an inn fills the pools where camping stops at 80%, and
+    /// it refills them a third faster per hour. Passing 100 here would silently buy neither.</para>
     /// </remarks>
+    public const int RestQuality = 133;
+
+    /// <summary>
+    /// How far an inn rests the party, as a percentage of each pool — the RESULT of
+    /// <see cref="RestQuality"/>, not a figure the original passes anywhere.
+    /// </summary>
     public const int RestedPercent = 100;
+
+    /// <summary>
+    /// Whether the nightmaster offers again once a stay has finished.
+    /// </summary>
+    /// <remarks>
+    /// <b>An inn keeps selling nights until the party is whole.</b> After a completed stay the
+    /// original walks the party comparing each member's effective HealthStaminaCombo with their
+    /// maximum (0x5035f) and loops back to the offer unless every one of them is full. So a badly
+    /// hurt party is asked to buy a second and third night, with
+    /// <see cref="RepeatOfferGlobal"/> set so the wording does not re-introduce the innkeeper.
+    /// </remarks>
+    public static bool OfferAnotherNight(bool everyMemberAtFullPool) => !everyMemberAtFullPool;
+
+    /// <summary>
+    /// <b>Payment happens AFTER the night, and nothing in the code checks the party can afford
+    /// it.</b>
+    /// </summary>
+    /// <remarks>
+    /// The deduction is at 0x50353, past the loop and past the completion test — so a stay that is
+    /// somehow interrupted is free, and gold is only ever spent on a night actually slept. There is
+    /// no balance check anywhere on the path: global 30003 exposes "party gold &gt;= the quoted
+    /// price" to the DIALOG, so refusing a pauper is the nightmaster's line to deliver, not a guard
+    /// in the flow. A port that adds an affordability check here makes that dialog branch dead.
+    /// </remarks>
+    public const bool ChargedAfterTheStay = true;
 }
