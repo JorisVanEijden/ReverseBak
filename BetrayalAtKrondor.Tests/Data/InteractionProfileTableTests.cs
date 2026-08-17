@@ -21,18 +21,42 @@ public class InteractionProfileTableTests {
     }
 
     /// <summary>
-    /// The traversal types are the ones deliberately left out — they are a zone/level transition
-    /// mechanic, not describe-or-loot, so a click on them must still fall through to "no
-    /// behavior" rather than silently borrowing the container one.
+    /// The traversal types still left out — a zone/level transition mechanic, not
+    /// describe-or-loot, so a click on them must fall through to "no behavior" rather than
+    /// silently borrowing the container one.
     /// </summary>
+    /// <remarks>
+    /// <b>Door was on this list and has come off it.</b> It is still not describe-or-loot; it now
+    /// has a mechanic of its own (<c>DoorMechanics</c>) and a row that says so — see
+    /// <see cref="ADoorIsMappedButToItsOwnBehaviourNotTheContainerOne"/>. The others stay here
+    /// until they get the same treatment.
+    /// </remarks>
     [Theory]
     [InlineData(WorldEntityType.Ladder)]
     [InlineData(WorldEntityType.Tunnel)]
     [InlineData(WorldEntityType.TunnelExit)]
-    [InlineData(WorldEntityType.Door)]
     [InlineData(WorldEntityType.Pit)]
     public void TraversalTypes_AreNotMapped(WorldEntityType type) =>
         Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+
+    /// <summary>
+    /// A door IS mapped now — but to its own behaviour, and with an empty profile.
+    /// </summary>
+    /// <remarks>
+    /// The distinction this asserts is the whole reason it was excluded before: borrowing
+    /// "container" would show a door's dialogs while dropping the open/shut mechanic, which is the
+    /// failure the old exclusion existed to prevent. A separate behaviour key keeps that guarantee
+    /// while letting the door act.
+    /// </remarks>
+    [Fact]
+    public void ADoorIsMappedButToItsOwnBehaviourNotTheContainerOne() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.Door, out string behavior, out InteractionProfile profile));
+        Assert.Equal("door", behavior);
+        Assert.NotEqual("container", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+    }
 
     /// <summary>
     /// Building, Grave, Catapult and RiftMachine fire trap encounters / GDS scenes and (for the

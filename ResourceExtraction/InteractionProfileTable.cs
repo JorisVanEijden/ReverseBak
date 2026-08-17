@@ -29,8 +29,10 @@ using System.Collections.Generic;
 /// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
 /// Building (10) and Grave (12) fire positioned trap encounters and GDS scenes, and Grave also
 /// requires a Shovel in the party and a dig (@0x77df4); Catapult (36) and RiftMachine (9) are
-/// scripted props gated on encounter globals; Door (23), Pit (15), Tunnel (20), TunnelExit (39)
-/// and Ladder (42) are the zone/level traversal mechanic, not describe-or-loot.</para>
+/// scripted props gated on encounter globals; Pit (15), Tunnel (20), TunnelExit (39) and Ladder
+/// (42) are the zone/level traversal mechanic, not describe-or-loot. <b>Door (23) has since been
+/// added</b> — it is still not describe-or-loot, but it has a behavior of its own
+/// (<c>DoorMechanics</c>) and an intentionally empty profile.</para>
 /// </summary>
 public static class InteractionProfileTable {
     // Every handler's "there is nothing here" ddx: "@0 shrugged. 'This must not be very
@@ -49,6 +51,21 @@ public static class InteractionProfileTable {
     private static readonly SaveGameContainerType[] None = System.Array.Empty<SaveGameContainerType>();
 
     private static readonly Dictionary<WorldEntityType, (string Behavior, InteractionProfile Profile)> Map = new() {
+        // byte 23 = door (handle_Door @0x778df). *** NOT A CONTAINER, and the empty profile says so
+        // rather than being an oversight. *** A door has no loot, no actionable container type and
+        // no SaveGameContainerLockData; its lock is a bare difficulty byte on the placement record
+        // (FixedObjectAccess.LockValue) and its identity a door variant, so every field the
+        // container handlers read is genuinely absent here. What it needs instead is
+        // DoorMechanics, which is why it gets its own behavior key.
+        [WorldEntityType.Door] = ("door", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
         // byte 16 = corpse (handle_Corpse @0x76a0a). The only handler with a proximity gate.
         [WorldEntityType.Corpse] = ("container", new InteractionProfile {
             Range = new InteractionRange(7000, 2500),

@@ -40,6 +40,16 @@ public static class DoorMechanics {
     public const int CloseBlockedRange = 800;
 
     /// <summary>
+    /// The line played when the party is too close to pull a door shut — ddx 157.
+    /// </summary>
+    /// <remarks>
+    /// <c>handle_Door</c> @0x779e5. It is a joke about walking into the door rather than a bare
+    /// refusal, which is worth knowing before anyone substitutes a terser "you cannot do that":
+    /// the original tells you WHY by having a companion laugh at you.
+    /// </remarks>
+    public const int TooCloseDialog = 157;
+
+    /// <summary>
     /// Shape id of a shut door. <b>Open and shut are two different shapes</b>, not one shape with a
     /// swing frame — the loader swaps the id outright, and the frame bits only drive the animation
     /// between them.
