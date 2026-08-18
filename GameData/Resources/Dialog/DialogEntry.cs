@@ -16,6 +16,20 @@ public class DialogEntry {
     public uint? Id { get; set; }
     public string? Text { get; set; }
     public DialogType DialogType { get; set; }
+    /// <summary>
+    /// The speaker, as the raw 16-bit field the record holds.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is two values packed into one word.</b> <c>ExecuteDialog</c> splits it before showing
+    /// a portrait (@0x49971): the LOW byte is the actor number and the HIGH byte is which frame of
+    /// that actor's portrait to draw. Read whole, it is the actor number only while the high byte
+    /// is zero.
+    ///
+    /// <para>Which it is in every shipped file: all 8203 entries across the 32 DDX files have a
+    /// high byte of 0, so nothing today needs the split and no speaker is misread. It is documented
+    /// because the packing is real and a mod author writing a non-zero frame would find the field
+    /// silently naming a different actor.</para>
+    /// </remarks>
     public int ActorNumber { get; set; }
     public DialogEntryFlags Flags { get; set; }
     public List<DialogActionBase> Actions { get; set; } = [];
