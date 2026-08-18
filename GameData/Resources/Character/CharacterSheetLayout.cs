@@ -46,6 +46,32 @@ public static class CharacterSheetLayout {
     /// <summary>The horizontal dotted rule, drawn along the top and bottom.</summary>
     public const int HorizontalRuleIcon = 26;
 
+    // ---- the portrait -------------------------------------------------------------------------
+
+    /// <summary>Left edge of the portrait — VGA x=7.</summary>
+    /// <remarks>
+    /// <b>The sheet is the one caller that places a face at fixed coordinates.</b>
+    /// <c>ShowDialogWithFace</c> @0x4ab29 picks between three placements on its mode argument, and
+    /// two of them follow the render view; the sheet passes a NEGATIVE mode, which is the corner
+    /// (0x4ac22) — so this portrait does not move with the viewport the way a speaker's does.
+    /// </remarks>
+    public const int PortraitX = 7 * 5;
+
+    /// <summary>Top edge of the portrait — VGA y=9.</summary>
+    /// <inheritdoc cref="PortraitX"/>
+    public const int PortraitY = 9 * 6;
+
+    /// <summary>
+    /// Whether the sheet shows the actor's second face.
+    /// </summary>
+    /// <remarks>
+    /// <b>It does, and by the same argument that chose the corner.</b> <c>LoadActorFace</c> takes
+    /// the alternate bitmap on a negative mode, so "corner" and "alternate face" are one decision
+    /// in the original and cannot be set apart — the sheet cannot show the portrait the dialog
+    /// shows.
+    /// </remarks>
+    public const bool PortraitIsAlternate = true;
+
     // ---- the two column headings ------------------------------------------------------------
 
     /// <summary>Baseline shared by both headings — VGA y=14.</summary>
@@ -106,6 +132,18 @@ public static class CharacterSheetLayout {
 
     /// <summary>How a listed condition reads: its name and its strength as a percentage.</summary>
     public const string ConditionFormat = "{0} ({1}%)";
+
+    /// <summary>The drop shadow's horizontal offset — one original pixel right.</summary>
+    /// <remarks>
+    /// <b>Not authored anywhere; it is what the text routine does.</b> <c>DisplayText</c> @0x5634d
+    /// draws the shadow string at <c>(x+1, y+1)</c> before the text itself, so every line on this
+    /// screen carries the same offset and none of them state it.
+    /// </remarks>
+    public const int TextShadowOffsetX = 5;
+
+    /// <summary>The drop shadow's vertical offset — one original pixel down.</summary>
+    /// <inheritdoc cref="TextShadowOffsetX"/>
+    public const int TextShadowOffsetY = 6;
 
     /// <summary>Text pen for a condition line.</summary>
     public const int ConditionPen = 0x89;

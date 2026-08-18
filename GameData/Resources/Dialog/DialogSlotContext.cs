@@ -105,14 +105,5 @@ public sealed class DialogSlotContext {
     /// <summary>The display name of attribute <paramref name="index"/>, from the UI string catalog.
     /// Empty when the index is outside the 16 the original names.</summary>
     public string AttributeNameOf(int index) =>
-        index >= 0 && index < AttributeKeys.Length
-            ? GameData.Resources.Text.UiStrings.Get("base:uistring:attribute." + AttributeKeys[index])
-            : "";
-
-    // Order matches the executable's 16-entry table, which is ActorAttribute's first 16 members.
-    private static readonly string[] AttributeKeys = {
-        "health", "stamina", "speed", "strength", "defense",
-        "accy_crossbow", "accy_melee", "accy_casting", "assessment", "armorcraft",
-        "weaponcraft", "barding", "haggling", "lockpick", "scouting", "stealth",
-    };
+        GameData.Resources.Character.ActorLabels.AttributeName(index);
 }

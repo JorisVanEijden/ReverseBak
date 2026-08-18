@@ -302,4 +302,27 @@ public class StatEngineTests {
 
         Assert.Equal(16, health.Base);
     }
+
+    // ---- the combined pool ----------------------------------------------------------------------
+
+    [Fact]
+    public void ThePoolIsBothPairsTogether() {
+        var health = new ActorStat { Base = 12, Max = 20 };
+        var stamina = new ActorStat { Base = 5, Max = 15 };
+
+        // HealthStaminaCombo has no stored slot: it is this sum, which is what ModifyHealthPool
+        // writes back into. Reading it as health alone under-counts every wounded member.
+        Assert.Equal(17, StatEngine.HealthPool(health, stamina));
+        Assert.Equal(35, StatEngine.HealthPoolMaximum(health, stamina));
+        Assert.Equal(18, StatEngine.HealthPoolDeficit(health, stamina));
+    }
+
+    [Fact]
+    public void APoolOverItsMaximumIsNotADebt() {
+        var health = new ActorStat { Base = 30, Max = 20 };
+        var stamina = new ActorStat { Base = 20, Max = 15 };
+
+        // A temple bills one royal per missing point, so a negative deficit would PAY the party.
+        Assert.Equal(0, StatEngine.HealthPoolDeficit(health, stamina));
+    }
 }

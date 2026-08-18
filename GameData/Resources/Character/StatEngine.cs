@@ -222,6 +222,35 @@ public static class StatEngine {
     /// with <c>((100 - rank) * 30) / 100 + 1</c> — a near-dead actor cannot be healed past a sliver,
     /// and the worse the rank the smaller that sliver.</para>
     /// </summary>
+    /// <summary>
+    /// The actor's combined health-and-stamina pool — <see cref="ActorAttribute.HealthStaminaCombo"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The combo has no slot of its own</b> (see <see cref="FromSaved"/>): it is the sum of the
+    /// two stored pairs, which is what <see cref="ModifyHealthPool"/> writes back into. Exposed so
+    /// the callers that only READ it — who is hurt, what a temple charges to mend them — ask the
+    /// same question the same way instead of each summing the pair themselves.
+    ///
+    /// <para>This is the stored pool, not a value put through <see cref="Get"/>'s modifier and
+    /// health-scaling pipeline. Nothing in this project has ever read the combo any other way, and
+    /// scaling a pool by its own health would be circular.</para>
+    /// </remarks>
+    public static int HealthPool(ActorStat health, ActorStat stamina) =>
+        (health?.Base ?? 0) + (stamina?.Base ?? 0);
+
+    /// <summary>The pool's maximum.</summary>
+    /// <inheritdoc cref="HealthPool"/>
+    public static int HealthPoolMaximum(ActorStat health, ActorStat stamina) =>
+        (health?.Max ?? 0) + (stamina?.Max ?? 0);
+
+    /// <summary>How far below full the pool sits, never negative.</summary>
+    /// <inheritdoc cref="HealthPool"/>
+    public static int HealthPoolDeficit(ActorStat health, ActorStat stamina) {
+        int missing = HealthPoolMaximum(health, stamina) - HealthPool(health, stamina);
+
+        return missing > 0 ? missing : 0;
+    }
+
     public static int ModifyHealthPool(ActorStat health, ActorStat stamina, long delta,
         int healTargetPercent, out bool collapsed, int nearDeathRank = 0) {
         if (health == null) {
