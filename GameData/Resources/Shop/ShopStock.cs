@@ -130,17 +130,25 @@ public static class ShopStock {
     /// bought in is actually consumed.</para>
     /// </summary>
     /// <returns>False when the party cannot afford it or the item is not for sale.</returns>
+    /// <param name="delivered">
+    /// What the buyer receives, when that is not the item taken off the shelf — a day's rations is
+    /// sold as one object and handed over as another (see <see cref="ShopPurchase.Delivered"/>).
+    /// The substitution happens before the room check, as it does in the original, so it is the
+    /// DELIVERED item that has to fit.
+    /// </param>
     public static bool Buy(RuntimeContainer shop, RuntimeContainer buyer, RuntimeItem item,
-        ObjectInfoSet objects, long price, ref int partyGold) {
+        ObjectInfoSet objects, long price, ref int partyGold, RuntimeItem delivered = null) {
         if (shop == null || buyer == null || item == null || price < 0 || partyGold < price) {
             return false;
         }
-        if (!InventoryTransfer.CanFit(buyer, item, objects)) {
+
+        RuntimeItem handedOver = delivered ?? item;
+        if (!InventoryTransfer.CanFit(buyer, handedOver, objects)) {
             return false;
         }
 
         bool shopOwned = (item.ItemFlags & ForSaleFlag) != 0;
-        RuntimeItem given = item.Clone();
+        RuntimeItem given = handedOver.Clone();
         given.ItemFlags &= unchecked((ushort)~ForSaleFlag);
 
         if (shopOwned) {
