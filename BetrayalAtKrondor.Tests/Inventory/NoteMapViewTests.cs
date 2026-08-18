@@ -152,4 +152,8 @@ public class NoteMapViewTests {
         // reads a .SCX.
         Assert.EndsWith(".SCX", NoteMapView.MapBackground);
     }
+
+    /// <summary>The marker is painted in a pen of the map's palette, not an arbitrary colour.</summary>
+    [Fact]
+    public void TheMarkerHasItsOwnPen() => Assert.Equal(0x6c, NoteMapView.MarkerPen);
 }

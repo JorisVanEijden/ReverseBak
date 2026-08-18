@@ -75,6 +75,9 @@ public static class NoteMapView {
     /// <summary>Whether to paint the "you are here" marker.</summary>
     public static bool ShowsMarker(int zoneId) => zoneId == MarkerZone;
 
+    /// <summary>The palette pen the marker is painted in (0x59299).</summary>
+    public const int MarkerPen = 0x6c;
+
     /// <summary>Marker width.</summary>
     public const int MarkerWidth = 12;
 
