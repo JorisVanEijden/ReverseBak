@@ -63,14 +63,24 @@ public static class DoorMechanics {
     public const int TooCloseDialog = 157;
 
     /// <summary>
-    /// Shape id of a shut door. <b>Open and shut are two different shapes</b>, not one shape with a
-    /// swing frame — the loader swaps the id outright, and the frame bits only drive the animation
-    /// between them.
+    /// Shape id of a shut door — <c>m_doorgi</c>, the one that BLOCKS.
     /// </summary>
-    public const int ClosedShapeId = 0x5c;
+    /// <remarks>
+    /// <b>The two door shapes are not two pictures; they are the same picture with and without
+    /// collision.</b> Entities 0x5c (<c>m_door</c>) and 0x5d (<c>m_doorgi</c>) have identical
+    /// geometry in every zone that carries them — same 25 meshes, same vertex pool, same eight
+    /// swing frames. They differ in exactly one thing: 0x5d has a GID region (XRadius 80, YRadius
+    /// 800) and 0x5c has none. "gi" is the GID.
+    ///
+    /// <para>So the shut door is the solid one and the open door is the one you can walk through,
+    /// and the visible swing is not the shape at all — it is the flip-book frame the state word's
+    /// low bits select. An earlier reading had these the other way round, which let the party walk
+    /// through shut doors and be stopped by open ones.</para>
+    /// </remarks>
+    public const int ClosedShapeId = 0x5d;
 
-    /// <summary>Shape id of an open door.</summary>
-    public const int OpenShapeId = 0x5d;
+    /// <summary>Shape id of an open door — <c>m_door</c>, the one with no GID region.</summary>
+    public const int OpenShapeId = 0x5c;
 
     /// <summary>
     /// Highest door id. <c>worlddoor_pref_slots_clear_all</c> clears flags for 0..255, which is

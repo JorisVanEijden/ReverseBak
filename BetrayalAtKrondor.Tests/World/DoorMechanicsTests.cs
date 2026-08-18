@@ -121,10 +121,16 @@ public class DoorMechanicsTests {
         Assert.Equal(7, DoorMechanics.SeedState(5, isOpen: true) & DoorMechanics.FrameMask);
     }
 
+    /// <summary>
+    /// The shut door is the SOLID one. The two shapes are geometrically identical in every zone
+    /// that carries them and differ only in the GID region 0x5d has and 0x5c does not, so the pair
+    /// is "blocks" versus "passable" — not two pictures. Getting it the other way round let the
+    /// party walk through shut doors and be stopped by open ones.
+    /// </summary>
     [Fact]
-    public void OpenAndShutAreDifferentShapesNotOneShapeAnimated() {
-        Assert.Equal(0x5c, DoorMechanics.ShapeFor(false));
-        Assert.Equal(0x5d, DoorMechanics.ShapeFor(true));
+    public void TheShutShapeIsTheOneThatBlocks() {
+        Assert.Equal(0x5d, DoorMechanics.ShapeFor(false));
+        Assert.Equal(0x5c, DoorMechanics.ShapeFor(true));
         Assert.NotEqual(DoorMechanics.ShapeFor(true), DoorMechanics.ShapeFor(false));
     }
 
