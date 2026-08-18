@@ -39,6 +39,19 @@ public static class DoorMechanics {
     /// </summary>
     public const int CloseBlockedRange = 800;
 
+    /// <summary>The creak a door makes as it swings — <c>sound_dooropen</c> (38).</summary>
+    /// <remarks>
+    /// <b>Played on BOTH paths, and it is not "the opening sound".</b> handle_Door plays it at the
+    /// start of the swing whichever way the door is going (0x77a16) and follows with
+    /// <see cref="LatchSound"/> once the swing finishes. So it is the hinge, not the direction —
+    /// naming it "open" and playing it only when opening loses half its uses.
+    /// </remarks>
+    public const int SwingSound = 38;
+
+    /// <summary>The latch at the end of a swing — <c>sound_doorclos</c> (39).</summary>
+    /// <remarks>Played with wait-for-completion after the frames finish (0x77a54).</remarks>
+    public const int LatchSound = 39;
+
     /// <summary>
     /// The line played when the party is too close to pull a door shut — ddx 157.
     /// </summary>

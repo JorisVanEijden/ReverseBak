@@ -166,4 +166,14 @@ public class DoorMechanicsTests {
 
         Assert.False(DoorMechanics.IsOpenState(DoorMechanics.WithOpen(framed, false)));
     }
+
+    [Fact]
+    public void TheSwingSoundPlaysBOTHWAYSAndTheLatchEndsIt() {
+        // handle_Door plays the swing at the start whichever direction the door is going (0x77a16)
+        // and the latch once the frames finish (0x77a54). Treating 38 as "the opening sound" and
+        // playing it only when opening loses half its uses.
+        Assert.Equal(38, DoorMechanics.SwingSound);
+        Assert.Equal(39, DoorMechanics.LatchSound);
+        Assert.NotEqual(DoorMechanics.SwingSound, DoorMechanics.LatchSound);
+    }
 }
