@@ -94,8 +94,10 @@ public static class CharacterSheetPanelRow {
     /// </summary>
     /// <remarks>
     /// <b>The whole row changes colour, not just the name.</b> The value — and the maximum, when
-    /// there is one — are drawn with the same pair the name is, which is where this differs from
-    /// the lower half's rows: there only the name is highlighted.
+    /// there is one — are drawn with the same pair the name is. So does the lower half's row, which
+    /// pushes its chosen pair twice, once for the name and once for the value (0x57ebd / 0x57eec):
+    /// the two drawers agree here, and an earlier note on this file claiming only the name was
+    /// highlighted was wrong about both of them.
     /// </remarks>
     public static int RowPen(bool changedSinceLastSeen) => changedSinceLastSeen ? ChangedPen : Pen;
 

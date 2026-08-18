@@ -63,7 +63,11 @@ public static class CharacterSheetRow {
     /// <summary>The ordinary shadow pen.</summary>
     public const int ShadowPen = 0x01;
 
-    /// <summary>The pen a name is drawn in when the rating changed since it was last looked at.</summary>
+    /// <summary>The pen a CHANGED row is drawn in — its name and its value alike.</summary>
+    /// <remarks>
+    /// The routine pushes its chosen pair twice, once before the name and once before the value
+    /// (0x57ebd and 0x57eec), so a rating that improved highlights the number as well as the word.
+    /// </remarks>
     public const int ChangedPen = 0x89;
 
     /// <summary>The shadow behind a changed name.</summary>
