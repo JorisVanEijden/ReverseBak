@@ -158,7 +158,13 @@ public static class CharacterSheetRow {
     /// </remarks>
     public const int BarFillIcon = 22;
 
-    /// <summary>The marker drawn at the bar's far end when the rating's second flag is set.</summary>
+    /// <summary>
+    /// The marker drawn at the bar's far end when the rating is marked for study.
+    /// </summary>
+    /// <remarks>
+    /// The flag behind it is <see cref="SkillEmphasis"/>'s, read at 0x57e24 — so this mark is the
+    /// player's own choice of what the character concentrates on, not decoration.
+    /// </remarks>
     public const int BarEndMarkerIcon = 23;
 
     /// <summary>
