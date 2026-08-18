@@ -21,6 +21,17 @@ public static class PaletteMapping {
             return image.Substring(0, 3) + ".PAL";
         }
 
+        // *** AN ACTOR'S ALTERNATE PORTRAIT SHARES THE BASE PORTRAIT'S PALETTE. ***
+        // ACT###A.BMP is the second face of actor ###, and there is no ACT###A.PAL in the archive —
+        // LoadActorFace @0x4aa15 loads ACT###.PAL for both variants (see ActorFaceCache). Without
+        // this the same-name fallback asks for a palette that does not exist and the alternate
+        // portrait silently resolves to a null sprite, the same failure the CASTFACE and INVLOCK
+        // entries below were added for.
+        if (image.Length == 7 && image.StartsWith("ACT") && image[6] == 'A'
+            && char.IsDigit(image[3]) && char.IsDigit(image[4]) && char.IsDigit(image[5])) {
+            return image.Substring(0, 6) + ".PAL";
+        }
+
         return image switch {
             "BICONS1" => "OPTIONS.PAL",
             "BICONS2" => "OPTIONS.PAL",

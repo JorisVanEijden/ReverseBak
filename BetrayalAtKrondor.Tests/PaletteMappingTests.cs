@@ -65,4 +65,27 @@ public class PaletteMappingTests {
         Assert.Equal("CONTENTS.PAL", PaletteMapping.GetPaletteFor("CONTENTS.SCX", 0));
         Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("OPTIONS0.SCX", 3));
     }
+
+    /// <summary>
+    /// An actor's ALTERNATE portrait shares the base portrait's palette. There is no ACT###A.PAL in
+    /// the archive, so without this the same-name fallback asks for a file that does not exist and
+    /// the alternate face resolves to a null sprite — silently, like CASTFACE and INVLOCK did.
+    /// </summary>
+    [Fact]
+    public void AlternateActorPortraits_UseTheBasePortraitsPalette() {
+        Assert.Equal("ACT001.PAL", PaletteMapping.GetPaletteFor("ACT001A.BMP"));
+        Assert.Equal("ACT042.PAL", PaletteMapping.GetPaletteFor("ACT042A.BMP"));
+    }
+
+    /// <summary>The base portrait needs no rule — the same-name fallback already finds its palette.</summary>
+    [Fact]
+    public void BaseActorPortraits_FallThroughToTheSameNameLookup() =>
+        Assert.Null(PaletteMapping.GetPaletteFor("ACT001.BMP"));
+
+    /// <summary>Only a three-digit ACT name with a trailing A matches — not every name ending in A.</summary>
+    [Fact]
+    public void TheAlternateRuleDoesNotCatchOtherNames() {
+        Assert.Null(PaletteMapping.GetPaletteFor("ACTIONA.BMP"));
+        Assert.NotEqual("ACT01.PAL", PaletteMapping.GetPaletteFor("ACT01A.BMP"));
+    }
 }
