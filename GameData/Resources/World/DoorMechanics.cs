@@ -63,6 +63,39 @@ public static class DoorMechanics {
     public const int TooCloseDialog = 157;
 
     /// <summary>
+    /// What a door says when you ask about it instead of working it, by the state it is in.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asking is the SECONDARY click, and the answer depends on the door.</b>
+    /// <c>wcursor_object_toggle_open_close</c> tests the held button inside each arm — after it has
+    /// already branched on open versus shut — so this is not one "a door" line but two, and a port
+    /// that showed a single description would tell the player their open door was shut half the
+    /// time.
+    ///
+    /// <para><b>It answers before the lock, not after.</b> Asking about a locked door describes it;
+    /// it does not open the picklock screen. Testing the button after the lock check would turn
+    /// every question about a locked door into a lockpicking attempt.</para>
+    /// </remarks>
+    public static int DescriptionDialogFor(bool isOpen) =>
+        isOpen ? OpenDoorDescriptionDialog : ShutDoorDescriptionDialog;
+
+    /// <summary>What an open door says when asked about.</summary>
+    public const int OpenDoorDescriptionDialog = 99;
+
+    /// <summary>What a shut door says when asked about.</summary>
+    public const int ShutDoorDescriptionDialog = 100;
+
+    /// <summary>
+    /// The click a door makes when touched at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Played before anything is decided</b> — <c>audio_play(0x30)</c> sits ahead of the
+    /// state-word guard and both branches — so a door answers a question with the same click it
+    /// answers a shove with, and even a door with no state clicks.
+    /// </remarks>
+    public const int TouchSound = 0x30;
+
+    /// <summary>
     /// Shape id of a shut door — <c>m_doorgi</c>, the one that BLOCKS.
     /// </summary>
     /// <remarks>

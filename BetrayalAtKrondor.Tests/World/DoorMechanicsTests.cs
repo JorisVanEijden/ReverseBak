@@ -182,4 +182,31 @@ public class DoorMechanicsTests {
         Assert.Equal(39, DoorMechanics.LatchSound);
         Assert.NotEqual(DoorMechanics.SwingSound, DoorMechanics.LatchSound);
     }
+
+    // ---- asking about a door instead of working it ---------------------------------------------
+
+    [Fact]
+    public void AnOpenDoorAndAShutOneDescribeThemselvesDifferently() {
+        // The original tests the held button INSIDE each arm, after it has branched on open versus
+        // shut, so one shared description would tell the player their open door was shut half the
+        // time.
+        Assert.Equal(DoorMechanics.OpenDoorDescriptionDialog,
+            DoorMechanics.DescriptionDialogFor(isOpen: true));
+        Assert.Equal(DoorMechanics.ShutDoorDescriptionDialog,
+            DoorMechanics.DescriptionDialogFor(isOpen: false));
+        Assert.NotEqual(DoorMechanics.OpenDoorDescriptionDialog,
+            DoorMechanics.ShutDoorDescriptionDialog);
+    }
+
+    [Fact]
+    public void DescribingIsNotOneOfTheThingsDecideDecides() {
+        // Decide answers what OPERATING the door does; the describe arm sits in front of it. That
+        // is why a locked door still answers a question rather than opening the picklock screen —
+        // Decide would say Locked here.
+        DoorMechanics.DoorDecision locked = DoorMechanics.Decide(
+            DoorMechanics.SeedState(3, isOpen: false), lockValue: 50, isOpen: false,
+            partyDx: 5000, partyDy: 5000);
+
+        Assert.Equal(DoorMechanics.DoorAction.Locked, locked.Action);
+    }
 }
