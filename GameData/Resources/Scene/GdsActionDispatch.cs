@@ -198,23 +198,52 @@ public static class GdsActionDispatch {
         return flagSet ? ScriptedInnDiscountedRate : ScriptedInnStandardRate;
     }
 
-    // ---------------------------------------------------------------- shop services
+    // ---------------------------------------------------------------- temple services
 
-    /// <summary>The result that ends the shop-service loop.</summary>
-    public const int ShopServicesExitResult = 3;
+    /// <summary>The result that ends the service loop.</summary>
+    public const int ServiceMenuExitResult = 3;
+
+    /// <summary>The dialog result that opens the healing screen.</summary>
+    /// <remarks>
+    /// <c>charscreen_temple_heal_menu</c> @0x5877e, called with the container's
+    /// <c>ShopkeeperSkill</c> as its price percentage and <c>ShopType</c> as its mode (0x4e599).
+    ///
+    /// <para><b>These numbers are branch POSITIONS, not keyword flags.</b> The service dialog
+    /// carries no <c>SetReturnValue</c>, so what comes back is the choice menu's own answer — the
+    /// index of the option clicked (<c>ShowDialogChoiceMenu</c> @0x4b54c). In the shipped temple
+    /// dialog those options run Talk, Cure, Bless, Done, which is what makes 1 the heal and 3 the
+    /// way out. Reading them as the flags those options carry (269, 272, 271, 268) matches nothing
+    /// and quietly ends the loop on the first click.</para>
+    /// </remarks>
+    public const int HealingService = 1;
+
+    /// <summary>The dialog result that opens the weapon blessing.</summary>
+    /// <remarks>
+    /// @0x4f589, called with <c>ShopType</c>, <c>MarkupPercentage</c>, <c>MaxHagglingDiscount</c>
+    /// and <c>MarkDownPercentage</c> (0x4e5c6) — which for a temple are the unused id, the flat fee,
+    /// the price percentage and the blessing tier. See <c>TempleBlessing</c>.
+    /// </remarks>
+    public const int BlessingService = 2;
 
     /// <summary>
-    /// <b>The shop service menu is a loop, not one screen.</b>
+    /// <b>The service menu is a loop, not one screen.</b>
     /// </summary>
     /// <param name="dialogResult">What the service dialog returned.</param>
     /// <returns>False once the loop ends.</returns>
     /// <remarks>
-    /// The arm re-shows the hotspot's own dialog until it returns 3, running one service for a
-    /// result of 1 and another for 2 and looping after either. So a player buys several services in
-    /// a visit without the location redrawing between them — a port that shows the dialog once makes
-    /// every service a separate trip.
+    /// The arm re-shows the hotspot's own dialog until it stops naming a service, running the heal
+    /// for a result of 1 and the blessing for 2 and looping after either. So a player buys several
+    /// services in a visit without the location redrawing between them — a port that shows the
+    /// dialog once makes every service a separate trip.
+    ///
+    /// <para><b>This asks "did it name a service", where the original asks "was it not 3".</b> The
+    /// two agree on every result the shipped dialogs produce, which is 1, 2 or 3. They differ on
+    /// results the original never sees — and a port has one the original does not: a dialog that
+    /// resolves to nothing at all. Looping on that would re-show the dialog that just failed to
+    /// resolve, forever, with no way out.</para>
     /// </remarks>
-    public static bool ShopServicesContinues(int dialogResult) => dialogResult != ShopServicesExitResult;
+    public static bool ServiceMenuContinues(int dialogResult) =>
+        dialogResult == HealingService || dialogResult == BlessingService;
 
     // ---------------------------------------------------------------- returning to the location
 

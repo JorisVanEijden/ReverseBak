@@ -66,10 +66,19 @@ public class GdsActionDispatchTests {
     }
 
     [Fact]
-    public void TheShopServiceMenuLoopsUntilItReturnsThree() {
-        Assert.True(GdsActionDispatch.ShopServicesContinues(1));
-        Assert.True(GdsActionDispatch.ShopServicesContinues(2));
-        Assert.False(GdsActionDispatch.ShopServicesContinues(3));
+    public void TheServiceMenuLoopsWhileTheDialogKeepsNamingAService() {
+        Assert.True(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.HealingService));
+        Assert.True(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.BlessingService));
+        Assert.False(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.ServiceMenuExitResult));
+    }
+
+    [Fact]
+    public void ADialogThatResolvesToNothingEndsTheServiceMenu() {
+        // The original never sees this: its dialogs return 1, 2 or 3 and it loops on "not 3". A
+        // port has an answer the original has not — a dialog that resolved to nothing — and looping
+        // on it would re-show the dialog that just failed, forever, with no way out.
+        Assert.False(GdsActionDispatch.ServiceMenuContinues(-1));
+        Assert.False(GdsActionDispatch.ServiceMenuContinues(0));
     }
 
     [Fact]
