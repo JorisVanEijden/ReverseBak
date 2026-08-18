@@ -36,6 +36,39 @@ public class InventoryLayout {
         },
     };
 
+    /// <summary>
+    /// The shop shelf's own grid: 3 columns x 2 rows of 98x60 VGA cells from VGA (13,11) ->
+    /// canonical (65,66), cells 490x360 (<c>sub_ovr157_0</c> @0x542e1-0x54319).
+    /// </summary>
+    /// <remarks>
+    /// <b>A shop shows exactly SIX items and pages; it does not reuse the member grid.</b> The
+    /// builder runs a separate arm for a container carrying a shop block, with its own constants
+    /// and a hard <c>slot &lt; 6</c> bound, which is why the stock is paged rather than scrolled.
+    /// The cells are consequently ~2.5x wider and 2x taller than a member's — the room the price
+    /// and name lines need, and the reason those lines overlap when drawn into member cells.
+    ///
+    /// <para>The cells are built at these constants, NOT read from the REQ: elements 7..34 of
+    /// REQ_INV are blank templates (ActionId -1, zero size) that the builder fills in.</para>
+    ///
+    /// <para>One faithful detail this cannot express: the bottom row is one VGA pixel taller than
+    /// the top (61 vs 60), so the two rows tile exactly. A uniform cell height loses 6 canonical
+    /// pixels at the very bottom edge, which no art depends on.</para>
+    /// </remarks>
+    public LayoutHint ShopGridArea { get; set; } = new LayoutHint {
+        Left = LayoutLength.Px(65f),
+        Top = LayoutLength.Px(66f),
+        Grid = new LayoutGrid {
+            CellWidth = LayoutLength.Px(490f),
+            CellHeight = LayoutLength.Px(360f),
+            Columns = 3,
+            Rows = 2,
+        },
+    };
+
+    /// <summary>How many items a shop shows before it has to page — the builder's <c>slot &lt; 6</c>
+    /// bound, and the threshold the next-page control appears above.</summary>
+    public int ShopPageSize { get; set; } = 6;
+
     /// <summary>Member/shop mode: every general (non-equipped) item is nudged this far right,
     /// into the right-hand panel box, clear of the paperdoll's reserved columns. VGA 12 ->
     /// canonical 60 (the member shift, <c>sub_ovr157_0</c> @0x545f3).</summary>
