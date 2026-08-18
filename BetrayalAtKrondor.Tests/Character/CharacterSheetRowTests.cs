@@ -21,15 +21,50 @@ public class CharacterSheetRowTests {
     }
 
     [Fact]
-    public void OnlySkillsCarryABar() {
-        // One fact, not two: the original decides by testing the column x it just computed, so a
-        // left-column rating can never grow a bar and a right-column one can never lose it.
-        for (var attribute = 0; attribute < CharacterSheetRow.DisplayableAttributes; attribute++) {
-            Assert.Equal(CharacterSheetRow.IsSkill(attribute), CharacterSheetRow.ShowsBar(attribute));
+    public void EveryRowCarriesABarAndTheColumnOnlyDecidesWhichSide() {
+        // An earlier reading had bars belonging to the right column alone. The cmp against the
+        // column x chooses the SIDE and the mirror, not whether there is a bar: both arms draw the
+        // empty icon and both draw a fill.
+        for (int attribute = 0; attribute < CharacterSheetRow.DisplayableAttributes; attribute++) {
+            Assert.True(CharacterSheetRow.ShowsBar(attribute));
         }
+
+        Assert.False(CharacterSheetRow.BarIsMirrored(4));
+        Assert.True(CharacterSheetRow.BarIsMirrored(10));
+        // The left column's bar hangs off the LEFT of its column and the right one off the right.
+        Assert.True(CharacterSheetRow.BarX(4) < CharacterSheetRow.ColumnX(4));
+        Assert.True(CharacterSheetRow.BarX(10) > CharacterSheetRow.ColumnX(10));
     }
 
-    // ---- the rows -----------------------------------------------------------------------------
+    [Fact]
+    public void TheTwoColumnsFillFromOppositeEnds() {
+        (int leftColumnLow, int leftColumnHigh) = CharacterSheetRow.BarFillClip(4, 50);
+        (int rightColumnLow, int rightColumnHigh) = CharacterSheetRow.BarFillClip(10, 50);
+
+        // The right column grows rightward from a fixed left edge; the left column grows LEFTWARD
+        // from a fixed right edge. Filling both the same way runs one of them backwards, which only
+        // shows once a rating is part-full.
+        Assert.Equal(CharacterSheetRow.BarFillClip(4, 100).Right, leftColumnHigh);
+        Assert.True(CharacterSheetRow.BarFillClip(4, 100).Left < leftColumnLow);
+        Assert.Equal(CharacterSheetRow.BarFillClip(10, 100).Left, rightColumnLow);
+        Assert.True(CharacterSheetRow.BarFillClip(10, 100).Right > rightColumnHigh);
+    }
+
+    [Fact]
+    public void AnEmptyRatingDrawsNoFillAtAll() {
+        // Not a zero-width fill: the original returns before drawing it.
+        Assert.False(CharacterSheetRow.BarHasFill(0));
+        Assert.False(CharacterSheetRow.BarHasFill(-5));
+        Assert.True(CharacterSheetRow.BarHasFill(1));
+    }
+
+    [Fact]
+    public void TheFillIsItsOwnBitmapRatherThanAShortenedSword() {
+        // The empty bar is drawn whole and a DIFFERENT icon is drawn over it inside the clip, so a
+        // half-full bar is not a half-length sword.
+        Assert.NotEqual(CharacterSheetRow.BarEmptyIcon, CharacterSheetRow.BarFillIcon);
+        Assert.NotEqual(CharacterSheetRow.BarFillIcon, CharacterSheetRow.BarEndMarkerIcon);
+    }
 
     [Fact]
     public void TheLeftColumnRunsCleanlyFromTopToBottom() {

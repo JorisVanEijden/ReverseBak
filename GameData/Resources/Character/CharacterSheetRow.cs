@@ -135,23 +135,99 @@ public static class CharacterSheetRow {
     public static int ClampPercentage(int percentage) =>
         percentage < 0 ? 0 : percentage > 100 ? 100 : percentage;
 
-    // ---- the skill bar ---------------------------------------------------------------------------
+    // ---- the bar ---------------------------------------------------------------------------
 
-    /// <summary>Whether this row draws a progress bar at all.</summary>
-    public static bool ShowsBar(int attributeNumber) => IsSkill(attributeNumber);
-
-    /// <summary>The bitmap set the bar is drawn from.</summary>
+    /// <summary>The image set every piece of the bar comes from.</summary>
     public const string BarIconSet = "INVSHP2.BMX";
 
-    /// <summary>The sword the bar is shaped like.</summary>
-    public const int SwordIcon = 21;
+    /// <summary>The empty bar — a sword outline.</summary>
+    public const int BarEmptyIcon = 21;
 
-    /// <summary>The marker drawn at the bar's far end when the rating's other flag is set.</summary>
-    public const int EndMarkerIcon = 23;
+    /// <summary>
+    /// The fill, which is a <b>different bitmap</b> drawn over the empty one and clipped.
+    /// </summary>
+    /// <remarks>
+    /// <b>The bar is not a partially-drawn sword.</b> The original draws icon
+    /// <see cref="BarEmptyIcon"/> whole, then narrows the render view to the filled fraction and
+    /// draws icon 22 inside it (0x57ff4). A port that scaled or cropped one sprite would have the
+    /// filled part looking like a short sword instead of a filled one.
+    /// </remarks>
+    public const int BarFillIcon = 22;
 
-    /// <summary>Left edge of the bar's fill, relative to its column — VGA +13.</summary>
-    public const int BarFillOffsetX = 13 * 5;
+    /// <summary>The marker drawn at the bar's far end when the rating's second flag is set.</summary>
+    public const int BarEndMarkerIcon = 23;
 
-    /// <summary>The sword graphic's left edge, relative to its column — VGA +14.</summary>
-    public const int SwordOffsetX = 14 * 5;
+    /// <summary>
+    /// <b>Every rating row has a bar.</b>
+    /// </summary>
+    /// <remarks>
+    /// An earlier reading of this routine had bars belonging to the right-hand column alone — that
+    /// the two columns "are not the same kind of thing". They are: the <c>cmp si, 147</c> at
+    /// 0x57f21 chooses which SIDE of the column the bar sits on and which way round it points, not
+    /// whether one is drawn. Both arms draw <see cref="BarEmptyIcon"/>, both draw the fill, and the
+    /// only difference is the geometry below and a mirror.
+    /// </remarks>
+    public static bool ShowsBar(int attributeNumber) =>
+        attributeNumber >= 0 && attributeNumber < DisplayableAttributes;
+
+    /// <summary>
+    /// Whether this row's bar is drawn mirrored.
+    /// </summary>
+    /// <remarks>
+    /// The right column's sword, marker and fill all carry the horizontal-flip flag, so the two
+    /// columns' bars point at each other rather than the same way.
+    /// </remarks>
+    public static bool BarIsMirrored(int attributeNumber) => IsSkill(attributeNumber);
+
+    /// <summary>Left edge of the empty bar, in canonical space.</summary>
+    /// <remarks>VGA <c>columnX - 14</c> on the left, <c>columnX + 14</c> on the right.</remarks>
+    public static int BarX(int attributeNumber) =>
+        ColumnX(attributeNumber) + ((IsSkill(attributeNumber) ? 14 : -14) * 5);
+
+    /// <summary>Top of the empty bar — one original row below the row's y.</summary>
+    public static int BarY(int attributeNumber) => RowY(attributeNumber) + (1 * 6);
+
+    /// <summary>Left edge of the end marker.</summary>
+    /// <remarks>VGA <c>columnX - 16</c> on the left, <c>columnX + 141</c> on the right — the two
+    /// are not a mirrored pair of the same offset, so neither can be derived from the other.</remarks>
+    public static int BarEndMarkerX(int attributeNumber) =>
+        ColumnX(attributeNumber) + ((IsSkill(attributeNumber) ? 141 : -16) * 5);
+
+    /// <summary>Top of the end marker and of the fill — nine original rows below the row's y.</summary>
+    public static int BarFillY(int attributeNumber) => RowY(attributeNumber) + (9 * 6);
+
+    /// <summary>Left edge the fill bitmap is drawn at, before clipping.</summary>
+    /// <remarks>VGA <c>columnX + 17</c> on the left, <c>columnX + 14</c> on the right.</remarks>
+    public static int BarFillX(int attributeNumber) =>
+        ColumnX(attributeNumber) + ((IsSkill(attributeNumber) ? 14 : 17) * 5);
+
+    /// <summary>
+    /// The window the fill is clipped to, in canonical space.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two columns fill from opposite ends.</b> The right column's window grows rightward
+    /// from a fixed left edge; the left column's grows LEFTWARD from a fixed right edge. So a bar
+    /// that filled the same way in both columns would run backwards down one of them — which is
+    /// only visible once a rating is part-full.
+    ///
+    /// <para>A percentage of zero draws no fill at all (0x57f77 / 0x57fdc return before it), rather
+    /// than a zero-width one.</para>
+    /// </remarks>
+    public static (int Left, int Right) BarFillClip(int attributeNumber, int percentage) {
+        int clamped = ClampPercentage(percentage);
+        int column = ColumnX(attributeNumber);
+        if (IsSkill(attributeNumber)) {
+            int left = column + (13 * 5);
+
+            return (left, left + (clamped * 5));
+        }
+
+        int right = column + (117 * 5);
+
+        return (right - (clamped * 5), right);
+    }
+
+    /// <summary>Whether the fill is drawn at all.</summary>
+    /// <inheritdoc cref="BarFillClip"/>
+    public static bool BarHasFill(int percentage) => ClampPercentage(percentage) > 0;
 }
