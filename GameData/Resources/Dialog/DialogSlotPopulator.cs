@@ -54,7 +54,17 @@ public static class DialogSlotPopulator {
     private const int KindObjectName = 18;
     private const int KindRandomNotSpeaker = 31;
     private const int KindShopOrTavernKeeper = 28;
-    private const int SourceQuotedMoney = 19;
+    /// <summary>
+    /// The quoted amount, as money — <see cref="DialogSlotContext.QuotedAmount"/>.
+    /// </summary>
+    /// <remarks>
+    /// Public because a <b>caller</b> can write a slot as well as an entry's own actions can: the
+    /// temple's price quote fills slot 0 with this kind from the screen that computed the bill
+    /// (<c>SetTextVariable_0(slot 0, kind 19)</c> at 0x5893e), while the entry's own action fills a
+    /// different slot with it. Reading only the entry's actions leaves the sentence naming a
+    /// companion where the price should be.
+    /// </remarks>
+    public const int SourceQuotedMoney = 19;
     private const int SourcePartyMoney = 20;
     private const int SourceQuotedNumber = 21;
     private const int SourceGlobal30015 = 22;
