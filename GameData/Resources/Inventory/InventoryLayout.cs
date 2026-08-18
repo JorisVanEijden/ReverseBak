@@ -65,6 +65,16 @@ public class InventoryLayout {
         },
     };
 
+    /// <summary>
+    /// How far above the price the shop cell's name line sits — one font height.
+    /// </summary>
+    /// <remarks>
+    /// A length, not a constant in the renderer: the cell text stacks upward from the cell's bottom
+    /// edge, so this moves with the cell size and with whatever the override author does to it.
+    /// <see cref="ItemGridRenderer"/> owns no coordinates and this is one of them.
+    /// </remarks>
+    public LayoutLength ShopNameLineOffset { get; set; } = LayoutLength.Px(60f);
+
     /// <summary>How many items a shop shows before it has to page — the builder's <c>slot &lt; 6</c>
     /// bound, and the threshold the next-page control appears above.</summary>
     public int ShopPageSize { get; set; } = 6;
