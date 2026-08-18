@@ -128,9 +128,94 @@ public static class CharacterSheetLayout {
     /// <summary>Whether the caller asked for the full sheet rather than the compact one.</summary>
     public static bool IsFullSheet(int fullSheetFlag) => fullSheetFlag != 0;
 
-    /// <summary>Left edge of the full sheet's lower half — VGA x=2.</summary>
-    public const int LowerHalfX = 10;
+    /// <summary>
+    /// Whether the sheet draws its lower half at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>The compact sheet has no rating rows below the panel — it skips all twelve.</b> The loop
+    /// that draws them tests the caller's flag before its first iteration (0x58369), so the compact
+    /// form is the panel's four rows and the condition list, and nothing else. A port that drew the
+    /// lower half regardless would spill skills across the temple healer's buttons.
+    /// </remarks>
+    public static bool DrawsLowerHalf(int fullSheetFlag) => IsFullSheet(fullSheetFlag);
 
-    /// <summary>Top of the full sheet's lower half — VGA y=107.</summary>
-    public const int LowerHalfY = 642;
+    /// <summary>The first attribute of the lower half — the rows before it are the panel's.</summary>
+    /// <remarks>
+    /// Attributes 0..3 go in the panel through <see cref="CharacterSheetPanelRow"/>; 4 and up go in
+    /// the lower half through <see cref="CharacterSheetRow"/>. The two drawers meet exactly here.
+    /// </remarks>
+    public const int LowerHalfFirstAttribute = 4;
+
+    /// <summary>How many rows the lower half draws — attributes 4 through 15.</summary>
+    public const int LowerHalfAttributeCount = 12;
+
+    // ---- the frame and the vines -------------------------------------------------------------
+
+    /// <summary>
+    /// An image drawn as it is stored.
+    /// </summary>
+    /// <remarks>
+    /// Spelled out rather than written as a zero because <see cref="Image.ImageFlags"/> has no
+    /// zero member on purpose: it is the enum the BMX extractor serialises, and giving it one would
+    /// rewrite every <c>"Flags": 0</c> in the committed image JSON as a name.
+    /// </remarks>
+    public const Image.ImageFlags Unturned = 0;
+
+    /// <summary>One bitmap placed on the sheet: which image, where, and how it is turned.</summary>
+    /// <param name="IconIndex">Sub-image index within <see cref="FrameIconSet"/>.</param>
+    /// <param name="X">Canonical x. <b>May be negative</b> — one vine hangs off the left edge.</param>
+    /// <param name="Y">Canonical y.</param>
+    /// <param name="Flags">How the blit turns the image; see <see cref="Image.ImageFlags"/>.</param>
+    public readonly record struct Piece(int IconIndex, int X, int Y, Image.ImageFlags Flags);
+
+    /// <summary>
+    /// The four rules that frame the ratings panel, in draw order.
+    /// </summary>
+    /// <remarks>
+    /// <b>One blit each, not a tiled fill</b> — the two rules are already the panel's length, and
+    /// each opposite edge is the same image turned round: the right-hand rule is mirrored, the
+    /// bottom one flipped. Reproducing them as a drawn rectangle would lose the dotted texture this
+    /// screen family shares; drawing them unturned would light the dots from the wrong side.
+    ///
+    /// <para>The horizontal rules start two original pixels inside the panel's left edge (VGA 86
+    /// against the panel's 84), so they butt against the vertical ones rather than crossing them.</para>
+    /// </remarks>
+    public static readonly System.Collections.Generic.IReadOnlyList<Piece> PanelFrame = new[] {
+        new Piece(VerticalRuleIcon, 84 * 5, 9 * 6, Unturned),
+        new Piece(VerticalRuleIcon, 304 * 5, 9 * 6, Image.ImageFlags.HorizontalFlip),
+        new Piece(HorizontalRuleIcon, 86 * 5, 9 * 6, Unturned),
+        new Piece(HorizontalRuleIcon, 86 * 5, 78 * 6, Image.ImageFlags.VerticalFlip),
+    };
+
+    /// <summary>The vine piece the corners of the full sheet are decorated with.</summary>
+    public const int CornerVineIcon = 24;
+
+    /// <summary>
+    /// The vine piece the compact sheet gets instead — the same one the full-screen dialog frames
+    /// itself with (<see cref="Dialog.DialogVineCorners"/>), at a placement of the sheet's own.
+    /// </summary>
+    public const int SmallVineIcon = 9;
+
+    /// <summary>
+    /// The vines, which differ with the sheet's size.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both sizes are decorated, and not with the same piece in the same place.</b> The full
+    /// sheet gets the big corner vines at the top of its lower half; the compact one gets the small
+    /// vine at the bottom of the panel, where the lower half would have started. So this is not a
+    /// piece of the lower half that the compact form omits — it is a choice between two
+    /// decorations, and dropping it from the compact sheet leaves that edge bare.
+    /// </remarks>
+    public static System.Collections.Generic.IReadOnlyList<Piece> Vines(int fullSheetFlag) =>
+        IsFullSheet(fullSheetFlag) ? FullSheetVines : CompactSheetVines;
+
+    private static readonly Piece[] FullSheetVines = {
+        new Piece(CornerVineIcon, 2 * 5, 107 * 6, Unturned),
+        new Piece(CornerVineIcon, 188 * 5, 107 * 6, Image.ImageFlags.HorizontalFlip),
+    };
+
+    private static readonly Piece[] CompactSheetVines = {
+        new Piece(SmallVineIcon, 230 * 5, 131 * 6, Image.ImageFlags.HorizontalFlip),
+        new Piece(SmallVineIcon, -4 * 5, 131 * 6, Unturned),
+    };
 }

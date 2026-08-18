@@ -76,4 +76,67 @@ public class CharacterSheetLayoutTests {
         Assert.False(CharacterSheetLayout.IsFullSheet(0));
         Assert.True(CharacterSheetLayout.IsFullSheet(1));
     }
+
+    // ---- the two sizes ------------------------------------------------------------------------
+
+    [Fact]
+    public void TheCompactSheetDrawsNoRatingRowsBelowThePanel() {
+        // The loop over the lower half's twelve rows tests the flag before its first iteration
+        // (0x58369), so a compact sheet is the panel and the condition list and nothing else.
+        Assert.False(CharacterSheetLayout.DrawsLowerHalf(0));
+        Assert.True(CharacterSheetLayout.DrawsLowerHalf(1));
+    }
+
+    [Fact]
+    public void TheTwoRowDrawersMeetWithoutAGapOrAnOverlap() {
+        // Attributes 0..3 are the panel's, 4..15 the lower half's, and between them they cover
+        // every attribute the sheet can show exactly once.
+        Assert.Equal(CharacterSheetPanelRow.Count, CharacterSheetLayout.LowerHalfFirstAttribute);
+        Assert.Equal(CharacterSheetRow.DisplayableAttributes,
+            CharacterSheetLayout.LowerHalfFirstAttribute
+            + CharacterSheetLayout.LowerHalfAttributeCount);
+    }
+
+    // ---- the frame and the vines --------------------------------------------------------------
+
+    [Fact]
+    public void EachPanelEdgeIsTheOppositeOneTurnedRound() {
+        var frame = CharacterSheetLayout.PanelFrame;
+
+        Assert.Equal(4, frame.Count);
+        // The two vertical rules are one image, the right-hand one mirrored; the two horizontals
+        // likewise, the lower one flipped. Drawing either unturned lights the dots from the wrong
+        // side.
+        Assert.Equal(frame[0].IconIndex, frame[1].IconIndex);
+        Assert.Equal(GameData.Resources.Image.ImageFlags.HorizontalFlip, frame[1].Flags);
+        Assert.Equal(frame[2].IconIndex, frame[3].IconIndex);
+        Assert.Equal(GameData.Resources.Image.ImageFlags.VerticalFlip, frame[3].Flags);
+    }
+
+    [Fact]
+    public void TheFrameSitsOnThePanelsOwnEdges() {
+        var frame = CharacterSheetLayout.PanelFrame;
+
+        Assert.Equal(CharacterSheetLayout.PanelX, frame[0].X);
+        Assert.Equal(CharacterSheetLayout.PanelY, frame[0].Y);
+        Assert.Equal(CharacterSheetLayout.PanelY, frame[2].Y);
+        // The horizontals start two original pixels inside the left edge so they butt against the
+        // verticals instead of crossing them.
+        Assert.Equal(CharacterSheetLayout.PanelX + (2 * 5), frame[2].X);
+    }
+
+    [Fact]
+    public void BothSizesAreDecoratedAndNotWithTheSamePiece() {
+        // Not a piece of the lower half that the compact form drops — a choice between two
+        // decorations, so a compact sheet drawn without them leaves that edge bare.
+        Assert.All(CharacterSheetLayout.Vines(1),
+            piece => Assert.Equal(CharacterSheetLayout.CornerVineIcon, piece.IconIndex));
+        Assert.All(CharacterSheetLayout.Vines(0),
+            piece => Assert.Equal(CharacterSheetLayout.SmallVineIcon, piece.IconIndex));
+    }
+
+    [Fact]
+    public void AVineHangsOffTheLeftEdge() =>
+        // VGA x=-4. A renderer that clamped it to the screen would shift the piece inward.
+        Assert.True(CharacterSheetLayout.Vines(0)[1].X < 0);
 }
