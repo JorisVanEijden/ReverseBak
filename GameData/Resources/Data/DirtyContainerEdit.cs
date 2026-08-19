@@ -27,4 +27,16 @@ public sealed class DirtyContainerEdit {
     /// <summary>The last-touch game time to write, valid when <see cref="TimestampOffset"/> is
     /// non-negative.</summary>
     public int Timestamp;
+
+    /// <summary>Offset of the shop sub-record relative to <see cref="BodyOffset"/>, or -1 when the
+    /// record carries none.</summary>
+    /// <remarks>
+    /// The block holds things gameplay SPENDS — a tavern's entertainment fund is zeroed by the one
+    /// performance it pays for — so a container that never wrote it back would pay again on the
+    /// next visit.
+    /// </remarks>
+    public int ShopOffset = -1;
+
+    /// <summary>The sixteen shop bytes, valid when <see cref="ShopOffset"/> is non-negative.</summary>
+    public byte[] ShopBytes;
 }

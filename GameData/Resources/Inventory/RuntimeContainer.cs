@@ -100,12 +100,39 @@ public sealed class RuntimeContainer {
     /// </summary>
     public bool IsShop;
 
+    /// <summary>
+    /// The container's shop sub-record, live — prices, an inn's rate, a tavern's entertainment
+    /// fund, a temple's tier.
+    /// </summary>
+    /// <remarks>
+    /// <b>A copy, not the snapshot's own instance.</b> The parsed save is the immutable record of
+    /// what was loaded; this is what gameplay changes, the same split the items and the actor stats
+    /// already have. Null when the container carries no shop record at all.
+    ///
+    /// <para>It is mutable because some of it is <b>spent</b>: a tavern's entertainment fund is
+    /// zeroed by the one performance it pays for, and a shop's restock chapter moves. Without a live
+    /// copy those are lost at the door and the tavern pays again on the next visit.</para>
+    /// </remarks>
+    public SaveGameContainerShopData Shop;
+
+    /// <summary>A working copy of a shop record, so spending from it cannot reach the snapshot.</summary>
+    private static SaveGameContainerShopData Copy(SaveGameContainerShopData shop) =>
+        shop == null
+            ? null
+            : new SaveGameContainerShopData(shop.ShopType, shop.MarkupPercentage,
+                shop.MaxHagglingDiscount, shop.MarkDownPercentage, shop.ShopkeeperSkill,
+                shop.TeleportParam, shop.BardingDifficulty, shop.BardingReward,
+                shop.BaseBardingReward, shop.LastRestockChapter, shop.InnRestHours,
+                shop.InnCostPerNight, shop.RepairCategories, shop.RepairCostMarkup,
+                shop.ShopCategories);
+
     public static RuntimeContainer FromSnapshot(SaveGameContainerData snap) {
         var rc = new RuntimeContainer {
             Capacity = snap.Capacity,
             ContainerType = snap.ContainerType,
             OwnerActorNumber = snap.Location.ActorNumber,
             IsShop = snap.ShopData != null,
+            Shop = Copy(snap.ShopData),
             Zone = snap.Location.Zone,
             X = snap.Location.X,
             Y = snap.Location.Y,

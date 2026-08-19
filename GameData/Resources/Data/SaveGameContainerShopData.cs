@@ -75,4 +75,19 @@ public class SaveGameContainerShopData {
     /// <summary>+0xE. Overloaded: traded item-category flags (shops) <b>or</b> the base teleport cost
     /// (temples).</summary>
     public ShopItemCategories ShopCategories { get; }
+
+    /// <summary>
+    /// The same record with its entertainment fund spent.
+    /// </summary>
+    /// <remarks>
+    /// <b>A tavern pays for one performance, ever.</b> The original zeroes this byte on the
+    /// container the moment a performance earns anything, so coming back finds the fund tapped out.
+    /// Returned as a new record rather than written in place: the parsed save is the immutable
+    /// account of what was loaded, and what gameplay spends belongs to the runtime copy.
+    /// </remarks>
+    public SaveGameContainerShopData WithBardingReward(byte reward) =>
+        new SaveGameContainerShopData(ShopType, MarkupPercentage, MaxHagglingDiscount,
+            MarkDownPercentage, ShopkeeperSkill, TeleportParam, BardingDifficulty, reward,
+            BaseBardingReward, LastRestockChapter, InnRestHours, InnCostPerNight, RepairCategories,
+            RepairCostMarkup, ShopCategories);
 }

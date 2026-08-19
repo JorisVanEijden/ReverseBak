@@ -56,6 +56,62 @@ public static class ContainerGeometry {
         return off;
     }
 
+    /// <summary>
+    /// Byte offset of the container's SHOP sub-record within its own record, or -1 when it carries
+    /// none.
+    /// </summary>
+    /// <remarks>
+    /// The sub-records follow the item array in a fixed order — lock, dialog, shop, encounter,
+    /// timestamp, global state — and each is present only if its bit is set, so an offset is the
+    /// sum of the ones that come before it. Same walk <see cref="TimestampOffset"/> does; the shop
+    /// block simply stops earlier.
+    /// </remarks>
+    public static int ShopOffset(int capacity, SaveGameContainerDataType dataTypes) {
+        if ((dataTypes & SaveGameContainerDataType.Shop) == 0) {
+            return -1;
+        }
+        int off = ItemArrayOffset + capacity * ItemSize;
+        if ((dataTypes & SaveGameContainerDataType.Lock) != 0)   off += 4;
+        if ((dataTypes & SaveGameContainerDataType.Dialog) != 0) off += 6;
+        return off;
+    }
+
+    /// <summary>The shop sub-record's size — fourteen bytes and a trailing word.</summary>
+    public const int ShopSize = 16;
+
+    /// <summary>
+    /// The shop sub-record as the save stores it.
+    /// </summary>
+    /// <remarks>
+    /// Fourteen single bytes in declaration order followed by the categories WORD, little-endian —
+    /// the same sequence <c>SaveGameExtractor</c> reads back, which is what keeps a patched record
+    /// the same size as the one it replaces.
+    /// </remarks>
+    public static byte[] PackShop(SaveGameContainerShopData shop) {
+        if (shop == null) {
+            return System.Array.Empty<byte>();
+        }
+        var bytes = new byte[ShopSize];
+        bytes[0] = shop.ShopType;
+        bytes[1] = shop.MarkupPercentage;
+        bytes[2] = shop.MaxHagglingDiscount;
+        bytes[3] = shop.MarkDownPercentage;
+        bytes[4] = shop.ShopkeeperSkill;
+        bytes[5] = shop.TeleportParam;
+        bytes[6] = shop.BardingDifficulty;
+        bytes[7] = shop.BardingReward;
+        bytes[8] = shop.BaseBardingReward;
+        bytes[9] = shop.LastRestockChapter;
+        bytes[10] = shop.InnRestHours;
+        bytes[11] = shop.InnCostPerNight;
+        bytes[12] = shop.RepairCategories;
+        bytes[13] = shop.RepairCostMarkup;
+        bytes[14] = (byte)((ushort)shop.ShopCategories & 0xFF);
+        bytes[15] = (byte)((ushort)shop.ShopCategories >> 8);
+
+        return bytes;
+    }
+
     public static int SerializedSize(int capacity, SaveGameContainerDataType dataTypes) {
         int size = HeaderSize + capacity * ItemSize;
         if ((dataTypes & SaveGameContainerDataType.Lock) != 0)        size += 4;

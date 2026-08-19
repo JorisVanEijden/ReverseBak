@@ -152,4 +152,66 @@ public class SaveGameWriterContainerTests {
         byte[] outBody = withoutParam.Bytes[SaveGameOffsets.HeaderSize..];
         Assert.Equal(body, outBody);
     }
+
+    [Fact]
+    public void ShopEdit_PatchesTheShopBlockWhereTheSubrecordOrderPutsIt() {
+        // A tavern's entertainment fund is spent by the performance it pays for; without this the
+        // fund comes back on the next visit and the tavern pays forever.
+        byte[] body = BodyWithContainer();
+        var shop = new SaveGameContainerShopData(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+            (GameData.ShopItemCategories)0x1234);
+        byte[] packed = ContainerGeometry.PackShop(shop.WithBardingReward(0));
+
+        var edit = new DirtyContainerEdit {
+            BodyOffset = ContainerOffset,
+            NumberOfItems = 1,
+            LiveItemBytes = new byte[] { 0x99, 0x88, 0x77, 0x66 },
+            ShopOffset = 40,
+            ShopBytes = packed,
+        };
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, ZeroFields, "Busk", 0, 0, 0, containerEdits: new[] { edit });
+
+        int baseOff = SaveGameOffsets.HeaderSize + ContainerOffset + 40;
+        for (int i = 0; i < packed.Length; i++) {
+            Assert.Equal(packed[i], r.Bytes[baseOff + i]);
+        }
+        // The fund is the byte that changed, and it is zero now.
+        Assert.Equal(0, packed[7]);
+    }
+
+    [Fact]
+    public void TheShopBlockSitsAfterTheItemsAndAfterAnyLockOrDialogRecord() {
+        // The sub-records follow the item array in a fixed order, each present only if its bit is
+        // set — so the shop block's offset is the sum of the ones that come before it.
+        const int capacity = 4;
+        int items = ContainerGeometry.ItemArrayOffset + capacity * ContainerGeometry.ItemSize;
+
+        Assert.Equal(items,
+            ContainerGeometry.ShopOffset(capacity, SaveGameContainerDataType.Shop));
+        Assert.Equal(items + 4,
+            ContainerGeometry.ShopOffset(capacity,
+                SaveGameContainerDataType.Shop | SaveGameContainerDataType.Lock));
+        Assert.Equal(items + 4 + 6,
+            ContainerGeometry.ShopOffset(capacity,
+                SaveGameContainerDataType.Shop | SaveGameContainerDataType.Lock
+                | SaveGameContainerDataType.Dialog));
+        // A record with no shop block has no offset to give.
+        Assert.Equal(-1,
+            ContainerGeometry.ShopOffset(capacity, SaveGameContainerDataType.Lock));
+    }
+
+    [Fact]
+    public void PackingTheShopBlockIsTheSizeItReplaces() {
+        var shop = new SaveGameContainerShopData(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+            (GameData.ShopItemCategories)0xBEEF);
+        byte[] packed = ContainerGeometry.PackShop(shop);
+
+        // Fourteen bytes and a trailing word, little-endian — the sequence the extractor reads back.
+        Assert.Equal(ContainerGeometry.ShopSize, packed.Length);
+        Assert.Equal(7, packed[6]);
+        Assert.Equal(0xEF, packed[14]);
+        Assert.Equal(0xBE, packed[15]);
+    }
 }
