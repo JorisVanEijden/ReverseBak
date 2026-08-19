@@ -57,15 +57,15 @@ public class FontExtractorTests {
     }
 
     [Fact]
-    public void OneGlyphTooWideForABitmaskMakesTHEWHOLEFontPaletted() {
-        // The narrow glyph's stride is one byte either way, so on its own it says nothing; the wide
-        // one cannot be a bitmask and settles the font — including for its narrow neighbour, whose
-        // byte is a palette index and not eight pixels.
+    public void TheHEADERSaysWhichPixelFormatAFontIsIn() {
+        // 0xFD negates to 3, and the blitter's test is "greater than 1" — so a byte per pixel, and
+        // every glyph in the font takes that reading including the one-pixel one, whose single byte
+        // would measure the same either way.
         FontResource font = ExtractPaletted();
 
+        Assert.Equal(3, font.GlyphFormat);
         Assert.Equal(FontPixelFormat.Paletted, font.PixelFormat);
         Assert.All(font.Glyphs, g => Assert.Equal(FontPixelFormat.Paletted, g.PixelFormat));
-        Assert.False(font.Glyphs[0].StrideExceedsABitmask, "one byte for one pixel proves nothing");
         Assert.Equal(0x6c, font.Glyphs[0].PixelAt(0, 0));
         Assert.Equal(0x2f, font.Glyphs[1].PixelAt(3, 0));
     }
@@ -78,7 +78,7 @@ public class FontExtractorTests {
         // the identity and the bytes below are exactly what it sees.
         w.Write(new byte[] { (byte)'F', (byte)'N', (byte)'T', 0x3A });   // tag, NUL-terminated
         w.Write(0u);            // file size, unread
-        w.Write((byte)1);       // version
+        w.Write((byte)0xff);    // glyph format: 0xFF negates to 1 — one bit per pixel
         w.Write((byte)8);       // nominal width, unread
         w.Write((byte)3);       // height
         w.Write((byte)2);       // baseline
@@ -109,7 +109,7 @@ public class FontExtractorTests {
         var w = new BinaryWriter(body);
         w.Write(new byte[] { (byte)'F', (byte)'N', (byte)'T', 0x3A });
         w.Write(0u);
-        w.Write((byte)1);
+        w.Write((byte)0xfd);    // glyph format: 0xFD negates to 3 — one byte per pixel
         w.Write((byte)4);
         w.Write((byte)2);       // height
         w.Write((byte)2);

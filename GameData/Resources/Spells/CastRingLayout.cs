@@ -19,10 +19,25 @@ public static class CastRingLayout {
     public const int PositionsPerCategory = PositionCount / CategoryCount;
 
     /// <summary>
-    /// The nominal hit box, as the original writes it.
-    /// <b>It accepts nine pixels, not ten</b> — see <see cref="Contains"/>.
+    /// The nominal hit box, as the original writes it — <b>in ITS pixels</b>.
+    /// <b>It accepts nine of them, not ten</b> — see <see cref="Contains"/>.
     /// </summary>
     public const int HitBoxSize = 10;
+
+    /// <summary>
+    /// The hit box in canonical units — original 10, scaled.
+    /// </summary>
+    /// <remarks>
+    /// <b>The box is a square in the original's pixels and therefore NOT square here.</b> Those
+    /// pixels are taller than they are wide, so the canonical box is 50 across and 60 down. A
+    /// caller working in canonical space that passes the unscaled 10 gets a box a fifth of a
+    /// character wide — the points become effectively unhittable with a real mouse, while every
+    /// programmatic test that aims at a point's exact centre still passes.
+    /// </remarks>
+    public const int CanonicalHitBoxWidth = HitBoxSize * 5;
+
+    /// <inheritdoc cref="CanonicalHitBoxWidth"/>
+    public const int CanonicalHitBoxHeight = HitBoxSize * 6;
 
     /// <summary>
     /// Which category a ring position belongs to.
@@ -143,11 +158,12 @@ public static class CastRingLayout {
     /// Using an inclusive test would make every ring position and spell symbol one pixel easier to
     /// hit than the original, which matters on a ring whose points sit close together.
     /// </remarks>
-    public static bool Contains(int pointX, int pointY, int cursorX, int cursorY) {
-        int lowX = pointX - (HitBoxSize / 2);
-        int lowY = pointY - (HitBoxSize / 2);
-        return cursorX > lowX && cursorX < lowX + HitBoxSize
-            && cursorY > lowY && cursorY < lowY + HitBoxSize;
+    public static bool Contains(int pointX, int pointY, int cursorX, int cursorY,
+        int boxWidth = HitBoxSize, int boxHeight = HitBoxSize) {
+        int lowX = pointX - (boxWidth / 2);
+        int lowY = pointY - (boxHeight / 2);
+        return cursorX > lowX && cursorX < lowX + boxWidth
+            && cursorY > lowY && cursorY < lowY + boxHeight;
     }
 
     /// <summary>
@@ -159,13 +175,15 @@ public static class CastRingLayout {
     /// </summary>
     /// <returns>The position index, or -1 for none. <b>First match by index wins</b>, not nearest.</returns>
     public static int PositionAt(IReadOnlyList<RingPosition> positions, int cursorX, int cursorY,
-        int minIndex = 0, int maxIndex = PositionCount - 1) {
+        int minIndex = 0, int maxIndex = PositionCount - 1,
+        int boxWidth = HitBoxSize, int boxHeight = HitBoxSize) {
         if (positions == null) {
             return -1;
         }
         for (var i = 0; i < positions.Count; i++) {
             RingPosition p = positions[i];
-            if (p != null && Contains(p.X, p.Y, cursorX, cursorY) && i >= minIndex && i <= maxIndex) {
+            if (p != null && Contains(p.X, p.Y, cursorX, cursorY, boxWidth, boxHeight)
+                && i >= minIndex && i <= maxIndex) {
                 return i;
             }
         }
@@ -182,13 +200,15 @@ public static class CastRingLayout {
     /// </param>
     /// <returns>The index into the symbol list, or -1.</returns>
     public static int SymbolAt(IReadOnlyList<(int X, int Y, int SpellId)> symbols,
-        int cursorX, int cursorY, System.Func<int, bool> isCastable) {
+        int cursorX, int cursorY, System.Func<int, bool> isCastable,
+        int boxWidth = HitBoxSize, int boxHeight = HitBoxSize) {
         if (symbols == null) {
             return -1;
         }
         for (var i = 0; i < symbols.Count; i++) {
             (int x, int y, int spellId) = symbols[i];
-            if (Contains(x, y, cursorX, cursorY) && (isCastable == null || isCastable(spellId))) {
+            if (Contains(x, y, cursorX, cursorY, boxWidth, boxHeight)
+                && (isCastable == null || isCastable(spellId))) {
                 return i;
             }
         }

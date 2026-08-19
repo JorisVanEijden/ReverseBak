@@ -19,6 +19,32 @@ public static class SpellSymbolDisplay {
     public static bool SymbolsAreFontGlyphs => true;
 
     /// <summary>
+    /// <b>THE COLOUR ARGUMENTS BELOW NEVER REACH THE SCREEN.</b>
+    /// </summary>
+    /// <remarks>
+    /// Established 2026-08-19 by reading the blitter rather than the caller. SPELL.FNT declares
+    /// glyph format 3 in its header — a byte per pixel — and <c>drawGlyphClipped</c> (0x15c48)
+    /// assigns <c>textColor = thatByte</c> for every byte of 5 or more before drawing it. The font's
+    /// ink bytes are 0, 6, 35, 108 and 110, so <i>every</i> pixel it draws overwrites the colour the
+    /// caller chose, and none of them fall in the 1..4 range that would be remapped instead.
+    ///
+    /// <para>So the fade-in produces a DELAY and not a fade — the seven passes still wait seven
+    /// ticks each, and the symbols still appear gradually in the sense of arriving late, but they
+    /// never change colour. And <see cref="SelectedColour"/>'s shimmer marks nothing at all: the
+    /// selected symbol draws exactly like its neighbours.</para>
+    ///
+    /// <para>The rules are kept rather than deleted because they are what the routine <i>says</i>,
+    /// and a font with pens below 5 — a mod's, or a different symbol font — would obey them. But a
+    /// port must not build a highlight out of them and call it faithful: for the shipped data there
+    /// is no colour highlight on the casting ring to reproduce.</para>
+    /// </remarks>
+    public static bool ColourAppliesToTheShippedSymbolFont => false;
+
+    /// <summary>The lowest glyph byte that is used as a pen outright.</summary>
+    /// <remarks>Below this the blitter substitutes an entry from its own five-colour table.</remarks>
+    public const int LowestLiteralPen = 5;
+
+    /// <summary>
     /// <b>Only spells the caster can actually cast are drawn.</b>
     /// </summary>
     /// <remarks>

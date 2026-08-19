@@ -99,4 +99,42 @@ public static class SpellInfoPanel {
     /// pulling it up.
     /// </remarks>
     public const int HealthStaminaY = 564;
+
+    // ------------------------------------------------- what the panel shows before anything is picked
+    // UI_drawSpellNames @0x69448.
+
+    /// <summary>
+    /// <b>The panel is not blank while the player is choosing.</b>
+    /// </summary>
+    /// <remarks>
+    /// With the cursor over no symbol the same box lists the caster's castable spells in this
+    /// school, one per line; moving onto a symbol replaces the list with that spell's info. So the
+    /// box has two modes and the list is the resting one — a port that leaves it empty until
+    /// something is hovered gives the player nothing to read the ring against.
+    /// </remarks>
+    public static bool NameListIsTheRestingContent => true;
+
+    /// <summary>The names are centred on the same x as the info title — original 217.</summary>
+    public const int NameListCentreX = TitleCentreX;
+
+    /// <summary>First name's baseline — original y 26, the same as the info title's.</summary>
+    public const int NameListFirstY = TitleY;
+
+    /// <summary>Distance between names — original 10.</summary>
+    /// <remarks>
+    /// Ten, where the info panel's body lines are eleven apart and its title is followed by
+    /// thirteen. Three different steps in one box; reusing the body step here spreads a full list
+    /// past the bottom of the panel.
+    /// </remarks>
+    public const int NameListStep = 60;
+
+    /// <summary>
+    /// <b>Only castable spells appear, and an uncastable one leaves no gap.</b>
+    /// </summary>
+    /// <remarks>
+    /// The line advance sits inside the castable branch, so the list closes up. That matches the
+    /// ring itself, where an uncastable spell has no symbol drawn and no symbol to click — the
+    /// player is never shown a spell they cannot cast, in either place.
+    /// </remarks>
+    public static int NameListY(int drawnBefore) => NameListFirstY + (drawnBefore * NameListStep);
 }

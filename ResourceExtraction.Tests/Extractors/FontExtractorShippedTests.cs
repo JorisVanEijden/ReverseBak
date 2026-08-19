@@ -48,6 +48,7 @@ public class FontExtractorShippedTests {
         // GAME.FNT spends one byte on eight pixels. That is why the stride has to come from the
         // offset table: read as a bitmask — which its widths alone would suggest — a symbol decodes
         // to noise that still looks like a drawing went wrong somewhere else.
+        Assert.Equal(3, font.GlyphFormat);
         Assert.Equal(FontPixelFormat.Paletted, font.PixelFormat);
         Assert.Contains(font.Glyphs, g => g.Rows.Any(r => r.Any(b => b != 0)));
     }
@@ -56,7 +57,7 @@ public class FontExtractorShippedTests {
     [InlineData("GAME.FNT")]
     [InlineData("BOOK.FNT")]
     [InlineData("PUZZLE.FNT")]
-    public void TheTextAndPuzzleFontsStayBitmasksDespiteTheirNarrowGlyphs(string name) {
+    public void TheTextAndPuzzleFontsSayTheyAreBitmasks(string name) {
         string path = Find(name);
         if (path == null) {
             return;
@@ -64,13 +65,12 @@ public class FontExtractorShippedTests {
 
         FontResource font = Read(path, name);
 
-        // *** A ONE-PIXEL GLYPH TAKES ONE BYTE IN EITHER FORMAT. *** BOOK.FNT has two of them and
-        // PUZZLE.FNT 155, so a per-glyph "stride at least the width" rule calls those paletted and
-        // reads a packed byte as a palette index. The font decides for all its glyphs, which is why
-        // these stay bitmasks — no glyph in them has a row too wide to be one.
+        // 0xFF in the header, negated to 1. Measuring the glyph data instead would agree here, but
+        // it is an inference where the file makes a statement — and a one-pixel glyph (BOOK has two,
+        // PUZZLE 155) takes one byte in EITHER format, so measurement has nothing to go on there.
+        Assert.Equal(FontResource.MonochromeGlyphFormat, font.GlyphFormat);
         Assert.Equal(FontPixelFormat.Monochrome, font.PixelFormat);
         Assert.All(font.Glyphs, g => Assert.Equal(FontPixelFormat.Monochrome, g.PixelFormat));
-        Assert.DoesNotContain(font.Glyphs, g => g.StrideExceedsABitmask);
     }
 
     private static FontResource Read(string path, string name) {
