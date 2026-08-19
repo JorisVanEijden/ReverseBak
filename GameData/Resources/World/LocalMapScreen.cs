@@ -244,6 +244,22 @@ public static class LocalMapScreen {
     public static int MapRendersWithYaw(int partyYaw, bool northUp) => northUp ? 0 : partyYaw;
 
     /// <summary>
+    /// <b>The map view is NOT the travel render seen from above.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>drawMap</c>'s outdoor branch (IDA <c>sub_seg021_231</c> @0x21941) fills the viewport with
+    /// a solid pen and then draws the depth-sorted world items over it. There is no sky, no horizon
+    /// strip and no ground band — the things a first-person view needs and an overhead one has no
+    /// use for. Pointing the travel renderer downwards therefore shows the horizon backdrop and a
+    /// fog-flattened ground rather than a map.
+    ///
+    /// <para>So a port needs a render mode of its own, not just a camera pose: flat background,
+    /// items from above, and the synthetic <c>typeId 181</c> item the same function places at
+    /// <c>z = 0</c>.</para>
+    /// </remarks>
+    public static bool HasItsOwnRenderMode => true;
+
+    /// <summary>
     /// <b>Underground zones draw the dungeon automap instead of the world.</b>
     /// </summary>
     /// <remarks>

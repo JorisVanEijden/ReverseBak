@@ -114,11 +114,14 @@ public class UserInterfaceExtractor : ExtractorBase<UserInterface> {
     // x144,y121,w31,h10). ElementType.CompassWindow (synthetic, non-rendered) so no renderer draws
     // it; added here (VGA coords) so CanonicalSpace.Apply scales it like the rest.
     //
-    // REQ_MAIN and REQ_CAST both get one. The compass and the party portraits sit in the frame's
-    // bottom strip (VGA y=121 and y=142), which the casting screen shares — REQ_CAST ships its own
-    // portrait ClickAreas 128..130 at REQ_MAIN's positions for exactly that reason, and the compass
-    // is the same furniture minus a shipped element to hang it on.
-    private static readonly string[] CompassWindowScreens = { "REQ_MAIN", "REQ_CAST" };
+    // REQ_MAIN, REQ_CAST and REQ_MAP all get one. The compass and the party portraits sit in the
+    // frame's bottom strip (VGA y=121 and y=142), which the casting screen shares — REQ_CAST ships
+    // its own portrait ClickAreas 128..130 at REQ_MAIN's positions for exactly that reason, and the
+    // compass is the same furniture minus a shipped element to hang it on. The overhead map is the
+    // same frame again: its loop redraws the compass on every pass (uiwidget_compass_draw, canassa
+    // map_main_loop) — the party still turns while the map is up, so it still needs telling which
+    // way it is facing.
+    private static readonly string[] CompassWindowScreens = { "REQ_MAIN", "REQ_CAST", "REQ_MAP" };
 
     private static UiElement[] AppendCompassWindow(string id, UiElement[] uiElements) {
         if (id == null || Array.FindIndex(CompassWindowScreens,

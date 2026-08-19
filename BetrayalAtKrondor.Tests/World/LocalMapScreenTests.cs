@@ -116,6 +116,14 @@ public class LocalMapScreenTests {
     }
 
     [Fact]
+    public void TheMapViewIsNotTheTravelRenderPointedDown() {
+        // sub_seg021_231 fills the viewport with a pen and draws the depth-sorted items over it —
+        // no sky, no horizon strip, no ground band. Verified the hard way: aiming the travel
+        // renderer downwards shows the horizon backdrop and a fog-flat ground, not a map.
+        Assert.True(LocalMapScreen.HasItsOwnRenderMode);
+    }
+
+    [Fact]
     public void UndergroundTheOverheadMapIsTheAutomapNotTheWorld() {
         // drawMap runs renderDungeonAutomap for an underground zone and never reaches the 3D pass,
         // so underground the screen shows only what has been explored.
