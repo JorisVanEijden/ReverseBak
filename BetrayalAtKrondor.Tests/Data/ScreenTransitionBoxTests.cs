@@ -1,6 +1,7 @@
 namespace BetrayalAtKrondor.Tests.Data;
 
 using GameData.Resources.Animation;
+using System.Linq;
 using Xunit;
 
 /// <summary>
@@ -89,5 +90,45 @@ public class ScreenTransitionBoxTests {
         (int bx, int by, int bw, int bh) = ScreenTransitionBox.BoxAt(10, 20, 1, 1, 1);
 
         Assert.Equal((10, 20, 0, 0), (bx, by, bw, bh));
+    }
+
+    [Fact]
+    public void BoxINCopiesTheCOMPLEMENTOfTheBoxNotTheBox() {
+        // The whole difference between the two effects, and it is NOT the step direction alone.
+        // Reproducing box-in as "box-out with the loop reversed" plays a centre-out wipe backwards,
+        // which is a different picture.
+        const int steps = 100;
+        var strips = ScreenTransitionBox.RevealedByBoxIn(0, 0, 400, 200, 50).ToList();
+        (int left, int top, int boxWidth, int boxHeight) =
+            ScreenTransitionBox.BoxAt(0, 0, 400, 200, 50);
+
+        Assert.Equal(4, strips.Count);
+        Assert.Equal((400 * 200) - (boxWidth * boxHeight), strips.Sum(s => s.Width * s.Height));
+        foreach ((int sx, int sy, int sw, int sh) in strips) {
+            bool disjoint = sx + sw <= left || sx >= left + boxWidth
+                || sy + sh <= top || sy >= top + boxHeight;
+            Assert.True(disjoint || sw == 0 || sh == 0,
+                $"strip ({sx},{sy},{sw},{sh}) overlaps the box");
+        }
+        _ = steps;
+    }
+
+    [Fact]
+    public void TheSHORTAxisFallsAPixelShortAndTheBoxNEVERQUITECloses() {
+        // *** THE STEP COUNT IS THE LONG AXIS, SO THE SHORT ONE TRUNCATES. *** With 725 steps the
+        // short half-extent advances by 303000/725 = 417 thousandths a step, and 417 x 725 / 1000
+        // is 302 rather than 303. So the last box is two pixels short of the area's height and
+        // box-in leaves a one-pixel band along the top and the bottom.
+        //
+        // This is the original's own arithmetic, not a rounding choice of ours — pinned so that
+        // "the wipe does not quite finish" is recognised as faithful rather than fixed.
+        int steps = ScreenTransitionBox.StepCount(W, H);
+        (int _, int _, int outWidth, int outHeight) =
+            ScreenTransitionBox.RevealedByBoxOut(X, Y, W, H, steps);
+
+        Assert.Equal(W, outWidth);
+        Assert.Equal(H - 2, outHeight);
+        Assert.Equal(W * 2, ScreenTransitionBox.RevealedByBoxIn(X, Y, W, H, steps)
+            .Sum(s => s.Width * s.Height));
     }
 }

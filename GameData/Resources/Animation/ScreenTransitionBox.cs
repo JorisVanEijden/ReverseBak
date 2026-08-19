@@ -1,5 +1,7 @@
 namespace GameData.Resources.Animation;
 
+using System.Collections.Generic;
+
 /// <summary>
 /// The step geometry of the two box screen transitions — <c>anim_screenTransitionEffect</c>
 /// @0x53ab5, the arm at <c>loc_ovr153_1383</c> that A034 (box in) and A094 (box out) share.
@@ -77,4 +79,43 @@ public static class ScreenTransitionBox {
 
     /// <summary>The step a box-in starts from — it shrinks inward from the edge.</summary>
     public static int BoxInFirstStep(int width, int height) => StepCount(width, height);
+
+    // ---------------------------------------------------------------- what each step copies
+    // Read 2026-08-19 from the arm's two branches (0x53bd0 and 0x53c39). This file previously said
+    // the copy rule "belongs to the renderer"; it is the original's behaviour rather than ours, so
+    // it belongs here and the renderer only performs it.
+
+    /// <summary>
+    /// The region a box-OUT step copies: <b>the box itself</b>.
+    /// </summary>
+    /// <remarks>
+    /// One copy per step, so the incoming frame grows out of the centre as a rectangle.
+    /// </remarks>
+    public static (int X, int Y, int Width, int Height) RevealedByBoxOut(
+        int x, int y, int width, int height, int step) => BoxAt(x, y, width, height, step);
+
+    /// <summary>
+    /// The regions a box-IN step copies: <b>the FOUR strips around the box, not the box</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the whole difference between the two effects, and it is not the step direction
+    /// alone.</b> Box-in issues four copies covering the transition area <i>outside</i> the current
+    /// box — left, right, above, below — so the incoming frame arrives from every edge at once and
+    /// the hole closes toward the centre. Reproducing it as "box-out with the loop reversed" gives
+    /// a centre-out wipe played backwards, which is a different picture entirely.
+    ///
+    /// <para>Empty strips are returned rather than skipped, so a caller can copy all four without
+    /// testing each: a zero-sized copy is a no-op wherever this is drawn.</para>
+    /// </remarks>
+    public static IEnumerable<(int X, int Y, int Width, int Height)> RevealedByBoxIn(
+        int x, int y, int width, int height, int step) {
+        (int left, int top, int boxWidth, int boxHeight) = BoxAt(x, y, width, height, step);
+        int right = left + boxWidth;
+        int bottom = top + boxHeight;
+
+        yield return (x, y, left - x, height);
+        yield return (right, y, (x + width) - right, height);
+        yield return (left, y, boxWidth, top - y);
+        yield return (left, bottom, boxWidth, (y + height) - bottom);
+    }
 }
