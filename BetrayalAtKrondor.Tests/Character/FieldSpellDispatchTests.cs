@@ -72,6 +72,32 @@ public class FieldSpellDispatchTests {
     }
 
     [Fact]
+    public void TheLightTimerKeyIsNOTTheSpellEffectSlot() {
+        // Each lighting handler sets two timers under two different numberings. Dragon's Breath is
+        // spell slot 0 and light source 1 — and light source 0 is a lit ITEM, whose curve fades
+        // while Dragon's Breath's builds, so reusing the spell slot runs the brightest source in
+        // the game backwards.
+        Assert.Equal(0, FieldSpells.EventIdOf(FieldSpells.DragonsBreath));
+        Assert.Equal((int)GameData.Resources.World.LightSourceDecay.Source.DragonsBreath,
+            FieldSpells.LightTimerKeyOf(FieldSpells.DragonsBreath));
+        Assert.NotEqual(FieldSpells.EventIdOf(FieldSpells.DragonsBreath),
+            FieldSpells.LightTimerKeyOf(FieldSpells.DragonsBreath));
+
+        Assert.Equal((int)GameData.Resources.World.LightSourceDecay.Source.CandleGlow,
+            FieldSpells.LightTimerKeyOf(FieldSpells.CandleGlow));
+        Assert.Equal((int)GameData.Resources.World.LightSourceDecay.Source.Stardusk,
+            FieldSpells.LightTimerKeyOf(FieldSpells.Stardusk));
+    }
+
+    [Fact]
+    public void OnlyTheSpellsThatDriveTheLightingHaveALightTimer() {
+        foreach (int spell in FieldSpells.All) {
+            Assert.Equal(FieldSpells.DrivesWorldLighting(spell),
+                FieldSpells.LightTimerKeyOf(spell) >= 0);
+        }
+    }
+
+    [Fact]
     public void OnlyTheLightingThreeGetLongerWithPower() {
         // duration 2, cost 10: the lighting formula gives 600 ticks and the plain one 60.
         Assert.Equal(600, FieldSpells.DurationTicks(2, 10,

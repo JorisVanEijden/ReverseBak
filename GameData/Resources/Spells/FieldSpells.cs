@@ -391,6 +391,28 @@ public static class FieldSpells {
     /// <summary>The sound Scent of Sarig plays.</summary>
     public const int ScentSound = 0x0c;
 
+    /// <summary>
+    /// The light-timer key a lighting spell uses.
+    /// </summary>
+    /// <remarks>
+    /// <b>A LIGHT timer is keyed differently from a SPELL timer, and the two must not be confused.</b>
+    /// Each lighting handler sets both: a spell timer under <see cref="EventIdOf"/>'s slot, which
+    /// drives the running-effects strip, and a light timer under the light system's own numbering,
+    /// which drives how bright the world is. The originals are separate constants
+    /// (<c>timerKeySpell_DragonsBreath</c> against <c>timerKeyLight_DragonsBreath</c>) and they do
+    /// not agree: Dragon's Breath is spell slot 0 but light source 1. Using one key for both makes
+    /// every lighting spell drive the wrong source — and Dragon's Breath, whose curve runs the
+    /// opposite way to the others, is the one it would be read as.
+    /// </remarks>
+    public static int LightTimerKeyOf(int spellId) {
+        switch (spellId) {
+            case DragonsBreath: return (int)World.LightSourceDecay.Source.DragonsBreath;
+            case CandleGlow: return (int)World.LightSourceDecay.Source.CandleGlow;
+            case Stardusk: return (int)World.LightSourceDecay.Source.Stardusk;
+            default: return -1;
+        }
+    }
+
     /// <summary>The sound a timed field spell plays, or -1 for one that plays none.</summary>
     /// <remarks>
     /// <b>Three sounds across six spells, and they do not group the way the effects do.</b> The
