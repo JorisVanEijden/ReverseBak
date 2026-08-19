@@ -53,6 +53,10 @@ public static class GdsActionDispatch {
             case 2: return ActionKind.DialogOnly;
             case 3:
             case 4: return ActionKind.SubScene;
+            // *** THREE CODES, ONE BEHAVIOUR. *** 5, 6 and 8 are byte-for-byte the same arm
+            // (0x4e406, 0x4e367, 0x4e39d): the same call with the same arguments, the same backdrop
+            // reload and the same two flags. Whatever they meant to the authors, the engine does
+            // not tell them apart, so neither does this.
             case 5:
             case 6:
             case 8: return ActionKind.Container;
