@@ -59,18 +59,46 @@ public class InteractionProfileTableTests {
     }
 
     /// <summary>
-    /// Building, Grave, Catapult and RiftMachine fire trap encounters / GDS scenes and (for the
-    /// grave) require a Shovel and a dig. Mapping them onto the plain container mechanism would
-    /// show their dialogs while silently dropping the mechanic, which is worse than not
-    /// responding — so their absence is asserted, not assumed.
+    /// Grave, Catapult and RiftMachine fire trap encounters / GDS scenes and (for the grave)
+    /// require a Shovel and a dig. Mapping them onto the plain container mechanism would show their
+    /// dialogs while silently dropping the mechanic, which is worse than not responding — so their
+    /// absence is asserted, not assumed.
     /// </summary>
+    /// <remarks>
+    /// <b>Building has left this list.</b> It went the way Door did: not onto the container
+    /// mechanism, but onto a key of its own with an intentionally empty profile, so the mechanic
+    /// lives in <c>FixedObjectClick</c> instead of being faked with dialogs.
+    /// </remarks>
     [Theory]
-    [InlineData(WorldEntityType.Building)]
     [InlineData(WorldEntityType.Grave)]
     [InlineData(WorldEntityType.Catapult)]
     [InlineData(WorldEntityType.RiftMachine)]
     public void ScriptedTypes_AreNotMapped(WorldEntityType type) =>
         Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+
+    /// <summary>
+    /// Building gets its own key and an empty profile — the same shape as the door.
+    /// </summary>
+    /// <remarks>
+    /// <b>The empty profile is the assertion, not an oversight.</b> A building has no loot, no
+    /// actionable container type and no container lock; it is a way IN, and its rules are
+    /// <c>FixedObjectClick</c>. Mapping it to "container" would show a chest's dialogs over a town
+    /// gate.
+    ///
+    /// <para>Range stays null because the original's reach test is a TILE comparison and not a
+    /// radius — a radius here would let a gate be clicked from the next tile along.</para>
+    /// </remarks>
+    [Fact]
+    public void Building10_HasItsOwnKeyAndAnEmptyProfile() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.Building, out string behavior, out InteractionProfile profile));
+        Assert.Equal("building", behavior);
+        Assert.NotEqual("container", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+        Assert.False(profile.HasLock);
+        Assert.Null(profile.Range);
+    }
 
     [Fact]
     public void Container6_ResolvesToChestProfile() {

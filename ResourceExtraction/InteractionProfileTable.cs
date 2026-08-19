@@ -27,12 +27,12 @@ using System.Collections.Generic;
 /// inputs.</para>
 ///
 /// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
-/// Building (10) and Grave (12) fire positioned trap encounters and GDS scenes, and Grave also
-/// requires a Shovel in the party and a dig (@0x77df4); Catapult (36) and RiftMachine (9) are
-/// scripted props gated on encounter globals; Pit (15), Tunnel (20), TunnelExit (39) and Ladder
-/// (42) are the zone/level traversal mechanic, not describe-or-loot. <b>Door (23) has since been
-/// added</b> — it is still not describe-or-loot, but it has a behavior of its own
-/// (<c>DoorMechanics</c>) and an intentionally empty profile.</para>
+/// Grave (12) fires a positioned trap encounter and needs a Shovel in the party and a dig
+/// (@0x77df4); Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
+/// Pit (15), Tunnel (20), TunnelExit (39) and Ladder (42) are the zone/level traversal mechanic,
+/// not describe-or-loot. <b>Door (23) and Building (10) have since been added</b> — neither is
+/// describe-or-loot, but each has a behavior of its own (<c>DoorMechanics</c>,
+/// <c>FixedObjectClick</c>) and an intentionally empty profile.</para>
 /// </summary>
 public static class InteractionProfileTable {
     // Every handler's "there is nothing here" ddx: "@0 shrugged. 'This must not be very
@@ -58,6 +58,29 @@ public static class InteractionProfileTable {
         // container handlers read is genuinely absent here. What it needs instead is
         // DoorMechanics, which is why it gets its own behavior key.
         [WorldEntityType.Door] = ("door", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
+        // byte 10 = building or town gate (wcursor_click_fixedobj_full, WCURSOR.C:259). *** NOT A
+        // CONTAINER EITHER, and like the door the empty profile is the point. *** A building is a
+        // way IN: an unlocked one with a warp on its hotspot subrecord hands the party to a GDS
+        // town scene. What it needs is FixedObjectClick, which is why it gets its own key.
+        //
+        // Range stays null because the original's reach test is not a distance at all — a
+        // hotspot-bearing object is clickable only from the party's own TILE, and silently
+        // otherwise (FixedObjectClick.IsWithinReach). A radius here would answer a different
+        // question and let a building be clicked from the next tile along.
+        //
+        // HasLock is false for the same reason the door's is: a building's lock is a lookup key on
+        // its params subrecord, not SaveGameContainerLockData. NotActionableDialogId is the shared
+        // 154 = 0x9a, which happens to be exactly the "nothing happens" record the click itself
+        // plays when the object has nothing to offer.
+        [WorldEntityType.Building] = ("building", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
             ExamineDialogId = 0,
