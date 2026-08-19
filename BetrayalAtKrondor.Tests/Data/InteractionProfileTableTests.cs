@@ -26,18 +26,44 @@ public class InteractionProfileTableTests {
     /// silently borrowing the container one.
     /// </summary>
     /// <remarks>
-    /// <b>Door was on this list and has come off it.</b> It is still not describe-or-loot; it now
-    /// has a mechanic of its own (<c>DoorMechanics</c>) and a row that says so — see
-    /// <see cref="ADoorIsMappedButToItsOwnBehaviourNotTheContainerOne"/>. The others stay here
-    /// until they get the same treatment.
+    /// <b>Door, and now the clickable traversal trio, have come off this list.</b> None is
+    /// describe-or-loot; each has a mechanic of its own (<c>DoorMechanics</c>,
+    /// <c>TraversalClick</c>) and a row that says so.
+    ///
+    /// <para><b>Pit stays, and not because nobody has got to it.</b> It is the one traversal you
+    /// never click — you walk onto it — so it has no click handler to key, and an interaction
+    /// profile would be answering a question the mechanic never asks.</para>
+    /// </remarks>
+    [Theory]
+    [InlineData(WorldEntityType.Pit)]
+    public void TraversalTypes_AreNotMapped(WorldEntityType type) =>
+        Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+
+    /// <summary>
+    /// The clickable traversal trio share one behaviour key, with empty profiles.
+    /// </summary>
+    /// <remarks>
+    /// <b>One key for three types is the point:</b> tunnel, tunnel exit and ladder all reach the
+    /// same handler in the original, so three keys would be three copies of one mechanic. The
+    /// profile is empty for the door's reasons — no loot, no container type, and a lock that lives
+    /// on the params subrecord rather than in container lock data.
+    ///
+    /// <para>Range is null because this handler has NO reach test at all, unlike the building's
+    /// tile guard — a radius here would invent a restriction the original does not have.</para>
     /// </remarks>
     [Theory]
     [InlineData(WorldEntityType.Ladder)]
     [InlineData(WorldEntityType.Tunnel)]
     [InlineData(WorldEntityType.TunnelExit)]
-    [InlineData(WorldEntityType.Pit)]
-    public void TraversalTypes_AreNotMapped(WorldEntityType type) =>
-        Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+    public void TheTraversalTrioSharesOneBehaviourWithAnEmptyProfile(WorldEntityType type) {
+        Assert.True(InteractionProfileTable.TryGet(type, out string behavior,
+            out InteractionProfile profile));
+        Assert.Equal("traversal", behavior);
+        Assert.NotEqual("container", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+        Assert.Null(profile.Range);
+    }
 
     /// <summary>
     /// A door IS mapped now — but to its own behaviour, and with an empty profile.

@@ -29,10 +29,11 @@ using System.Collections.Generic;
 /// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
 /// Grave (12) fires a positioned trap encounter and needs a Shovel in the party and a dig
 /// (@0x77df4); Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
-/// Pit (15), Tunnel (20), TunnelExit (39) and Ladder (42) are the zone/level traversal mechanic,
-/// not describe-or-loot. <b>Door (23) and Building (10) have since been added</b> — neither is
-/// describe-or-loot, but each has a behavior of its own (<c>DoorMechanics</c>,
-/// <c>FixedObjectClick</c>) and an intentionally empty profile.</para>
+/// Pit (15) is the walk-into-it traversal and has no click at all. <b>Door (23), Building (10) and
+/// the clickable traversal trio Tunnel (20) / TunnelExit (39) / Ladder (42) have since been
+/// added</b> — none is describe-or-loot, but each has a behavior of its own
+/// (<c>DoorMechanics</c>, <c>FixedObjectClick</c>, <c>TraversalClick</c>) and an intentionally
+/// empty profile.</para>
 /// </summary>
 public static class InteractionProfileTable {
     // Every handler's "there is nothing here" ddx: "@0 shrugged. 'This must not be very
@@ -81,6 +82,44 @@ public static class InteractionProfileTable {
         // 154 = 0x9a, which happens to be exactly the "nothing happens" record the click itself
         // plays when the object has nothing to offer.
         [WorldEntityType.Building] = ("building", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
+        // bytes 20 / 39 / 42 = tunnel, tunnel exit and ladder
+        // (wcursor_click_fixedobj_picklock, WCURSOR.C:999). *** THE THIRD EMPTY PROFILE, and the
+        // same reasoning as the door and the building. *** These are the level-traversal mechanic:
+        // the click runs a lock and then plays the object's own message, whose Teleport action is
+        // what moves the party. No loot, no container type, and the lock is a lookup key on the
+        // params subrecord rather than SaveGameContainerLockData — so every field a container
+        // profile carries is absent. The rules are TraversalClick.
+        //
+        // Range is null because this handler has no reach test at all: unlike the building click it
+        // never compares tiles, so a radius here would invent a restriction and make distant
+        // ladders silently unclickable.
+        [WorldEntityType.Tunnel] = ("traversal", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
+        [WorldEntityType.TunnelExit] = ("traversal", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
+        [WorldEntityType.Ladder] = ("traversal", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
             ExamineDialogId = 0,
