@@ -69,35 +69,38 @@ public class GdsSceneInteractionTests {
     }
 
     [Fact]
-    public void ADescriptionWithoutAnActionBlockIsAllText() {
-        var (actions, text) = GdsSceneInteraction.SplitExamineText("To Hakha's Cajunlo");
+    public void ADescriptionWithoutASignIsAllText() {
+        var (name, text) = GdsSceneInteraction.SplitExamineText("To Hakha's Cajunlo");
 
-        Assert.Null(actions);
+        Assert.Null(name);
         Assert.Equal("To Hakha's Cajunlo", text);
     }
 
     [Fact]
-    public void ALeadingHashBlockIsScriptAndOnlyTheRestIsShown() {
-        var (actions, text) = GdsSceneInteraction.SplitExamineText("#SETFLAG 12#You see a door.");
+    public void ALeadingHashBlockIsTheEstablishmentsName() {
+        // A shop sign, not a script: 291 shipped descriptions open this way, and the original hands
+        // the block to the routine that draws the pill-shaped name bubble.
+        var (name, text) = GdsSceneInteraction.SplitExamineText(
+            "#Three Hillmen Pawn#\tThe shop was littered with castoffs.");
 
-        Assert.Equal("SETFLAG 12", actions);
-        Assert.Equal("You see a door.", text);
+        Assert.Equal("Three Hillmen Pawn", name);
+        Assert.Equal("\tThe shop was littered with castoffs.", text);
     }
 
     [Fact]
-    public void AnUnterminatedBlockLeavesNothingToDisplay() {
-        // The original's scan runs to the NUL, so everything was the block.
-        var (actions, text) = GdsSceneInteraction.SplitExamineText("#SETFLAG 12");
+    public void AnUnterminatedSignLeavesNothingToDisplay() {
+        // The original's scan runs to the NUL, so everything was the name.
+        var (name, text) = GdsSceneInteraction.SplitExamineText("#Nia's Goods");
 
-        Assert.Equal("SETFLAG 12", actions);
+        Assert.Equal("Nia's Goods", name);
         Assert.Equal(string.Empty, text);
     }
 
     [Fact]
-    public void AHashLaterInTheTextIsNotAnActionBlock() {
-        var (actions, text) = GdsSceneInteraction.SplitExamineText("Room #3 is locked.");
+    public void AHashLaterInTheTextIsNotASign() {
+        var (name, text) = GdsSceneInteraction.SplitExamineText("Room #3 is locked.");
 
-        Assert.Null(actions);
+        Assert.Null(name);
         Assert.Equal("Room #3 is locked.", text);
     }
 

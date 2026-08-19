@@ -107,34 +107,55 @@ public static class GdsSceneInteraction {
     /// </remarks>
     public static bool InSceneExamineRedrawsTheScene => true;
 
-    /// <summary>Marks an action block at the front of a description.</summary>
-    public const char ActionBlockMarker = '#';
+    /// <summary>Marks the establishment's name at the front of a description.</summary>
+    public const char NameMarker = '#';
 
     /// <summary>
-    /// Splits a description into the action block that runs and the text that is shown.
+    /// Splits a description into the name on the sign and the description proper.
     /// </summary>
     /// <returns>
-    /// <c>Actions</c> is the script to execute (null when there is none) and <c>Text</c> is what to
-    /// display.
+    /// <c>Name</c> is what goes in the name bubble (null when there is none) and <c>Text</c> is the
+    /// description that follows it.
     /// </returns>
     /// <remarks>
-    /// <b>A description beginning with <c>#</c> carries a command block, not text.</b> The original
-    /// takes everything up to the next <c>#</c> (or the end), runs it through the dialog-action
-    /// executor, and displays only what follows. Showing the raw string instead would print the
-    /// script at the player, and — worse — silently skip whatever the block was supposed to do.
+    /// <b>A description beginning with <c>#</c> carries the establishment's NAME.</b> The original
+    /// takes everything up to the next <c>#</c>, hands it to the routine that draws the pill-shaped
+    /// name bubble, and displays only what follows — so "Three Hillmen Pawn", "Nia's Goods",
+    /// "Touchstone Gems" are shop signs, not prose. 291 shipped descriptions carry one.
+    ///
+    /// <para><b>An earlier reading of this called the block a SCRIPT.</b> The stub the original
+    /// calls is named <c>ExecuteDialogActions</c> and jumps straight to
+    /// <c>dialog_DrawNameBubble</c> — the name is the stub's, not the routine's. Believing it would
+    /// have sent a shop's name to a dialog-action executor, where it would have done nothing at all
+    /// and the sign would simply never appear.</para>
+    ///
+    /// <para>Showing the raw string instead prints the hashes and the name run together with the
+    /// prose, which is what a port does when it treats the description as one string.</para>
     /// </remarks>
-    public static (string Actions, string Text) SplitExamineText(string description) {
-        if (string.IsNullOrEmpty(description) || description[0] != ActionBlockMarker) {
+    public static (string Name, string Text) SplitExamineText(string description) {
+        if (string.IsNullOrEmpty(description) || description[0] != NameMarker) {
             return (null, description);
         }
 
-        int end = description.IndexOf(ActionBlockMarker, 1);
+        int end = description.IndexOf(NameMarker, 1);
         if (end < 0) {
             // Unterminated: the original's scan stops at the NUL, leaving nothing to display.
             return (description.Substring(1), string.Empty);
         }
         return (description.Substring(1, end - 1), description.Substring(end + 1));
     }
+
+    /// <summary>Top of the name bubble, in canonical space — VGA y=105.</summary>
+    /// <remarks>
+    /// The original centres the bubble horizontally at VGA x=158 and puts it at
+    /// <c>yOffset + 105</c>; the location passes a zero offset. Its width follows the text, with ten
+    /// pixels of padding and a floor of 55 — so the sign is as wide as the name and never narrower
+    /// than a stub.
+    /// </remarks>
+    public const int SignTop = 105 * 6;
+
+    /// <summary>Padding either side of the name — VGA 5, half of the ten the width adds.</summary>
+    public const int SignPadding = 5 * 5;
 
     /// <summary>How far the mouse may drift before the description is taken down.</summary>
     /// <remarks>

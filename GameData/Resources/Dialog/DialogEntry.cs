@@ -40,4 +40,20 @@ public class DialogEntry {
 
         return action != null;
     }
+
+    /// <summary>
+    /// The same entry with different text.
+    /// </summary>
+    /// <remarks>
+    /// <b>For callers that must not write to the entry they were handed.</b> The dialog loader
+    /// caches entries, so an entry mutated for one showing comes back changed for the next — which
+    /// is how a shop's sign would go missing the second time it is examined, with nothing to say
+    /// why. Shallow by design: the actions and branches are shared because nothing rewrites them.
+    /// </remarks>
+    public DialogEntry WithText(string? text) {
+        var copy = (DialogEntry)MemberwiseClone();
+        copy.Text = text;
+
+        return copy;
+    }
 }
