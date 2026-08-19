@@ -1,5 +1,7 @@
 namespace GameData.Resources.Scene;
 
+using GameData.Resources.Character;
+
 /// <summary>
 /// Playing the lute at a tavern for coin — <c>container_PerformBarding</c> @0x4dd1e (ovr149),
 /// reached as location action code 9.
@@ -84,6 +86,23 @@ public static class Barding {
 
         return difficulty * 3 / 4 > partyBestBarding ? FailedDialog : DrunkPatronsDialog;
     }
+
+    /// <summary>
+    /// How the experience is applied: as skill USE, not as a flat addition.
+    /// </summary>
+    /// <remarks>
+    /// <b>A trap worth stating.</b> The call is
+    /// <c>ChangeAttributeValueForWholeParty(Barding, amount, CurrentBase)</c>, and IDA types that
+    /// third parameter as a <c>WhichValue</c> whose member 3 is named <c>CurrentBase</c> — but the
+    /// routine it forwards to is <c>stat_combatant_modify</c>, which reads the same argument as its
+    /// change MODE, and mode 3 there is skill-use advancement.
+    ///
+    /// <para>So the amount is a number of uses put through the per-skill rate, not points added to
+    /// the stored value. Going by the parameter's name would hand a flat +2 to every member, which
+    /// for a skill already near 100 is far more than the original grants — advancement there is
+    /// deliberately slow.</para>
+    /// </remarks>
+    public const StatChangeMode ExperienceMode = StatChangeMode.SkillUse;
 
     /// <summary>The Barding experience a performance grants the party.</summary>
     public static int ExperienceFor(int fund, int difficulty, int partyBestBarding) =>
