@@ -75,12 +75,12 @@ public class FixedObjectClickTests {
     }
 
     [Fact]
-    public void APACKEDWarpKindOverridesTheDestinationItWasHanded() {
-        // townscene_main_loop unpacks the high byte over the index it was given. Passing the pair
-        // straight through sends the party to whatever the low byte alone names — a different
-        // scene, and not an obviously wrong one.
-        Assert.Equal((7, 3), FixedObjectClick.UnpackWarp(warpKind: 0x0307, warpDestination: 9));
-        Assert.Equal((7, 9), FixedObjectClick.UnpackWarp(warpKind: 7, warpDestination: 9));
+    public void ThePackedWarpIsUnpackedByTheGDSLayerAndNotHere() {
+        // townscene_main_loop unpacks a high byte over the index it was given — the same rule
+        // GDS_RunScene applies to every scene reference, and GdsSceneRules already owns it. Two
+        // copies of one packing convention would be free to drift.
+        Assert.True(FixedObjectClick.WarpIsUnpackedByTheGdsLayer);
+        Assert.Equal((7, 3), GameData.Resources.Scene.GdsSceneRules.UnpackScene(0x0307, 9));
     }
 
     [Fact]
