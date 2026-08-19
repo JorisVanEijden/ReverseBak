@@ -38,8 +38,17 @@ public static class FixedObjectClick {
     /// <summary>Dialog for an object with nothing to offer.</summary>
     public const int NothingToDoDialog = 0x9a;
 
-    /// <summary>Dialog for a click refused at this moment.</summary>
-    public const int RefusedDialog = 0x60;
+    /// <summary>
+    /// Dialog for a SECONDARY click — the describe answer.
+    /// </summary>
+    /// <remarks>
+    /// <b>Established 2026-08-19: the gate it sits behind is the BUTTON, not a mode.</b> The
+    /// original tests <c>menupage_state_0e7c() != 1</c>, and that state is
+    /// <see cref="Menu.MenuClickButton"/> — which button the poll found down. So this is not "not
+    /// just now"; it is what a right-click on a building says, with the object's own kind published
+    /// for the message to name.
+    /// </remarks>
+    public const int DescribeDialog = 0x60;
 
     /// <summary>The sound a click on a fixed object makes.</summary>
     public const int ClickSound = 0x30;
