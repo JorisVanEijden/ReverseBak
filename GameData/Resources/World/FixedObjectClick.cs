@@ -119,6 +119,22 @@ public static class FixedObjectClick {
     public static bool CanEnterTownScene(int lockKey) => lockKey == 0;
 
     /// <summary>
+    /// The scene a warp actually opens, given the subrecord's two bytes.
+    /// </summary>
+    /// <remarks>
+    /// <b>THE KIND CAN CARRY THE DESTINATION IN ITS HIGH BYTE, AND THEN IT WINS.</b>
+    /// <c>townscene_main_loop</c> opens with
+    /// <c>if ((kind &amp; 0xff00) != 0) { index = kind &gt;&gt; 8; kind &amp;= 0xff; }</c> — so a
+    /// two-byte kind overrides the destination it was handed. Passing the pair straight through
+    /// sends the party to whatever the low byte alone names, which for a packed record is a
+    /// different scene entirely and not an obviously wrong one.
+    /// </remarks>
+    public static (int Kind, int Destination) UnpackWarp(int warpKind, int warpDestination) =>
+        (warpKind & 0xff00) != 0
+            ? (warpKind & 0xff, warpKind >> 8)
+            : (warpKind, warpDestination);
+
+    /// <summary>
     /// What the click does, once it is in reach and the moment is right.
     /// </summary>
     /// <param name="lockKey">The object's lock, or 0 for none.</param>

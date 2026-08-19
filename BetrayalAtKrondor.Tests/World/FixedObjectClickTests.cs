@@ -75,6 +75,15 @@ public class FixedObjectClickTests {
     }
 
     [Fact]
+    public void APACKEDWarpKindOverridesTheDestinationItWasHanded() {
+        // townscene_main_loop unpacks the high byte over the index it was given. Passing the pair
+        // straight through sends the party to whatever the low byte alone names — a different
+        // scene, and not an obviously wrong one.
+        Assert.Equal((7, 3), FixedObjectClick.UnpackWarp(warpKind: 0x0307, warpDestination: 9));
+        Assert.Equal((7, 9), FixedObjectClick.UnpackWarp(warpKind: 7, warpDestination: 9));
+    }
+
+    [Fact]
     public void TheInventoryBitOnlyAppliesWhenThereIsNoWarp() {
         // A warp wins: the original returns into the town scene before it ever tests bit 1.
         Assert.Equal(FixedObjectClick.Outcome.EntersTownScene,

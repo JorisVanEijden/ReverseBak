@@ -79,6 +79,26 @@ public class MusicSelectionTests {
         Assert.Equal(expected, MusicSelection.ForLutePractice(barding));
     }
 
+    [Theory]
+    [InlineData(0x2d)]
+    [InlineData(0x41)]
+    [InlineData(0x52)]
+    public void THETAVERNTableIsNotThePracticeTable(int barding) {
+        // Both pick by Barding from the SAME four tunes, which invites folding them into one
+        // function — and the boundaries do not agree at any of these points. A player at 0x52 gets
+        // the best tune practising and the second-best performing.
+        Assert.NotEqual(MusicSelection.ForLutePractice(barding),
+            MusicSelection.ForTavernPerformance(barding));
+    }
+
+    [Fact]
+    public void TheTavernBandsRunLowToHigh() {
+        Assert.Equal(0x3f0, MusicSelection.ForTavernPerformance(0));
+        Assert.Equal(0x410, MusicSelection.ForTavernPerformance(0x2d));
+        Assert.Equal(0x40f, MusicSelection.ForTavernPerformance(0x41));
+        Assert.Equal(0x3ef, MusicSelection.ForTavernPerformance(0x55));
+    }
+
     [Fact]
     public void OnePracticeIsAFRACTIONOfASkillPoint() {
         // The roll goes to the stat modifier UNSHIFTED, where every other caller shifts by eight to

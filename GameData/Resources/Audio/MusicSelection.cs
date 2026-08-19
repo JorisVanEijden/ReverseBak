@@ -113,6 +113,26 @@ public static class MusicSelection {
         : barding > 0x2d ? 0x410
         : 0x3f0;
 
+    /// <summary>
+    /// The tune heard when the party performs in a tavern — <c>TOWNSCN.C</c>'s barding arm.
+    /// </summary>
+    /// <param name="barding">The party's best Barding, read before the performance improves it.</param>
+    /// <remarks>
+    /// <b>THE SAME FOUR TRACKS AS THE PRACTICE LUTE, ON A DIFFERENT TABLE.</b> Both pick by
+    /// Barding and both choose from the same four tunes, which invites folding them into one
+    /// function — and the boundaries do not agree. The practice lute needs to BEAT 0x50 for the
+    /// best tune; a tavern performance needs only to reach 0x55, and its lower bands sit a point
+    /// off the other's throughout. A player at 0x52 gets the best tune practising and the
+    /// second-best performing.
+    ///
+    /// <para>Kept as two tables for that reason. <see cref="ForLutePractice"/> is the other.</para>
+    /// </remarks>
+    public static int ForTavernPerformance(int barding) =>
+        barding < 0x2d ? 0x3f0
+        : barding < 0x41 ? 0x410
+        : barding < 0x55 ? 0x40f
+        : 0x3ef;
+
     /// <summary>The item whose use plays the lute.</summary>
     public const int PracticeLuteItemId = 81;
 
