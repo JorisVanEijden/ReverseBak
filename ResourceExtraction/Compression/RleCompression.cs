@@ -15,6 +15,13 @@ internal class RleCompression : ICompression {
 
         while (inputStream.Position < endPosition) {
             int marker = inputStream.ReadByte();
+            if (marker < 0) {
+                // End of stream before the declared end. A caller that overstates the length would
+                // otherwise spin here forever: ReadByte keeps answering -1, and -1 fell through to
+                // the literal-run branch whose loop body never executes, so the position never
+                // advanced and the loop never ended.
+                break;
+            }
             switch (marker) {
                 case > 0x80:
                     {

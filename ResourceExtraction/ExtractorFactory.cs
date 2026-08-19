@@ -15,6 +15,7 @@ using GameData.Resources.Combat;
 using GameData.Resources.Location;
 using GameData.Resources.Scene;
 using GameData.Resources.Image;
+using GameData.Resources.Font;
 using GameData.Resources.Label;
 using GameData.Resources.Menu;
 using GameData.Resources.Monster;
@@ -51,6 +52,8 @@ public static class ExtractorFactory {
             typeof(SaveGame), typeof(SaveGameExtractor)
         }, {
             typeof(ChapterStartData), typeof(ChapterDataExtractor)
+        }, {
+            typeof(FontResource), typeof(FontExtractor)
         }, {
             typeof(LabelSet), typeof(LabelExtractor)
         }, {

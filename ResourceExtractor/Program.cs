@@ -412,7 +412,6 @@ internal static class Program {
         // TestAssembly(filePath, "INTRO");
 
         // ResourceExtractor.Extractors.ArchiveExtractor.ExtractResourceArchive(filePath);
-        FontExtractor.Extract(Path.Combine(filePath, "game.fnt"));
         // ExtractScreen(Path.Combine(filePath, "Z01L.SCX"));
 
         ExtractAllScx(filePath, generalResourceProvider);
