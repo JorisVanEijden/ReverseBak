@@ -152,12 +152,25 @@ public static class CipherPuzzleLayout {
     /// <summary>The script it resolves into, for a party that can read it.</summary>
     public const string PuzzleFont = "PUZZLE.FNT";
 
-    /// <summary>The party member whose presence makes the riddle readable.</summary>
-    /// <remarks>Roster slot 1 — the check is on membership, not on a skill.</remarks>
+    /// <summary>
+    /// The party member whose presence makes the riddle readable — <b>Gorath</b>.
+    /// </summary>
+    /// <remarks>
+    /// A CHARACTER ID checked against the active party, not a roster slot: the original scans the
+    /// active party for this id rather than indexing it. Character 1 is Gorath, and a moredhel
+    /// reading moredhel script is the whole of the rule — it is not a skill check, and no amount of
+    /// Assessment or Scouting substitutes for him.
+    /// </remarks>
     public const int ReaderPartyMember = 1;
 
-    /// <summary>The running-spell bit that makes it readable without them.</summary>
-    /// <seealso cref="Spells.SpellPaletteEvents"/>
+    /// <summary>
+    /// The running-spell slot that makes it readable without him.
+    /// </summary>
+    /// <remarks>
+    /// Slot 4 of the running-effects mask, which is Union — so the spell that joins minds is the
+    /// one that lends his reading to the rest. See <see cref="Spells.SpellPaletteEvents"/> for why
+    /// the slot is the DISPATCH order and not the spell number.
+    /// </remarks>
     public const int ReaderSpellEvent = 4;
 
     /// <summary>Whether the party can read the riddle.</summary>

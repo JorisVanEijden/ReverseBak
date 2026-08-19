@@ -41,6 +41,18 @@ public class CipherLegibilityTests {
     }
 
     [Fact]
+    public void TheReaderIsACHARACTERIdAndNotARosterSlot() {
+        // The original scans the active party for this id rather than indexing it. Character 1 is
+        // Gorath — a moredhel reading moredhel script — and no skill substitutes for him.
+        Assert.Equal(1, CipherPuzzleLayout.ReaderPartyMember);
+        // The spell route is a mask SLOT, and the slot is the dispatch order rather than the spell
+        // number — so naming it 4 only means anything if that slot really is Union.
+        Assert.Equal(CipherPuzzleLayout.ReaderSpellEvent,
+            GameData.Resources.Spells.FieldSpells.EventIdOf(
+                GameData.Resources.Spells.FieldSpells.Union));
+    }
+
+    [Fact]
     public void TheScreenHasItsOwnTrack() {
         Assert.Equal(0x3eb, CipherPuzzleLayout.MusicTrack);
     }
