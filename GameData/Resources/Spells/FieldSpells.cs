@@ -337,4 +337,77 @@ public static class FieldSpells {
 
     /// <summary>The inset the world view is clipped to while the locator is open.</summary>
     public static (int X, int Y, int Width, int Height) LocatorViewport => (134, 16, 167, 89);
+
+    // ---------------------------------------------------------------- which effect, which text
+    // The six timed handlers each own one slot of the running-effects mask and one dialog record.
+
+    /// <summary>
+    /// The <see cref="SpellPaletteEvents"/> slot a timed field spell occupies.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is the spell's position in <see cref="All"/>, which is not a coincidence.</b> The
+    /// dispatcher's table and the timer keys were written in the same order, so the first six
+    /// entries line up with mask bits 0..5 — and that order is <i>not</i> the spell-number order, so
+    /// a port that indexes the mask by spell number puts every effect in the wrong slot and shows
+    /// the wrong symbol in the travel strip.
+    ///
+    /// <para>The three locators own no slot: they finish the moment they are cast.</para>
+    /// </remarks>
+    public static int EventIdOf(int spellId) {
+        for (var i = 0; i < All.Length; i++) {
+            if (All[i] == spellId) {
+                return IsLocatorRoll(spellId) ? -1 : i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>The first of the six timed spells' dialog records.</summary>
+    public const int FirstTimedDialog = 199;
+
+    /// <summary>
+    /// The dialog a timed field spell plays.
+    /// </summary>
+    /// <remarks>
+    /// Six consecutive records in the same order as <see cref="All"/> — 199 for Dragon's Breath up
+    /// to 204 for Scent of Sarig. Stated as the sequence it is, because the alternative is six
+    /// constants that look independent and would hide a transposition.
+    /// </remarks>
+    public static int DialogFor(int spellId) {
+        int slot = EventIdOf(spellId);
+
+        return slot < 0 ? -1 : FirstTimedDialog + slot;
+    }
+
+    /// <summary>The sound the three lighting spells play.</summary>
+    /// <remarks>IDA calls it <c>sound_mcreate</c>.</remarks>
+    public const int CreationSound = 0x3a;
+
+    /// <summary>The sound And the Light Shall Lie and Union play.</summary>
+    /// <remarks>IDA calls it <c>sound_mgeneral</c>.</remarks>
+    public const int GeneralSound = 0x51;
+
+    /// <summary>The sound Scent of Sarig plays.</summary>
+    public const int ScentSound = 0x0c;
+
+    /// <summary>The sound a timed field spell plays, or -1 for one that plays none.</summary>
+    /// <remarks>
+    /// <b>Three sounds across six spells, and they do not group the way the effects do.</b> The
+    /// three lighting spells share one, And the Light Shall Lie and Union share another, and Scent
+    /// of Sarig has its own — so the audio grouping matches the duration formula for the first
+    /// three and cuts across it for the rest.
+    /// </remarks>
+    public static int SoundFor(int spellId) {
+        if (DrivesWorldLighting(spellId)) {
+            return CreationSound;
+        }
+
+        switch (spellId) {
+            case AndTheLightShallLie:
+            case Union: return GeneralSound;
+            case ScentOfSarig: return ScentSound;
+            default: return -1;
+        }
+    }
 }
