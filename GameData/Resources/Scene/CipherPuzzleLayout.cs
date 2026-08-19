@@ -141,4 +141,60 @@ public static class CipherPuzzleLayout {
     /// Where the incoming letter sits relative to the outgoing one at the start of a roll.
     /// </summary>
     public static int IncomingLetterOffset(int fontHeight) => -RollTravel(fontHeight);
+
+    // ------------------------------------------------------------------ reading it at all
+    // CIPHER.C:112. The screen is built and rendered ONCE in the alien script, and only then does
+    // it resolve — for a party that can read it.
+
+    /// <summary>The script the riddle is always drawn in first.</summary>
+    public const string AlienFont = "ALIEN.FNT";
+
+    /// <summary>The script it resolves into, for a party that can read it.</summary>
+    public const string PuzzleFont = "PUZZLE.FNT";
+
+    /// <summary>The party member whose presence makes the riddle readable.</summary>
+    /// <remarks>Roster slot 1 — the check is on membership, not on a skill.</remarks>
+    public const int ReaderPartyMember = 1;
+
+    /// <summary>The running-spell bit that makes it readable without them.</summary>
+    /// <seealso cref="Spells.SpellPaletteEvents"/>
+    public const int ReaderSpellEvent = 4;
+
+    /// <summary>Whether the party can read the riddle.</summary>
+    /// <remarks>
+    /// <b>Either route alone is enough</b> — the one who can read it, or the spell that lets anyone.
+    /// </remarks>
+    public static bool IsLegible(bool readerInParty, bool readerSpellActive) =>
+        readerInParty || readerSpellActive;
+
+    /// <summary>
+    /// <b>THE ALIEN SCRIPT IS ALWAYS SHOWN FIRST, EVEN TO A PARTY THAT CAN READ IT.</b>
+    /// </summary>
+    /// <remarks>
+    /// The screen is laid out and rendered in <see cref="AlienFont"/> before the legibility test is
+    /// made; only afterwards does a party that can read it get a second render in
+    /// <see cref="PuzzleFont"/>, brought in by a dissolve. So the riddle visibly TRANSFORMS in
+    /// front of the player rather than simply appearing legible — and a party that cannot read it
+    /// sees exactly what the other one saw for a moment.
+    ///
+    /// <para>Drawing straight in the readable font when legible skips that entirely, which is the
+    /// obvious implementation and loses the only moment the alien script is ever seen by a party
+    /// that could read it anyway.</para>
+    /// </remarks>
+    public static bool AlienIsAlwaysDrawnFirst => true;
+
+    /// <summary>The font a render pass uses.</summary>
+    /// <param name="firstPass">The unconditional pass; false for the resolve.</param>
+    public static string FontForPass(bool firstPass, bool legible) =>
+        firstPass || !legible ? AlienFont : PuzzleFont;
+
+    /// <summary>The riddle screen's own music track.</summary>
+    public const int MusicTrack = 0x3eb;
+
+    /// <summary>Dialog played as the screen opens.</summary>
+    public const int OpeningDialog = 0x0b;
+
+    /// <summary>Dialog played once it has been drawn.</summary>
+    /// <remarks>Before the legibility test, so both parties hear it.</remarks>
+    public const int AfterDrawDialog = 0x0c;
 }
