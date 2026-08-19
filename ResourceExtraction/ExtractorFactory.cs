@@ -98,6 +98,8 @@ public static class ExtractorFactory {
         }, {
             typeof(SpellDescriptions), typeof(SpellDocExtractor)
         }, {
+            typeof(ZoneAppearance), typeof(ZoneAppearanceExtractor)
+        }, {
             typeof(ZoneBounds), typeof(ZoneBoundsExtractor)
         }, {
             typeof(ZoneDefinition), typeof(ZoneDefExtractor)

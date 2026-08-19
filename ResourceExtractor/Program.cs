@@ -1041,6 +1041,21 @@ internal static class Program {
             WriteToJsonFile("zone.dat", ResourceType.DAT, bounds.ToJson());
         }
 
+        // Z##.DAT — the zone's sky/ground pens and the overhead map's pen remap. Matched with an
+        // explicit length test as well as the pattern: Windows-style wildcards would otherwise let
+        // Z01DEF.DAT through and hand it to the wrong reader.
+        var appearanceExtractor = new ZoneAppearanceExtractor();
+        foreach (string zoneFile in GetFiles(filePath, "Z??.DAT")) {
+            string fileName = Path.GetFileName(zoneFile);
+            if (fileName.Length != "Z01.DAT".Length) {
+                continue;
+            }
+
+            using var stream = File.OpenRead(zoneFile);
+            var appearance = appearanceExtractor.Extract(fileName, stream);
+            WriteToJsonFile(fileName, ResourceType.DAT, appearance.ToJson());
+        }
+
         foreach (string defFile in GetFiles(filePath, "Z??DEF.DAT")) {
             string fileName = Path.GetFileName(defFile);
             using var stream = File.OpenRead(defFile);
