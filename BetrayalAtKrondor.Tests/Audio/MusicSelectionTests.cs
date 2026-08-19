@@ -72,8 +72,22 @@ public class MusicSelectionTests {
     [InlineData(0x2e, 0x410)]
     [InlineData(0x2d, 0x3f0)]
     [InlineData(0, 0x3f0)]
-    public void AHealingItemsTrackGetsGrimmerAsHealthDrops(int health, int expected) {
-        Assert.Equal(expected, MusicSelection.ForHealingItem(health));
+    public void APOORMusicianGetsTheWorseTune(int barding, int expected) {
+        // CORRECTED: this was written up as a healing item keyed on health. The switch is on the
+        // ITEM ID (case 0x51 = item 81, the Practice Lute) and the stat is attribute 0xb, Barding.
+        // The bands are how well the character plays, not how badly hurt they are.
+        Assert.Equal(expected, MusicSelection.ForLutePractice(barding));
+    }
+
+    [Fact]
+    public void OnePracticeIsAFRACTIONOfASkillPoint() {
+        // The roll goes to the stat modifier UNSHIFTED, where every other caller shifts by eight to
+        // mean whole points. Shifting it too would train Barding 40-160x too fast.
+        Assert.True(MusicSelection.PracticeGainIsFractional);
+        Assert.Equal(81, MusicSelection.PracticeLuteItemId);
+        Assert.True(MusicSelection.PracticeGainLow < MusicSelection.PracticeGainHigh);
+        Assert.True(MusicSelection.PracticeGainHigh < 256,
+            "a whole point is 256, so even the best practice is under one");
     }
 
     [Fact]

@@ -94,19 +94,44 @@ public static class MusicSelection {
     }
 
     /// <summary>
-    /// The track played behind the dialog when a healing item is used on a party member.
+    /// The tune heard when a party member practises on the lute — <c>ITEMUSE.C</c>'s item-81 arm.
     /// </summary>
-    /// <param name="health">The member's current health, before the item heals them.</param>
+    /// <param name="barding">The player's Barding skill, read before the practice improves it.</param>
     /// <remarks>
-    /// <b>The worse their state, the grimmer the track</b> — four bands, chosen from health
-    /// <i>before</i> the heal, so the music reflects what you are treating rather than the result.
-    /// It is restored as soon as the dialog closes.
+    /// <b>CORRECTED 2026-08-19. This was written up as a HEALING item keyed on HEALTH, and it is
+    /// neither.</b> The switch it sits in is on the ITEM ID, not the object type, and case 0x51 is
+    /// item 81 — the Practice Lute. The stat it reads is attribute 0xb, which is Barding, not
+    /// Health. So the four bands are not a wounded man's condition getting grimmer; they are how
+    /// well the character can actually play, and a poor musician gets the worse tune.
+    ///
+    /// <para>The previous track is saved and put back as soon as the dialog closes, so the practice
+    /// interrupts whatever was playing rather than replacing it.</para>
     /// </remarks>
-    public static int ForHealingItem(int health) =>
-        health > 0x50 ? 0x3ef
-        : health > 0x41 ? 0x40f
-        : health > 0x2d ? 0x410
+    public static int ForLutePractice(int barding) =>
+        barding > 0x50 ? 0x3ef
+        : barding > 0x41 ? 0x40f
+        : barding > 0x2d ? 0x410
         : 0x3f0;
+
+    /// <summary>The item whose use plays the lute.</summary>
+    public const int PracticeLuteItemId = 81;
+
+    /// <summary>Lowest Barding gain from one practice, in the stat's 1/256 units.</summary>
+    public const int PracticeGainLow = 0x28;
+
+    /// <summary>Highest Barding gain from one practice, in the stat's 1/256 units.</summary>
+    public const int PracticeGainHigh = 0x9f;
+
+    /// <summary>
+    /// <b>The gain is a FRACTION of a skill point, not a whole one.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original passes the roll to the stat modifier unshifted, where every other caller shifts
+    /// by eight to mean whole points — so one practice is worth between about a sixth and
+    /// two-thirds of a point. Shifting it like the others would make the lute train Barding forty
+    /// to a hundred and sixty times too fast.
+    /// </remarks>
+    public static bool PracticeGainIsFractional => true;
 
     /// <summary>Book page whose display number starts <see cref="BookPageTrackA"/>.</summary>
     public const int BookPageA = 0x1d5;
