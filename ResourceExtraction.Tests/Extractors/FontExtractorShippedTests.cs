@@ -44,9 +44,33 @@ public class FontExtractorShippedTests {
         // indexed as a SET rather than addressed by character, which is what a symbol font is.
         // PUZZLE.FNT does the same; GAME and BOOK both start at 32.
         Assert.Equal(0, font.FirstCharacter);
-        Assert.True(font.Glyphs.Max(g => g.Width) <= 16,
-            "no shipped glyph needs more than two bytes a row");
+        // *** AND ITS PIXELS ARE BYTES, NOT BITS. *** Ten bytes a row for a ten-pixel glyph, where
+        // GAME.FNT spends one byte on eight pixels. That is why the stride has to come from the
+        // offset table: read as a bitmask — which its widths alone would suggest — a symbol decodes
+        // to noise that still looks like a drawing went wrong somewhere else.
+        Assert.Equal(FontPixelFormat.Paletted, font.PixelFormat);
         Assert.Contains(font.Glyphs, g => g.Rows.Any(r => r.Any(b => b != 0)));
+    }
+
+    [Theory]
+    [InlineData("GAME.FNT")]
+    [InlineData("BOOK.FNT")]
+    [InlineData("PUZZLE.FNT")]
+    public void TheTextAndPuzzleFontsStayBitmasksDespiteTheirNarrowGlyphs(string name) {
+        string path = Find(name);
+        if (path == null) {
+            return;
+        }
+
+        FontResource font = Read(path, name);
+
+        // *** A ONE-PIXEL GLYPH TAKES ONE BYTE IN EITHER FORMAT. *** BOOK.FNT has two of them and
+        // PUZZLE.FNT 155, so a per-glyph "stride at least the width" rule calls those paletted and
+        // reads a packed byte as a palette index. The font decides for all its glyphs, which is why
+        // these stay bitmasks — no glyph in them has a row too wide to be one.
+        Assert.Equal(FontPixelFormat.Monochrome, font.PixelFormat);
+        Assert.All(font.Glyphs, g => Assert.Equal(FontPixelFormat.Monochrome, g.PixelFormat));
+        Assert.DoesNotContain(font.Glyphs, g => g.StrideExceedsABitmask);
     }
 
     private static FontResource Read(string path, string name) {

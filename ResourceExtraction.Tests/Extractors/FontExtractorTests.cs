@@ -35,13 +35,15 @@ public class FontExtractorTests {
     }
 
     [Fact]
-    public void AGlyphSpendsCeilingOfItsWidthInBytesPerRow() {
-        // The ceiling of the width, not a fixed count — every shipped font needs one or two, and
-        // the rule is stated as the format states it rather than as what this data happens to use.
+    public void TheStrideComesFromTheOffsetTableRatherThanTheWidth() {
+        // A glyph's span divided by the height is its bytes per row, and that is the ONLY thing
+        // that distinguishes a bitmask font from a byte-per-pixel one. GAME.FNT packs eight pixels
+        // into a byte; SPELL.FNT spends a byte on each.
         FontResource font = Extract();
 
-        Assert.Equal(1, font.Glyphs[0].BytesPerRow);   // 8 wide
-        Assert.Equal(2, font.Glyphs[1].BytesPerRow);   // 12 wide
+        Assert.Equal(1, font.Glyphs[0].BytesPerRow);
+        Assert.Equal(2, font.Glyphs[1].BytesPerRow);
+        Assert.Equal(FontPixelFormat.Monochrome, font.PixelFormat);
         Assert.True(font.Glyphs[1].IsSet(11, 0), "the last column of a 12-wide glyph is in byte 1");
     }
 
@@ -52,6 +54,20 @@ public class FontExtractorTests {
         Assert.NotNull(font.GlyphFor(32));
         Assert.Null(font.GlyphFor(31));    // before the first character
         Assert.Null(font.GlyphFor(34));    // past the last
+    }
+
+    [Fact]
+    public void OneGlyphTooWideForABitmaskMakesTHEWHOLEFontPaletted() {
+        // The narrow glyph's stride is one byte either way, so on its own it says nothing; the wide
+        // one cannot be a bitmask and settles the font — including for its narrow neighbour, whose
+        // byte is a palette index and not eight pixels.
+        FontResource font = ExtractPaletted();
+
+        Assert.Equal(FontPixelFormat.Paletted, font.PixelFormat);
+        Assert.All(font.Glyphs, g => Assert.Equal(FontPixelFormat.Paletted, g.PixelFormat));
+        Assert.False(font.Glyphs[0].StrideExceedsABitmask, "one byte for one pixel proves nothing");
+        Assert.Equal(0x6c, font.Glyphs[0].PixelAt(0, 0));
+        Assert.Equal(0x2f, font.Glyphs[1].PixelAt(3, 0));
     }
 
     /// <summary>A two-glyph font: one 8 wide, one 12 wide, three rows each.</summary>
@@ -72,8 +88,8 @@ public class FontExtractorTests {
         w.Write((byte)0);       // compression: none
         w.Write(15u);           // decompressed size, unread — the reader takes the rest
 
-        w.Write((ushort)0);     // offsets, read and discarded
-        w.Write((ushort)0);
+        w.Write((ushort)0);     // offsets: glyph 0 at 0, glyph 1 three rows later
+        w.Write((ushort)3);
         w.Write((byte)8);       // widths
         w.Write((byte)12);
 
@@ -85,5 +101,34 @@ public class FontExtractorTests {
         body.Position = 0;
 
         return new FontExtractor().Extract("TEST.FNT", body);
+    }
+
+    /// <summary>A byte-per-pixel font: one glyph 1 wide, one 4 wide, two rows each.</summary>
+    private static FontResource ExtractPaletted() {
+        var body = new MemoryStream();
+        var w = new BinaryWriter(body);
+        w.Write(new byte[] { (byte)'F', (byte)'N', (byte)'T', 0x3A });
+        w.Write(0u);
+        w.Write((byte)1);
+        w.Write((byte)4);
+        w.Write((byte)2);       // height
+        w.Write((byte)2);
+        w.Write((byte)0);       // first character — a symbol font is indexed from zero
+        w.Write((byte)2);
+        w.Write((ushort)0);
+        w.Write((byte)0);
+        w.Write(10u);
+
+        w.Write((ushort)0);     // glyph 0 spans 2 bytes: 1 byte a row
+        w.Write((ushort)2);     // glyph 1 spans the rest, 8 bytes: 4 bytes a row
+        w.Write((byte)1);       // widths
+        w.Write((byte)4);
+
+        w.Write(new byte[] { 0x6c, 0x00 });
+        w.Write(new byte[] { 0x00, 0x00, 0x00, 0x2f, 0, 0, 0, 0 });
+        w.Flush();
+        body.Position = 0;
+
+        return new FontExtractor().Extract("SYM.FNT", body);
     }
 }

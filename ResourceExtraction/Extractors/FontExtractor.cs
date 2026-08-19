@@ -8,6 +8,7 @@ using ResourceExtraction.Extensions;
 using ResourceExtractor.Compression;
 
 using System.IO;
+using System.Linq;
 using System.Text;
 
 /// <summary>
@@ -54,10 +55,14 @@ public class FontExtractor : ExtractorBase<FontResource> {
             FirstCharacter = firstCharacter,
         };
 
-        // The offset table is read and discarded: the glyph data follows in the same order, so the
-        // offsets only matter to a reader that seeks. Reading them keeps the stream in step.
+        // *** THE OFFSET TABLE IS THE ONLY THING THAT SAYS HOW WIDE A ROW IS. *** A glyph's span
+        // divided by the font's height gives its bytes per row, and that is what tells the two
+        // pixel formats apart: GAME.FNT spends one byte on eight pixels, SPELL.FNT spends one byte
+        // on each. Deriving the stride from the WIDTH instead reads SPELL as a bitmask and produces
+        // noise — its rows are ten bytes for ten pixels.
+        var offsets = new int[glyphCount];
         for (var i = 0; i < glyphCount; i++) {
-            _ = reader.ReadUInt16();
+            offsets[i] = reader.ReadUInt16();
         }
 
         var widths = new int[glyphCount];
@@ -65,15 +70,32 @@ public class FontExtractor : ExtractorBase<FontResource> {
             widths[i] = reader.ReadByte();
         }
 
+        long dataStart = reader.BaseStream.Position;
+        long dataLength = reader.BaseStream.Length - dataStart;
+
         for (var i = 0; i < glyphCount; i++) {
-            var glyph = new FontGlyph { Width = widths[i] };
+            // The last glyph runs to the end of the buffer; every other one to the next offset.
+            long span = (i + 1 < glyphCount ? offsets[i + 1] : dataLength) - offsets[i];
+            var glyph = new FontGlyph {
+                Width = widths[i],
+                BytesPerRow = height > 0 ? (int)(span / height) : 0,
+            };
+
+            reader.BaseStream.Seek(dataStart + offsets[i], SeekOrigin.Begin);
             for (var row = 0; row < height; row++) {
-                // CEIL(width / 8) bytes, most significant bit leftmost. Every shipped font fits in
-                // one or two, so this is only a generalisation of what they need — but it is the
-                // rule the format states, and a mod's font is not bound by what shipped.
                 glyph.Rows.Add(reader.ReadBytes(glyph.BytesPerRow));
             }
             font.Glyphs.Add(glyph);
+        }
+
+        // *** THE FORMAT IS THE FONT'S, NOT A GLYPH'S. *** A narrow glyph's stride is the same
+        // either way — one byte holds one pixel or eight of them — so only a glyph whose row is too
+        // wide to be a bitmask carries any evidence, and one such glyph settles the whole font.
+        // Deciding per glyph reads BOOK.FNT's two one-pixel glyphs, and 155 of PUZZLE.FNT's, as
+        // palette indices in fonts that are bitmasks throughout.
+        if (font.Glyphs.Any(g => g.StrideExceedsABitmask)) {
+            font.PixelFormat = FontPixelFormat.Paletted;
+            font.Glyphs.ForEach(g => g.PixelFormat = FontPixelFormat.Paletted);
         }
 
         return font;
