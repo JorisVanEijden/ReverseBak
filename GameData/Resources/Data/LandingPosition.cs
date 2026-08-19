@@ -16,8 +16,17 @@ namespace GameData.Resources.Data;
 //   4                            → LandingDir4
 //   8                            → LandingDir8
 //
+// CONFIRMED 2026-08-19 against the jump table at 0x7430c: the switch has
+// arms for 2, 4 and 8 only, and 1/3/5/6/7 all fall to the default, which
+// is the same entry direction 1 uses. So five of the eight directions
+// share one landing. Executable form + tests: EncounterAftermath.LandingFor.
+//
 // The directional values look like cardinal-direction bit flags
-// (N=1, E=2, S=4, W=8) but the exact mapping is not yet confirmed.
+// (N=1, E=2, S=4, W=8) but the exact mapping is still not confirmed.
+//
+// For DEF_COMB the direction is measured AFTER the fight, from where the
+// party is standing then — so the landing depends on which side they
+// finished on, not on how they arrived.
 //
 // DEF_TRAP additionally carries a fifth LandingPrimary used when the
 // trap fires without going through the directional switch.
