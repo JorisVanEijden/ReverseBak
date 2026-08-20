@@ -47,6 +47,55 @@ public static class CipherPuzzleLayout {
     public static int ActionIdFor(int column) =>
         column >= 0 && column < MaxColumns ? FirstColumnActionId + column : -1;
 
+    // ---- where the wheels actually sit -----------------------------------------------------
+
+    /// <summary>
+    /// <b>REQ_PUZL's authored column rects are DISCARDED — the screen recomputes them.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>cipher_puzzle_layout_letters</c> walks the page's entries and overwrites each one's rect
+    /// before anything is drawn: a cell sized from the FONT, a row CENTRED on the screen, and a
+    /// fixed <see cref="RowTopVga"/>. The positions in the file are only ever a placeholder — the
+    /// data ships fifteen columns marching from the left edge, and using them puts a short word in
+    /// the top-left corner instead of centred on the chest.
+    ///
+    /// <para>That is what makes the row grow outwards from the middle as the word gets longer,
+    /// which is the whole visual point of the screen.</para>
+    /// </remarks>
+    public static bool AuthoredColumnRectsAreOverwritten => true;
+
+    /// <summary>Padding added to the font's glyph box to get a cell — 6 either way.</summary>
+    public const int CellPaddingVga = 6;
+
+    /// <summary>The gap between one cell and the next — 2.</summary>
+    public const int ColumnGapVga = 2;
+
+    /// <summary>The row's top edge: VGA y 0x57.</summary>
+    /// <remarks>Fixed, and unrelated to whatever the REQ file's entries claim.</remarks>
+    public const int RowTopVga = 0x57;
+
+    /// <summary>How wide the whole row of <paramref name="width"/> cells is.</summary>
+    /// <remarks>
+    /// <c>width * (cell + gap) - gap</c> — the trailing gap is taken back off, so a one-letter word
+    /// spans exactly one cell rather than a cell and a dangling gap.
+    /// </remarks>
+    public static int RowSpan(int width, int cellWidth, int gap) =>
+        (width * (cellWidth + gap)) - gap;
+
+    /// <summary>Where the row starts so that it is centred in <paramref name="containerWidth"/>.</summary>
+    /// <remarks>
+    /// The original halves both terms independently (<c>(w &gt;&gt; 1) - (span &gt;&gt; 1)</c>)
+    /// rather than halving the difference, so where both are odd the result can sit one unit left of
+    /// a true centre. Reproduced rather than tidied: it is the difference between matching the
+    /// original and being a pixel out on some words.
+    /// </remarks>
+    public static int RowStartX(int containerWidth, int rowSpan) =>
+        (containerWidth / 2) - (rowSpan / 2);
+
+    /// <summary>The left edge of one column's cell.</summary>
+    public static int ColumnX(int column, int rowStartX, int cellWidth, int gap) =>
+        rowStartX + (column * (cellWidth + gap));
+
     /// <summary>
     /// Where the glyph's left edge goes inside its column box.
     /// </summary>
