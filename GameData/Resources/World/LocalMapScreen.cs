@@ -264,9 +264,52 @@ public static class LocalMapScreen {
     /// </summary>
     /// <remarks>
     /// <c>drawMap</c> branches on the zone's kind: an underground zone renders the automap recorded
-    /// as the party walks (<c>renderDungeonAutomap</c>) and never runs the 3D pass, so the overhead
-    /// map underground shows only what has been explored. See
-    /// <see cref="ZoneDefinition.IsUnderground"/>.
+    /// as the party walks (<c>renderDungeonAutomap</c>), so the overhead map underground shows only
+    /// what has been explored. See <see cref="ZoneDefinition.IsUnderground"/>.
+    ///
+    /// <para><b>It IS the 3D renderer, restricted — not a 2D map.</b> An earlier version of this
+    /// note said it "never runs the 3D pass"; that is wrong. The function sets up the same camera
+    /// (<c>r3d_camera_setup_view</c>) and draws each surviving entity with the same
+    /// <c>actorrender_entity</c> the world uses. What changes is WHICH entities are drawn and what
+    /// they are drawn against — see <see cref="AutomapDrawsOnlyVisitedEntities"/> and the members
+    /// below it.</para>
     /// </remarks>
     public static bool DrawsDungeonAutomap(bool isUnderground) => isUnderground;
+
+    /// <summary>
+    /// The automap's one filter: an entity is drawn only if its bit is set in
+    /// <see cref="EncounterVisitTable"/> for its tile. Everything else in the zone is simply absent,
+    /// which is what makes an unexplored dungeon empty.
+    /// </summary>
+    public const bool AutomapDrawsOnlyVisitedEntities = true;
+
+    /// <summary>
+    /// The automap draws entities from the zone's <b>map</b> model table (<c>Z##M.TBL</c>), not the
+    /// world one — <c>worldrender_swap_record_table(0, 2)</c> swaps slot 2 in for the duration and
+    /// swaps it back afterwards. Only the three underground zones ship a Z##M.TBL, which is
+    /// corroboration that this path is theirs alone.
+    /// </summary>
+    public const int AutomapModelTableSlot = 2;
+
+    /// <summary>
+    /// Both door shapes draw as a <b>mark</b> rather than as a door
+    /// (<c>worlddoor_rndr_enc_mark_actor</c>), so a mapped doorway reads as an opening instead of
+    /// the leaf that happens to be shut. 0x5c/0x5d are the shut/open pair the door loader swaps
+    /// between, so a door marks the same either way.
+    /// </summary>
+    public static bool AutomapDrawsAsMark(int shapeId) => shapeId == 0x5c || shapeId == 0x5d;
+
+    /// <summary>
+    /// The automap has no sky, ground or horizon: the viewport is filled flat before anything is
+    /// drawn, in the zone's <b>green</b> sky pen with the blue one as the dither colour. Textured
+    /// polygons stay enabled but texture mode is forced to 0 for the pass and restored after.
+    /// </summary>
+    public const bool AutomapFillsAFlatBackground = true;
+
+    /// <summary>
+    /// The centred map icon blitted at the end of the automap is <b>floppy-only</b>
+    /// (<c>#ifndef V102CD</c>). We target the 1.02 CD build, so the automap has no party icon of
+    /// its own — do not add one.
+    /// </summary>
+    public const bool AutomapHasACentredPartyIcon = false;
 }

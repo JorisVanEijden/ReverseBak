@@ -86,7 +86,7 @@ public static class ProximityScan {
     /// this chunk as seen. Both scan functions carry the same call and neither has an encounter
     /// path. The old name came from the buffer's canassa name ("encounter table") and would have
     /// sent an implementer to the wrong system; nothing consumed it but its own tests.
-    /// See <see cref="DungeonAutomap"/>.
+    /// See <see cref="EncounterVisitTable"/> and <see cref="LocalMapScreen.DrawsDungeonAutomap"/>.
     ///
     /// <para><b>Measured on the raw distance, not the culling metric.</b> The entity's size is not
     /// allowed for here, so a large door and a small one record at the same range — deliberately

@@ -153,4 +153,35 @@ public class LocalMapScreenTests {
     public void TheZoomSurvivesClosingTheScreen() {
         Assert.True(LocalMapScreen.ZoomIsRemembered);
     }
+
+    [Fact]
+    public void TheAutomapIsTheThreeDRendererRestricted_NotATwoDMap() {
+        // renderDungeonAutomap sets up the same camera and calls the same actorrender_entity as the
+        // world does; the difference is the filter and the background. An earlier version of the
+        // model said it "never runs the 3D pass", which sent the port the wrong way.
+        Assert.True(LocalMapScreen.DrawsDungeonAutomap(isUnderground: true));
+        Assert.False(LocalMapScreen.DrawsDungeonAutomap(isUnderground: false));
+        Assert.True(LocalMapScreen.AutomapDrawsOnlyVisitedEntities);
+        Assert.True(LocalMapScreen.AutomapFillsAFlatBackground);
+    }
+
+    [Fact]
+    public void BothDoorShapesDrawAsAMark() {
+        // 0x5c/0x5d are the shut/open pair the door loader swaps between, so a mapped doorway reads
+        // as an opening either way rather than as whichever leaf happens to be in place.
+        Assert.True(LocalMapScreen.AutomapDrawsAsMark(0x5c));
+        Assert.True(LocalMapScreen.AutomapDrawsAsMark(0x5d));
+        Assert.False(LocalMapScreen.AutomapDrawsAsMark(0x5b));
+        Assert.False(LocalMapScreen.AutomapDrawsAsMark(0x5e));
+    }
+
+    [Fact]
+    public void TheAutomapHasNoPartyIconOnTheBuildWeTarget() {
+        // The centred blit is inside #ifndef V102CD and we are the CD build. This is asserted
+        // because "the map should show where you are" is exactly the kind of reasonable-sounding
+        // addition that would diverge from the original.
+        Assert.False(LocalMapScreen.AutomapHasACentredPartyIcon);
+        // And it draws from Z##M.TBL, not the world table — the two differ, so this is not cosmetic.
+        Assert.Equal(2, LocalMapScreen.AutomapModelTableSlot);
+    }
 }
