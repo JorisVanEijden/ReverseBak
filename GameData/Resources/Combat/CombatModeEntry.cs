@@ -13,8 +13,21 @@ public static class CombatModeEntry {
     /// </summary>
     /// <remarks>
     /// The arena is not an overlay on the world — the first thing mode entry does is throw the zone
-    /// away. So a port cannot keep the world scene alive underneath and reveal it again on exit; the
-    /// world has to be reloaded, which is why leaving a fight is a load rather than a resume.
+    /// away, and exit loads it back (<see cref="ReloadsTheWorldZoneOnExit"/>).
+    ///
+    /// <para><b>This is a record of what the original DOES, not an instruction to the port.</b> An
+    /// earlier version of this remark said "a port cannot keep the world scene alive underneath";
+    /// that is porting the 1993 ENGINE, not the game. The unload exists because a real-mode DOS
+    /// build could not hold the zone and the arena in memory at once. We have no such constraint,
+    /// and the Unity side deliberately keeps the zone loaded and retargets the camera instead — see
+    /// the "don't rebuild the world for combat" rule in UnityProject/docs/unity-systems-map.md.</para>
+    ///
+    /// <para><b>What would make the difference observable</b>, and therefore what to check before
+    /// relying on resume: anything a zone build derives that is NOT persisted, since a reload would
+    /// reset it and a resume would not. Today the zone's mutable state all comes from the session —
+    /// door flags from globals, dropped bags from container records, automap marks from the visit
+    /// table — so the two are equivalent. Add per-zone runtime state that lives only in the scene
+    /// and that stops being true.</para>
     /// </remarks>
     public static bool UnloadsTheWorldZone => true;
 
@@ -143,9 +156,8 @@ public static class CombatModeEntry {
     /// <b>The world zone is reloaded on the way out.</b>
     /// </summary>
     /// <remarks>
-    /// The mirror of the unload at entry, and the other half of why leaving a fight is a load rather
-    /// than a resume: the world the party returns to is freshly loaded, not the one they left
-    /// suspended.
+    /// The mirror of the unload at entry. Same caveat as <see cref="UnloadsTheWorldZone"/>: this
+    /// records the original's mechanism, and is not a requirement the port has to reproduce.
     /// </remarks>
     public static bool ReloadsTheWorldZoneOnExit => true;
 
