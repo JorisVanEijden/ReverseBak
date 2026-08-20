@@ -112,4 +112,67 @@ public class CombatActionDispatchTests {
     public void AndTheAdvanceSkipsPastEveryoneWhoCannotAct() {
         Assert.True(CombatActionDispatch.AdvanceSkipsIncapacitatedActors);
     }
+
+    [Fact]
+    public void HelpIsAddressedByMenuPositionNotByTheActionId() {
+        // *** The trap this mapping exists for. *** The ids skip 7 and come back to it, while the
+        // help records are unbroken — so any arithmetic on the id is right for the first five
+        // entries and wrong from the sixth on. Spelled out rather than looped, because the whole
+        // point is that the sequence is irregular.
+        Assert.Equal(0xFE, CombatActionDispatch.HelpRecordFor(2));
+        Assert.Equal(0xFF, CombatActionDispatch.HelpRecordFor(3));
+        Assert.Equal(0x100, CombatActionDispatch.HelpRecordFor(4));
+        Assert.Equal(0x101, CombatActionDispatch.HelpRecordFor(5));
+        Assert.Equal(0x102, CombatActionDispatch.HelpRecordFor(6));
+        Assert.Equal(0x103, CombatActionDispatch.HelpRecordFor(8));   // id 8, not id 7
+        Assert.Equal(0x104, CombatActionDispatch.HelpRecordFor(9));
+        Assert.Equal(0x105, CombatActionDispatch.HelpRecordFor(7));   // 7 comes back LAST
+        Assert.Equal(0x106, CombatActionDispatch.HelpRecordFor(50));
+        Assert.Equal(0x10D, CombatActionDispatch.HelpRecordFor(33));  // and the run ends unbroken
+    }
+
+    [Fact]
+    public void IdArithmeticWouldGetItWrong_WhichIsWhyThereIsAMapping() {
+        // If help were HelpRecordBase + (id - 2), id 8 would give 0x104 and id 7 would give 0x103.
+        // Both are the other one's record — a swap that looks plausible on screen.
+        Assert.NotEqual(CombatActionDispatch.HelpRecordBase + (8 - 2), CombatActionDispatch.HelpRecordFor(8));
+        Assert.NotEqual(CombatActionDispatch.HelpRecordBase + (7 - 2), CombatActionDispatch.HelpRecordFor(7));
+        Assert.Equal(CombatActionDispatch.HelpRecordFor(7), CombatActionDispatch.HelpRecordBase + (8 - 2) + 1);
+    }
+
+    [Fact]
+    public void TheFirstEightMenuEntriesAreActorCommandsAndTheRestAreNot() {
+        Assert.Equal(0, CombatActionDispatch.ActorCommandFor(2));
+        Assert.Equal(6, CombatActionDispatch.ActorCommandFor(9));
+        Assert.Equal(7, CombatActionDispatch.ActorCommandFor(7));
+        // 50 flips the menu page; it is a control, not something the actor does.
+        Assert.Equal(-1, CombatActionDispatch.ActorCommandFor(50));
+        Assert.Equal(-1, CombatActionDispatch.ActorCommandFor(33));
+        Assert.Equal(CombatActionDispatch.ActorCommandCount,
+            CombatActionDispatch.MenuActionIds.Length - 8);
+    }
+
+    [Fact]
+    public void AnIdThatIsNotOnTheMenuHasNoPositionAndNoHelp() {
+        Assert.Equal(-1, CombatActionDispatch.MenuPositionOf(1));
+        Assert.Equal(-1, CombatActionDispatch.HelpRecordFor(1));
+        Assert.Equal(-1, CombatActionDispatch.ActorCommandFor(1));
+    }
+
+    [Fact]
+    public void EveryMenuIdIsDistinctAndTheHelpRunIsUnbroken() {
+        var seen = new System.Collections.Generic.HashSet<int>();
+        for (var i = 0; i < CombatActionDispatch.MenuActionIds.Length; i++) {
+            Assert.True(seen.Add(CombatActionDispatch.MenuActionIds[i]), "duplicate action id");
+            Assert.Equal(CombatActionDispatch.HelpRecordBase + i,
+                CombatActionDispatch.HelpRecordFor(CombatActionDispatch.MenuActionIds[i]));
+        }
+    }
+
+    [Fact]
+    public void ALeftClickOnlyStoresTheChoice() {
+        // The dispatcher records selectedMenuCmd and returns; acting on it happens afterwards.
+        // Performing the action in the click handler runs it a step too early.
+        Assert.True(CombatActionDispatch.LeftClickOnlyRecordsTheChoice);
+    }
 }

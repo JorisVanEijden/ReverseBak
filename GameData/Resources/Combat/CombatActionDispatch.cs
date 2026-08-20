@@ -95,6 +95,68 @@ public static class CombatActionDispatch {
     public static bool ThrustSurvivesTheApproach(bool attackerIncapacitatedAfterApproach) =>
         !attackerIncapacitatedAfterApproach;
 
+    /// <summary>
+    /// The combat menu's action ids, <b>in menu order</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The ids are not contiguous and the help records are.</b> The dispatcher's first eight
+    /// branches — commands 0..7, the ones stored on the actor as <c>selectedMenuCmd</c> — come from
+    /// ids <c>2, 3, 4, 5, 6, 8, 9, 7</c>: the run skips 7 and returns to it last, so command 6 is
+    /// id 9 and command 7 is id 7. The remaining ids are menu controls rather than actor commands
+    /// (50 flips the menu page).
+    ///
+    /// <para>Meanwhile the help records run <c>0xFE</c> upwards with no gaps across all sixteen. So
+    /// <b>help is addressed by menu POSITION, never by arithmetic on the action id</b> — anything
+    /// derived from the id lands on the wrong record from the sixth entry onwards. Verified branch
+    /// by branch against <c>combat_arena_show_message_by_id</c>.</para>
+    /// </remarks>
+    public static readonly int[] MenuActionIds =
+        { 2, 3, 4, 5, 6, 8, 9, 7, 50, 19, 31, 46, 32, 47, 30, 33 };
+
+    /// <summary>How many of <see cref="MenuActionIds"/> are actor commands rather than menu controls.</summary>
+    public const int ActorCommandCount = 8;
+
+    /// <summary>First help record, for menu position 0.</summary>
+    public const int HelpRecordBase = 0xFE;
+
+    /// <summary>Menu position of an action id, or -1 if it is not a menu action.</summary>
+    public static int MenuPositionOf(int actionId) {
+        for (var i = 0; i < MenuActionIds.Length; i++) {
+            if (MenuActionIds[i] == actionId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// The help record a right-click on this action plays, or -1 for an id with no menu position.
+    /// </summary>
+    public static int HelpRecordFor(int actionId) {
+        int position = MenuPositionOf(actionId);
+        return position < 0 ? -1 : HelpRecordBase + position;
+    }
+
+    /// <summary>
+    /// The value stored on the actor as its chosen command, or -1 when the id is a menu control
+    /// (like the page flip) rather than something the actor does.
+    /// </summary>
+    public static int ActorCommandFor(int actionId) {
+        int position = MenuPositionOf(actionId);
+        return position >= 0 && position < ActorCommandCount ? position : -1;
+    }
+
+    /// <summary>
+    /// <b>A right-click previews and changes nothing; a left-click only STORES the choice.</b>
+    /// </summary>
+    /// <remarks>
+    /// Every command branch has the same two sides: right-click (<c>menupage_state_0e7c() == 2</c>)
+    /// plays the help record and returns, and left-click writes <c>selectedMenuCmd</c> and returns.
+    /// The choice is acted on after the dispatcher, not inside it — so a port that performs the
+    /// action in the click handler runs it a step too early.
+    /// </remarks>
+    public static bool LeftClickOnlyRecordsTheChoice => true;
+
     /// <summary>What the defend menu action actually does.</summary>
     public enum GuardAction {
         /// <summary>Raise a guard for the round.</summary>
