@@ -13,6 +13,39 @@ namespace GameData.Resources.Character;
 /// <para>Positions are canonical 1600x1200 (VGA x5 across, x6 down), as everywhere else.</para>
 /// </remarks>
 public static class CharacterSheetLayout {
+    // ---- the way in and out ---------------------------------------------------------------
+
+    /// <summary>
+    /// <b>The screen fades in, and does NOT fade out.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>charscreen_info_loop</c> fades the OUTGOING screen to black on entry, blacks the frame,
+    /// loads INVENTOR.PAL at zero intensity, draws the sheet under it, and fades up on the first
+    /// draw only. Leaving does none of that: the loop ends, the saved palette is put back and the
+    /// caller redraws. A port that pairs the fade-in with a matching fade-out on close adds a
+    /// half-second of black the original never shows — the sheet simply vanishes.
+    /// </remarks>
+    public static bool FadesInOnEntryOnly => true;
+
+    /// <summary>
+    /// How long the fade takes: <b>eight frames</b>.
+    /// </summary>
+    /// <remarks>
+    /// <c>palette_fade_out(0, 0x100, 8, 1)</c> walks the palette intensity from 63 down by 8 a step
+    /// — 63, 55, 47, 39, 31, 23, 15, 7 — presenting a frame at each, and the fade in mirrors it. So
+    /// it is counted in FRAMES, not seconds, and it is far snappier than a typical UI fade: eight
+    /// frames is about a seventh of a second, where the full-map screen's own fade is half a second.
+    /// A port that reaches for a comfortable default makes the sheet feel sluggish next to the
+    /// original.
+    /// </remarks>
+    public const int FadeFrames = 8;
+
+    /// <summary>The palette intensity a fade starts from — 63, VGA's full scale.</summary>
+    public const int FadeStartIntensity = 0x3f;
+
+    /// <summary>The intensity step per frame.</summary>
+    public const int FadeIntensityStep = 8;
+
     // ---- the ratings panel ----------------------------------------------------------------
 
     /// <summary>Left edge of the bordered ratings panel — VGA x=84.</summary>

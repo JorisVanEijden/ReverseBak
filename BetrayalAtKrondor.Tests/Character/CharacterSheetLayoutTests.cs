@@ -139,4 +139,24 @@ public class CharacterSheetLayoutTests {
     public void AVineHangsOffTheLeftEdge() =>
         // VGA x=-4. A renderer that clamped it to the screen would shift the piece inward.
         Assert.True(CharacterSheetLayout.Vines(0)[1].X < 0);
+
+    [Fact]
+    public void TheSheetFadesInAndNeverFadesOut() {
+        // charscreen_info_loop fades on entry only: the loop ends, the saved palette goes back and
+        // the caller redraws. Pairing the fade-in with a fade-out on close shows black the original
+        // never shows.
+        Assert.True(CharacterSheetLayout.FadesInOnEntryOnly);
+    }
+
+    [Fact]
+    public void TheFadeIsCountedInFramesAndIsEightOfThem() {
+        // intensity 63 down by 8 a frame -> 63,55,47,39,31,23,15,7 = eight presented frames.
+        Assert.Equal(8, CharacterSheetLayout.FadeFrames);
+        var steps = 0;
+        for (int i = CharacterSheetLayout.FadeStartIntensity; i > 0;
+             i -= CharacterSheetLayout.FadeIntensityStep) {
+            steps++;
+        }
+        Assert.Equal(CharacterSheetLayout.FadeFrames, steps);
+    }
 }
