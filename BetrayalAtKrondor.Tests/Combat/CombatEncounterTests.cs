@@ -177,13 +177,13 @@ public class CombatEncounterTests {
     [Fact]
     public void BeginningARoundMakesEveryoneReadyAgainAndLapsesDefendOrders() {
         Combatant member = Member(5);
-        member.Flags = CombatantFlags.Defending;
+        member.Flags = CombatantFlags.DefendCommand;
         CombatEncounter e = Encounter(new[] { member }, new[] { Enemy(4) });
 
         e.BeginRound();
 
         Assert.True(member.CanAct(strict: true));
-        Assert.Equal(CombatantFlags.None, member.Flags & CombatantFlags.Defending);
+        Assert.Equal(CombatantFlags.None, member.Flags & CombatantFlags.DefendCommand);
     }
 
     [Fact]

@@ -75,9 +75,9 @@ public class CombatActionDispatchTests {
     }
     [Fact]
     public void ANewRoundMakesEveryoneReadyAndClearsTheRoundBit() {
-        CombatantFlags after = CombatActionDispatch.BeginRound(CombatantFlags.ClearedEachRound);
+        CombatantFlags after = CombatActionDispatch.BeginRound(CombatantFlags.DefendCommand);
         Assert.Equal(CombatantFlags.Ready, after & CombatantFlags.Ready);
-        Assert.Equal(CombatantFlags.None, after & CombatantFlags.ClearedEachRound);
+        Assert.Equal(CombatantFlags.None, after & CombatantFlags.DefendCommand);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class CombatActionDispatchTests {
         // Previously modelled as 0x04 — the bit the round reset clears.
         Assert.Equal(0x01, (int)CombatantFlags.Ready);
         Assert.Equal(0x02, (int)CombatantFlags.Dead);
-        Assert.Equal(0x04, (int)CombatantFlags.ClearedEachRound);
+        Assert.Equal(0x04, (int)CombatantFlags.DefendCommand);
         Assert.Equal(0x08, (int)CombatantFlags.Parry);
     }
 

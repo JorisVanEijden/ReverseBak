@@ -23,25 +23,40 @@ public enum CombatantFlags {
     Dead = 0x02,
 
     /// <summary>
-    /// Cleared for every combatant at the start of a round. <b>What it means is not established</b>
-    /// — only that the round reset clears it (<c>80 67 08 fb</c>) — so it is here to reserve the bit
-    /// rather than to be used.
+    /// The Defend command was ordered this round — <c>CAF_DEFEND_CMD</c>. <b>This is the bit the
+    /// round reset clears</b> (<c>flags &amp;= ~CAF_DEFEND_CMD</c>), which is what makes Defend last
+    /// exactly one round.
     /// </summary>
-    ClearedEachRound = 0x04,
+    /// <remarks>
+    /// Was <c>ClearedEachRound</c>, with "what it means is not established". It is established now:
+    /// every value here comes from <c>INCLUDE/defines.h</c>.
+    /// </remarks>
+    DefendCommand = 0x04,
 
-    /// <summary>Parrying — the Defend command. Raises an attacker's roll by 20, and is cleared the
+    /// <summary>Parrying — <c>CAF_PARRY</c>. Raises an attacker's roll by 20, and is cleared the
     /// moment this combatant is picked to act again, so it lasts exactly one round.</summary>
     /// <remarks>0x08, verified: <c>combat_defend</c> @0x64201 sets exactly this bit.</remarks>
     Parry = 0x08,
 
-    /// <summary>Defend was ordered this round (the regen half of Defend, distinct from
-    /// <see cref="Parry"/>).</summary>
-    /// <remarks>Not yet verified against the original's byte; <c>combat_defend</c> sets only
-    /// <see cref="Parry"/>.</remarks>
-    Defending = 0x10,
+    /// <summary>Routed: heading for the edge of the field to leave the battle — <c>CAF_FLEE</c>.</summary>
+    /// <remarks>
+    /// <b>0x10, and this was modelled as 0x20 until 2026-08-22.</b> 0x10 held a speculative
+    /// <c>Defending</c> and 0x20 is really <c>CAF_POISON</c>. Not cosmetic:
+    /// <see cref="CombatEncounter.BeginRound"/> cleared <c>Defending</c> — i.e. this bit — so a
+    /// monster that had decided to rout would have had the decision wiped at the next round
+    /// boundary and gone back to fighting. The round reset clears
+    /// <see cref="DefendCommand"/> and nothing else.
+    /// </remarks>
+    Fleeing = 0x10,
 
-    /// <summary>Routed: heading for the edge of the field to leave the battle.</summary>
-    Fleeing = 0x20,
+    /// <summary>Poisoned — <c>CAF_POISON</c>. Here for the bit; nothing reads it yet.</summary>
+    Poisoned = 0x20,
+
+    /// <summary>Knocked back — <c>CAF_KNOCKBACK</c>. Here for the bit; nothing reads it yet.</summary>
+    Knockback = 0x40,
+
+    /// <summary>Summoned by the AI — <c>CAF_AI_SUMMON</c>. Here for the bit; nothing reads it yet.</summary>
+    AiSummon = 0x80,
 }
 
 /// <summary>

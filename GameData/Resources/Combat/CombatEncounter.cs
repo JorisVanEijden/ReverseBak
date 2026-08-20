@@ -85,7 +85,10 @@ public sealed class CombatEncounter {
     public void BeginRound() {
         foreach (Combatant c in AllCombatants()) {
             c.Flags |= CombatantFlags.Ready;
-            c.Flags &= ~CombatantFlags.Defending;
+            // combatenc_refresh_actor_flags clears CAF_DEFEND_CMD and nothing else. This used to
+            // clear "Defending", which was numbered 0x10 — the FLEE bit — so a routing monster had
+            // its decision wiped every round and never left the field.
+            c.Flags &= ~CombatantFlags.DefendCommand;
             if (c.Target != null && c.Target.IsDead) {
                 c.Target = null;
             }

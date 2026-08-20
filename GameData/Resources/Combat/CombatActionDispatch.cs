@@ -213,7 +213,7 @@ public static class CombatActionDispatch {
     /// </summary>
     /// <remarks>
     /// Three things per actor, and only three: <see cref="CombatantFlags.Ready"/> is set,
-    /// <see cref="CombatantFlags.ClearedEachRound"/> is cleared, and a target that has been put out
+    /// <see cref="CombatantFlags.DefendCommand"/> is cleared, and a target that has been put out
     /// of the fight is dropped.
     ///
     /// <para><b>Parry is not touched here.</b> It is cleared when a combatant is next picked to act,
@@ -221,7 +221,7 @@ public static class CombatActionDispatch {
     /// a distinction that matters for anyone acting late in the round after the defender.</para>
     /// </remarks>
     public static CombatantFlags BeginRound(CombatantFlags flags) =>
-        (flags | CombatantFlags.Ready) & ~CombatantFlags.ClearedEachRound;
+        (flags | CombatantFlags.Ready) & ~CombatantFlags.DefendCommand;
 
     /// <summary>
     /// <b>A stale target is dropped at the round boundary, not when it falls.</b>
