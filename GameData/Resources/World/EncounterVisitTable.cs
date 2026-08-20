@@ -30,7 +30,7 @@ namespace GameData.Resources.World;
 /// it twice.</para>
 ///
 /// <para><b>It is save state.</b> The original reads and writes it to <c>TEMP.GAM</c> at
-/// <see cref="SaveOffset"/>, so the marks survive saving and loading. In the shipped
+/// <see cref="BodyOffset"/>, so the marks survive saving and loading. In the shipped
 /// <c>STARTUP.GAM</c> all 120 coordinate bytes are 0xff and the flags are clear — verified in the
 /// data — so every slot starts free.</para>
 /// </summary>
@@ -51,12 +51,25 @@ public sealed class EncounterVisitTable {
     public const byte FreeMarker = 0xff;
 
     /// <summary>
-    /// Offset of the block in the save body, and its size (<c>0x668</c> = 40×3 + 40×38). The offset
-    /// is <c>sizeof(GameState)</c>, which the shipped STARTUP.GAM pins at 0xb3b.
+    /// Offset of the block <b>within the save body</b> — <c>GAM_ENCOUNTER_TABLE</c>, defined as
+    /// <c>sizeof(GameState)</c>, so the table sits immediately after the game-state block.
+    ///
+    /// <para><b>Do not confuse this with where the block appears in a SAVE##.GAM FILE.</b> A save
+    /// file is a 100-byte header followed by the body, so the same block is at
+    /// <see cref="FileOffset"/> = 0xb3b there while TEMP.GAM — which is the bare body — has it at
+    /// 0xad7. Everything in this class works on the body. Confirmed empirically rather than
+    /// derived: a free table is 120 bytes of <see cref="FreeMarker"/>, and that run sits at 0xb3b
+    /// in STARTUP.GAM/SAVE##.GAM and at 0xad7 in TEMP.GAM.</para>
     /// </summary>
-    public const int SaveOffset = 0xb3b;
+    public const int BodyOffset = 0xad7;
 
-    /// <inheritdoc cref="SaveOffset"/>
+    /// <summary>
+    /// Where the block starts in a SAVE##.GAM <b>file</b>, i.e. past the 100-byte save header.
+    /// Provided so the two are not silently interchanged; the writer patches the body.
+    /// </summary>
+    public const int FileOffset = 0xb3b;
+
+    /// <summary>Size of the block: <c>0x668</c> = 40×3 + 40×38.</summary>
     public const int SaveSize = 0x668;
 
     private readonly byte[] _x = new byte[Capacity];
@@ -86,7 +99,7 @@ public sealed class EncounterVisitTable {
     /// by the per-slot flag bitmaps — <c>xCoord[40]</c>, <c>yCoord[40]</c>, <c>zCoord[40]</c>,
     /// <c>flags[40][38]</c>, which is exactly <see cref="SaveSize"/>.
     /// </summary>
-    public void Load(byte[] body, int offset = SaveOffset) {
+    public void Load(byte[] body, int offset = BodyOffset) {
         if (body == null || offset < 0 || offset + SaveSize > body.Length) {
             Reset();
             return;
@@ -102,7 +115,7 @@ public sealed class EncounterVisitTable {
     }
 
     /// <summary>Write the block back into a save body, inverse of <see cref="Load"/>.</summary>
-    public bool Save(byte[] body, int offset = SaveOffset) {
+    public bool Save(byte[] body, int offset = BodyOffset) {
         if (body == null || offset < 0 || offset + SaveSize > body.Length) {
             return false;
         }

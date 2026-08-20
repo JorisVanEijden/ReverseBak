@@ -6,6 +6,7 @@ using System.Text;
 using GameData;
 using GameData.Resources.Character;
 using GameData.Resources.Data;
+using GameData.Resources.World;
 
 /// <summary>Result of writing a save: the full SAVE##.GAM bytes + which body bytes we authored.</summary>
 public readonly record struct SaveGameWriteResult(byte[] Bytes, SaveCoverage Coverage);
@@ -24,7 +25,8 @@ public static class SaveGameWriter {
         string name, short headerWorldX, short headerWorldY, short mapIcon,
         IReadOnlyList<DirtyContainerEdit> containerEdits = null,
         IReadOnlyList<DirtyActorEdit> actorEdits = null,
-        IReadOnlyList<SaveGameTimerData> timers = null) {
+        IReadOnlyList<SaveGameTimerData> timers = null,
+        EncounterVisitTable automapVisits = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -62,6 +64,14 @@ public static class SaveGameWriter {
         PatchI32(SaveGameOffsets.PositionY, fields.PositionY);
         PatchI32(SaveGameOffsets.PositionZ, fields.PositionZ);
         PatchI16(SaveGameOffsets.Rotation, fields.Rotation);
+
+        // The dungeon automap's marks. The block is written whole rather than per-mark because
+        // that is how the original does it too (gstate_temp_file_write_at over the entire 0x668),
+        // and because a mark is a bit in a bitmap the party keeps adding to — there is no smaller
+        // unit to patch. Body offset, not the 0xb3b a save FILE shows: see EncounterVisitTable.
+        if (automapVisits != null && automapVisits.Save(body, EncounterVisitTable.BodyOffset)) {
+            coverage.Add(EncounterVisitTable.BodyOffset, EncounterVisitTable.SaveSize);
+        }
 
         if (containerEdits != null) {
             foreach (DirtyContainerEdit edit in containerEdits) {

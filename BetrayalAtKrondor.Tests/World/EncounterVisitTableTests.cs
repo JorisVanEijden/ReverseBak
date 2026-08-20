@@ -126,7 +126,7 @@ public class EncounterVisitTableTests {
 
     [Fact]
     public void ItSurvivesARoundTripThroughASaveBody() {
-        var body = new byte[EncounterVisitTable.SaveOffset + EncounterVisitTable.SaveSize];
+        var body = new byte[EncounterVisitTable.BodyOffset + EncounterVisitTable.SaveSize];
         var written = new EncounterVisitTable();
         written.MarkSeen(11, 13, 9, 0);
         written.MarkSeen(11, 13, 9, EncounterVisitTable.MaxEntityIndex);
@@ -161,5 +161,53 @@ public class EncounterVisitTableTests {
         table.Load(new byte[4]);
         Assert.Equal(0, table.UsedSlots);
         Assert.False(table.Save(new byte[4]));
+    }
+
+    [Fact]
+    public void TheBlockSitsWhereWeSayItDoesInTheSHIPPEDFiles() {
+        // *** The test that matters, and the one a round-trip cannot replace. *** Load/Save are
+        // symmetric, so they agree with each other even when the offset is wrong — which it was:
+        // 0xb3b is where the block lands in a SAVE##.GAM FILE (past the 100-byte header), not in
+        // the body, and using it as a body offset read 100 bytes into the wrong field.
+        //
+        // A free table is 120 bytes of 0xff (three coordinate arrays) followed by cleared flags, so
+        // the shipped files can be asked directly. TEMP.GAM is the bare body; STARTUP.GAM is the
+        // same body behind a save header.
+        byte[]? temp = ReadGameFile("TEMP.GAM");
+        byte[]? startup = ReadGameFile("STARTUP.GAM");
+        if (temp == null || startup == null) {
+            return; // skip-if-absent, like the other game-data tests
+        }
+
+        Assert.Equal(startup.Length - temp.Length, EncounterVisitTable.FileOffset - EncounterVisitTable.BodyOffset);
+        AssertFreeTableAt(temp, EncounterVisitTable.BodyOffset, "TEMP.GAM (body)");
+        AssertFreeTableAt(startup, EncounterVisitTable.FileOffset, "STARTUP.GAM (file)");
+
+        // And a new game really does start with every slot free.
+        var table = new EncounterVisitTable();
+        table.Load(temp);
+        Assert.Equal(0, table.UsedSlots);
+    }
+
+    private static void AssertFreeTableAt(byte[] data, int offset, string what) {
+        for (var i = 0; i < EncounterVisitTable.Capacity * 3; i++) {
+            Assert.True(data[offset + i] == EncounterVisitTable.FreeMarker,
+                $"{what}: expected a free-slot marker at +{i} of the block at 0x{offset:x}");
+        }
+        // The byte before must NOT be a marker, or the block could start anywhere in a longer run.
+        Assert.NotEqual(EncounterVisitTable.FreeMarker, data[offset - 1]);
+        Assert.NotEqual(EncounterVisitTable.FreeMarker, data[offset + (EncounterVisitTable.Capacity * 3)]);
+    }
+
+    private static byte[]? ReadGameFile(string name) {
+        var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+        while (dir != null) {
+            string candidate = System.IO.Path.Combine(dir.FullName, "OriginalGame", name);
+            if (System.IO.File.Exists(candidate)) {
+                return System.IO.File.ReadAllBytes(candidate);
+            }
+            dir = dir.Parent;
+        }
+        return null;
     }
 }

@@ -104,4 +104,54 @@ public class SaveGameWriterTests {
         }
         return false;
     }
+
+    [Fact]
+    public void TheAutomapBlockIsWrittenIntoTheBodyAndReadsBack() {
+        byte[] body = PatternBody();
+        var visits = new GameData.Resources.World.EncounterVisitTable();
+        visits.MarkSeen(11, 13, 9, 42);
+        visits.MarkSeen(12, 2, 3, 299);    // the highest index a 300-record tile can produce
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, FieldsFrom(body), "Slot A", 40, 41, 3, automapVisits: visits);
+        byte[] outBody = r.Bytes[SaveGameOffsets.HeaderSize..];
+
+        var reloaded = new GameData.Resources.World.EncounterVisitTable();
+        reloaded.Load(outBody);
+        Assert.True(reloaded.HasSeen(11, 13, 9, 42));
+        Assert.True(reloaded.HasSeen(12, 2, 3, 299));
+
+        // It lands in the body, so in the FILE it appears past the 100-byte header — the confusion
+        // that made the first cut of this read the wrong 0x668 bytes.
+        Assert.Equal(GameData.Resources.World.EncounterVisitTable.FileOffset,
+            SaveGameOffsets.HeaderSize + GameData.Resources.World.EncounterVisitTable.BodyOffset);
+    }
+
+    [Fact]
+    public void ATableLoadedFromAFullBlockDropsNewMarks() {
+        // Not a contrivance — the pattern body has no free slots (a free one is three 0xff bytes),
+        // so loading it yields the full table the model documents. The original has no eviction, so
+        // the forty-first tile is simply never recorded, and this is what that looks like from the
+        // outside. Discovered by writing the test above against a pattern body and watching it drop.
+        byte[] body = PatternBody();
+        var visits = new GameData.Resources.World.EncounterVisitTable();
+        visits.Load(body);
+
+        Assert.Equal(GameData.Resources.World.EncounterVisitTable.Capacity, visits.UsedSlots);
+        Assert.False(visits.MarkSeen(11, 13, 9, 42));
+        Assert.False(visits.HasSeen(11, 13, 9, 42));
+    }
+
+    [Fact]
+    public void WithoutAnAutomapTableTheBlockIsPassedThroughUntouched() {
+        // Every other save path must stay byte-identical, including the block we now know how to
+        // write — passing no table means "leave whatever the backing body had".
+        byte[] body = PatternBody();
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "Slot A", 40, 41, 3);
+        byte[] outBody = r.Bytes[SaveGameOffsets.HeaderSize..];
+
+        int at = GameData.Resources.World.EncounterVisitTable.BodyOffset;
+        int size = GameData.Resources.World.EncounterVisitTable.SaveSize;
+        Assert.Equal(body[at..(at + size)], outBody[at..(at + size)]);
+    }
 }
