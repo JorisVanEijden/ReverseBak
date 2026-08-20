@@ -88,4 +88,12 @@ public class PaletteMappingTests {
         Assert.Null(PaletteMapping.GetPaletteFor("ACTIONA.BMP"));
         Assert.NotEqual("ACT01.PAL", PaletteMapping.GetPaletteFor("ACT01A.BMP"));
     }
+
+    [Fact]
+    public void MapiconsFallsBackToTheUiPaletteBecauseItHasNoneOfItsOwn() {
+        // MAPICONS.PAL is not in the archive; without this the same-name fallback asks for it and
+        // the overhead map's party marker resolves to a null sprite.
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("MAPICONS.BMX"));
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("MAPICONS.BMX", 4));
+    }
 }

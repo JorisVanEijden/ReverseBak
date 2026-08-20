@@ -39,8 +39,8 @@ public class OverheadMapMarkerTests {
 
     [Fact]
     public void TheMarkerIsCENTREDOnTheViewportNotCornered() {
-        // The original's -4 / -3 is half of an 8x6 sprite, so this is centring rather than two magic
-        // numbers — a port with a different icon size centres that instead.
+        // The original's -4 / -3 is half of the sheet's 8x7 icon (C truncates 7 / 2 to 3), so this is
+        // centring rather than two magic numbers — a port with a different icon size centres that.
         (int width, int height) = OverheadMapMarker.ImpliedIconSize;
         (int x, int y) = OverheadMapMarker.TopLeftFor(
             viewportX: 13, viewportY: 11, viewportWidth: 294, viewportHeight: 101,
@@ -55,6 +55,38 @@ public class OverheadMapMarkerTests {
         (int x, int y) = OverheadMapMarker.TopLeftFor(0, 0, 100, 100, iconWidth: 20, iconHeight: 10);
         Assert.Equal(40, x);
         Assert.Equal(45, y);
+    }
+
+    [Fact]
+    public void ATurningMapAlwaysDrawsIconZeroWhateverTheHeading() {
+        // The default branch adds no index to the sheet pointer, so the heading is in the camera and
+        // the icon never changes. Picking the direction here as well would turn the party twice.
+        Assert.Equal(0, OverheadMapMarker.IconIndexFor(0x4000, northUp: false));
+        Assert.Equal(0, OverheadMapMarker.IconIndexFor(0xc000, northUp: false));
+        Assert.Equal(OverheadMapMarker.FixedArrowIndex,
+            OverheadMapMarker.IconIndexFor(0x1234, northUp: false));
+    }
+
+    [Fact]
+    public void NorthUpPutsTheHeadingIntoTheIcon() {
+        Assert.Equal(4, OverheadMapMarker.IconIndexFor(0x4000, northUp: true));
+        Assert.Equal(12, OverheadMapMarker.IconIndexFor(0xc000, northUp: true));
+        // ... and the camera is then held at north, so the two halves never both turn.
+        Assert.Equal(0, LocalMapScreen.MapRendersWithYaw(0x4000, northUp: true));
+    }
+
+    [Fact]
+    public void TheFixedArrowIsTheSHEETSNorthIconNotAGraphicOfItsOwn() {
+        Assert.Equal(OverheadMapMarker.FixedArrowIndex, OverheadMapMarker.DirectionFor(0));
+    }
+
+    [Fact]
+    public void TheSheetTurnsTheOppositeWayToScreenRotation() {
+        // 0 = N, 4 = W, 8 = S, 12 = E, read off MAPICONS.BMX. A port that rotates one sprite by
+        // +yaw instead of indexing the sheet mirrors the marker everywhere except due N and S.
+        Assert.True(OverheadMapMarker.SheetRunsAnticlockwise);
+        Assert.Equal(4, OverheadMapMarker.IconIndexFor(
+            OverheadMapMarker.StepSize * 4, northUp: true));
     }
 
     [Fact]

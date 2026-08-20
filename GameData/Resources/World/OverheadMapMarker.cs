@@ -17,6 +17,14 @@ namespace GameData.Resources.World;
 ///
 /// <para>The yaw is saved and put back around the render, so this changes what is drawn and never
 /// where the party is standing. See <see cref="LocalMapScreen.MapRendersWithYaw"/>.</para>
+///
+/// <para><b>Both branches centre the icon on the viewport; only the icon differs.</b> They reach it
+/// by different routes, which is what makes it look like two rules. North-up blits the direction's
+/// icon itself and does its own centring (the -4 / -3 below). The turning map hands icon 0 to the
+/// scaling blit at 0x0400 &gt;&gt; 10 — exactly 1:1 — and that routine subtracts half the scaled size
+/// before drawing, so the centring is done for it and no offset appears at the call site. A port
+/// reading only the call sites would conclude the default marker is drawn corner-first at the
+/// centre, and place it half an icon down and to the right.</para>
 /// </remarks>
 public static class OverheadMapMarker {
     /// <summary>The icon sheet the marker comes from.</summary>
@@ -42,6 +50,24 @@ public static class OverheadMapMarker {
     public const int StepSize = 0x10000 / Directions;
 
     /// <summary>
+    /// The icon a heading draws: the direction under north-up, the fixed arrow otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The whole choice, in the form a renderer wants it — the two branches of <c>drawMap</c>
+    /// differ in nothing else that a caller can see.
+    /// </remarks>
+    public static int IconIndexFor(int yaw, bool northUp) =>
+        northUp ? DirectionFor(yaw) : FixedArrowIndex;
+
+    /// <summary>The icon the turning map always draws: 0, the north arrow.</summary>
+    /// <remarks>
+    /// Not a separate "you are here" graphic — the default branch pushes the sheet's base pointer
+    /// with no index added, so it draws the same icon north-up uses for due north. It reads as a
+    /// fixed arrow because the world beneath it has already been turned.
+    /// </remarks>
+    public const int FixedArrowIndex = 0;
+
+    /// <summary>
     /// Whether the marker's icon carries the heading, or the map's rotation does.
     /// </summary>
     /// <remarks>
@@ -64,11 +90,28 @@ public static class OverheadMapMarker {
         (viewportX + (viewportWidth / 2) - (iconWidth / 2),
             viewportY + (viewportHeight / 2) - (iconHeight / 2));
 
-    /// <summary>The icon size the original's own offsets imply: 8 x 6.</summary>
+    /// <summary>The icon size: 8 x 7 VGA pixels, as the sheet actually holds them.</summary>
     /// <remarks>
-    /// Derived from the -4 / -3 nudge rather than read from the sheet, and recorded as a check on
-    /// whatever <c>mapicons.bmp</c> turns out to hold: a port whose icon is a different size should
-    /// centre it, not reproduce the numbers.
+    /// Measured from MAPICONS.BMX (40 x 42 extracted, i.e. 8 x 7 before the x5 / x6 aspect scale),
+    /// not inferred. The original's -4 / -3 agrees with it: C truncates 7 / 2 to 3, so a half-height
+    /// of 3 is what an 8 x 7 sprite gives. An earlier reading took the -3 at face value and called
+    /// the sheet 8 x 6, which is one row short of what is there.
+    ///
+    /// <para>Kept as a check on the sheet rather than as coordinates to reproduce: a port centres
+    /// the icon it actually loaded (<see cref="TopLeftFor"/>), which is why being one off here never
+    /// moved anything.</para>
     /// </remarks>
-    public static (int Width, int Height) ImpliedIconSize => (8, 6);
+    public static (int Width, int Height) ImpliedIconSize => (8, 7);
+
+    /// <summary>
+    /// <b>The sheet runs anticlockwise from north</b> — 0 = N, 4 = W, 8 = S, 12 = E.
+    /// </summary>
+    /// <remarks>
+    /// Which is the engine's own yaw direction, so indexing the sheet with
+    /// <see cref="DirectionFor"/> needs no correction. It matters to a port that draws the marker by
+    /// ROTATING one arrow sprite instead of picking from the sheet: screen rotation is clockwise, so
+    /// that port needs the negated angle. Feeding it +yaw mirrors the marker about the north-south
+    /// axis, which is correct at exactly N and S and wrong at the fourteen headings in between.
+    /// </remarks>
+    public static bool SheetRunsAnticlockwise => true;
 }

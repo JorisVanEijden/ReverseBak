@@ -93,6 +93,13 @@ public static class PaletteMapping {
             "INT_LGHT" => "INT_DYN.PAL",
             "INT_MENU" => "INT_MENU.PAL",
             "INVENTOR" => "INVENTOR.PAL",
+            // The overhead map's party marker (drawMap @0x21711). MAPICONS.PAL does not exist —
+            // resource_loadZoneDataFiles loads mapicons.bmp with no palette of its own, so it draws
+            // under whatever is installed. Harmless to pin to OPTIONS.PAL: the two pens the arrows use
+            // (107 and 43) hold the same RGB in OPTIONS.PAL and in all twelve Z##.PAL, so the marker is
+            // the same colour whichever is active. Without an entry the same-name fallback asks for a
+            // MAPICONS.PAL that is not in the archive and the marker resolves to a null sprite.
+            "MAPICONS" => "OPTIONS.PAL",
             "OPTIONS0" => "OPTIONS.PAL",
             "OPTIONS1" => "OPTIONS.PAL",
             "OPTIONS2" => "OPTIONS.PAL",
