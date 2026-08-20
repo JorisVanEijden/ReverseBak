@@ -123,4 +123,43 @@ public class EncounterVisitTableTests {
             + (EncounterVisitTable.Capacity * EncounterVisitTable.FlagBytesPerSlot),
             EncounterVisitTable.SaveSize);
     }
+
+    [Fact]
+    public void ItSurvivesARoundTripThroughASaveBody() {
+        var body = new byte[EncounterVisitTable.SaveOffset + EncounterVisitTable.SaveSize];
+        var written = new EncounterVisitTable();
+        written.MarkSeen(11, 13, 9, 0);
+        written.MarkSeen(11, 13, 9, EncounterVisitTable.MaxEntityIndex);
+        written.MarkSeen(12, 1, 2, 137);
+        Assert.True(written.Save(body));
+
+        var read = new EncounterVisitTable();
+        read.Load(body);
+        Assert.Equal(2, read.UsedSlots);
+        Assert.True(read.HasSeen(11, 13, 9, 0));
+        Assert.True(read.HasSeen(11, 13, 9, EncounterVisitTable.MaxEntityIndex));
+        Assert.True(read.HasSeen(12, 1, 2, 137));
+        Assert.False(read.HasSeen(11, 13, 9, 1));
+        Assert.False(read.HasSeen(11, 9, 13, 0)); // x/y are not interchangeable
+    }
+
+    [Fact]
+    public void TheBlockIsExactlyTheSizeItsLayoutAccountsFor() {
+        // Three coordinate arrays plus the flag bitmaps. If this drifts, Load/Save would silently
+        // read a neighbouring field of the save.
+        Assert.Equal(EncounterVisitTable.SaveSize,
+            (EncounterVisitTable.Capacity * 3)
+            + (EncounterVisitTable.Capacity * EncounterVisitTable.FlagBytesPerSlot));
+        // 38 bytes of flags is 304 bits, which covers the 300-record cap a WLD tile can hold.
+        Assert.True(EncounterVisitTable.MaxEntityIndex >= 299);
+    }
+
+    [Fact]
+    public void ATooShortBodyResetsRatherThanReadingRubbish() {
+        var table = new EncounterVisitTable();
+        table.MarkSeen(11, 13, 9, 0);
+        table.Load(new byte[4]);
+        Assert.Equal(0, table.UsedSlots);
+        Assert.False(table.Save(new byte[4]));
+    }
 }

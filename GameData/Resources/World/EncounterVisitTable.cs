@@ -81,6 +81,42 @@ public sealed class EncounterVisitTable {
         }
     }
 
+    /// <summary>
+    /// Read the block out of a save body. The layout is three parallel coordinate arrays followed
+    /// by the per-slot flag bitmaps — <c>xCoord[40]</c>, <c>yCoord[40]</c>, <c>zCoord[40]</c>,
+    /// <c>flags[40][38]</c>, which is exactly <see cref="SaveSize"/>.
+    /// </summary>
+    public void Load(byte[] body, int offset = SaveOffset) {
+        if (body == null || offset < 0 || offset + SaveSize > body.Length) {
+            Reset();
+            return;
+        }
+
+        System.Array.Copy(body, offset, _x, 0, Capacity);
+        System.Array.Copy(body, offset + Capacity, _y, 0, Capacity);
+        System.Array.Copy(body, offset + (Capacity * 2), _z, 0, Capacity);
+        int flagBase = offset + (Capacity * 3);
+        for (var i = 0; i < Capacity; i++) {
+            System.Array.Copy(body, flagBase + (i * FlagBytesPerSlot), _flags[i], 0, FlagBytesPerSlot);
+        }
+    }
+
+    /// <summary>Write the block back into a save body, inverse of <see cref="Load"/>.</summary>
+    public bool Save(byte[] body, int offset = SaveOffset) {
+        if (body == null || offset < 0 || offset + SaveSize > body.Length) {
+            return false;
+        }
+
+        System.Array.Copy(_x, 0, body, offset, Capacity);
+        System.Array.Copy(_y, 0, body, offset + Capacity, Capacity);
+        System.Array.Copy(_z, 0, body, offset + (Capacity * 2), Capacity);
+        int flagBase = offset + (Capacity * 3);
+        for (var i = 0; i < Capacity; i++) {
+            System.Array.Copy(_flags[i], 0, body, flagBase + (i * FlagBytesPerSlot), FlagBytesPerSlot);
+        }
+        return true;
+    }
+
     /// <summary>Slots currently holding a tile.</summary>
     public int UsedSlots {
         get {
@@ -101,8 +137,8 @@ public sealed class EncounterVisitTable {
     /// <returns>
     /// False when nothing was recorded. <b>A full table silently drops the mark</b> — the original
     /// has no eviction, so once forty tiles are remembered, proximity on a forty-first is simply
-    /// never noted and its encounters can fire repeatedly. Reproduced rather than "fixed" with an
-    /// LRU, which would change which encounters repeat.
+    /// never noted and nothing on it is ever drawn on the dungeon automap. Reproduced rather than
+    /// "fixed" with an LRU, which would change which parts of a long dungeon the map remembers.
     /// </returns>
     public bool MarkSeen(byte zone, byte tileX, byte tileY, int entityIndex) {
         if (entityIndex < 0 || entityIndex > MaxEntityIndex) {
