@@ -288,6 +288,19 @@ public static class LocalMapScreen {
     /// world one — <c>worldrender_swap_record_table(0, 2)</c> swaps slot 2 in for the duration and
     /// swaps it back afterwards. Only the three underground zones ship a Z##M.TBL, which is
     /// corroboration that this path is theirs alone.
+    ///
+    /// <para><b>The map table is a SIMPLIFIED variant, and its gaps are deliberate.</b> The two
+    /// tables are parallel — same 173 indices — but carry different models at different indices,
+    /// and measured across every placement in the shipped WLDs: under the world table nothing is
+    /// unmodelled, while under the map table 40 (Z10) / 36 (Z11) / 68 (Z12) placements have no
+    /// model at all. So an entity can be visited and still not appear on the automap, because the
+    /// map table simply has nothing to draw for it. Treat a null map entry as "omitted", not as a
+    /// missing-asset bug.</para>
+    ///
+    /// <para>An earlier note here had this backwards — it read the first dozen indices, saw nulls
+    /// on the world side, and concluded a world-model automap would be near-empty. Those indices
+    /// are never placed. The measurement above is over actual placements, which is the only version
+    /// of the question that means anything.</para>
     /// </summary>
     public const int AutomapModelTableSlot = 2;
 
