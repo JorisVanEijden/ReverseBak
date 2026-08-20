@@ -38,6 +38,21 @@ public static class SaveGameOffsets {
     // constants below are pinned by round-trip tests rather than trusted.
     public const int TimerPoolCount = 1458;   // Int16, how many of the 20 slots are live
     public const int TimerPool = 1460;        // 20 slots of {type u8, mode u8, key i16, time i32}
+
+    /// <summary>
+    /// Int16 — <c>wPalEventMask</c>, which overworld spell palette effects are running.
+    /// </summary>
+    /// <remarks>
+    /// Immediately after the 160-byte timer pool, per <c>gstate.inc</c>: <c>nTimerEventPoolCount</c>
+    /// (1458), <c>aTimerEventPool</c> (1460, 160 bytes), then this. Corroborated by its neighbours
+    /// in the shipped saves — 1622/1624 are <c>nSpellMenuCasterSlot</c>/<c>nSpellMenuPreselect</c>,
+    /// which read a real party slot and spell in the played saves and exactly the -1/-1 sentinel
+    /// <c>SAVEGAME.C</c> writes on a new game.
+    ///
+    /// <para>The parser already reads this word as
+    /// <c>SaveGameLightingStateData.ActiveSpellTimerFlags</c>; this constant is for the writer.</para>
+    /// </remarks>
+    public const int PaletteEventMask = 1620;
     public const int TimerStride = 8;
     public const int TimerSlots = 20;
 

@@ -57,6 +57,10 @@ public static class SaveGameWriter {
         PatchI32(SaveGameOffsets.PartyGold, fields.PartyGold);
         PatchI32(SaveGameOffsets.GameTime, fields.GameTime);
         PatchI32(SaveGameOffsets.TimeSnapshot, fields.TimeSnapshot);
+        // Which spell palette effects are running. Derived from the timer pool every tick, but the
+        // original stores it too — so a save restored mid-effect shows it at once instead of waiting
+        // for the clock to move, which on a stationary party is a long time.
+        PatchI16(SaveGameOffsets.PaletteEventMask, fields.PaletteEventMask);
         PatchU8(SaveGameOffsets.CurrentZone, fields.CurrentZone);
         PatchU8(SaveGameOffsets.WorldX, fields.WorldX);
         PatchU8(SaveGameOffsets.WorldY, fields.WorldY);

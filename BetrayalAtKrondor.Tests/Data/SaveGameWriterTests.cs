@@ -25,6 +25,7 @@ public class SaveGameWriterTests {
         PartyGold: BitConverter.ToInt32(body, SaveGameOffsets.PartyGold),
         GameTime: BitConverter.ToInt32(body, SaveGameOffsets.GameTime),
         TimeSnapshot: BitConverter.ToInt32(body, SaveGameOffsets.TimeSnapshot),
+        PaletteEventMask: BitConverter.ToInt16(body, SaveGameOffsets.PaletteEventMask),
         CurrentZone: body[SaveGameOffsets.CurrentZone],
         WorldX: body[SaveGameOffsets.WorldX],
         WorldY: body[SaveGameOffsets.WorldY],
@@ -87,12 +88,12 @@ public class SaveGameWriterTests {
     public void Coverage_CountsExactlyTheModeledScalarBytes() {
         byte[] body = PatternBody();
         SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
-        // chapter2 + gold4 + time4 + snapshot4 + zone1 + worldX1 + worldY1
-        // + posX4 + posY4 + posZ4 + rot2 = 31.
+        // chapter2 + gold4 + time4 + snapshot4 + palEventMask2 + zone1 + worldX1 + worldY1
+        // + posX4 + posY4 + posZ4 + rot2 = 33.
         // Scalars only — this call passes no container/actor/timer edits, which are covered
         // separately. Raise this number deliberately as more of the block is modelled; that is
         // what makes coverage growth visible rather than accidental.
-        const int ModelledScalarBytes = 31;
+        const int ModelledScalarBytes = 33;
         Assert.Equal(ModelledScalarBytes, r.Coverage.AuthoredBytes);
         Assert.Equal(SaveGameOffsets.BodySize, r.Coverage.TotalBodyBytes);
         Assert.Equal(SaveGameOffsets.BodySize - ModelledScalarBytes, r.Coverage.PassthroughBytes);
@@ -153,5 +154,33 @@ public class SaveGameWriterTests {
         int at = GameData.Resources.World.EncounterVisitTable.BodyOffset;
         int size = GameData.Resources.World.EncounterVisitTable.SaveSize;
         Assert.Equal(body[at..(at + size)], outBody[at..(at + size)]);
+    }
+
+    [Fact]
+    public void ThePaletteEventMaskRoundTripsAtTheOffsetGstateGivesIt() {
+        // wPalEventMask sits immediately after the 160-byte timer pool. Pinned against the body so
+        // a shift in the pool's size cannot move it silently.
+        Assert.Equal(SaveGameOffsets.TimerPool + (8 * 20), SaveGameOffsets.PaletteEventMask);
+
+        byte[] body = PatternBody();
+        SaveGameFields fields = FieldsFrom(body) with { PaletteEventMask = 0x0105 };
+        SaveGameWriteResult r = SaveGameWriter.Write(body, fields, "C", 40, 41, 3);
+        byte[] outBody = r.Bytes[SaveGameOffsets.HeaderSize..];
+
+        Assert.Equal(0x0105, BitConverter.ToInt16(outBody, SaveGameOffsets.PaletteEventMask));
+    }
+
+    [Fact]
+    public void ThePaletteMaskIsWhatTheParserCallsActiveSpellTimerFlags() {
+        // The parser already read this word — as the LIGHTING block's first field. Naming it that
+        // is why the save looked as though it did not carry the palette mask at all.
+        byte[] body = PatternBody();
+        SaveGameFields fields = FieldsFrom(body) with { PaletteEventMask = 0x00A0 };
+        SaveGameWriteResult r = SaveGameWriter.Write(body, fields, "C", 40, 41, 3);
+
+        SaveGame reloaded = new SaveGameExtractor().Extract(
+            "SAVE.GAM", new MemoryStream(r.Bytes));
+
+        Assert.Equal((short)0x00A0, reloaded.Data!.StateData.LightingStateData.ActiveSpellTimerFlags);
     }
 }

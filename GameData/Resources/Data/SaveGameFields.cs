@@ -9,6 +9,7 @@ public readonly record struct SaveGameFields(
     int PartyGold,
     int GameTime,
     int TimeSnapshot,
+    short PaletteEventMask,
     byte CurrentZone,
     byte WorldX,
     byte WorldY,
