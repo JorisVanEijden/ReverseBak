@@ -174,11 +174,12 @@ public class LocalMapScreenTests {
     }
 
     [Fact]
-    public void TheAutomapHasNoPartyIconOnTheBuildWeTarget() {
-        // The centred blit is inside #ifndef V102CD and we are the CD build. This is asserted
-        // because "the map should show where you are" is exactly the kind of reasonable-sounding
-        // addition that would diverge from the original.
-        Assert.False(LocalMapScreen.AutomapHasACentredPartyIcon);
+    public void TheAutomapCarriesThePartyMarkerLikeTheWorldMapDoes() {
+        // The #ifndef V102CD blit INSIDE renderDungeonAutomap reads as "no icon on the CD build",
+        // but the CD build hoisted the blit into the caller, where it sits after the game-mode
+        // switch and therefore runs for the automap too. Asserted the right way round after the
+        // rendered screen showed a marker and prompted the re-read.
+        Assert.True(LocalMapScreen.AutomapHasACentredPartyIcon);
         // And it draws from Z##M.TBL, not the world table — the two differ, so this is not cosmetic.
         Assert.Equal(2, LocalMapScreen.AutomapModelTableSlot);
     }

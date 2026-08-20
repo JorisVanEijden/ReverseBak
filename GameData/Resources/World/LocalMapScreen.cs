@@ -330,9 +330,23 @@ public static class LocalMapScreen {
     public const bool AutomapFillsAFlatBackground = true;
 
     /// <summary>
-    /// The centred map icon blitted at the end of the automap is <b>floppy-only</b>
-    /// (<c>#ifndef V102CD</c>). We target the 1.02 CD build, so the automap has no party icon of
-    /// its own — do not add one.
+    /// <b>The automap DOES carry the party marker on the build we target</b>, drawn by the same
+    /// shared path as the world map — so <see cref="OverheadMapMarker"/>'s rules (including the
+    /// north-up directional icon) apply underground unchanged.
     /// </summary>
-    public const bool AutomapHasACentredPartyIcon = false;
+    /// <remarks>
+    /// Easy to get backwards, and I did. <c>renderDungeonAutomap</c> ends with a centred blit
+    /// guarded by <c>#ifndef V102CD</c>, which reads as "no icon on the CD build". But the CD build
+    /// did not drop the icon — it HOISTED it: in the caller (canassa R3D/SCENE/WORLDHIT.C) the blit
+    /// sits AFTER the <c>g_game_mode</c> switch, so it runs for the automap (mode 2) exactly as it
+    /// runs for the world (modes 0 and 1). The floppy build's copy inside the automap function is
+    /// the same icon, drawn a layer deeper.
+    ///
+    /// <para>The caller also picks between the two forms the marker takes: with the non-rotating
+    /// (north-up) map option it blits <c>mapIcons[(yaw + 0x800) &gt;&gt; 12]</c> — the directional
+    /// arrow — and otherwise the single centred icon. That is the same branch
+    /// <see cref="OverheadMapMarker.IconIndexFor"/> already models, which is why nothing special is
+    /// needed underground.</para>
+    /// </remarks>
+    public const bool AutomapHasACentredPartyIcon = true;
 }
