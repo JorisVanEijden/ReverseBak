@@ -45,19 +45,51 @@ public static class CombatModeEntry {
         combatMusicEnabled ? SongFor(rollUnder3) : NoSong;
 
     /// <summary>
-    /// <b>Table A is the NPC roster and table B is the party — at entry.</b>
+    /// <b>Table A is the PARTY and table B is the monster roster — always, not just at entry.</b>
     /// </summary>
     /// <remarks>
-    /// Mode entry assigns them explicitly: the monster roster into A with its count, the party's
-    /// seven slots into B with theirs. They are then <i>swapped</i> for whichever side is acting —
-    /// which is why routines that a party member can trigger call the swap first, and why the same
-    /// scan means "my allies" or "the enemy" depending on who is taking the turn.
+    /// <b>Corrected 2026-08-20; this said the opposite.</b> The two tables are filled from
+    /// unambiguous sources: A is copied straight out of the save's active party
+    /// (<c>actors_A[i] = characters[activeParty[i]]</c>), and B is read from the ENCOUNTER roster —
+    /// creature types, monster names, and a stamina top-up scaled by how long ago the encounter was
+    /// last fought. Neither is ever refilled from the other.
     ///
-    /// <para>This resolves what the monster AI could not settle from its own code: a monster's heal
-    /// scans table A, and A is its own side, so it really is healing its fellows. The target picker
-    /// scans table B, which is the party — the enemy — as it should be.</para>
+    /// <para><b>What went wrong is worth keeping, because the same trap is everywhere in this
+    /// subsystem: the ARRAYS are the sides, the POINTERS are the roles.</b> Mode entry aims a pair
+    /// of pointers at the tables ("the acting side" / "the other side"), and a swap re-aims them
+    /// whenever the turn changes hands. Almost all combat code — the monster AI included — reads the
+    /// POINTERS, so a scan that means "my allies" during a monster's turn means "the party" during
+    /// a party member's. The earlier reading took the AI's heal scan as evidence that table A was
+    /// the monsters' own side; the scan is through the pointer, so it is evidence about the acting
+    /// side and says nothing about which array is which.</para>
+    ///
+    /// <para>The behavioural conclusions drawn from it still hold — a monster's heal does reach its
+    /// fellows, and the target picker does reach the enemy — because those go through the pointers.
+    /// Only the statement about the arrays was inverted, and nothing consumed it yet.</para>
+    ///
+    /// <para>It matters for anything that touches an array directly, which is where side identity is
+    /// fixed: <see cref="PartyMembersLeaveCombatAlive"/> is exactly such a rule.</para>
     /// </remarks>
-    public static bool TableAIsTheNpcRosterAtEntry => true;
+    public static bool TableAIsThePartyRoster => true;
+
+    /// <summary>
+    /// <b>A party member cannot die in combat.</b>
+    /// </summary>
+    /// <remarks>
+    /// The teardown walks table A — the party — and any actor whose health has fallen below 1 leaves
+    /// the encounter rewritten to <b>1 health and 0 stamina</b> rather than dead. Party death is not
+    /// a combat outcome, so a port that lets the encounter kill a member has invented a rule.
+    ///
+    /// <para>It reads the ARRAY, not the acting-side pointer, which is why the correction above
+    /// matters: through the pointer this loop would restore whichever side happened to be acting.</para>
+    /// </remarks>
+    public static bool PartyMembersLeaveCombatAlive => true;
+
+    /// <summary>The health a downed party member leaves combat on.</summary>
+    public const int DownedPartyMemberHealth = 1;
+
+    /// <summary>The stamina a downed party member leaves combat on.</summary>
+    public const int DownedPartyMemberStamina = 0;
 
     /// <summary>Actor slots each side has.</summary>
     public const int SideSlots = 7;

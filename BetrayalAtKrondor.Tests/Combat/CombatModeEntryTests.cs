@@ -40,7 +40,11 @@ public class CombatModeEntryTests {
     public void TableAIsTheMonstersAndTableBIsTheParty() {
         // Which is what makes a monster's heal scan its own side and the target picker scan the
         // party.
-        Assert.True(CombatModeEntry.TableAIsTheNpcRosterAtEntry);
+        // Corrected 2026-08-20: this asserted the opposite. Table A is copied from the save's
+        // active party; table B is read from the encounter roster (creature types, monster names).
+        // The earlier reading mistook the AI's heal scan — which goes through the ACTING-SIDE
+        // POINTER, not the array — for evidence about which array is which.
+        Assert.True(CombatModeEntry.TableAIsThePartyRoster);
     }
 
     [Fact]
@@ -84,5 +88,14 @@ public class CombatModeEntryTests {
         Assert.Equal("spell weakness/resistance tables", CombatModeEntry.TeardownOrder[0]);
         Assert.Equal("world zone (reloaded)",
             CombatModeEntry.TeardownOrder[CombatModeEntry.TeardownOrder.Length - 1]);
+    }
+
+    [Fact]
+    public void APartyMemberCannotDieInCombat() {
+        // The teardown walks table A — the party — and rewrites anyone below 1 health to 1 health,
+        // 0 stamina. A port that lets the encounter kill a member has invented a rule.
+        Assert.True(CombatModeEntry.PartyMembersLeaveCombatAlive);
+        Assert.Equal(1, CombatModeEntry.DownedPartyMemberHealth);
+        Assert.Equal(0, CombatModeEntry.DownedPartyMemberStamina);
     }
 }
