@@ -28,6 +28,12 @@ public class MonsterStats : IResource
     public StatRange SpellcastPattern { get; set; } = new();   // file field 8 (was "AttackPattern")  — caster AI, gated by canCastSpells
     public StatRange CrossbowPattern { get; set; } = new();    // file field 9 (was "DefensePattern") — ranged AI, gated by combat_canShootCrossbow
     public StatRange MeleeMovePattern { get; set; } = new();   // file field 10 (was "MovementPattern") — default melee/move AI
+    /// <summary>
+    /// The creature's rout tendency, consumed by <see cref="Combat.MonsterMorale"/>.
+    /// <b>Higher means MORE likely to run, and 0 means never</b> — the opposite of what the name
+    /// reads like, because the flee index is computed as <c>8 - value</c> and a larger index is the
+    /// calm end of the threshold table. MONST19 and MONST28 ship {0, 0}: fearless.
+    /// </summary>
     public StatRange FleeThreshold { get; set; } = new();
     public ResourceType Type => ResourceType.DAT;
     public string Id { get; }
