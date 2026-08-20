@@ -29,6 +29,36 @@ public static class MusicPlayback {
     /// <summary>Volume a freshly started track is set to.</summary>
     public const int FullVolume = 0x7f;
 
+    /// <summary>
+    /// How long the fade before a stop or a switch lasts, in seconds.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived, not chosen.</b> <see cref="FadeWaitTicks"/> is how long the original waits for
+    /// the driver's fade to finish, in the game's own tick unit, and
+    /// <see cref="Config.DialogTextSpeed.TicksPerSecond"/> is what that unit is worth — the PIT
+    /// frequency over the reload value. <c>PicklockDrop</c> converts a delay the same way.
+    ///
+    /// <para><see cref="FadeRate"/> is the rate handed to the DOS driver and has no meaning outside
+    /// it, so a port cannot use it directly; the observable behaviour is "the outgoing track takes
+    /// about this long to reach silence".</para>
+    /// </remarks>
+    public static double FadeSeconds => FadeWaitTicks / Config.DialogTextSpeed.TicksPerSecond;
+
+    /// <summary>
+    /// The outgoing track's volume part-way through the fade, as a fraction of
+    /// <see cref="FullVolume"/> — 1 at the start, 0 at or past <see cref="FadeSeconds"/>.
+    /// </summary>
+    public static double FadeVolumeFractionAt(double elapsedSeconds) {
+        if (elapsedSeconds <= 0) {
+            return 1.0;
+        }
+        double total = FadeSeconds;
+        if (total <= 0 || elapsedSeconds >= total) {
+            return 0.0;
+        }
+        return 1.0 - (elapsedSeconds / total);
+    }
+
     /// <summary>What a request resolves to.</summary>
     public enum MusicAction {
         /// <summary>Nothing happens — a query, a repeat of what is already playing, or no driver.</summary>

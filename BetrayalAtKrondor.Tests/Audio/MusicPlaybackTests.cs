@@ -86,4 +86,40 @@ public class MusicPlaybackTests {
         Assert.False(MusicPlayback.IsAudible(false));
         Assert.Equal(MusicPlayback.MusicAction.Switch, MusicPlayback.Resolve(1042, 1026).Action);
     }
+
+    [Fact]
+    public void TheFadeLengthIsDerivedFromTheTickRate_NotChosen() {
+        // FadeWaitTicks is how long the original waits for the driver's fade, in game ticks;
+        // DialogTextSpeed.TicksPerSecond is what a tick is worth. About a second and a half.
+        Assert.Equal(
+            MusicPlayback.FadeWaitTicks / GameData.Resources.Config.DialogTextSpeed.TicksPerSecond,
+            MusicPlayback.FadeSeconds, 6);
+        Assert.InRange(MusicPlayback.FadeSeconds, 1.0, 2.5);
+    }
+
+    [Fact]
+    public void TheFadeRunsFromFullToSilenceAndStaysThere() {
+        Assert.Equal(1.0, MusicPlayback.FadeVolumeFractionAt(0), 6);
+        Assert.Equal(1.0, MusicPlayback.FadeVolumeFractionAt(-1), 6);
+        Assert.Equal(0.5, MusicPlayback.FadeVolumeFractionAt(MusicPlayback.FadeSeconds / 2), 3);
+        Assert.Equal(0.0, MusicPlayback.FadeVolumeFractionAt(MusicPlayback.FadeSeconds), 6);
+        Assert.Equal(0.0, MusicPlayback.FadeVolumeFractionAt(MusicPlayback.FadeSeconds * 10), 6);
+    }
+
+    [Fact]
+    public void TheFadeIsMonotonic() {
+        double previous = 2.0;
+        for (var step = 0; step <= 20; step++) {
+            double v = MusicPlayback.FadeVolumeFractionAt(MusicPlayback.FadeSeconds * step / 20.0);
+            Assert.True(v <= previous, $"volume rose at step {step}");
+            previous = v;
+        }
+    }
+
+    [Fact]
+    public void NothingPlayingMeansNothingToFade() {
+        // Which is why the first track of a session starts without a preceding fade.
+        Assert.False(MusicPlayback.NeedsFadeOut(MusicPlayback.NoTrack));
+        Assert.True(MusicPlayback.NeedsFadeOut(1042));
+    }
 }
