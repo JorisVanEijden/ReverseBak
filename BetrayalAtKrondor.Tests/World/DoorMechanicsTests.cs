@@ -129,8 +129,10 @@ public class DoorMechanicsTests {
     /// </summary>
     [Fact]
     public void TheShutShapeIsTheOneThatBlocks() {
-        Assert.Equal(0x5d, DoorMechanics.ShapeFor(false));
-        Assert.Equal(0x5c, DoorMechanics.ShapeFor(true));
+        // Open is the shape WITH the GID region, because a region is ground you can stand on and a
+        // miss is what blocks the move — not the other way round. See ClosedShapeId.
+        Assert.Equal(0x5c, DoorMechanics.ShapeFor(false));
+        Assert.Equal(0x5d, DoorMechanics.ShapeFor(true));
         Assert.NotEqual(DoorMechanics.ShapeFor(true), DoorMechanics.ShapeFor(false));
     }
 

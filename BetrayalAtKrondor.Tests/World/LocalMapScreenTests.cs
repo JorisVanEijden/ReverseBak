@@ -166,13 +166,11 @@ public class LocalMapScreenTests {
     }
 
     [Fact]
-    public void BothDoorShapesDrawAsAMark() {
-        // 0x5c/0x5d are the shut/open pair the door loader swaps between, so a mapped doorway reads
-        // as an opening either way rather than as whichever leaf happens to be in place.
-        Assert.True(LocalMapScreen.AutomapDrawsAsMark(0x5c));
-        Assert.True(LocalMapScreen.AutomapDrawsAsMark(0x5d));
-        Assert.False(LocalMapScreen.AutomapDrawsAsMark(0x5b));
-        Assert.False(LocalMapScreen.AutomapDrawsAsMark(0x5e));
+    public void DoorsAreNotSpecialOnTheAutomap() {
+        // worlddoor_rndr_enc_mark_actor is the door path in ALL THREE render passes, not an automap
+        // rule — and it draws the door, not a mark. Claiming otherwise would have had the port
+        // inventing a marker sprite that does not exist.
+        Assert.True(LocalMapScreen.AutomapTreatsDoorsLikeEveryOtherPassDoes);
     }
 
     [Fact]

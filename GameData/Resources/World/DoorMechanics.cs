@@ -96,24 +96,44 @@ public static class DoorMechanics {
     public const int TouchSound = 0x30;
 
     /// <summary>
-    /// Shape id of a shut door — <c>m_doorgi</c>, the one that BLOCKS.
+    /// Shape id of a shut door — <c>m_door</c>, the one with NO GID region.
     /// </summary>
     /// <remarks>
-    /// <b>The two door shapes are not two pictures; they are the same picture with and without
-    /// collision.</b> Entities 0x5c (<c>m_door</c>) and 0x5d (<c>m_doorgi</c>) have identical
-    /// geometry in every zone that carries them — same 25 meshes, same vertex pool, same eight
-    /// swing frames. They differ in exactly one thing: 0x5d has a GID region (XRadius 80, YRadius
-    /// 800) and 0x5c has none. "gi" is the GID.
+    /// <b>The two door shapes are not two pictures; they are the same picture with and without a
+    /// GID region.</b> Entities 0x5c (<c>m_door</c>) and 0x5d (<c>m_doorgi</c>) have identical
+    /// geometry in every zone that carries them — same meshes, same vertex pool, same eight swing
+    /// frames. They differ in exactly one thing: 0x5d has a GID region (XRadius 80, YRadius 800)
+    /// and 0x5c has none. The visible swing is not the shape — it is the flip-book frame the state
+    /// word's low bits select.
     ///
-    /// <para>So the shut door is the solid one and the open door is the one you can walk through,
-    /// and the visible swing is not the shape at all — it is the flip-book frame the state word's
-    /// low bits select. An earlier reading had these the other way round, which let the party walk
-    /// through shut doors and be stopped by open ones.</para>
+    /// <para><b>A GID region is GROUND, not a blocker — which is what makes 0x5d the OPEN one.</b>
+    /// The proximity scan asks "is there authored ground under the destination", and a MISS is what
+    /// stops the move (collision spec §2.3/§2.4; <see cref="WorldEntityType.Door"/> is a walkable
+    /// kind). So the shape carrying a region is the one you can walk through, and the shape with
+    /// none is the one you cannot. An open doorway gives you floor; a shut door gives you nothing
+    /// to stand on.</para>
+    ///
+    /// <para><b>These two constants were the wrong way round until 2026-08-21</b>, on the reasoning
+    /// that "0x5d has a region, so 0x5d is the solid one" — which reads a GID as a collider and is
+    /// backwards for this engine. Three independent places in the original say otherwise, and they
+    /// agree with each other: <c>worlddoor_load_door_records</c> sets shapeId 0x5d when the door's
+    /// open flag is set and 0x5c when it is clear; <c>worlddoor_rndr_enc_mark_actor</c> re-derives
+    /// the shape from the same <see cref="OpenBit"/>; and the click handler in WCURSOR.C treats a
+    /// set flag as open (it plays <see cref="OpenDoorDescriptionDialog"/>, refuses to close from
+    /// inside <see cref="CloseBlockedRange"/>, and animates the swing frames 7→0 while CLEARING the
+    /// flag). The 800 in that refusal is the open shape's own YRadius: you cannot pull a door shut
+    /// while standing in the doorway it gives you.</para>
+    ///
+    /// <para>Corroborated by the shipped data: every authored door placement in Z10/Z11/Z12 is
+    /// 0x5c (22 + 5 + 52, and zero of 0x5d), and <c>worlddoor_pref_slots_clear_all</c> zeroes every
+    /// door flag — so a dungeon's doors all start SHUT, which is only true if 0x5c is the shut one.
+    /// </para>
     /// </remarks>
-    public const int ClosedShapeId = 0x5d;
+    public const int ClosedShapeId = 0x5c;
 
-    /// <summary>Shape id of an open door — <c>m_door</c>, the one with no GID region.</summary>
-    public const int OpenShapeId = 0x5c;
+    /// <summary>Shape id of an open door — <c>m_doorgi</c>, the one whose GID region is the floor
+    /// of the doorway. <inheritdoc cref="ClosedShapeId" path="/remarks"/></summary>
+    public const int OpenShapeId = 0x5d;
 
     /// <summary>
     /// Highest door id. <c>worlddoor_pref_slots_clear_all</c> clears flags for 0..255, which is

@@ -292,12 +292,22 @@ public static class LocalMapScreen {
     public const int AutomapModelTableSlot = 2;
 
     /// <summary>
-    /// Both door shapes draw as a <b>mark</b> rather than as a door
-    /// (<c>worlddoor_rndr_enc_mark_actor</c>), so a mapped doorway reads as an opening instead of
-    /// the leaf that happens to be shut. 0x5c/0x5d are the shut/open pair the door loader swaps
-    /// between, so a door marks the same either way.
+    /// <b>Doors are NOT special on the automap.</b> They go through the door render path
+    /// (<c>worlddoor_rndr_enc_mark_actor</c>) here exactly as they do in the world and chapter
+    /// passes — all three dispatch on the same two shape ids. An earlier version of this model
+    /// claimed doors "draw as a mark" only on the automap; that is wrong twice over, because the
+    /// function is shared AND because it does not draw a mark: it renders the entity with
+    /// <c>actorrender_entity</c> like everything else, having re-derived the shape from
+    /// <see cref="DoorMechanics.OpenBit"/>, taken a colour index from the low three bits of the
+    /// door's state word, and forced <c>orientation.pitch</c> to 0 for the draw.
+    ///
+    /// <para>The pitch is zeroed because for a door that field does not hold an angle at all — the
+    /// zone loader parks the interact-message flags there (the lock id the pick-lock screen reads).
+    /// Drawing without zeroing it would tilt the door by its lock. Harmless on the shipped data,
+    /// where every door placement in Z10/Z11/Z12 has zero pitch, but a mod that authored one would
+    /// expose it.</para>
     /// </summary>
-    public static bool AutomapDrawsAsMark(int shapeId) => shapeId == 0x5c || shapeId == 0x5d;
+    public const bool AutomapTreatsDoorsLikeEveryOtherPassDoes = true;
 
     /// <summary>
     /// The automap has no sky, ground or horizon: the viewport is filled flat before anything is
