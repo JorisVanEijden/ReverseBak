@@ -95,7 +95,7 @@ public class CombatAiTests {
             At(4, 0),
         };
 
-        Assert.Equal(1, CombatAi.SelectTarget(0, 0, candidates, 10, TargetRole.Anyone, minPartyClearance: 2));
+        Assert.Equal(1, CombatAi.SelectTarget(0, 0, candidates, 10, TargetRole.Anyone, minAllyClearance: 2));
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class CombatAiTests {
             new TargetCandidate { X = 1, Y = 0, AlliesNearby = 5, StaminaPercent = 100 },
         };
 
-        Assert.Equal(0, CombatAi.SelectTarget(0, 0, candidates, 10, TargetRole.Anyone, minPartyClearance: 0));
+        Assert.Equal(0, CombatAi.SelectTarget(0, 0, candidates, 10, TargetRole.Anyone, minAllyClearance: 0));
     }
 
     [Fact]

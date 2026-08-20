@@ -128,11 +128,22 @@ public static class CombatAi {
     /// </summary>
     /// <param name="maxDistance">Chebyshev search radius. Each acceptance tightens it, which is what
     /// makes the result the nearest match rather than the last one scanned.</param>
-    /// <param name="minPartyClearance">A candidate with any ally within this distance is skipped, so
-    /// monsters prefer stragglers to someone standing in the line.</param>
+    /// <param name="minAllyClearance">
+    /// A candidate is skipped when any of <b>the monsters' own side</b> already stands within this
+    /// distance of it — so the pack spreads its attention across targets instead of converging on
+    /// one.
+    ///
+    /// <para><b>It is the MONSTERS' positions that disqualify a target, not the party's.</b>
+    /// <c>combatenc_party_within_cheby</c> scans the B array, which is the encounter roster; its
+    /// canassa name says "party" and is wrong, in the usual way. An earlier version of this remark
+    /// said monsters "prefer stragglers to someone standing in the line", which reads as the party's
+    /// own clustering mattering and would have had a caller fill
+    /// <see cref="TargetCandidate.AlliesNearby"/> from the wrong side. That field's own doc had it
+    /// right.</para>
+    /// </param>
     public static int SelectTarget(
         int fromX, int fromY, IReadOnlyList<TargetCandidate> candidates,
-        int maxDistance, TargetRole role, int minPartyClearance) {
+        int maxDistance, TargetRole role, int minAllyClearance) {
         var chosen = -1;
         if (candidates == null) {
             return chosen;
@@ -147,7 +158,7 @@ public static class CombatAi {
             }
             // The clearance test uses the caller-supplied count; a 0 clearance disables it, matching
             // the original's early-out inside combatenc_party_within_cheby.
-            if (minPartyClearance != 0 && candidate.AlliesNearby != 0) {
+            if (minAllyClearance != 0 && candidate.AlliesNearby != 0) {
                 continue;
             }
             if (!MatchesRole(candidate, role)) {
