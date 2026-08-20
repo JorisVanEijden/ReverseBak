@@ -28,14 +28,14 @@ public class ProximityScanTests {
     [Fact]
     public void OnlyTheLevelConnectionKindsCanRaiseAnEncounter() {
         // 14, the pit (15), the tunnel (20) and the door (23) — where you arrive or leave.
-        Assert.True(ProximityScan.CanRaiseEncounter(0xe));
-        Assert.True(ProximityScan.CanRaiseEncounter(0xf));
-        Assert.True(ProximityScan.CanRaiseEncounter(0x14));
-        Assert.True(ProximityScan.CanRaiseEncounter(0x17));
+        Assert.True(ProximityScan.AppearsOnAutomap(0xe));
+        Assert.True(ProximityScan.AppearsOnAutomap(0xf));
+        Assert.True(ProximityScan.AppearsOnAutomap(0x14));
+        Assert.True(ProximityScan.AppearsOnAutomap(0x17));
 
         // Participating, but never an encounter.
         Assert.True(ProximityScan.Participates(7));
-        Assert.False(ProximityScan.CanRaiseEncounter(7));
+        Assert.False(ProximityScan.AppearsOnAutomap(7));
     }
 
     [Fact]
@@ -80,19 +80,19 @@ public class ProximityScanTests {
 
     [Fact]
     public void RoamingEncountersAreCheckedUndergroundOnly() {
-        Assert.True(ProximityScan.TriggersEncounter(0xf, 100, Underground, true));
-        Assert.False(ProximityScan.TriggersEncounter(0xf, 100, Outdoors, true));
+        Assert.True(ProximityScan.RecordsOnAutomap(0xf, 100, Underground, true));
+        Assert.False(ProximityScan.RecordsOnAutomap(0xf, 100, Outdoors, true));
     }
 
     [Fact]
     public void TheEncounterRangeIsFixedAtSixteenHundred() {
-        Assert.True(ProximityScan.TriggersEncounter(0xf, 0x63f, Underground, true));
-        Assert.False(ProximityScan.TriggersEncounter(0xf, 0x640, Underground, true));
+        Assert.True(ProximityScan.RecordsOnAutomap(0xf, 0x63f, Underground, true));
+        Assert.False(ProximityScan.RecordsOnAutomap(0xf, 0x640, Underground, true));
     }
 
     [Fact]
     public void NoEncounterTableMeansNoCheck() {
-        Assert.False(ProximityScan.TriggersEncounter(0xf, 100, Underground, hasEncounterTable: false));
+        Assert.False(ProximityScan.RecordsOnAutomap(0xf, 100, Underground, hasAutomapRecord: false));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class ProximityScanTests {
         // Deliberately different from the visibility test beside it: the encounter range is measured
         // on the RAW distance, so a large door and a small one trigger at the same range.
         const long distance = 0x600;
-        Assert.True(ProximityScan.TriggersEncounter(0x17, distance, Underground, true));
+        Assert.True(ProximityScan.RecordsOnAutomap(0x17, distance, Underground, true));
 
         // The same entity may well be culled from the visible list at that distance.
         Assert.False(ProximityScan.IsVisible(0x17, distance, radius: 0, shift: 0,
@@ -109,6 +109,6 @@ public class ProximityScanTests {
 
     [Fact]
     public void AParticipatingKindThatCannotRaiseAnEncounterNeverDoes() {
-        Assert.False(ProximityScan.TriggersEncounter(7, 10, Underground, true));
+        Assert.False(ProximityScan.RecordsOnAutomap(7, 10, Underground, true));
     }
 }

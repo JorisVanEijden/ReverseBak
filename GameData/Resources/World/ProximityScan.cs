@@ -23,15 +23,15 @@ public static class ProximityScan {
     public const int AlwaysVisibleThreshold = 1;
 
     /// <summary>
-    /// How near the party must be for the roaming-encounter check to fire, in world units.
+    /// How near the party must pass for an entity to be written onto the automap, in world units.
     /// </summary>
-    public const int EncounterProximityRange = 0x640;
+    public const int AutomapProximityRange = 0x640;
 
     /// <summary>
-    /// The zone kind roaming encounters are checked in — the enclosed/underground one.
-    /// <b>The proximity encounter check never runs outdoors.</b>
+    /// The zone kind the automap records in — the enclosed/underground one.
+    /// <b>Nothing is recorded outdoors</b>, which is why the overworld map has no explored state.
     /// </summary>
-    public const int EncounterZoneKind = ZoneDefinition.UndergroundZoneLocation;
+    public const int AutomapZoneKind = ZoneDefinition.UndergroundZoneLocation;
 
     /// <summary>
     /// Whether an entity kind takes part in the scan at all. Anything outside this set is skipped
@@ -42,14 +42,13 @@ public static class ProximityScan {
         || kind == 0x14 || kind == 0x17 || kind == 0x26 || kind == 0x27;
 
     /// <summary>
-    /// The kinds that can raise a roaming encounter: 14, the pit (15), the tunnel (20) and the
-    /// door (23).
+    /// The kinds the automap records: 14, the pit (15), the tunnel (20) and the door (23).
     ///
     /// <para>They are the <b>level-connection features</b> — the places you arrive at or leave
-    /// through — which is where a wandering group is worth checking for. It is not the whole
+    /// through — which is exactly what a dungeon plan is worth drawing. It is not the whole
     /// participating set.</para>
     /// </summary>
-    public static bool CanRaiseEncounter(int kind) =>
+    public static bool AppearsOnAutomap(int kind) =>
         kind == 0xe || kind == 0xf || kind == 0x14 || kind == 0x17;
 
     /// <summary>
@@ -78,17 +77,25 @@ public static class ProximityScan {
     }
 
     /// <summary>
-    /// Whether passing this entity fires the roaming-encounter check.
+    /// Whether passing this entity writes it onto the dungeon automap.
     /// </summary>
     /// <remarks>
-    /// <b>Measured on the raw distance, not the culling metric.</b> The entity's size is not
-    /// allowed for here, so a large door and a small one trigger at the same range — deliberately
-    /// different from the visibility test alongside it.
+    /// <b>Renamed 2026-08-20; this was called <c>TriggersEncounter</c> and it raises no encounter.</b>
+    /// The condition it models sits in the proximity scan's loop and its body is
+    /// <c>rec_prox(&amp;list-&gt;bZone, i)</c> — the automap recorder, marking entity <c>i</c> of
+    /// this chunk as seen. Both scan functions carry the same call and neither has an encounter
+    /// path. The old name came from the buffer's canassa name ("encounter table") and would have
+    /// sent an implementer to the wrong system; nothing consumed it but its own tests.
+    /// See <see cref="DungeonAutomap"/>.
+    ///
+    /// <para><b>Measured on the raw distance, not the culling metric.</b> The entity's size is not
+    /// allowed for here, so a large door and a small one record at the same range — deliberately
+    /// different from the visibility test alongside it.</para>
     /// </remarks>
-    public static bool TriggersEncounter(int kind, long octagonalDistance, int zoneKind,
-        bool hasEncounterTable) =>
-        zoneKind == EncounterZoneKind
-        && octagonalDistance < EncounterProximityRange
-        && CanRaiseEncounter(kind)
-        && hasEncounterTable;
+    public static bool RecordsOnAutomap(int kind, long octagonalDistance, int zoneKind,
+        bool hasAutomapRecord) =>
+        zoneKind == AutomapZoneKind
+        && octagonalDistance < AutomapProximityRange
+        && AppearsOnAutomap(kind)
+        && hasAutomapRecord;
 }

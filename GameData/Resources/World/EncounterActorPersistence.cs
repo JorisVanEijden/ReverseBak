@@ -72,5 +72,5 @@ public static class EncounterActorPersistence {
     /// repositioned by whatever placed it. Same enclosed zone kind that gates doors, pits and the
     /// proximity encounter check.</para>
     /// </summary>
-    public static bool KeepsStoredPose(int zoneKind) => zoneKind == ProximityScan.EncounterZoneKind;
+    public static bool KeepsStoredPose(int zoneKind) => zoneKind == ProximityScan.AutomapZoneKind;
 }

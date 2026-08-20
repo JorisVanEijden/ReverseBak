@@ -6,8 +6,28 @@ namespace GameData.Resources.World;
 ///
 /// <para>Despite the name of the function that writes it, this <b>spawns nothing</b>. It is a
 /// remembered "seen" bitmap: forty world tiles, each with a bit per entity in that tile, set when
-/// the party passes within <see cref="ProximityScan.EncounterProximityRange"/> of one. It is what
-/// stops the same roaming encounter firing again every frame and again on every revisit.</para>
+/// the party passes within <see cref="ProximityScan.AutomapProximityRange"/> of one.</para>
+///
+/// <para><b>Corrected 2026-08-20: it is the DUNGEON AUTOMAP's record, and nothing to do with
+/// encounters firing.</b> This used to say the marks are "what stops the same roaming encounter
+/// firing again". They are not: <c>worldframe_enc_check_visited</c> has exactly ONE caller in the
+/// whole program — <c>renderDungeonAutomap</c> (0x456AB) — which draws only the entities whose bit
+/// is set. Nothing else ever reads a mark. So what this table decides is what the overhead map shows
+/// underground, which is why the map fills in as you explore.</para>
+///
+/// <para>The recorder living inside the proximity scan, and canassa naming the buffer an "encounter
+/// table", is where the encounter reading comes from — the same trap that had
+/// <see cref="ProximityScan.RecordsOnAutomap"/> called "TriggersEncounter" until the same day. The
+/// class keeps its name only because renaming ripples; read it as "the automap's visit record".</para>
+///
+/// <para><b>How the renderer uses it</b> (0x456AB): it fills the viewport with the sky pen, swaps
+/// shape table slot 2 in for the duration — <c>Z##M.TBL</c>, the simplified plan geometry the zone
+/// loader adds only underground — draws each marked entity, and swaps back. Doors (shape 0x5C /
+/// 0x5D) go through a mark renderer instead of the entity path, so a door reads as a door on the
+/// plan. The centred <c>mapicons</c> blit at the end is inside <c>#ifndef V102CD</c>, so on our
+/// target build the automap draws NO party marker of its own; that comes from <c>drawMap</c>'s tail,
+/// the same one <see cref="OverheadMapMarker"/> covers. A port that copies the floppy branch draws
+/// it twice.</para>
 ///
 /// <para><b>It is save state.</b> The original reads and writes it to <c>TEMP.GAM</c> at
 /// <see cref="SaveOffset"/>, so the marks survive saving and loading. In the shipped
