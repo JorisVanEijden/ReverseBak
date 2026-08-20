@@ -126,4 +126,48 @@ public class LocatorMapTests {
         Assert.Equal(0x2000, LocatorMap.MarkersDrawnWithYaw(0x2000, northUp: false));
         Assert.Equal(0, LocatorMap.MarkersDrawnWithYaw(0x2000, northUp: true));
     }
+
+    [Fact]
+    public void EyesOfIshapNeverLooksAtAFixedObject() {
+        // Two scans, not three: cmap_markValuablesNearby (0x44918) makes exactly two calls where its
+        // siblings make three. A port running one uniform scan marks what the original cannot.
+        Assert.False(LocatorMap.ScansFixedObjects(FieldSpells.LocatorTarget.Valuables));
+        Assert.True(LocatorMap.ScansFixedObjects(FieldSpells.LocatorTarget.Food));
+        Assert.True(LocatorMap.ScansFixedObjects(FieldSpells.LocatorTarget.Magic));
+
+        Assert.False(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Valuables,
+            groundDistance: 0, holdsFood: true, holdsMagic: true));
+    }
+
+    [Fact]
+    public void TheFixedObjectScanSubtractsNoExtentAndAsksNoType() {
+        // A plain centre-to-centre range test, then contents. The list scans do the opposite on both
+        // counts, so the boundary sits at exactly MarkerRange with nothing taken off it.
+        Assert.True(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Food,
+            LocatorMap.MarkerRange - 1, holdsFood: true, holdsMagic: false));
+        Assert.False(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Food,
+            LocatorMap.MarkerRange, holdsFood: true, holdsMagic: false));
+        // ... and the contents question is still asked.
+        Assert.False(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Food,
+            0, holdsFood: false, holdsMagic: true));
+        Assert.True(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Magic,
+            0, holdsFood: false, holdsMagic: true));
+    }
+
+    [Fact]
+    public void TheMagicFixedObjectScanDoesNotTakeAThingOnKindAlone() {
+        // IsMagicalInItself short-circuits the CONTENTS check on the list scans (a rift machine is
+        // magic whatever it holds). The fixed-object scan has no type in hand at all, so there is
+        // nothing for that shortcut to fire on — it is contents or nothing.
+        Assert.False(LocatorMap.MarksFixedObject(FieldSpells.LocatorTarget.Magic,
+            0, holdsFood: false, holdsMagic: false));
+    }
+
+    [Fact]
+    public void AMarkerIsADotDrawnInAPaletteIndependentRed() {
+        Assert.Equal(2, LocatorMap.MarkerRadius);
+        Assert.Equal(111, LocatorMap.MarkerPen);
+        // The bounds test is widened by the radius, so an edge marker is a half dot, not a gap.
+        Assert.Equal(LocatorMap.MarkerRadius, LocatorMap.MarkerClipSlack);
+    }
 }

@@ -110,7 +110,92 @@ public static class LocatorMap {
         || type == WorldEntityType.StoneSlab
         || type == WorldEntityType.Pillar;
 
+    /// <summary>
+    /// <b>A marker is a filled dot, not a sprite</b> — radius 2, drawn in pen
+    /// <see cref="MarkerPen"/>.
+    /// </summary>
+    /// <remarks>
+    /// There is no marker artwork anywhere in the archive to go looking for; the pass draws a
+    /// circle straight into the frame buffer.
+    /// </remarks>
+    public const int MarkerRadius = 2;
+
+    /// <summary>The pen a marker is drawn in: 111, a saturated red.</summary>
+    /// <remarks>
+    /// Like the overhead map's own party arrow, this pen holds the same RGB (215, 0, 0) in the UI
+    /// palette and in all twelve zone palettes, so the dot is the same red whatever is installed and
+    /// a port need not decide which palette the locator runs under.
+    /// </remarks>
+    public const int MarkerPen = 111;
+
+    /// <summary>
+    /// A dot within its own radius of the inset's edge is still drawn, and clipped.
+    /// </summary>
+    /// <remarks>
+    /// The bounds test is widened by <see cref="MarkerRadius"/> on all four sides before the circle
+    /// is drawn, so a thing just off the edge shows as a half dot rather than vanishing. Testing the
+    /// centre alone would pop markers out a full radius early.
+    /// </remarks>
+    public const int MarkerClipSlack = MarkerRadius;
+
+    /// <summary>
+    /// <b>Use the map camera's own projection; do not reimplement this one.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original has no 3D pipeline to lean on for these dots, so it projects each one by hand:
+    /// offset from the camera, scaled by <c>(1 &lt;&lt; zoom) / cameraHeight</c>, rotated by MINUS
+    /// the camera yaw, added to the viewport centre with the Y axis flipped. That is the same
+    /// mapping a top-down camera already performs — the scale is inversely proportional to height in
+    /// both — so a port projects the world position with its own camera and gets the dots to land on
+    /// the terrain they belong to for free. Reimplementing the fixed-point version would only give
+    /// two projections to keep in step.
+    ///
+    /// <para>The yaw it rotates by is the one <see cref="MarkersDrawnWithYaw"/> chooses, which is
+    /// why the pass brackets itself with a save and restore of the camera's yaw.</para>
+    /// </remarks>
+    public static bool MarkersUseTheCameraProjection => true;
+
+    /// <summary>
+    /// <b>Only two of the three searches look at fixed objects at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// The valuables pass runs two scans — the per-zone actor lists and the visible-entry pool — and
+    /// stops. Food and magic run a third over the fixed-object list. Verified in IDA:
+    /// <c>cmap_markValuablesNearby</c> (0x44918) makes exactly two calls where its two siblings make
+    /// three, which is the whole of the seven-byte difference in their sizes.
+    ///
+    /// <para>So Eyes of Ishap cannot mark a fixed object, however valuable. A port that runs one
+    /// uniform scan for all three spells marks things the original never does.</para>
+    /// </remarks>
+    public static bool ScansFixedObjects(FieldSpells.LocatorTarget target) =>
+        target == FieldSpells.LocatorTarget.Food || target == FieldSpells.LocatorTarget.Magic;
+
+    /// <summary>Whether a fixed object gets a marker.</summary>
+    /// <remarks>
+    /// <b>The fixed-object scan is a different rule, not the same rule over a third list.</b> It
+    /// asks NO question about the entity type and does NOT subtract the object's extent — it is a
+    /// plain centre-to-centre range test, and then the contents check. Both list scans do the
+    /// opposite on both counts (see <see cref="Marks"/>).
+    /// </remarks>
+    /// <param name="target">Which of the three searches is running.</param>
+    /// <param name="groundDistance">Distance across the ground from the party to the object.</param>
+    /// <param name="holdsFood">Whether it holds food (asked by the food search).</param>
+    /// <param name="holdsMagic">Whether it holds magic (asked by the magic search).</param>
+    public static bool MarksFixedObject(FieldSpells.LocatorTarget target, long groundDistance,
+        bool holdsFood, bool holdsMagic) {
+        if (!ScansFixedObjects(target) || groundDistance >= MarkerRange) {
+            return false;
+        }
+
+        return target == FieldSpells.LocatorTarget.Food ? holdsFood : holdsMagic;
+    }
+
     /// <summary>Whether this thing gets a marker.</summary>
+    /// <remarks>
+    /// The rule for the two LIST scans — the per-zone actor lists and the visible-entry pool, which
+    /// share one type set within a spell. Fixed objects are scanned separately and by a different
+    /// rule; see <see cref="MarksFixedObject"/>.
+    /// </remarks>
     /// <param name="target">Which of the three searches is running.</param>
     /// <param name="type">The world item's entity type.</param>
     /// <param name="groundDistance">Distance across the ground from the party to the item.</param>
