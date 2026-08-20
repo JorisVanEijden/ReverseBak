@@ -170,4 +170,38 @@ public class LocatorMapTests {
         // The bounds test is widened by the radius, so an edge marker is a half dot, not a gap.
         Assert.Equal(LocatorMap.MarkerRadius, LocatorMap.MarkerClipSlack);
     }
+
+    [Fact]
+    public void FoodIsRationsInAnyCondition() {
+        // 72 Rations, 73 Poisoned, 74 Spoiled. The spell does not ask whether the food is any good.
+        Assert.Equal(new[] { 72, 73, 74 }, LocatorMap.FoodItemIds);
+        Assert.True(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Food, new[] { 74 }));
+        Assert.False(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Food, new[] { 71, 75 }));
+    }
+
+    [Fact]
+    public void TheMagicListSkipsTheWoodenStaff() {
+        // *** The run 1..17 omits 3 on purpose: 1/2/4 are the Crystal, Lightning and Macros staves
+        // and 3 is the plain Wooden Staff. Tidying the list into a range marks every wooden staff.
+        Assert.Contains(1, LocatorMap.MagicItemIds);
+        Assert.Contains(2, LocatorMap.MagicItemIds);
+        Assert.Contains(4, LocatorMap.MagicItemIds);
+        Assert.DoesNotContain(3, LocatorMap.MagicItemIds);
+        Assert.False(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Magic, new[] { 3 }));
+        Assert.True(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Magic, new[] { 3, 4 }));
+    }
+
+    [Fact]
+    public void ValuablesAsksNothingOfTheContents() {
+        // It marks places worth opening, so even a magical hoard answers "no" through this door —
+        // the valuables pass never calls it at all.
+        Assert.False(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Valuables, new[] { 4, 72 }));
+        Assert.False(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Food, null));
+    }
+
+    [Fact]
+    public void OneMatchingItemInAFullContainerIsEnough() {
+        Assert.True(LocatorMap.ContentsSatisfy(FieldSpells.LocatorTarget.Magic,
+            new[] { 20, 21, 22, 133 }));
+    }
 }

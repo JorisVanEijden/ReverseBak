@@ -223,6 +223,55 @@ public static class LocatorMap {
     }
 
     /// <summary>
+    /// What "holds food" means: rations, in any condition.
+    /// </summary>
+    /// <remarks>
+    /// The food search opens the fixed-object container standing at the item's position and looks
+    /// for any of three object ids — 72 Rations, 73 Rations (Poisoned), 74 Rations (Spoiled). The
+    /// spell does not care whether the food is any good, so a cache of spoiled rations still lights
+    /// up. Nothing else in the game counts, so this is not a "food category" to be widened later.
+    /// </remarks>
+    public static readonly int[] FoodItemIds = { 72, 73, 74 };
+
+    /// <summary>
+    /// What "holds magic" means: an explicit list of twenty-one object ids.
+    /// </summary>
+    /// <remarks>
+    /// The three magical staves and the chapter artefacts, plus Enchanted Quarrels (43), Ring of the
+    /// Golden Way (88), Weedwalkers (90), Restoratives (119) and a Magical Scroll (133). A list, not
+    /// a flag on the object record — there is no "is magical" bit for this to read.
+    ///
+    /// <para><b>The run 1..17 deliberately skips 3, and 3 is the Wooden Staff.</b> 1 Crystal Staff,
+    /// 2 Lightning Staff and 4 Staff of Macros are magical; the plain wooden one is not. A port that
+    /// tidies the list into a range marks every wooden staff in the world.</para>
+    /// </remarks>
+    public static readonly int[] MagicItemIds = {
+        1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 43, 88, 90, 119, 133,
+    };
+
+    /// <summary>Whether a container's contents satisfy a search that asks about contents.</summary>
+    /// <remarks>
+    /// One item is enough; the pass stops caring once anything matches. Valuables never reaches here
+    /// (<see cref="ChecksContents"/>), so an unrecognised target holds nothing.
+    /// </remarks>
+    /// <param name="target">Which of the three searches is running.</param>
+    /// <param name="itemIds">The object ids the container holds.</param>
+    public static bool ContentsSatisfy(FieldSpells.LocatorTarget target,
+        System.Collections.Generic.IEnumerable<int> itemIds) {
+        if (itemIds == null || !ChecksContents(target)) {
+            return false;
+        }
+        int[] wanted = target == FieldSpells.LocatorTarget.Food ? FoodItemIds : MagicItemIds;
+        foreach (int id in itemIds) {
+            if (Array.IndexOf(wanted, id) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// <b>The markers follow the map's rotation, not the compass.</b>
     /// </summary>
     /// <remarks>
