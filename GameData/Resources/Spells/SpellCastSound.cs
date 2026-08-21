@@ -46,6 +46,14 @@ public static class SpellCastSound {
         { FieldSpells.NacreCicatrix, 13 },
         { FieldSpells.Union, FieldSpells.GeneralSound },
         { FieldSpells.AndTheLightShallLie, FieldSpells.GeneralSound },
+
+        // Spells with NO dedicated routine, cast through Cast_Spell's switch (ovr173 @0x687a5).
+        // That switch is driven by the spell number biased by three — IDA's switch info reports
+        // lowcase 3 against the `mov bx,[bp+SpellNumber]` at 0x68798, so its case labels are true
+        // spell numbers and not post-subtraction indices.
+        { SpellIds.DespairThyEyes, FieldSpells.CreationSound },        // case 3
+        { SpellIds.GriefOfAThousandNights, 77 },                       // case 13, sound_sparkly
+        { SpellIds.SkinOfTheDragon, FieldSpells.CreationSound },       // case 23
     };
 
     /// <summary>Spells confirmed to cast in silence.</summary>

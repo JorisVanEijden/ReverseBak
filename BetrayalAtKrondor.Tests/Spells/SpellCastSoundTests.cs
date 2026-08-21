@@ -103,4 +103,22 @@ public class SpellCastSoundTests {
         Assert.Equal(FieldSpells.GeneralSound, SpellCastSound.ForCast(FieldSpells.Union));
         Assert.Equal(FieldSpells.ScentSound, SpellCastSound.ForCast(FieldSpells.ScentOfSarig));
     }
+
+    [Fact]
+    public void SPELLSWITHNODEDICATEDROUTINEStillHaveTheirCue() {
+        // Recovered from Cast_Spell's switch rather than from a Cast_* function. These three were
+        // GUESSES in docs/Sound that the per-spell pass could not confirm — "grief of 1000 nights",
+        // "despair thy eyes", "skin of the dragon" — and the switch's case values confirm all three.
+        Assert.Equal(77, SpellCastSound.ForCast(SpellIds.GriefOfAThousandNights));
+        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCast(SpellIds.DespairThyEyes));
+        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCast(SpellIds.SkinOfTheDragon));
+    }
+
+    [Fact]
+    public void ASpellCanShareACueAcrossBothDispatchPaths() {
+        // Skin of the Dragon comes from the switch and Steelfire from its own routine, and they play
+        // the same cue — so "which dispatcher casts it" is independent of "what it sounds like".
+        Assert.Equal(SpellCastSound.ForCast(SpellIds.Steelfire),
+            SpellCastSound.ForCast(SpellIds.SkinOfTheDragon));
+    }
 }
