@@ -1,6 +1,7 @@
 namespace GameData.Resources.Combat;
 
 using System;
+using GameData.Resources.Character;
 
 /// <summary>
 /// One melee swing resolved end to end: roll to hit, roll damage, apply it, and report whether the
@@ -81,6 +82,32 @@ public static class MeleeExchange {
     }
 
     /// <summary>
+    /// The stats a swing trains, or default to train nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>There is no kill XP in this game</b> — <c>combat_arena_actor_die</c> awards nothing, and
+    /// "experience" does not appear anywhere in the combat sources. All combat advancement is
+    /// use-based and paid during the exchange itself (COMBAT.C:463), which is why it belongs here
+    /// and not in a post-fight tally. A port that adds a kill-XP system is adding a mechanic the
+    /// game does not have.
+    ///
+    /// <para>Every field is optional: a monster has no <see cref="ActorStat"/> objects to train, so
+    /// leaving them null is the ordinary case for the enemy side rather than an error.</para>
+    /// </remarks>
+    public readonly struct Advancement {
+        public Advancement(ActorStat attackerMelee = null, ActorStat attackerStrength = null,
+            ActorStat defenderDefense = null) {
+            AttackerMelee = attackerMelee;
+            AttackerStrength = attackerStrength;
+            DefenderDefense = defenderDefense;
+        }
+
+        public ActorStat AttackerMelee { get; }
+        public ActorStat AttackerStrength { get; }
+        public ActorStat DefenderDefense { get; }
+    }
+
+    /// <summary>
     /// Resolve one swing against a live combatant, writing the result onto it.
     /// </summary>
     /// <param name="rnd">
@@ -100,7 +127,8 @@ public static class MeleeExchange {
     /// subtract it from the chance instead, where the 2..98 clamp would swallow it.</para>
     /// </remarks>
     public static Result Resolve(Combatant attacker, Combatant defender,
-        Attacker attackerStats, Defender defenderStats, Func<int, int> rnd) {
+        Attacker attackerStats, Defender defenderStats, Func<int, int> rnd,
+        Advancement advancement = default) {
         if (rnd == null) {
             throw new ArgumentNullException(nameof(rnd));
         }
@@ -113,10 +141,19 @@ public static class MeleeExchange {
             attackerStats.ClassGroupModifier, attackerStats.WeaponConditionPercent,
             attackerStats.WeaponFlags, defenderStats.DefenseRating);
 
+        // *** PAID ON DECLARATION, BEFORE THE ROLL. *** The defender improves Defense for being
+        // attacked at all and the attacker improves Melee for swinging — win or lose. Awarding
+        // these only on a hit would quietly halve the attacker's Melee curve and pay a defender
+        // nothing for a fight they survived by being missed.
+        CombatAdvancement.OnMeleeDeclared(advancement.DefenderDefense, advancement.AttackerMelee);
+
         bool parrying = (defender.Flags & CombatantFlags.Parry) != 0;
         if (!CombatFormulas.MeleeHits(rnd(100), chance, parrying)) {
             return Result.Miss;
         }
+
+        // And again on connecting: Melee a SECOND time, plus Strength.
+        CombatAdvancement.OnMeleeHit(advancement.AttackerMelee, advancement.AttackerStrength);
 
         int enchantment = attackerStats.HasWeapon
             ? CombatFormulas.WeaponEnchantmentBonus(attackerStats.WeaponFlags, attackerStats.WeaponBase)

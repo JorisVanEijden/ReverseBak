@@ -2,6 +2,7 @@ namespace BetrayalAtKrondor.Tests.Combat;
 
 using System;
 using System.Collections.Generic;
+using GameData.Resources.Character;
 using GameData.Resources.Combat;
 using Xunit;
 
@@ -158,5 +159,82 @@ public class MeleeExchangeTests {
 
         Assert.True(encounter.IsOver(), "the encounter reached an end");
         Assert.True(guard < 200, "and did so without hitting the guard");
+    }
+
+    // --- what a swing trains -------------------------------------------------------------------
+
+    private static ActorStat Skill(byte value = 20) =>
+        new ActorStat { Base = value, Max = 99, Experience = 0 };
+
+    [Fact]
+    public void ADECLAREDSwingTrainsBothSides_EvenWhenItMisses() {
+        // *** The award that is easiest to drop. *** The defender improves Defense for being
+        // attacked at all and the attacker improves Melee for swinging, before any roll. Paying
+        // these only on a hit halves the attacker's Melee curve and pays a defender nothing for a
+        // fight they survived by being missed.
+        ActorStat melee = Skill(), strength = Skill(), defense = Skill();
+        var awards = new MeleeExchange.Advancement(melee, strength, defense);
+
+        MeleeExchange.Result r = MeleeExchange.Resolve(
+            Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysMisses, awards);
+
+        Assert.False(r.Hit);
+        Assert.True(melee.Experience > 0, "the attacker was paid for swinging");
+        Assert.True(defense.Experience > 0, "the defender was paid for being swung at");
+        Assert.Equal(0, strength.Experience);
+    }
+
+    [Fact]
+    public void ALandedSwingPaysMeleeTWICE_OnceForTryingAndOnceForConnecting() {
+        ActorStat missMelee = Skill();
+        MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysMisses,
+            new MeleeExchange.Advancement(missMelee, Skill(), Skill()));
+
+        ActorStat hitMelee = Skill(), hitStrength = Skill();
+        MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysHits,
+            new MeleeExchange.Advancement(hitMelee, hitStrength, Skill()));
+
+        Assert.Equal(2 * missMelee.Experience, hitMelee.Experience);
+        Assert.True(hitStrength.Experience > 0, "and Strength only on a hit");
+    }
+
+    [Fact]
+    public void ASwingAtACorpseTrainsNothing() {
+        // The guard returns before the declaration award, so a swing at something already down is
+        // not a free lesson.
+        ActorStat melee = Skill(), defense = Skill();
+        Combatant dead = Fighter();
+        dead.Flags |= CombatantFlags.Dead;
+
+        MeleeExchange.Resolve(Fighter(), dead, Bruiser, Unarmoured, AlwaysHits,
+            new MeleeExchange.Advancement(melee, Skill(), defense));
+
+        Assert.Equal(0, melee.Experience);
+        Assert.Equal(0, defense.Experience);
+    }
+
+    [Fact]
+    public void AMonsterWithNoStatsToTrainIsTheOrdinaryCase() {
+        // Enemies carry no ActorStat objects; passing none must resolve normally rather than throw.
+        Combatant target = Fighter();
+        Assert.True(MeleeExchange.Resolve(Fighter(), target, Bruiser, Unarmoured, AlwaysHits).Hit);
+    }
+
+    [Fact]
+    public void RepetitionIsWhatAdvancesASkill_NotAnyOneSwing() {
+        // Awards are single points in SkillUse mode, which banks the sub-unit remainder. One swing
+        // moves nothing visible; a run of them does. This is also why there is no kill XP — the
+        // curve IS the swinging.
+        ActorStat melee = Skill();
+        byte before = melee.Base;
+        MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysHits,
+            new MeleeExchange.Advancement(melee, Skill(), Skill()));
+        Assert.Equal(before, melee.Base);
+
+        for (var i = 0; i < 200; i++) {
+            MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysHits,
+                new MeleeExchange.Advancement(melee, Skill(), Skill()));
+        }
+        Assert.True(melee.Base > before, "200 swings buy whole points");
     }
 }
