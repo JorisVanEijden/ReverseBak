@@ -28,6 +28,20 @@ public sealed class RuntimeContainer {
     /// </remarks>
     public bool Unlocked;
 
+    /// <summary>
+    /// The party has disarmed this chest's trap this session.
+    /// </summary>
+    /// <remarks>
+    /// <b>Distinct from <see cref="Unlocked"/> on purpose.</b> A disarmed chest is safe but still
+    /// asks before opening (its own prompt), so folding the two together would skip that line and
+    /// open a box the player never confirmed.
+    ///
+    /// <para>Same limitation as <see cref="Unlocked"/>: the original zeroes the trap damage in the
+    /// SAVE record, making it permanent across visits; this is a runtime flag and so lasts the
+    /// session. Stated rather than hidden — persisting it is the same writer work.</para>
+    /// </remarks>
+    public bool TrapDisarmed;
+
     private bool _dirty;
 
     /// <summary>
