@@ -51,8 +51,10 @@ public static class AttractLoop {
     /// <remarks>
     /// <c>deadline = g_timer_ticks + 0x8C</c>, spun on while polling for input. Its absence does not
     /// break anything — it makes the attract loop restart immediately, so the title screen cycles
-    /// faster than the original and never rests on the fade-out. In wall-clock terms it depends on
-    /// the timer rate, which is not fixed across configurations (see <see cref="FrameBudget"/>).
+    /// faster than the original and never rests on the fade-out.
+    ///
+    /// <para>In wall-clock terms that is <b>about 2.37 seconds</b>: the timer rate is fixed and
+    /// recovered (<see cref="GameTick"/>), not configuration-dependent as recorded here before.</para>
     /// </remarks>
     public const int PauseTicksBeforeRepeat = 0x8C;
 

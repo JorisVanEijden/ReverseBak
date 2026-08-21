@@ -42,11 +42,12 @@ public static class FrameBudget {
     /// exactly one frame drifts against the frame it belongs to, and the error grows with the length
     /// of the hold.
     ///
-    /// <para><b>This is currently violated in the remake</b> — the frame processor holds frames
-    /// against a 60Hz assumption and steps palette cycles at 18.2Hz. Both numbers are ours: the
-    /// original's tick is whatever <c>timer_install</c> programmed, which the sound init sets and
-    /// which therefore is not even fixed across configurations. Recorded as a rule here so the
-    /// mismatch is visible; picking the rate is a calibration and belongs with the tuned constants.</para>
+    /// <para><b>The clock's rate is recovered — see <see cref="GameTick"/>.</b> It had been recorded
+    /// here that the rate was unknowable because the sound init set it and it varied by
+    /// configuration. Both halves are wrong: boot installs the timer unconditionally, and the one
+    /// argument it passes is a multiple of the BIOS tick rather than a frequency. The clock runs at
+    /// about 59.17 Hz, so a duration in ticks is a real duration and the two rates no longer have to
+    /// be guessed independently.</para>
     /// </remarks>
     public static bool FramesAndPaletteCyclesShareOneClock => true;
 }
