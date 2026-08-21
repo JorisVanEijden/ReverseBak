@@ -42,15 +42,34 @@ public static class DoorMechanics {
     /// <summary>The creak a door makes as it swings — <c>sound_dooropen</c> (38).</summary>
     /// <remarks>
     /// <b>Played on BOTH paths, and it is not "the opening sound".</b> handle_Door plays it at the
-    /// start of the swing whichever way the door is going (0x77a16) and follows with
-    /// <see cref="LatchSound"/> once the swing finishes. So it is the hinge, not the direction —
-    /// naming it "open" and playing it only when opening loses half its uses.
+    /// start of the swing whichever way the door is going (0x77a16). So it is the hinge, not the
+    /// direction — naming it "open" and playing it only when opening loses half its uses.
     /// </remarks>
     public const int SwingSound = 38;
 
     /// <summary>The latch at the end of a swing — <c>sound_doorclos</c> (39).</summary>
-    /// <remarks>Played with wait-for-completion after the frames finish (0x77a54).</remarks>
+    /// <remarks>
+    /// Played with wait-for-completion after the frames finish (0x77a54) — <b>and only when the door
+    /// is CLOSING</b>. See <see cref="LatchSounds"/>.
+    /// </remarks>
     public const int LatchSound = 39;
+
+    /// <summary>
+    /// <b>The latch sounds only when the door is closing.</b>
+    /// </summary>
+    /// <remarks>
+    /// The two branches of <c>handle_Door</c> are not symmetric: both open with the swing, but only
+    /// the closing branch ends with the latch. The opening branch runs its frames and stops. That is
+    /// physically right — a latch catches when a door shuts, not when it is pulled open — and it is
+    /// easy to lose, because the sound ids are named <c>sound_dooropen</c> and <c>sound_doorclos</c>
+    /// as if they were a matched pair for the two directions. They are not: one is the hinge for
+    /// both directions and the other is the latch for one of them.
+    ///
+    /// <para>Corrected 2026-08-21: this class previously said the swing "follows with LatchSound once
+    /// the swing finishes" without qualification, and the Unity handler played it on both paths — so
+    /// opening a door made a latching sound it should not.</para>
+    /// </remarks>
+    public static bool LatchSounds(bool opening) => !opening;
 
     /// <summary>
     /// The line played when the party is too close to pull a door shut — ddx 157.

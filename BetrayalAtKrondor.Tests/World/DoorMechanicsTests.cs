@@ -211,4 +211,23 @@ public class DoorMechanicsTests {
 
         Assert.Equal(DoorMechanics.DoorAction.Locked, locked.Action);
     }
+
+    [Fact]
+    public void THELATCHSOUNDSONLYWHENCLOSING() {
+        // *** The two branches of handle_Door are not symmetric. *** Both open with the swing; only
+        // the closing branch ends with the latch. Physically right — a latch catches when a door
+        // shuts — and easy to lose, because the ids are named sound_dooropen/sound_doorclos as if
+        // they were a matched pair for the two directions. They are not: one is the hinge for BOTH
+        // directions, the other is the latch for ONE.
+        Assert.True(DoorMechanics.LatchSounds(opening: false));
+        Assert.False(DoorMechanics.LatchSounds(opening: true));
+    }
+
+    [Fact]
+    public void TheSwingSoundsEitherWay() {
+        // The counterpart: the hinge is not directional, so there is no "opening sound" to gate.
+        Assert.Equal(38, DoorMechanics.SwingSound);
+        Assert.Equal(39, DoorMechanics.LatchSound);
+        Assert.NotEqual(DoorMechanics.SwingSound, DoorMechanics.LatchSound);
+    }
 }
