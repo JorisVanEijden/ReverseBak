@@ -66,4 +66,41 @@ public class SpellCastSoundTests {
         Assert.Equal(1, SpellCastSound.ForCast(SpellIds.Flamecast));
         Assert.Equal(1, SpellCastSound.ForCast(SpellIds.BlackNimbus));
     }
+
+    [Fact]
+    public void ALLNINEFieldSpellsHaveTheirCue() {
+        // Cast_field_spell's dispatch is a LINEAR SCAN of a nine-entry table, so these nine are the
+        // complete field set — there is no tenth to find.
+        int[] field = {
+            FieldSpells.DragonsBreath, FieldSpells.CandleGlow, FieldSpells.ScentOfSarig,
+            FieldSpells.EyesOfIshap, FieldSpells.TheUnseen, FieldSpells.NacreCicatrix,
+            FieldSpells.Stardusk, FieldSpells.Union, FieldSpells.AndTheLightShallLie,
+        };
+
+        foreach (int spell in field) {
+            Assert.True(SpellCastSound.IsEstablished(spell), "field spell " + spell + " unmapped");
+            Assert.NotNull(SpellCastSound.ForCast(spell));
+        }
+    }
+
+    [Fact]
+    public void TheINSTANTANEOUSFieldSpellsShareOneCue() {
+        // The Unseen and Nacre Cicatrix — two of the three that take no duration — both play
+        // sound_spell3, and Eyes of Ishap (the third) plays the Scent cue instead. So the cue does
+        // not track the duration/instant split; they are independent properties.
+        Assert.Equal(SpellCastSound.ForCast(FieldSpells.TheUnseen),
+            SpellCastSound.ForCast(FieldSpells.NacreCicatrix));
+        Assert.NotEqual(SpellCastSound.ForCast(FieldSpells.EyesOfIshap),
+            SpellCastSound.ForCast(FieldSpells.TheUnseen));
+        Assert.True(FieldSpells.IsInstantaneous(FieldSpells.EyesOfIshap));
+    }
+
+    [Fact]
+    public void TheCueConstantsAreTheONESFieldSpellsAlreadyNames() {
+        // Not re-literalled here: FieldSpells already named these, and two spellings of 58 in one
+        // codebase is how they drift apart.
+        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCast(FieldSpells.DragonsBreath));
+        Assert.Equal(FieldSpells.GeneralSound, SpellCastSound.ForCast(FieldSpells.Union));
+        Assert.Equal(FieldSpells.ScentSound, SpellCastSound.ForCast(FieldSpells.ScentOfSarig));
+    }
 }

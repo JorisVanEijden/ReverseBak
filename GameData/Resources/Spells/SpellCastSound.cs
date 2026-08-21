@@ -11,6 +11,12 @@ using System.Collections.Generic;
 /// Each cast routine plays its own cue inline, which is why this mapping cannot be recovered from the
 /// game data at all and has to come from the code.
 ///
+/// <para><b>Every named cast routine is now accounted for.</b> Eighteen have a cue and
+/// <c>Cast_Evil_Seek</c> has none; the field-spell numbers come from <c>Cast_field_spell</c>'s
+/// dispatch and the rest from <see cref="SpellIds"/>. What is still missing is spells with no
+/// dedicated routine at all — they cast through <c>Cast_Spell</c>'s switch, whose cases push sounds
+/// without naming a spell.</para>
+///
 /// <para><b>Three states, not two.</b> A spell can have a verified cue, be verified to have NO cue
 /// (Evil Seek pushes nothing), or simply not be mapped yet. Collapsing the last two makes an
 /// unmapped spell look deliberately silent, and a port would then never come back to it.</para>
@@ -20,14 +26,26 @@ public static class SpellCastSound {
     private static readonly Dictionary<int, int> Sounds = new Dictionary<int, int> {
         { SpellIds.Flamecast, 1 },          // sound_arrow
         { SpellIds.BlackNimbus, 1 },        // sound_arrow
-        { SpellIds.CandleGlow, 58 },        // sound_mcreate
-        { SpellIds.Stardusk, 58 },
-        { SpellIds.Steelfire, 58 },
+        { SpellIds.CandleGlow, FieldSpells.CreationSound },
+        { SpellIds.Stardusk, FieldSpells.CreationSound },
+        { SpellIds.Steelfire, FieldSpells.CreationSound },
         { SpellIds.StrengthDrain, 63 },     // sound_heal
         { SpellIds.MadGodsRage, 78 },       // sound_quake
         { SpellIds.WindsOfEortis, 79 },     // sound_wind
-        { SpellIds.Nightfingers, 81 },      // sound_mgeneral
-        { SpellIds.Invitation, 81 },
+        { SpellIds.Nightfingers, FieldSpells.GeneralSound },
+        { SpellIds.Invitation, FieldSpells.GeneralSound },
+
+        // The nine field spells, from Cast_field_spell's dispatch (ovr179 @0x6ca30 — a linear scan
+        // of a nine-entry table, so this IS the complete field set). Their numbers live on
+        // FieldSpells, not SpellIds: the two classes both name spells by number and neither is a
+        // superset, which is worth knowing before adding a constant to either.
+        { FieldSpells.DragonsBreath, FieldSpells.CreationSound },
+        { FieldSpells.ScentOfSarig, FieldSpells.ScentSound },
+        { FieldSpells.EyesOfIshap, FieldSpells.ScentSound },
+        { FieldSpells.TheUnseen, 13 },              // sound_spell3
+        { FieldSpells.NacreCicatrix, 13 },
+        { FieldSpells.Union, FieldSpells.GeneralSound },
+        { FieldSpells.AndTheLightShallLie, FieldSpells.GeneralSound },
     };
 
     /// <summary>Spells confirmed to cast in silence.</summary>
