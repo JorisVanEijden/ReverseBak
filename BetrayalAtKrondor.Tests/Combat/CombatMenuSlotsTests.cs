@@ -41,17 +41,14 @@ public class CombatMenuSlotsTests {
     }
 
     [Fact]
-    public void TheTwoShootPagesCoverTheSameFourCells() {
-        Assert.Equal(4, CombatMenuSlots.FirstPageActionIds.Length);
-        Assert.Equal(4, CombatMenuSlots.SecondPageActionIds.Length);
-
-        var seen = new HashSet<int>();
-        foreach (int id in CombatMenuSlots.FirstPageActionIds) {
-            Assert.True(seen.Add(id));
+    public void EveryQuarrelKindHasAnIdAndTheMappingRoundTrips() {
+        // The one static thing about this menu. Kind order is the original's item-id table.
+        Assert.Equal(8, CombatMenuSlots.ActionIdByQuarrelKind.Length);
+        for (var kind = 0; kind < 8; kind++) {
+            Assert.Equal(kind, CombatMenuSlots.QuarrelKindFor(CombatMenuSlots.ActionIdByQuarrelKind[kind]));
         }
-        foreach (int id in CombatMenuSlots.SecondPageActionIds) {
-            Assert.True(seen.Add(id), "a quarrel id belongs to exactly one page");
-        }
+        Assert.Equal(-1, CombatMenuSlots.QuarrelKindFor(CombatMenuSlots.PageFlipActionId));
+        Assert.Equal(-1, CombatMenuSlots.QuarrelKindFor(CombatMenuSlots.CastActionId));
     }
 
     [Fact]
@@ -62,31 +59,58 @@ public class CombatMenuSlotsTests {
     }
 
     [Fact]
-    public void AQuarrelButtonNeedsBOTHItsPageShowingAndAmmunition() {
-        // *** The condition a port drops. *** Page alone is not enough: the menu shows only the
-        // ammunition you actually carry, so an empty kind greys out instead of being clickable and
-        // then failing.
-        Assert.True(CombatMenuSlots.QuarrelIsAvailable(2, CombatMenuSlots.FirstPage, quarrelsOfThatKind: 5));
-        Assert.False(CombatMenuSlots.QuarrelIsAvailable(2, CombatMenuSlots.FirstPage, quarrelsOfThatKind: 0),
+    public void APageIsTheFirstFourCellsAndTheNextFour() {
+        // find_item_page is (index >> 2) + 1 — nothing about the id enters into it.
+        Assert.Equal(CombatMenuSlots.FirstPage, CombatMenuSlots.PageOfSlot(0));
+        Assert.Equal(CombatMenuSlots.FirstPage, CombatMenuSlots.PageOfSlot(3));
+        Assert.Equal(CombatMenuSlots.SecondPage, CombatMenuSlots.PageOfSlot(4));
+        Assert.Equal(CombatMenuSlots.SecondPage, CombatMenuSlots.PageOfSlot(7));
+    }
+
+    [Fact]
+    public void CARRYINGFewerKindsPullsLaterOnesONTOTheFirstPage() {
+        // *** The bug the old model had. *** It split the kind table down the middle and called the
+        // halves the two pages, so kind 6 was "page two" for everyone. The menu is REPACKED per
+        // actor: an archer carrying only kinds 5 and 6 has them in the first two cells, on page one.
+        var carriesTwoLateKinds = new[] { 0, 0, 0, 0, 0, 3, 3, 0 };
+
+        int[] cells = CombatMenuSlots.PackCells(carriesTwoLateKinds);
+
+        Assert.Equal(CombatMenuSlots.ActionIdByQuarrelKind[5], cells[0]);
+        Assert.Equal(CombatMenuSlots.ActionIdByQuarrelKind[6], cells[1]);
+        Assert.Equal(CombatMenuSlots.FirstPage, CombatMenuSlots.PageOfSlot(0));
+        Assert.Equal(-1, cells[2]);
+    }
+
+    [Fact]
+    public void AFullQuiverPacksInKindOrderAndFillsBothPages() {
+        var carriesEverything = new[] { 1, 1, 1, 1, 1, 1, 1, 1 };
+
+        int[] cells = CombatMenuSlots.PackCells(carriesEverything);
+
+        Assert.Equal(CombatMenuSlots.ActionIdByQuarrelKind, cells);
+        Assert.Equal(CombatMenuSlots.SecondPage, CombatMenuSlots.PageOfSlot(4));
+    }
+
+    [Fact]
+    public void AnEmptyQuiverClaimsNoCellAtAll() {
+        int[] cells = CombatMenuSlots.PackCells(new[] { 0, 0, 0, 0, 0, 0, 0, 0 });
+
+        Assert.All(cells, c => Assert.Equal(-1, c));
+        // Null is the same as empty rather than a throw — an actor with no quiver at all is an
+        // ordinary case, not a caller error.
+        Assert.All(CombatMenuSlots.PackCells(null), c => Assert.Equal(-1, c));
+        Assert.Equal(8, CombatMenuSlots.PackCells(null).Length);
+    }
+
+    [Fact]
+    public void AQuarrelCellNeedsBOTHItsPageShowingAndAmmunition() {
+        // The condition a port drops: the menu shows only ammunition actually carried, so an empty
+        // kind greys out instead of being clickable and then failing.
+        Assert.True(CombatMenuSlots.QuarrelIsAvailable(0, CombatMenuSlots.FirstPage, quarrelsOfThatKind: 5));
+        Assert.False(CombatMenuSlots.QuarrelIsAvailable(0, CombatMenuSlots.FirstPage, quarrelsOfThatKind: 0),
             "no quarrels of that kind");
-        Assert.False(CombatMenuSlots.QuarrelIsAvailable(2, CombatMenuSlots.SecondPage, quarrelsOfThatKind: 5),
+        Assert.False(CombatMenuSlots.QuarrelIsAvailable(0, CombatMenuSlots.SecondPage, quarrelsOfThatKind: 5),
             "its page is not showing");
-    }
-
-    [Fact]
-    public void EachQuarrelIdKnowsItsPage_AndNonQuarrelIdsHaveNone() {
-        Assert.Equal(CombatMenuSlots.FirstPage, CombatMenuSlots.PageOf(3));
-        Assert.Equal(CombatMenuSlots.SecondPage, CombatMenuSlots.PageOf(8));
-        Assert.Equal(0, CombatMenuSlots.PageOf(CombatMenuSlots.PageFlipActionId));
-        Assert.Equal(0, CombatMenuSlots.PageOf(CombatMenuSlots.CastActionId));
-    }
-
-    [Fact]
-    public void ThePageFlipItselfIsNeverAQuarrelButton() {
-        // It shares the HUD with them but is not one of the four cells, so it must not be gated on
-        // ammunition — a player with no quarrels at all still needs to be able to flip back.
-        Assert.False(CombatMenuSlots.QuarrelIsAvailable(
-            CombatMenuSlots.PageFlipActionId, CombatMenuSlots.FirstPage, quarrelsOfThatKind: 0));
-        Assert.Equal(0, CombatMenuSlots.PageOf(CombatMenuSlots.PageFlipActionId));
     }
 }

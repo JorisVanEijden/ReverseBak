@@ -1,5 +1,7 @@
 namespace GameData.Resources.Combat;
 
+using System.Collections.Generic;
+
 /// <summary>
 /// Which button occupies each cell of the combat HUD — <c>COMBAT.DAT</c>'s capability slot and
 /// <c>SHOOT.DAT</c>'s two pages.
@@ -50,13 +52,31 @@ public static class CombatMenuSlots {
     public static bool CapabilitySlotIsClickable(int actionId) => actionId != NeitherActionId;
 
     // ---- SHOOT.DAT: two pages of four, over the same four cells -----------------------------------
-    // combat_arena_shootmenu_init / combat_arena_shootmenu_ent_avail (COMBAT.C ~902).
+    // combat_arena_shootmenu_rebuild / combat_arena_menu_find_item_page (COMBAT.C ~966).
 
-    /// <summary>Quarrel kinds on the first page, in cell order.</summary>
-    public static readonly int[] FirstPageActionIds = { 2, 3, 4, 5 };
+    /// <summary>
+    /// The action id for each quarrel kind, in kind order — the original's
+    /// <c>g_awQuarrelKindItemIdTable</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the only static thing about the shoot menu.</b> Kind 0 is always id 2, kind 7
+    /// always id 7. Which CELL an id occupies, and therefore which page it is on, is not fixed —
+    /// see <see cref="PageOfSlot"/>.
+    /// </remarks>
+    public static readonly int[] ActionIdByQuarrelKind = { 2, 3, 4, 5, 6, 8, 9, 7 };
 
-    /// <summary>Quarrel kinds on the second page, in the SAME four cells.</summary>
-    public static readonly int[] SecondPageActionIds = { 6, 8, 9, 7 };
+    /// <summary>The quarrel kind an action id stands for, or -1 if it is not a quarrel button.</summary>
+    public static int QuarrelKindFor(int actionId) {
+        for (var kind = 0; kind < ActionIdByQuarrelKind.Length; kind++) {
+            if (ActionIdByQuarrelKind[kind] == actionId) {
+                return kind;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>Cells per page.</summary>
+    public const int SlotsPerPage = 4;
 
     /// <summary>The button that flips between the two pages.</summary>
     public const int PageFlipActionId = 50;
@@ -70,29 +90,63 @@ public static class CombatMenuSlots {
     /// <summary>Flipping is a toggle between exactly two pages.</summary>
     public static int FlipPage(int page) => page == FirstPage ? SecondPage : FirstPage;
 
-    /// <summary>Which page an action id belongs to, or 0 if it is not a quarrel button.</summary>
-    public static int PageOf(int actionId) {
-        foreach (int id in FirstPageActionIds) {
-            if (id == actionId) {
-                return FirstPage;
-            }
-        }
-        foreach (int id in SecondPageActionIds) {
-            if (id == actionId) {
-                return SecondPage;
-            }
-        }
-        return 0;
-    }
-
     /// <summary>
-    /// Whether a quarrel button is live: its page must be showing <b>and</b> the actor must actually
-    /// carry that kind.
+    /// <b>A button's page comes from WHERE IT SITS, not from which id it is.</b>
     /// </summary>
     /// <remarks>
-    /// Two conditions, and the second is the one a port drops — it makes the menu show only the
-    /// ammunition you have, so an empty kind greys out rather than being clickable and failing.
+    /// <c>combat_arena_menu_find_item_page</c> looks the id up in the live entry list and returns
+    /// <c>(index &gt;&gt; 2) + 1</c> — the first four cells are page one, the next four page two.
+    ///
+    /// <para><b>And the entry list is rewritten for every actor.</b> <c>shootmenu_rebuild</c> walks
+    /// the eight quarrel kinds, and for each one the actor actually carries it writes that kind's id
+    /// into the NEXT free cell; the leftover cells are stuffed with page fillers. So an archer
+    /// carrying only kinds 5 and 6 has their ids in cells 0 and 1 — on page one — even though a
+    /// table built from kind order would put them on page two.</para>
+    ///
+    /// <para>This is what the old model got wrong: it split
+    /// <see cref="ActionIdByQuarrelKind"/> down the middle and called the halves the two pages. That
+    /// is not even true of the shipped file, whose cells run 2,3,4,7 then 6,8,9,5, and it is not
+    /// true at runtime for any actor who is missing a kind — which is most of them.</para>
     /// </remarks>
-    public static bool QuarrelIsAvailable(int actionId, int currentPage, int quarrelsOfThatKind) =>
-        PageOf(actionId) == currentPage && quarrelsOfThatKind != 0;
+    public static int PageOfSlot(int slotIndex) =>
+        slotIndex < 0 ? 0 : (slotIndex / SlotsPerPage) + 1;
+
+    /// <summary>
+    /// Whether the quarrel button in a cell is live: its page must be showing <b>and</b> the actor
+    /// must carry that kind.
+    /// </summary>
+    /// <remarks>
+    /// Both halves of <c>combat_arena_shootmenu_ent_avail</c>. The ammunition test is the one a port
+    /// drops, and it is why the menu shows only what you are carrying rather than offering an empty
+    /// kind that then fails.
+    /// </remarks>
+    public static bool QuarrelIsAvailable(int slotIndex, int currentPage, int quarrelsOfThatKind) =>
+        PageOfSlot(slotIndex) == currentPage && quarrelsOfThatKind != 0;
+
+    /// <summary>
+    /// Packs the kinds an actor carries into cells, the way <c>shootmenu_rebuild</c> does.
+    /// </summary>
+    /// <param name="quarrelsOfKind">How many of each of the eight kinds the actor holds.</param>
+    /// <returns>The action id for each cell, or -1 for a cell left empty.</returns>
+    /// <remarks>
+    /// The repack is the whole reason page cannot be read off an id. Kinds are visited in order and
+    /// claim cells in order, so carrying fewer kinds pulls later ones onto the first page.
+    /// </remarks>
+    public static int[] PackCells(IReadOnlyList<int> quarrelsOfKind) {
+        var cells = new int[ActionIdByQuarrelKind.Length];
+        for (var i = 0; i < cells.Length; i++) {
+            cells[i] = -1;
+        }
+        if (quarrelsOfKind == null) {
+            return cells;
+        }
+
+        var claimed = 0;
+        for (var kind = 0; kind < ActionIdByQuarrelKind.Length; kind++) {
+            if (kind < quarrelsOfKind.Count && quarrelsOfKind[kind] != 0) {
+                cells[claimed++] = ActionIdByQuarrelKind[kind];
+            }
+        }
+        return cells;
+    }
 }
