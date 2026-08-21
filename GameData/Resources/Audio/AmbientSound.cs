@@ -49,8 +49,13 @@ public static class AmbientSound {
     public static bool IsSilent(bool underground, int chapter, int zone) =>
         !underground && (chapter == SilentChapter || zone == SilentZone);
 
-    /// <summary>The single sound a dungeon makes.</summary>
-    public const int UndergroundSfx = 3;
+    /// <summary>The single sound a dungeon makes: a water drip.</summary>
+    /// <remarks>
+    /// Confirmed twice over — <c>audio_ambient_tick</c> plays literal 3, and
+    /// <c>audio_unload_world_sounds</c> frees literal 3 on the underground branch where the outdoor
+    /// branch frees its bird list. IDA's sound enum names 3 <c>sound_drip</c>.
+    /// </remarks>
+    public const int UndergroundSfx = 3;   // sound_drip
 
     /// <summary>
     /// The story flag that changes what the outdoors sounds like.
@@ -62,26 +67,46 @@ public static class AmbientSound {
     /// </remarks>
     public const int MoodFlag = 0x753a;
 
+    /// <summary>
+    /// <b>What the flag means is NOT established, and the sounds are only suggestive.</b>
+    /// </summary>
+    /// <remarks>
+    /// Named against IDA's sound enum, the two sets are crickets-and-an-owl before, and birdsong
+    /// after — which reads as night giving way to day. That reading is not supported: 0x753a is an
+    /// ordinary save-state event flag, it is written nowhere in the reconstructed sources, and its
+    /// only other reader gates an NPC interaction branch, which a clock would fit oddly.
+    ///
+    /// <para>So the sound sets are recorded as what they are and the flag is left unnamed. Calling
+    /// it a day/night flag would be a guess dressed as a finding, and a port that wired it to a clock
+    /// would change when NPCs can be interacted with.</para>
+    /// </remarks>
+    public static bool MoodFlagMeaningIsKnown => false;
+
     /// <summary>The zone with its own mix once <see cref="MoodFlag"/> is set.</summary>
     public const int DistinctZone = 2;
 
-    /// <summary>Sound heard in <see cref="DistinctZone"/> about half the time after the flag.</summary>
-    public const int DistinctZoneSfx = 0x85;
+    /// <summary>Sound heard in <see cref="DistinctZone"/> about half the time after the flag: gulls.</summary>
+    /// <remarks>
+    /// <b>Zone 2 is the coast.</b> Independently confirmed by the unload path, which frees
+    /// <c>sound_gulls</c> for <c>currentZoneNumber == 2</c> and for no other zone — so the tick's
+    /// special case and the bank's special case are the same zone for the same reason.
+    /// </remarks>
+    public const int DistinctZoneSfx = 0x85;   // sound_gulls
 
-    /// <summary>The rarer of the two pre-flag sounds.</summary>
-    public const int RarePreFlagSfx = 0x5a;
+    /// <summary>The rarer of the two pre-flag sounds: an owl.</summary>
+    public const int RarePreFlagSfx = 0x5a;   // sound_hoot
 
-    /// <summary>The common pre-flag sound.</summary>
-    public const int CommonPreFlagSfx = 0x33;
+    /// <summary>The common pre-flag sound: crickets.</summary>
+    public const int CommonPreFlagSfx = 0x33;   // sound_crickets
 
-    /// <summary>Lowest id of the post-flag outdoor range.</summary>
-    public const int PostFlagFirstSfx = 52;
+    /// <summary>Lowest id of the post-flag outdoor range: the first birdsong.</summary>
+    public const int PostFlagFirstSfx = 52;   // sound_birds1
 
-    /// <summary>Highest id of that range, inclusive.</summary>
-    public const int PostFlagLastSfx = 54;
+    /// <summary>Highest id of that range, inclusive: the third birdsong.</summary>
+    public const int PostFlagLastSfx = 54;   // sound_birds3
 
-    /// <summary>Base of the two-sound pair the distinct zone falls back to.</summary>
-    public const int DistinctZonePairBase = 0x35;
+    /// <summary>Base of the two-sound pair the distinct zone falls back to: the second birdsong.</summary>
+    public const int DistinctZonePairBase = 0x35;   // sound_birds2, +1 = sound_birds3
 
     /// <summary>
     /// Which sound plays outdoors.
