@@ -375,4 +375,51 @@ public class CombatEncounterTests {
 
         Assert.True(e.IsOver());
     }
+
+    [Fact]
+    public void ASUMMONEDVanisherIsDeletedRatherThanRecordedAsRemoved() {
+        // *** The distinction the old model lost. *** Persistence is keyed by the actor's index in
+        // the encounter roster, and a summon has no roster slot — it was conjured mid-fight. Writing
+        // a removal for it stamps "gone" onto whichever real roster member shares that index.
+        var summoned = new Combatant { ClassId = 56, Flags = CombatantFlags.AiSummon };
+        var conjuredTwin = new Combatant { ClassId = 57, Flags = CombatantFlags.AiSummon };
+
+        Assert.Equal(DeathOutcome.Unsummoned, new CombatEncounter().Kill(summoned));
+        Assert.Equal(DeathOutcome.Unsummoned, new CombatEncounter().Kill(conjuredTwin));
+    }
+
+    [Fact]
+    public void TheSameClassUNSUMMONEDIsStillRecordedAsRemoved() {
+        // Same creature class, opposite persistence — so the flag is doing the work, not the class.
+        var wild = new Combatant { ClassId = 56 };
+
+        Assert.Equal(DeathOutcome.RemovedFromField, new CombatEncounter().Kill(wild));
+    }
+
+    [Fact]
+    public void TheSummonTestIsInsideONECaseAndDoesNotGeneralise() {
+        // The original tests CAF_AI_SUMMON inside case 56/57 only. A summoned creature of another
+        // vanishing class is still persisted; generalising to "any summon is deleted" would change
+        // which creatures survive a revisit.
+        var summonedOther = new Combatant { ClassId = 49, Flags = CombatantFlags.AiSummon };
+
+        Assert.Equal(DeathOutcome.RemovedFromField, new CombatEncounter().Kill(summonedOther));
+    }
+
+    [Fact]
+    public void ASummonedORDINARYCreatureStillLeavesABody() {
+        // The flag alone changes nothing: the class has to be one that vanishes.
+        var summonedBeast = new Combatant { ClassId = 3, Flags = CombatantFlags.AiSummon };
+
+        Assert.Equal(DeathOutcome.LeavesCorpse, new CombatEncounter().Kill(summonedBeast));
+    }
+
+    [Fact]
+    public void AQuietRemovalIsPersistedEvenForASummon() {
+        // play_anim == 0 returns before the switch is reached, so the summon branch never runs.
+        var fleeing = new Combatant { ClassId = 56, Flags = CombatantFlags.AiSummon };
+
+        Assert.Equal(DeathOutcome.RemovedFromField,
+            new CombatEncounter().Kill(fleeing, playAnimation: false));
+    }
 }

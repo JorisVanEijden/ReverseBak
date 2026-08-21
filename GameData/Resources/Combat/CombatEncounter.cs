@@ -7,9 +7,21 @@ public enum DeathOutcome {
     /// <summary>A body stays on the field — this is what the loot screen later opens.</summary>
     LeavesCorpse,
 
-    /// <summary>Nothing stays. The removal is persisted, so this one does not come back if the
+    /// <summary>Nothing stays, and the removal is persisted — this one does not come back if the
     /// encounter is revisited.</summary>
     RemovedFromField,
+
+    /// <summary>
+    /// Nothing stays, and <b>nothing is persisted</b>: a conjured creature is deleted outright.
+    /// </summary>
+    /// <remarks>
+    /// <b>The distinction is not cosmetic.</b> Persistence is keyed by the actor's index in the
+    /// encounter's roster, and a summon has no roster slot — it was conjured mid-fight. Writing a
+    /// removal for it stamps "gone" onto whichever real roster member happens to share that index,
+    /// so a port that treats this as an ordinary removal quietly deletes a creature that should
+    /// still be there on the next visit.
+    /// </remarks>
+    Unsummoned,
 }
 
 /// <summary>
@@ -151,11 +163,21 @@ public sealed class CombatEncounter {
     /// Creature classes that are taken off the field when they die instead of leaving a corpse.
     /// </summary>
     /// <remarks>
-    /// 49, 56 and 57 in the original's switch. 56/57 run a vanish effect first, and a summoned one is
-    /// deleted outright rather than merely removed. Everything else leaves a body behind, which is
-    /// what the loot screen later opens.
+    /// 49, 56 and 57 in the original's switch — each is taken off the grid and its tile word
+    /// cleared. Everything else leaves a body behind, which is what the loot screen later opens.
     /// </remarks>
     private static readonly HashSet<int> VanishesOnDeath = new HashSet<int> { 49, 56, 57 };
+
+    /// <summary>
+    /// The classes whose death checks whether the creature was conjured.
+    /// </summary>
+    /// <remarks>
+    /// Only 56 and 57 have the summon branch. A summoned creature of any OTHER class — 49, say — is
+    /// still persisted as removed, because the original tests the flag inside that one case rather
+    /// than around the whole switch. Faithful rather than tidy: generalising the test to "any summon
+    /// is deleted" would change which creatures survive a revisit.
+    /// </remarks>
+    private static readonly HashSet<int> ConjurableClasses = new HashSet<int> { 56, 57 };
 
     /// <summary>Kills a combatant.</summary>
     /// <param name="playAnimation">The original's second argument. True is a real death; false is
@@ -180,14 +202,27 @@ public sealed class CombatEncounter {
         combatant.Flags |= CombatantFlags.Dead;
         combatant.Target = null;
 
-        bool removed = !playAnimation || VanishesOnDeath.Contains(combatant.ClassId);
-
         if (grid != null) {
             // Occupancy goes; terrain stays exactly as it was.
             grid.SetOccupied(combatant.X, combatant.Y, false);
         }
 
-        return removed ? DeathOutcome.RemovedFromField : DeathOutcome.LeavesCorpse;
+        // A quiet removal never reaches the creature-class switch at all — the actor has already
+        // left the field — and is persisted as gone.
+        if (!playAnimation) {
+            return DeathOutcome.RemovedFromField;
+        }
+        if (!VanishesOnDeath.Contains(combatant.ClassId)) {
+            return DeathOutcome.LeavesCorpse;
+        }
+
+        // *** The original leaves its `removed` flag CLEAR on this path. *** A conjured creature is
+        // deleted from the combatant list and never persisted; only the un-conjured kind of the same
+        // class records a removal.
+        bool conjured = (combatant.Flags & CombatantFlags.AiSummon) != 0
+            && ConjurableClasses.Contains(combatant.ClassId);
+
+        return conjured ? DeathOutcome.Unsummoned : DeathOutcome.RemovedFromField;
     }
 
     /// <summary>Marks the current combatant as having acted.</summary>
