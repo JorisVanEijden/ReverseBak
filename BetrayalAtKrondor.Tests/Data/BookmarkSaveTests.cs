@@ -79,4 +79,33 @@ public class BookmarkSaveTests {
         Assert.Equal(-1, BookmarkSave.NoMapPosition);
         Assert.True(BookmarkSave.CanSave(hasActiveSaveDirectory: true));
     }
+
+    [Fact]
+    public void TheSlotFileNameRoundTrips() {
+        for (var slot = 0; slot <= 99; slot++) {
+            Assert.True(BookmarkSave.TryParseSlot(BookmarkSave.FileNameForSlot(slot), out int back));
+            Assert.Equal(slot, back);
+        }
+        Assert.Equal("SAVE00.GAM", BookmarkSave.FileNameForSlot(BookmarkSave.Slot));
+    }
+
+    [Fact]
+    public void ASTRAYFILEISNOTMISTAKENFORSLOTZERO() {
+        // *** The reason this refuses rather than guessing. *** Slot 0 IS the bookmark, so anything
+        // that parsed loosely to 0 would make a later bookmark overwrite the wrong file.
+        Assert.False(BookmarkSave.TryParseSlot("NOTES.TXT", out _));
+        Assert.False(BookmarkSave.TryParseSlot("SAVE.GAM", out _));
+        Assert.False(BookmarkSave.TryParseSlot("SAVE0.GAM", out _));
+        Assert.False(BookmarkSave.TryParseSlot("SAVE001.GAM", out _));
+        Assert.False(BookmarkSave.TryParseSlot("SAVE-1.GAM", out _));
+        Assert.False(BookmarkSave.TryParseSlot("", out _));
+        Assert.False(BookmarkSave.TryParseSlot(null, out _));
+    }
+
+    [Fact]
+    public void ParsingIsCaseInsensitive() {
+        // DOS-era names arrive in either case depending on who wrote the directory.
+        Assert.True(BookmarkSave.TryParseSlot("save07.gam", out int slot));
+        Assert.Equal(7, slot);
+    }
 }

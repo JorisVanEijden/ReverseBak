@@ -96,6 +96,38 @@ public static class BookmarkSave {
     /// </remarks>
     public static int CompassIconFor(int normalisedYaw) => (normalisedYaw >> 13) << 2;
 
+    /// <summary>The save file name for a slot — <c>SAVEnn.GAM</c>, two digits.</summary>
+    public static string FileNameForSlot(int slot) => "SAVE" + slot.ToString("D2") + ".GAM";
+
+    /// <summary>
+    /// Recovers the slot number from a save file name.
+    /// </summary>
+    /// <remarks>
+    /// The reverse of <see cref="FileNameForSlot"/>, so loading a game can record WHERE it came from
+    /// and a later bookmark knows where to write. Returns false for anything that is not a slot file
+    /// rather than guessing a number — a stray file in a save directory must not be mistaken for
+    /// slot 0, which is the bookmark and would then be overwritten.
+    /// </remarks>
+    public static bool TryParseSlot(string fileName, out int slot) {
+        slot = -1;
+        if (string.IsNullOrEmpty(fileName)) {
+            return false;
+        }
+        string name = fileName.Trim();
+        const string prefix = "SAVE";
+        const string suffix = ".GAM";
+        if (name.Length != prefix.Length + 2 + suffix.Length) {
+            return false;
+        }
+        if (!name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)
+            || !name.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+        string digits = name.Substring(prefix.Length, 2);
+        return int.TryParse(digits, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out slot);
+    }
+
     /// <summary>Value stored for both map coordinates when the chapter has no map entry.</summary>
     /// <remarks>
     /// <b>Minus one, and the icon goes to zero with it.</b> A chapter whose map lookup fails still
