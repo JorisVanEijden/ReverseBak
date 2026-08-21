@@ -9,12 +9,18 @@ namespace GameData.Resources.Combat;
 /// Three passes, each looking for one group of creature types on the field and casting one specific
 /// spell at the first one it settles on.</para>
 ///
-/// <para><b>Which side is scanned is the caller's business, not this function's.</b> It reads
-/// <c>g_pCombatActiveActors</c> — a pointer that <c>combat_arena_swap_tgt_state</c> re-aims when the
-/// turn changes hands — so the same code means "my side" on one turn and "theirs" on another. That
-/// is why the candidate list is a parameter here. The spells suggest an ally scan (raising a fallen
-/// Black Slayer is not something you do to an enemy), but <b>that has not been traced and is not
-/// asserted</b>.</para>
+/// <para><b>SETTLED: the scan walks the CASTER'S OWN SIDE.</b> It reads
+/// <c>g_pCombatActiveActors</c>, which <c>combat_arena_swap_tgt_state</c> re-aims when the turn
+/// changes hands, so the pointer alone does not say which side it is. The CONTENT does: every pass
+/// hunts specific monster creature types, and one of the two actions is a raise-dead on a fallen
+/// Black Slayer. You do not resurrect an enemy. So the candidate list is the AI's allies.</para>
+///
+/// <para><b>The list stays a parameter anyway, and that is not hedging.</b> The same
+/// <c>g_pCombatActiveActors</c> is read as the ENEMY list elsewhere in the same subsystem —
+/// <c>CBTAITRN.C</c> assigns <c>actor->inner->target</c> straight out of it — so the array genuinely
+/// means different sides at different points in the swap cycle. A model that hard-coded "allies"
+/// into the reader would be right here and wrong there; keeping it a parameter is what lets both
+/// callers be correct.</para>
 /// </summary>
 public static class OpportunisticCasts {
     /// <summary>Black Slayer, risen form.</summary>
