@@ -99,4 +99,60 @@ public class KeywordMenuTests {
     public void TheFarewellSitsApartFromTheGrid() {
         Assert.Equal(237, KeywordMenu.FarewellX);
     }
+
+    [Fact]
+    public void TheForcedFarewellXONLYBitesInTheTightLayout() {
+        // *** Corrected by this test, which is why it is worth having. *** I wrote it to assert the
+        // farewell is always pulled off the grid. It is not: 237 is EXACTLY column 3's grid x, so in
+        // the normal 16-slot menu the last slot already lands there and the force changes nothing.
+        //
+        // It bites only when the list is full: 17 slots put the farewell at index 16, which is
+        // column 0 (x 12), and the force drags it back across to 237. So a renderer that lays every
+        // slot out by index alone looks perfectly correct until a speaker has sixteen topics.
+        int normalLast = KeywordMenu.FarewellSlot(availableKeywords: 5);
+        (int normalX, _, _, _) = KeywordMenu.SlotRect(normalLast, 5);
+        (int normalGridX, _) = KeywordMenu.SlotPosition(normalLast, 5);
+        Assert.Equal(normalGridX * KeywordMenu.CanonicalScaleX, normalX);
+
+        int tightLast = KeywordMenu.FarewellSlot(KeywordMenu.TightLayoutCount);
+        (int tightX, int tightY, _, _) = KeywordMenu.SlotRect(tightLast, KeywordMenu.TightLayoutCount);
+        (int tightGridX, int tightGridY) = KeywordMenu.SlotPosition(tightLast, KeywordMenu.TightLayoutCount);
+
+        Assert.Equal(KeywordMenu.FarewellX * KeywordMenu.CanonicalScaleX, tightX);
+        Assert.NotEqual(tightGridX * KeywordMenu.CanonicalScaleX, tightX);
+        // The row is still the slot's own — only x is overridden.
+        Assert.Equal(tightGridY * KeywordMenu.CanonicalScaleY, tightY);
+    }
+
+    [Fact]
+    public void AnOrdinarySlotIsJustItsGridPositionScaled() {
+        (int x, int y, int w, int h) = KeywordMenu.SlotRect(0, 5);
+        (int vgaX, int vgaY) = KeywordMenu.SlotPosition(0, 5);
+
+        Assert.Equal(vgaX * KeywordMenu.CanonicalScaleX, x);
+        Assert.Equal(vgaY * KeywordMenu.CanonicalScaleY, y);
+        Assert.Equal(KeywordMenu.EntryWidth * KeywordMenu.CanonicalScaleX, w);
+        Assert.Equal(KeywordMenu.EntryHeight * KeywordMenu.CanonicalScaleY, h);
+    }
+
+    [Fact]
+    public void TheGridStaysInsideTheCanonicalFrame() {
+        // Four columns of 70 starting at 12 must not run off 1600, and the deepest row of the tight
+        // layout must not run off 1200 — the check that the x5/x6 pair is the right one.
+        (int lastColX, _, int w, _) = KeywordMenu.SlotRect(KeywordMenu.Columns - 1, 5);
+        Assert.True(lastColX + w <= 1600, "the fourth column fits across");
+
+        int deepest = KeywordMenu.SlotCount(KeywordMenu.TightLayoutCount) - 1;
+        (_, int y, _, int h) = KeywordMenu.SlotRect(deepest, KeywordMenu.TightLayoutCount);
+        Assert.True(y + h <= 1200, "the deepest row fits down");
+    }
+
+    [Fact]
+    public void TheTIGHTLayoutSitsHIGHERThanTheNormalOneOnTheSameRow() {
+        // The nine pixels the tightening buys, seen in canonical space: same slot, higher on screen.
+        (_, int tight, _, _) = KeywordMenu.SlotRect(12, KeywordMenu.TightLayoutCount);
+        (_, int normal, _, _) = KeywordMenu.SlotRect(12, 5);
+
+        Assert.True(tight < normal);
+    }
 }

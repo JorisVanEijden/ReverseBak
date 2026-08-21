@@ -91,6 +91,36 @@ public static class KeywordMenu {
         ((slot % Columns) * ColumnWidth) + GridLeft,
         ((slot / Columns) * RowHeight(availableKeywords)) + TopInset(availableKeywords) + GridTop);
 
+    /// <summary>Canonical-space scale factors — VGA x5 across, x6 down.</summary>
+    /// <remarks>
+    /// The constants above are the original's mode-13h values because that is how the routine reads;
+    /// every renderer works in canonical 1600x1200. Converting here rather than in the renderer keeps
+    /// the 320x200 space from leaking into the UI layer, and means the farewell's exception is
+    /// applied in exactly one place.
+    /// </remarks>
+    public const int CanonicalScaleX = 5;
+
+    /// <inheritdoc cref="CanonicalScaleX"/>
+    public const int CanonicalScaleY = 6;
+
+    /// <summary>
+    /// A slot's box in canonical space, with the farewell's exception already applied.
+    /// </summary>
+    /// <remarks>
+    /// <b>The farewell does not sit on the grid.</b> Its x is forced to <see cref="FarewellX"/>,
+    /// which is outside the four columns — so laying every slot out by index alone puts it in a
+    /// column where it does not belong, and the more topics there are the more obviously wrong it
+    /// looks. Its row still follows from its slot.
+    /// </remarks>
+    public static (int X, int Y, int Width, int Height) SlotRect(int slot, int availableKeywords) {
+        (int x, int y) = SlotPosition(slot, availableKeywords);
+        if (slot == FarewellSlot(availableKeywords)) {
+            x = FarewellX;
+        }
+        return (x * CanonicalScaleX, y * CanonicalScaleY,
+            EntryWidth * CanonicalScaleX, EntryHeight * CanonicalScaleY);
+    }
+
     /// <summary>The save-state key that records a topic as already asked about.</summary>
     public static int AskedFlag(int globalKey) => AskedFlagBase + globalKey;
 
