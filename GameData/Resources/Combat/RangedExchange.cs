@@ -70,10 +70,21 @@ public static class RangedExchange {
     /// The one quarrel kind that applies a status effect rather than just damage.
     /// </summary>
     /// <remarks>
-    /// Kind 3 alone runs a status-effect add/remove pair around the damage, raises the knockback
-    /// flag on the target and fires a particle burst. <b>What the effect IS is not established</b> —
-    /// the call is <c>cspell_status_effect_add(target, 4, 0, 0, 0)</c>, and effect 4 has not been
-    /// identified here.
+    /// Kind 3 alone raises the knockback flag on the target and fires a particle burst, bracketed by
+    /// a status-effect add/remove pair.
+    ///
+    /// <para><b>That effect has no gameplay meaning — it is a rendering hack (identified
+    /// 2026-08-22).</b> The call is <c>cspell_status_effect_add(target, 4, 0, 0, 0)</c>, and type 4
+    /// is <b>never queried anywhere</b>: <c>cspell_stat_effect_find_type</c> is called with 1, 3, 6,
+    /// 0xd, 0x17 and 0x1f across the whole codebase, never 4. The expiry switch handles only type 1.
+    /// The pair also brackets the <i>particle burst</i>, not the damage — the remove happens before
+    /// <c>combat_arena_apply_damage</c>.</para>
+    ///
+    /// <para>What it actually does is make <c>statusHead</c> non-empty for the duration of the
+    /// burst. That field is <b>overloaded</b>: <c>worldfx_render_particle_blast</c> temporarily
+    /// overwrites it with <c>0x13</c> and restores it afterwards, so the renderer reads it as an
+    /// effect selector rather than as a status list. <b>A port that models status effects faithfully
+    /// and then implements "effect 4" is implementing nothing</b> — the value is never inspected.</para>
     /// </remarks>
     public const int StatusEffectQuarrelKind = 3;
 

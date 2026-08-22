@@ -45,6 +45,21 @@ public class RangedExchangeTests {
     }
 
     [Fact]
+    public void TheStatusEffectOnKindThreeIsARenderingHack_NotAGameplayEffect() {
+        // Identified 2026-08-22: type 4 is never queried anywhere (find_type is called with 1, 3, 6,
+        // 0xd, 0x17, 0x1f - never 4), the expiry switch handles only type 1, and the add/remove pair
+        // brackets the PARTICLE BURST rather than the damage. Its only job is to make statusHead
+        // non-empty while worldfx renders. So AppliesStatusEffect is about the visual, and a port
+        // that implements "effect 4" as a status is implementing nothing.
+        Assert.True(RangedExchange.AppliesStatusEffect(RangedExchange.StatusEffectQuarrelKind));
+        Assert.Equal(3, RangedExchange.StatusEffectQuarrelKind);
+
+        // It still carries its own damage flag, which IS real.
+        Assert.Equal(RangedExchange.BaseDamageFlags | 8,
+            RangedExchange.DamageFlagsFor(RangedExchange.StatusEffectQuarrelKind));
+    }
+
+    [Fact]
     public void CrossbowSkillIsPaidTwiceOnAHit_OnceOnAMiss() {
         // Same shape as melee: paid on declaration, and again on connecting.
         Assert.Equal(1, RangedExchange.SkillAwards(hit: false));
