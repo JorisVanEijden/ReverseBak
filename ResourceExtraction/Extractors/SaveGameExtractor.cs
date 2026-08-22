@@ -510,29 +510,8 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         return combatData;
     }
 
-    private static SaveGameCombatData ParseCombat(BinaryReader reader) {
-        return new SaveGameCombatData(
-            reader.ReadUInt16(),
-            reader.ReadInt16(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadInt16(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadSByte(),
-            reader.ReadByte(),
-            reader.ReadByte(),
-            reader.ReadSByte()
-        );
-    }
+    // Shared with P1.DAT, which carries the same CombatantState records — see CombatRecordReader.
+    private static SaveGameCombatData ParseCombat(BinaryReader reader) => CombatRecordReader.Read(reader);
 
     private static SaveGameZoneContainerStateData ParseZoneContainerStateData(byte[] zoneContainerDataBytes, SaveGameWorldData worldStateData) {
         using var zoneContainerStream = new MemoryStream(zoneContainerDataBytes);
