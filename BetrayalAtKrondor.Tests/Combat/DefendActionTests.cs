@@ -63,6 +63,13 @@ public class DefendActionTests {
     }
 
     [Fact]
+    public void TheRecoveryIsCappedAtEightyPercent() {
+        // stat_combatant_modify's fourth argument is a CAP, not a duration - so defending
+        // repeatedly never reaches full health by that route alone.
+        Assert.Equal(80, DefendAction.HealCapPercent);
+    }
+
+    [Fact]
     public void TheButtonHasAHelpDialog() {
         // Every combat button has a preview branch that plays a dialog and returns without acting.
         Assert.Equal(0x107, DefendAction.HelpDialog);

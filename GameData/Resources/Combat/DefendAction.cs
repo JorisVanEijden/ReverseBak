@@ -23,6 +23,17 @@ public static class DefendAction {
     /// <summary>The divisor behind the recovery — <c>sumMax / 0x1e</c>.</summary>
     public const int HealDivisor = 30;
 
+    /// <summary>
+    /// The ceiling the recovery may reach, as a percentage — <c>stat_combatant_modify</c>'s fourth
+    /// argument, 0x50.
+    /// </summary>
+    /// <remarks>
+    /// <b>Defending does not heal to full.</b> 80% is the cap, so a badly hurt character can defend
+    /// repeatedly and still never reach their maximum by this route alone. Reading the argument as a
+    /// duration — its more natural shape for a combat action — would drop the cap entirely.
+    /// </remarks>
+    public const int HealCapPercent = 0x50;
+
     /// <summary>Help text shown when the button is right-clicked instead of pressed.</summary>
     /// <remarks>
     /// Every combat button has a preview branch that plays a dialog and returns without acting
