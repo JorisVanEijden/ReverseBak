@@ -14,8 +14,17 @@ public static class CombatCommands {
         /// <summary>Not a combat menu id.</summary>
         None,
 
-        /// <summary>Raise a guard — <c>combatenc_actor_enter_defense</c>.</summary>
-        Defend,
+        /// <summary>
+        /// <b>REST for one round</b> — <c>combatenc_actor_enter_defense</c>, despite that name.
+        /// </summary>
+        /// <remarks>
+        /// <b>This is not Defend.</b> The game's own describe record for id 19 (DDX 263) reads
+        /// "causes the current character to rest for one round", and the behaviour agrees: the
+        /// routine heals and spends the turn (see <c>DefendAction</c>), which is resting, not
+        /// guarding. Defending is <see cref="Defend"/>, id 32. canassa's function name is the
+        /// misleading one here.
+        /// </remarks>
+        Rest,
 
         /// <summary>Open the SHOOT menu. Refused outright if the actor cannot shoot.</summary>
         Shoot,
@@ -43,53 +52,70 @@ public static class CombatCommands {
         CharacterScreen,
 
         /// <summary>
-        /// Sets a pending-action mode the arena reads later. <b>Not identified.</b> Id 32 clears one
-        /// actor flag and sets another; id 47 sets the pending mode to 3. Both are real branches, but
-        /// naming them from the body alone would be a guess, and this codebase has been burned by
-        /// exactly that.
+        /// <b>Raise a guard</b> — <c>combatenc_set_flag8_clear_flag1</c>, id 32.
         /// </summary>
-        UnidentifiedMode,
+        /// <remarks>
+        /// Identified 2026-08-22 from the describe record (DDX 266): "allows the current character to
+        /// defend for one turn". The body agrees and closes a loop: it sets flag <b>0x08</b> —
+        /// <see cref="CombatantFlags.Parry"/>, the flag <see cref="CombatFormulas.MeleeHits"/>
+        /// already reads for its to-hit penalty — and clears <see cref="CombatantFlags.Ready"/>.
+        /// </remarks>
+        Defend,
+
+        /// <summary>
+        /// <b>Inspect one enemy</b> — id 47, which sets the arena's pending mode to 3.
+        /// </summary>
+        /// <remarks>
+        /// Identified 2026-08-22 from the describe record (DDX 267): "allows the current character to
+        /// inspect one enemy". Mode 3 is therefore a targeting state the arena reads on the next
+        /// click, not an action resolved on the spot.
+        /// </remarks>
+        Inspect,
     }
 
     /// <summary>The action id for each command, as COMBAT.DAT ships them.</summary>
-    public const int DefendId = 19;
+    /// <remarks>
+    /// <b>Id 19 is REST, not Defend.</b> See <see cref="Command.Rest"/> — the game's own help text
+    /// says so, and the two were transposed here until 2026-08-22.
+    /// </remarks>
+    public const int RestId = 19;
 
-    /// <inheritdoc cref="DefendId"/>
+    /// <inheritdoc cref="RestId"/>
     public const int ShootId = 31;
 
-    /// <inheritdoc cref="DefendId"/>
+    /// <inheritdoc cref="RestId"/>
     public const int CastId = 46;
 
-    /// <inheritdoc cref="DefendId"/>
+    /// <inheritdoc cref="RestId"/>
     public const int AutoResolveId = 30;
 
-    /// <inheritdoc cref="DefendId"/>
+    /// <inheritdoc cref="RestId"/>
     public const int BackOrRetreatId = 33;
 
-    /// <inheritdoc cref="DefendId"/>
+    /// <inheritdoc cref="RestId"/>
     public const int CapabilityLabelId = 14;
 
     /// <summary>The character-screen button — the hidden 250x270 element on the left.</summary>
     public const int CharacterScreenId = 22;
 
-    /// <summary>Ids 32 and 47 — see <see cref="Command.UnidentifiedMode"/>.</summary>
-    public const int ModeIdA = 32;
+    /// <summary>Raise a guard — sets Parry, clears Ready.</summary>
+    public const int DefendId = 32;
 
-    /// <inheritdoc cref="ModeIdA"/>
-    public const int ModeIdB = 47;
+    /// <summary>Inspect one enemy — a targeting mode, not an immediate action.</summary>
+    public const int InspectId = 47;
 
     /// <summary>What a combat menu id does.</summary>
     public static Command For(int actionId) {
         switch (actionId) {
-            case DefendId: return Command.Defend;
+            case RestId: return Command.Rest;
             case ShootId: return Command.Shoot;
             case CastId: return Command.Cast;
             case AutoResolveId: return Command.AutoResolve;
             case BackOrRetreatId: return Command.BackOrRetreat;
             case CapabilityLabelId: return Command.CapabilityLabel;
             case CharacterScreenId: return Command.CharacterScreen;
-            case ModeIdA:
-            case ModeIdB: return Command.UnidentifiedMode;
+            case DefendId: return Command.Defend;
+            case InspectId: return Command.Inspect;
             default: return Command.None;
         }
     }

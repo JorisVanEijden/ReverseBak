@@ -8,15 +8,17 @@ public class CombatCommandsTests {
     [Fact]
     public void EveryShippedCombatIdMapsToACommand() {
         // COMBAT.json ships exactly these nine.
-        Assert.Equal(CombatCommands.Command.Defend, CombatCommands.For(19));
+        Assert.Equal(CombatCommands.Command.Rest, CombatCommands.For(19));   // 19 RESTS; Defend is 32
         Assert.Equal(CombatCommands.Command.Shoot, CombatCommands.For(31));
         Assert.Equal(CombatCommands.Command.Cast, CombatCommands.For(46));
         Assert.Equal(CombatCommands.Command.AutoResolve, CombatCommands.For(30));
         Assert.Equal(CombatCommands.Command.BackOrRetreat, CombatCommands.For(33));
         Assert.Equal(CombatCommands.Command.CapabilityLabel, CombatCommands.For(14));
         Assert.Equal(CombatCommands.Command.CharacterScreen, CombatCommands.For(22));
-        Assert.Equal(CombatCommands.Command.UnidentifiedMode, CombatCommands.For(32));
-        Assert.Equal(CombatCommands.Command.UnidentifiedMode, CombatCommands.For(47));
+        // Identified 2026-08-22 from the describe records: 32 defends (sets Parry, clears Ready),
+        // 47 inspects an enemy. Neither is an unknown mode any more.
+        Assert.Equal(CombatCommands.Command.Defend, CombatCommands.For(32));
+        Assert.Equal(CombatCommands.Command.Inspect, CombatCommands.For(47));
     }
 
     [Fact]
@@ -24,7 +26,7 @@ public class CombatCommandsTests {
         // 19 is FollowRoad on REQ_MAIN and Defend here; 46 is CastSpell there and Cast here — the
         // one coincidence, which makes the collision easy to miss. Feeding COMBAT.DAT through the
         // travel screen's switch would fire the travel action.
-        Assert.Equal(CombatCommands.Command.Defend, CombatCommands.For(19));
+        Assert.Equal(CombatCommands.Command.Rest, CombatCommands.For(19));   // 19 RESTS; Defend is 32
         Assert.NotEqual(CombatCommands.Command.None, CombatCommands.For(46));
     }
 
