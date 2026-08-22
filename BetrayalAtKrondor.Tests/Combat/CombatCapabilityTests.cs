@@ -72,6 +72,28 @@ public class CombatCapabilityTests {
     }
 
     [Fact]
+    public void TheShippedLadderMakesTheHealthGateMeanExactlyAlive() {
+        // *** The table is misleading and this pins what it actually does. *** g_anStatCheckThreshold
+        // is {10,10,10,0,0,0,0,0,0}: clearing ANY entry suffices, and every living character clears
+        // the six zeros, so the three 10s never decide anything. A reader of the nine-entry table and
+        // the summing loop would expect a minimum-health rule. There is none.
+        int[] shipped = CombatCapability.ShippedHealthThresholds;
+        Assert.Equal(9, shipped.Length);
+
+        Assert.True(CombatCapability.ClearsAnyThreshold(1, shipped), "one point of health is enough");
+        Assert.True(CombatCapability.ClearsAnyThreshold(5, shipped), "well under the 10s, still fine");
+        Assert.False(CombatCapability.ClearsAnyThreshold(0, shipped), "a downed caster cannot");
+    }
+
+    [Fact]
+    public void WithTheShippedLadderCastingTurnsOnBeingAliveNotOnHealthLevel() {
+        Assert.True(CombatCapability.CanCast(0, 5, castingSkill: 30, health: 1,
+            CombatCapability.ShippedHealthThresholds, false));
+        Assert.False(CombatCapability.CanCast(0, 5, castingSkill: 30, health: 0,
+            CombatCapability.ShippedHealthThresholds, false));
+    }
+
+    [Fact]
     public void TheUncheckedDistanceSkipsTheAdjacencyRule() {
         // find_nearest = 0 substitutes 100, which is how a caller asks "can they cast at all?"
         // without caring who is standing next to them.

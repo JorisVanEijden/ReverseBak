@@ -19,10 +19,19 @@ public static class CombatCapability {
     /// The terrain kind that denies both shooting and casting.
     /// </summary>
     /// <remarks>
-    /// <b>Our <see cref="CombatTerrain"/> does not name this kind.</b> The original tests
-    /// <c>combatgrid_tile_terrain_field(...) != 1</c> in both predicates, but 1 is absent from the
-    /// terrain enum we reconstructed from <c>Load_grid</c>. Recorded as a number rather than given
-    /// an invented name.
+    /// <b>Our <see cref="CombatTerrain"/> does not name this kind, and neither can we yet.</b>
+    ///
+    /// <para>What is established: a sweep of every <c>combatgrid_tile_terrain_field</c> call shows
+    /// terrain 1 is compared <b>only</b> in these two predicates (CBENC.C:511 and :530) — nowhere
+    /// else in the game. Its entire observable role is denying ranged attacks and spellcasting to
+    /// whoever stands on it. Other kinds are read all over (4, 5, 9 elsewhere), so this is not an
+    /// artefact of a narrow search.</para>
+    ///
+    /// <para>What is NOT established: what the tile actually is. A guess like "water" or "under
+    /// cover" would fit the behaviour and has no evidence behind it. <b>Whether it even occurs in
+    /// shipped data is also unchecked</b> — the combat grid terrain is not among our extracted
+    /// formats (<c>GridData</c> holds only zone border pens), so the branch could be dead. Settling
+    /// it means extracting the arena grids.</para>
     /// </remarks>
     public const int DenyingTerrain = 1;
 
@@ -81,7 +90,10 @@ public static class CombatCapability {
     /// </param>
     /// <param name="castingSkill">The actor's Casting accuracy — stat 7.</param>
     /// <param name="health">Current health — stat 0.</param>
-    /// <param name="healthThresholds">The threshold ladder health is compared against.</param>
+    /// <param name="healthThresholds">
+    /// The threshold ladder health is compared against. Pass <see cref="ShippedHealthThresholds"/>
+    /// unless you have reason not to; with that table the gate is exactly "health &gt; 0".
+    /// </param>
     /// <param name="chapterEightWithoutRequiredItem">
     /// Chapter 8 only, and only for a character outside slot 0: casting is refused when they carry
     /// none of the required item kind.
@@ -102,6 +114,21 @@ public static class CombatCapability {
             && ClearsAnyThreshold(health, healthThresholds)
             && RangeIsClear(nearestActorDistance);
     }
+
+    /// <summary>
+    /// The shipped threshold ladder — <c>g_anStatCheckThreshold</c> (canassa CBENC.C:47).
+    /// </summary>
+    /// <remarks>
+    /// <b>Six of the nine entries are zero, so the whole health gate reduces to "health &gt; 0".</b>
+    /// The three 10s never decide anything: clearing ANY entry is enough, and every living character
+    /// clears the zeros. So the rule this expresses is simply that <b>a character on zero health
+    /// cannot cast</b> — not a minimum-health requirement, which is what the nine-entry table and the
+    /// summing loop both suggest at a glance.
+    ///
+    /// <para>Kept as the real table rather than collapsed to <c>health &gt; 0</c> so the data stays
+    /// visible and a different build's table would still be expressed correctly.</para>
+    /// </remarks>
+    public static readonly int[] ShippedHealthThresholds = { 10, 10, 10, 0, 0, 0, 0, 0, 0 };
 
     /// <summary>Distance standing for "do not apply the adjacency rule".</summary>
     /// <remarks>The original substitutes 100 when it is told not to look for the nearest actor.</remarks>
