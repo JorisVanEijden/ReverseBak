@@ -43,11 +43,18 @@ public static class EquippedGear {
     /// <b>Asking for category 1 also accepts category 3 — and nothing else aliases.</b>
     /// </summary>
     /// <remarks>
-    /// <c>altcategory = (category == 1) ? 3 : category</c>. So a melee-weapon lookup matches both
-    /// kinds, while a ranged lookup (2) matches only 2. Applying the alias symmetrically would let a
-    /// category-3 item answer a ranged query and offer a shot with the wrong weapon.
+    /// <c>altcategory = (category == 1) ? 3 : category</c>. The numbers are
+    /// <see cref="ObjectType"/>: 1 is <see cref="ObjectType.Sword"/>, 2
+    /// <see cref="ObjectType.Crossbow"/>, 3 <see cref="ObjectType.Staff"/>. So <b>a melee lookup
+    /// accepts a sword OR a staff</b>, while a crossbow lookup accepts only a crossbow. Applying the
+    /// alias symmetrically would let a staff answer a ranged query and offer a shot with it.
+    ///
+    /// <para>This is consistent with <c>InventoryEquip.CanEquipCategory</c>, where a caster equips
+    /// Staff/Armor and a non-caster Sword/Crossbow/Armor — so a caster carries no crossbow and
+    /// <see cref="CombatCapability.CanShoot"/> is naturally false for one.</para>
     /// </remarks>
-    public static int AlternateCategoryFor(int category) => category == 1 ? 3 : category;
+    public static int AlternateCategoryFor(int category) =>
+        category == (int)ObjectType.Sword ? (int)ObjectType.Staff : category;
 
     /// <summary>Whether a slot satisfies a lookup for <paramref name="category"/>.</summary>
     /// <param name="equipped">The slot's Equipped flag (0x40) — unequipped gear is never found.</param>

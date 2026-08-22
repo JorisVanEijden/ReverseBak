@@ -25,6 +25,23 @@ public class EquippedGearTests {
     }
 
     [Fact]
+    public void TheCategoryNumbersAreObjectTypes() {
+        // Names the alias: a MELEE lookup accepts a sword or a staff; a crossbow lookup accepts only
+        // a crossbow. Pinned so a re-extraction cannot shift the enum out from under the rule.
+        Assert.Equal(1, (int)GameData.ObjectType.Sword);
+        Assert.Equal(2, (int)GameData.ObjectType.Crossbow);
+        Assert.Equal(3, (int)GameData.ObjectType.Staff);
+        Assert.Equal(2, CombatCapability.RangedWeaponCategory);
+
+        Assert.True(EquippedGear.HasIntact(
+            new[] { new EquippedGear.Slot(true, (int)GameData.ObjectType.Staff, 50) },
+            category: (int)GameData.ObjectType.Sword), "a staff answers a melee query");
+        Assert.False(EquippedGear.HasIntact(
+            new[] { new EquippedGear.Slot(true, (int)GameData.ObjectType.Staff, 50) },
+            category: CombatCapability.RangedWeaponCategory), "but never a ranged one");
+    }
+
+    [Fact]
     public void AnItemTypeThatDoesNotTrackWearIsAlwaysAsNew() {
         // The original writes 'd' - 100. Reading it as 0 would make every simple weapon broken.
         Assert.Equal(100, EquippedGear.ConditionOf(false, typeTracksCondition: false, slotCondition: 0));
