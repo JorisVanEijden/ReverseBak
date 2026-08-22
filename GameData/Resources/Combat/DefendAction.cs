@@ -51,6 +51,46 @@ public static class DefendAction {
     public const ActorAttribute HealedAttribute = ActorAttribute.HealthStaminaCombo;
 
     /// <summary>
+    /// Whether a character's condition lets them recover from resting.
+    /// </summary>
+    /// <param name="conditionRanks">
+    /// The character's seven condition ranks, indexed by <see cref="ActorCondition"/>.
+    /// </param>
+    /// <remarks>
+    /// <b>Every affliction blocks the recovery; being under Healing does not.</b> The original tests
+    /// six bytes of a per-character row and skips exactly one — and the skipped slot is
+    /// <see cref="ActorCondition.Healing"/>, the only entry of the seven that is a benefit rather
+    /// than an ailment. So resting restores nothing to a character who is sick, plagued, poisoned,
+    /// drunk, starving or near death, while a character being healed still recovers.
+    ///
+    /// <para><b>How the table was identified (2026-08-22).</b> canassa reads
+    /// <c>(char *)g_gameState.aSkillTrainRate + N + charSlot * 7</c> for N in 5, 6, 7, 8, 10, 11 —
+    /// which cannot be that field, since <c>aSkillTrainRate</c> is an array of SHORTS and a stride of
+    /// 7 does not align with it. The struct has exactly one per-character row of seven bytes right
+    /// after it, <c>abActorStatusRanks[..][7]</c>, so the decompiler attributed a base+displacement
+    /// to the neighbouring field. The offsets clinch it: they are consecutive except for a gap where
+    /// 9 would be, i.e. six of seven slots with the fifth skipped — and the fifth condition is
+    /// Healing.</para>
+    ///
+    /// <para><b>A monster always recovers</b>: it has no character slot, so the original skips the
+    /// test entirely.</para>
+    /// </remarks>
+    public static bool RecoveryAllowed(System.Collections.Generic.IReadOnlyList<int> conditionRanks) {
+        if (conditionRanks == null) {
+            return true;   // no character row to consult — the monster case
+        }
+        for (var i = 0; i < conditionRanks.Count; i++) {
+            if (i == (int)ActorCondition.Healing) {
+                continue;
+            }
+            if (conditionRanks[i] != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
     /// How much a defending character recovers.
     /// </summary>
     /// <param name="maxHealth">Health's ceiling.</param>
@@ -70,12 +110,7 @@ public static class DefendAction {
     /// </summary>
     /// <param name="actor">The acting combatant.</param>
     /// <param name="recovers">
-    /// Whether the recovery applies. <b>The original gates it on a per-character table this model
-    /// does not yet identify</b> — a monster (no character slot) always recovers, while a party
-    /// member recovers only when six bytes of a per-character table are all zero. canassa calls that
-    /// table <c>aSkillTrainRate</c>, but its indexing there (offsets 5..11 with a stride of 7)
-    /// overruns one character's row, so the name and the layout cannot both be right. Passed in
-    /// rather than guessed.
+    /// Whether the recovery applies — see <see cref="RecoveryAllowed"/>, which computes it.
     /// </param>
     /// <returns>The amount recovered, or 0 when it does not apply.</returns>
     /// <remarks>

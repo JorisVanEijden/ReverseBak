@@ -1,6 +1,7 @@
 namespace BetrayalAtKrondor.Tests.Combat;
 
 using GameData;
+using GameData.Resources.Character;
 using GameData.Resources.Combat;
 using Xunit;
 
@@ -67,6 +68,48 @@ public class DefendActionTests {
         // stat_combatant_modify's fourth argument is a CAP, not a duration - so defending
         // repeatedly never reaches full health by that route alone.
         Assert.Equal(80, DefendAction.HealCapPercent);
+    }
+
+    private static int[] NoConditions() => new int[ActorConditions.Count];
+
+    [Fact]
+    public void AHealthyCharacterRecovers() {
+        Assert.True(DefendAction.RecoveryAllowed(NoConditions()));
+    }
+
+    [Fact]
+    public void EveryAfflictionBlocksTheRecovery() {
+        foreach (ActorCondition c in new[] {
+                ActorCondition.Sick, ActorCondition.Plagued, ActorCondition.Poisoned,
+                ActorCondition.Drunk, ActorCondition.Starving, ActorCondition.NearDeath }) {
+            int[] ranks = NoConditions();
+            ranks[(int)c] = 1;
+            Assert.False(DefendAction.RecoveryAllowed(ranks), c + " must block the recovery");
+        }
+    }
+
+    [Fact]
+    public void BeingHEALEDDoesNotBlockIt() {
+        // *** The whole shape of the rule. *** The original checks six of the seven slots and skips
+        // exactly one - and the skipped one is Healing, the only entry that is a benefit rather than
+        // an ailment. A port that tested "any condition set" would wrongly deny the recovery to a
+        // character who is being healed.
+        int[] ranks = NoConditions();
+        ranks[(int)ActorCondition.Healing] = 50;
+        Assert.True(DefendAction.RecoveryAllowed(ranks));
+    }
+
+    [Fact]
+    public void HealingIsTheFifthOfSeven_WhichIsWhyOffsetNineIsSkipped() {
+        // The offsets read 5,6,7,8,10,11 - consecutive but for a gap where 9 would sit.
+        Assert.Equal(4, (int)ActorCondition.Healing);
+        Assert.Equal(7, ActorConditions.Count);
+    }
+
+    [Fact]
+    public void AMonsterWithNoConditionRowRecovers() {
+        // No character slot means the original skips the test entirely.
+        Assert.True(DefendAction.RecoveryAllowed(null));
     }
 
     [Fact]
