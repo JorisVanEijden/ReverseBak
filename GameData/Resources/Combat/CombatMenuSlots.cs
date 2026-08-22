@@ -37,7 +37,25 @@ public static class CombatMenuSlots {
     /// The action id live in the capability cell.
     /// </summary>
     /// <remarks>
-    /// <b>UNVERIFIED PRECEDENCE — the original may not have any.</b> This returns a single id, on the
+    /// <b>RESOLVED (2026-08-22): the answer is right, the stated reason was wrong, and the case is
+    /// unreachable anyway.</b>
+    ///
+    /// <para><b>There is no precedence in code.</b> <c>combat_arena_menu_refr_avail</c>
+    /// (COMBAT.C ~1334) sets all three entries INDEPENDENTLY, and <c>bActive_flag</c> gates both
+    /// drawing (WIDGET.C:161) and hit-testing (COMBAT.C:1049). What decides a click is ENTRY ORDER:
+    /// the hit-test scans forward and breaks on the first active entry whose rect contains the
+    /// cursor. In the shipped COMBAT.DAT, Shoot (31) is entry 0, Cast (46) entry 1, the label (14)
+    /// entry 2 — all three at (1000, 786), 160x156. So if both were live, Shoot would take the
+    /// click, which is what this method returns.</para>
+    ///
+    /// <para><b>But both cannot be live for a party member.</b>
+    /// <c>InventoryEquip.CanEquipCategory</c> lets a caster equip only Staff/Armor, so a caster
+    /// carries no crossbow and <see cref="CombatCapability.CanShoot"/> fails its weapon test; a
+    /// non-caster has no Casting skill, so <see cref="CombatCapability.CanCast"/> fails its skill
+    /// test. The overlap is empty, which is why the original can afford to draw all active entries
+    /// at one cell without ever stacking two.</para>
+    ///
+    /// <para>Superseded reading, kept because it was wrong in an instructive way:</para> This returns a single id, on the
     /// reading that shooting is tested before casting. Re-checking against canassa on 2026-08-22 did
     /// not confirm it: <c>combat_arena_menu_refr_avail</c> (COMBAT.C ~1334) sets all three entries
     /// INDEPENDENTLY —
