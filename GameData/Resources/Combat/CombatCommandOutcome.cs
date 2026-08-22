@@ -17,21 +17,29 @@ public static class CombatCommandOutcome {
         None = -1,
 
         /// <summary>
-        /// Set by Cast on one of its two exits. <b>Not identified.</b> The other exit sets
-        /// <see cref="ShootMenu"/>, so this is the branch that follows a successful spell selection;
-        /// naming it from the control flow alone would be a guess.
+        /// <b>Cast was CANCELLED</b> — the spell picker returned -1.
         /// </summary>
-        CastFollowUp = 1,
+        /// <remarks>
+        /// Identified 2026-08-22, and it is the opposite of what the control flow first suggested:
+        /// the successful branch is <see cref="TargetSelection"/>, and this one is the fall-through
+        /// after <c>cspell_cast_menu_loop</c> answers -1. The same branch also clears the pending
+        /// selection (<c>p_param5 = -1</c>), which is what a cancel should do.
+        /// </remarks>
+        CastCancelled = 1,
 
         /// <summary>Pick an enemy to inspect — set by <see cref="CombatCommands.InspectId"/>.</summary>
         InspectTarget = 3,
 
         /// <summary>
-        /// The SHOOT menu is up. Set by Shoot, which also calls
-        /// <c>combat_arena_shootmenu_rebuild</c> to repack the quarrel cells for this actor
-        /// (see <see cref="CombatMenuSlots.PackCells"/>), and by Cast's other exit.
+        /// <b>Something has been chosen and now needs a target.</b>
         /// </summary>
-        ShootMenu = 4,
+        /// <remarks>
+        /// Shared by two commands, which is what names it: Shoot arms it (after
+        /// <c>combat_arena_shootmenu_rebuild</c> repacks the quarrel cells for this actor — see
+        /// <see cref="CombatMenuSlots.PackCells"/>), and Cast arms it once a spell has actually been
+        /// picked. Calling it "the shoot menu" would have missed the spell half.
+        /// </remarks>
+        TargetSelection = 4,
     }
 
     /// <summary>Whether a command ends the acting character's turn there and then.</summary>
@@ -58,19 +66,36 @@ public static class CombatCommandOutcome {
 
     /// <summary>The mode a command leaves armed, or <see cref="PendingMode.None"/>.</summary>
     /// <remarks>
-    /// Shoot and Inspect are the two that arm rather than resolve. Cast arms one of two modes
-    /// depending on a branch this model does not yet resolve, so it reports
-    /// <see cref="PendingMode.CastFollowUp"/> as the documented default rather than pretending the
-    /// choice does not exist.
+    /// Shoot and Inspect are the two that arm rather than resolve.
+    ///
+    /// <para><b>Cast is not answerable here</b> — its mode depends on whether the player went
+    /// through with the spell, which is only known after the picker closes. Use
+    /// <see cref="ModeAfterCast"/>; this method reports <see cref="PendingMode.None"/> for Cast
+    /// rather than picking one of its two outcomes arbitrarily.</para>
     /// </remarks>
     public static PendingMode ModeFor(CombatCommands.Command command) {
         switch (command) {
-            case CombatCommands.Command.Shoot: return PendingMode.ShootMenu;
+            case CombatCommands.Command.Shoot: return PendingMode.TargetSelection;
             case CombatCommands.Command.Inspect: return PendingMode.InspectTarget;
-            case CombatCommands.Command.Cast: return PendingMode.CastFollowUp;
             default: return PendingMode.None;
         }
     }
+
+    /// <summary>
+    /// The mode Cast leaves armed, once the spell picker has closed.
+    /// </summary>
+    /// <param name="spellChosen">False when the picker returned -1, i.e. the player backed out.</param>
+    /// <remarks>
+    /// <b>Cast opens a MODAL spell picker inline</b> — <c>cspell_cast_menu_loop</c> runs a whole
+    /// selection UI over the arena and returns a result, and only then does targeting begin. So
+    /// pressing Cast does not arm targeting; <i>choosing a spell</i> does.
+    ///
+    /// <para>Cast also re-checks <see cref="CombatCapability.CanCast"/> before opening the picker and
+    /// returns outright if it now fails, so the capability is verified twice: once to draw the
+    /// button, once to honour the press.</para>
+    /// </remarks>
+    public static PendingMode ModeAfterCast(bool spellChosen) =>
+        spellChosen ? PendingMode.TargetSelection : PendingMode.CastCancelled;
 
     /// <summary>
     /// Whether a press needs a follow-up click before anything happens.

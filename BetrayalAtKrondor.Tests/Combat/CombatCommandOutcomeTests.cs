@@ -36,8 +36,36 @@ public class CombatCommandOutcomeTests {
     [Fact]
     public void TheModeNumbersAreTheOriginals() {
         Assert.Equal(3, (int)CombatCommandOutcome.PendingMode.InspectTarget);
-        Assert.Equal(4, (int)CombatCommandOutcome.PendingMode.ShootMenu);
+        Assert.Equal(4, (int)CombatCommandOutcome.PendingMode.TargetSelection);
+        Assert.Equal(1, (int)CombatCommandOutcome.PendingMode.CastCancelled);
         Assert.Equal(-1, (int)CombatCommandOutcome.PendingMode.None);
+    }
+
+    [Fact]
+    public void CastArmsTargetingONLYIfASpellWasActuallyChosen() {
+        // *** Corrected 2026-08-22, and it was backwards. *** Cast opens a MODAL spell picker
+        // (cspell_cast_menu_loop) over the arena; only when it returns a real spell does targeting
+        // begin. Backing out arms mode 1 and clears the pending selection instead.
+        Assert.Equal(CombatCommandOutcome.PendingMode.TargetSelection,
+            CombatCommandOutcome.ModeAfterCast(spellChosen: true));
+        Assert.Equal(CombatCommandOutcome.PendingMode.CastCancelled,
+            CombatCommandOutcome.ModeAfterCast(spellChosen: false));
+    }
+
+    [Fact]
+    public void PressingCastAloneArmsNothing() {
+        // The press opens the picker; it is the CHOICE that arms targeting. ModeFor cannot know
+        // which happened, so it must not guess one.
+        Assert.Equal(CombatCommandOutcome.PendingMode.None,
+            CombatCommandOutcome.ModeFor(CombatCommands.Command.Cast));
+        Assert.False(CombatCommandOutcome.SpendsTheTurn(CombatCommands.Command.Cast));
+    }
+
+    [Fact]
+    public void ShootAndAChosenSpellShareTheSameTargetingMode() {
+        // Which is what names mode 4: calling it "the shoot menu" would miss the spell half.
+        Assert.Equal(CombatCommandOutcome.ModeFor(CombatCommands.Command.Shoot),
+            CombatCommandOutcome.ModeAfterCast(spellChosen: true));
     }
 
     [Fact]
