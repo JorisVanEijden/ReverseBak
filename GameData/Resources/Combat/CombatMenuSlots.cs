@@ -37,8 +37,29 @@ public static class CombatMenuSlots {
     /// The action id live in the capability cell.
     /// </summary>
     /// <remarks>
-    /// <b>Shooting is tested before casting</b>, so a character who can do both shows Shoot. That
-    /// ordering is the original's and is invisible in the data — all three entries look alike there.
+    /// <b>UNVERIFIED PRECEDENCE — the original may not have any.</b> This returns a single id, on the
+    /// reading that shooting is tested before casting. Re-checking against canassa on 2026-08-22 did
+    /// not confirm it: <c>combat_arena_menu_refr_avail</c> (COMBAT.C ~1334) sets all three entries
+    /// INDEPENDENTLY —
+    /// <code>
+    /// 0x1f -> combatenc_show_missile_stat_row(actor)
+    /// 0x2e -> combatenc_actor_can_cast_spells(actor, 1)
+    /// 0x0e -> neither of the above, and wEnable_gate = 1 always
+    /// </code>
+    /// with no precedence between them, and <c>bActive_flag</c> gates both drawing (WIDGET.C:161)
+    /// and hit-testing (COMBAT.C:1049). So an actor who could shoot AND cast would have the original
+    /// drawing BOTH at the same cell.
+    ///
+    /// <para>The routine this summary originally cited, <c>combat_arena_melee_menu_refresh</c>, does
+    /// not exist anywhere in canassa — so the precedence claim has no located source and should be
+    /// treated as unsupported until someone finds one.</para>
+    ///
+    /// <para><b>Not changed yet, deliberately.</b> Modelling it faithfully means expressing all three
+    /// predicates rather than picking one, and neither predicate exists on our side yet for a party
+    /// member (there is no canShoot/canCast for the party — <see cref="CombatAi"/>'s are monster
+    /// profile fields). Fixing the precedence alone, before the predicates exist, would be churn.
+    /// Whether the both-true case can even arise depends on a caster carrying a crossbow, which is
+    /// also unestablished.</para>
     /// </remarks>
     public static int CapabilitySlot(bool canShoot, bool canCast) {
         if (canShoot) {
