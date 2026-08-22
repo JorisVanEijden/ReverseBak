@@ -1,120 +1,67 @@
 namespace BetrayalAtKrondor.Tests.Combat;
 
-using GameData;
-using GameData.Resources.Character;
 using GameData.Resources.Combat;
 using Xunit;
 
-/// <summary>The Defend button. It heals, it ends the turn, and it does not set Parry.</summary>
+/// <summary>The DEFEND button (id 32) — a guard, not the rest that heals.</summary>
 public class DefendActionTests {
     private static Combatant Actor() => new Combatant { Flags = CombatantFlags.Ready };
 
     [Fact]
-    public void DefendSetsDefendCommand_NotParry() {
-        // *** The conflation to avoid. *** Only Parry feeds the melee to-hit penalty; treating them
-        // as one would hand every defending character a bonus the original never gives.
+    public void DefendRaisesParryAndSpendsTheTurn() {
         Combatant a = Actor();
-        DefendAction.Apply(a, recovers: true, maxHealth: 60, maxStamina: 60);
+        DefendAction.Apply(a);
 
-        Assert.True((a.Flags & CombatantFlags.DefendCommand) != 0);
-        Assert.True((a.Flags & CombatantFlags.Parry) == 0);
-        Assert.Equal(CombatantFlags.DefendCommand, DefendAction.FlagSet);
+        Assert.True((a.Flags & CombatantFlags.Parry) != 0);
+        Assert.True((a.Flags & CombatantFlags.Ready) == 0);
     }
 
     [Fact]
-    public void DefendingEndsTheTurn() {
+    public void DefendAndRestSetDIFFERENTFlags() {
+        // *** The transposition this pair exists to prevent. *** They were the same command in our
+        // model until the describe records separated them. Only Parry feeds the to-hit penalty.
+        Combatant defender = Actor();
+        Combatant rester = Actor();
+        DefendAction.Apply(defender);
+        RestAction.Apply(rester, recovers: true, maxHealth: 60, maxStamina: 60);
+
+        Assert.Equal(CombatantFlags.Parry, DefendAction.FlagSet);
+        Assert.Equal(CombatantFlags.DefendCommand, RestAction.FlagSet);
+        Assert.NotEqual(DefendAction.FlagSet, RestAction.FlagSet);
+        Assert.True((defender.Flags & CombatantFlags.DefendCommand) == 0);
+        Assert.True((rester.Flags & CombatantFlags.Parry) == 0);
+    }
+
+    [Fact]
+    public void DefendingActuallyMakesYouHarderToHit() {
+        // Parry already has a consumer, so wiring Defend has an immediate effect rather than being
+        // a flag nobody reads. The penalty applies to the ROLL, so the 2..98 clamp cannot eat it.
+        const int chance = 50;
+        Assert.True(CombatFormulas.MeleeHits(roll: 40, hitChance: chance, targetParrying: false));
+        Assert.False(CombatFormulas.MeleeHits(roll: 40, hitChance: chance, targetParrying: true));
+    }
+
+    [Fact]
+    public void DefendGivesNoRecovery() {
+        // Unlike Rest, the routine is two flag operations - no heal, no roll, no animation.
         Combatant a = Actor();
-        DefendAction.Apply(a, recovers: true, 60, 60);
+        a.Health = 10;
+        a.Stamina = 10;
+        DefendAction.Apply(a);
 
-        Assert.True((a.Flags & CombatantFlags.Ready) == 0, "a commitment, not a free stance");
+        Assert.Equal(10, a.Health);
+        Assert.Equal(10, a.Stamina);
     }
 
     [Fact]
-    public void RecoveryComesOffTheCEILINGS_NotTheCurrentValues() {
-        // So a badly wounded character recovers the same as a fresh one: the rate depends on who you
-        // are, not on how hurt you are.
-        Assert.Equal(4, DefendAction.HealAmount(maxHealth: 60, maxStamina: 60));
-        Assert.Equal(4, DefendAction.HealAmount(60, 60));
+    public void DefendingNobodyIsHarmless() {
+        DefendAction.Apply(null);
     }
 
     [Fact]
-    public void RecoveryIsAtLeastOne() {
-        // Any character whose combined maxima are under 30 would otherwise recover nothing and
-        // defending would be a wasted turn for them.
-        Assert.Equal(1, DefendAction.HealAmount(maxHealth: 5, maxStamina: 5));
-        Assert.Equal(1, DefendAction.HealAmount(0, 0));
-        Assert.Equal(30, DefendAction.HealDivisor);
-    }
-
-    [Fact]
-    public void AGatedCharacterStillDefendsButRecoversNothing() {
-        Combatant a = Actor();
-        int healed = DefendAction.Apply(a, recovers: false, 60, 60);
-
-        Assert.Equal(0, healed);
-        Assert.True((a.Flags & CombatantFlags.DefendCommand) != 0, "the stance still applies");
-        Assert.True((a.Flags & CombatantFlags.Ready) == 0, "and the turn is still spent");
-    }
-
-    [Fact]
-    public void TheRecoveryTargetsTheCombinedAttribute() {
-        // stat_combatant_modify(actor, 0x10, ...) - attribute 16, not Health or Stamina alone.
-        Assert.Equal(ActorAttribute.HealthStaminaCombo, DefendAction.HealedAttribute);
-        Assert.Equal(16, (int)DefendAction.HealedAttribute);
-    }
-
-    [Fact]
-    public void TheRecoveryIsCappedAtEightyPercent() {
-        // stat_combatant_modify's fourth argument is a CAP, not a duration - so defending
-        // repeatedly never reaches full health by that route alone.
-        Assert.Equal(80, DefendAction.HealCapPercent);
-    }
-
-    private static int[] NoConditions() => new int[ActorConditions.Count];
-
-    [Fact]
-    public void AHealthyCharacterRecovers() {
-        Assert.True(DefendAction.RecoveryAllowed(NoConditions()));
-    }
-
-    [Fact]
-    public void EveryAfflictionBlocksTheRecovery() {
-        foreach (ActorCondition c in new[] {
-                ActorCondition.Sick, ActorCondition.Plagued, ActorCondition.Poisoned,
-                ActorCondition.Drunk, ActorCondition.Starving, ActorCondition.NearDeath }) {
-            int[] ranks = NoConditions();
-            ranks[(int)c] = 1;
-            Assert.False(DefendAction.RecoveryAllowed(ranks), c + " must block the recovery");
-        }
-    }
-
-    [Fact]
-    public void BeingHEALEDDoesNotBlockIt() {
-        // *** The whole shape of the rule. *** The original checks six of the seven slots and skips
-        // exactly one - and the skipped one is Healing, the only entry that is a benefit rather than
-        // an ailment. A port that tested "any condition set" would wrongly deny the recovery to a
-        // character who is being healed.
-        int[] ranks = NoConditions();
-        ranks[(int)ActorCondition.Healing] = 50;
-        Assert.True(DefendAction.RecoveryAllowed(ranks));
-    }
-
-    [Fact]
-    public void HealingIsTheFifthOfSeven_WhichIsWhyOffsetNineIsSkipped() {
-        // The offsets read 5,6,7,8,10,11 - consecutive but for a gap where 9 would sit.
-        Assert.Equal(4, (int)ActorCondition.Healing);
-        Assert.Equal(7, ActorConditions.Count);
-    }
-
-    [Fact]
-    public void AMonsterWithNoConditionRowRecovers() {
-        // No character slot means the original skips the test entirely.
-        Assert.True(DefendAction.RecoveryAllowed(null));
-    }
-
-    [Fact]
-    public void TheButtonHasAHelpDialog() {
-        // Every combat button has a preview branch that plays a dialog and returns without acting.
-        Assert.Equal(0x107, DefendAction.HelpDialog);
+    public void TheHelpRecordIsTheOneForIdThirtyTwo() {
+        Assert.Equal(0x10a, DefendAction.HelpDialog);
+        Assert.Equal(DefendAction.HelpDialog,
+            CombatActionDispatch.HelpRecordFor(CombatCommands.DefendId));
     }
 }

@@ -20,7 +20,7 @@ public static class CombatCommands {
         /// <remarks>
         /// <b>This is not Defend.</b> The game's own describe record for id 19 (DDX 263) reads
         /// "causes the current character to rest for one round", and the behaviour agrees: the
-        /// routine heals and spends the turn (see <c>DefendAction</c>), which is resting, not
+        /// routine heals and spends the turn (see <c>RestAction</c>), which is resting, not
         /// guarding. Defending is <see cref="Defend"/>, id 32. canassa's function name is the
         /// misleading one here.
         /// </remarks>
