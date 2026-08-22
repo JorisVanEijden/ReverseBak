@@ -71,6 +71,43 @@ public class CombatCapabilityTests {
         Assert.False(Cast(health: 0), "a downed caster");
     }
 
+    private static Combatant At(int x, int y, int health = 10) =>
+        new Combatant { X = x, Y = y, Health = health, Stamina = health };
+
+    [Fact]
+    public void NearestOpponentIsChebyshev() {
+        // Diagonals cost the same as orthogonals, as everywhere else in the arena.
+        Assert.Equal(3, CombatCapability.NearestOpponent(0, 0, new[] { At(3, 3) }));
+        Assert.Equal(2, CombatCapability.NearestOpponent(0, 0, new[] { At(2, 1) }));
+    }
+
+    [Fact]
+    public void DeadOpponentsDoNotTakeAwayYourShot() {
+        // The original skips CAF_DEAD candidates. A corpse beside you is not a threat, and counting
+        // it would silently disarm anyone standing over one.
+        var corpse = At(1, 0);
+        corpse.Flags |= CombatantFlags.Dead;
+        Assert.Equal(CombatCapability.DistanceUnchecked,
+            CombatCapability.NearestOpponent(0, 0, new[] { corpse }));
+        Assert.True(CombatCapability.CanShoot(0,
+            CombatCapability.NearestOpponent(0, 0, new[] { corpse }), 4, true, 0, 30));
+    }
+
+    [Fact]
+    public void AnEmptyFieldReadsAsClearRatherThanAsAdjacent() {
+        // 100 is the original's own starting value, not a sentinel invented here - so "nobody to
+        // find" behaves exactly like "enemies are far away". Returning 0 would refuse everything.
+        Assert.Equal(CombatCapability.DistanceUnchecked, CombatCapability.NearestOpponent(4, 4, null));
+        Assert.Equal(CombatCapability.DistanceUnchecked,
+            CombatCapability.NearestOpponent(4, 4, new Combatant[0]));
+    }
+
+    [Fact]
+    public void TheNearestOfSeveralWins() {
+        Assert.Equal(1, CombatCapability.NearestOpponent(0, 0,
+            new[] { At(7, 7), At(1, 1), At(4, 0) }));
+    }
+
     [Fact]
     public void TheShippedLadderMakesTheHealthGateMeanExactlyAlive() {
         // *** The table is misleading and this pins what it actually does. *** g_anStatCheckThreshold

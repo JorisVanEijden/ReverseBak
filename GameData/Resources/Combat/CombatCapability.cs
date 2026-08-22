@@ -131,8 +131,49 @@ public static class CombatCapability {
     public static readonly int[] ShippedHealthThresholds = { 10, 10, 10, 0, 0, 0, 0, 0, 0 };
 
     /// <summary>Distance standing for "do not apply the adjacency rule".</summary>
-    /// <remarks>The original substitutes 100 when it is told not to look for the nearest actor.</remarks>
+    /// <remarks>
+    /// The original substitutes 100 when it is told not to look for the nearest actor — and
+    /// <c>combatenc_find_nearest_actor</c> also STARTS its search at 100, so "nobody found" and
+    /// "did not look" produce the same answer by construction. See <see cref="NearestOpponent"/>.
+    /// </remarks>
     public const int DistanceUnchecked = 100;
+
+    /// <summary>
+    /// Distance to the nearest living OPPONENT — what both capability predicates measure.
+    /// </summary>
+    /// <param name="fromX">The acting combatant's column.</param>
+    /// <param name="fromY">Its row.</param>
+    /// <param name="opponents">The other side. Dead entries are skipped, not merely ignored.</param>
+    /// <remarks>
+    /// <b>Opponents, not everyone.</b> <c>combatenc_find_nearest_actor</c> swaps the target state
+    /// first when called for a non-encounter actor, so a party member measures against the enemy
+    /// list and an enemy against the party's. An ally standing beside you does not take away your
+    /// shot — only an opponent does. Searching "all combatants" would silently disarm a bunched-up
+    /// party.
+    ///
+    /// <para><b>Chebyshev</b>, like every other distance in the arena — diagonals cost the same as
+    /// orthogonals (<see cref="CombatGrid.ChebyshevDistance"/>).</para>
+    ///
+    /// <para>Returns <see cref="DistanceUnchecked"/> when there is nobody to find, which is the
+    /// original's own starting value rather than a sentinel invented here — so an empty field reads
+    /// as "clear" and both predicates behave as they do on a field with distant enemies.</para>
+    /// </remarks>
+    public static int NearestOpponent(int fromX, int fromY, IEnumerable<Combatant> opponents) {
+        int best = DistanceUnchecked;
+        if (opponents == null) {
+            return best;
+        }
+        foreach (Combatant candidate in opponents) {
+            if (candidate == null || candidate.IsDead) {
+                continue;
+            }
+            int distance = CombatGrid.ChebyshevDistance(fromX, fromY, candidate.X, candidate.Y);
+            if (distance < best) {
+                best = distance;
+            }
+        }
+        return best;
+    }
 
     /// <summary>Whether health is above at least one entry of the ladder.</summary>
     public static bool ClearsAnyThreshold(int health, IReadOnlyList<int> healthThresholds) {
