@@ -44,17 +44,28 @@ public class DetectData : IResource {
     /// <summary>One entry per location class (index 0 = aboveground, 1 = underground).</summary>
     public List<DetectLocationRanges> Locations { get; set; } = new();
 
-    /// <summary>An entity type is interactable in a location when its DETECT.DAT range is &gt; 0.
-    /// underground = false selects Locations[0] (Aboveground), true selects Locations[1].</summary>
-    public bool IsInteractable(WorldEntityType type, bool underground) {
+    /// <summary>
+    /// The DETECT.DAT interaction range for an entity type in a location, or 0 when it has none.
+    /// </summary>
+    /// <remarks>
+    /// <c>underground = false</c> selects <c>Locations[0]</c> (aboveground), <c>true</c> selects
+    /// <c>Locations[1]</c>. Out-of-range types and a missing location block both read 0, so a caller
+    /// never has to bounds-check the table itself — which is what the duplicate lookup in
+    /// <c>WorldEntityBuilder.StampDetectionRange</c> was doing.
+    /// </remarks>
+    public int GetRange(WorldEntityType type, bool underground) {
         int block = underground ? 1 : 0;
         if (block >= Locations.Count) {
-            return false;
+            return 0;
         }
         int[] ranges = Locations[block].DetectRanges;
         int idx = (byte)type;
-        return idx < ranges.Length && ranges[idx] > 0;
+        return idx < ranges.Length ? ranges[idx] : 0;
     }
+
+    /// <summary>An entity type is interactable in a location when its DETECT.DAT range is &gt; 0.</summary>
+    public bool IsInteractable(WorldEntityType type, bool underground) =>
+        GetRange(type, underground) > 0;
 }
 
 /// <summary>

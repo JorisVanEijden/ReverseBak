@@ -32,4 +32,27 @@ public class DetectDataInteractableTests {
 
     [Fact] public void DecorativeTypeNeverInteractable() =>
         Assert.False(Make().IsInteractable((WorldEntityType)3, underground: false));
+
+    [Fact]
+    public void GetRangeYieldsTheDistance_NotJustAYesNo() {
+        // WorldEntityBuilder stamps this number onto the entity; IsInteractable only asks whether
+        // it is non-zero. Both go through GetRange now, so they cannot disagree about a type.
+        var d = Make();
+        Assert.Equal(16000, d.GetRange(WorldEntityType.Corpse, underground: false));
+        Assert.Equal(2500, d.GetRange(WorldEntityType.Door, underground: true));
+        Assert.Equal(0, d.GetRange(WorldEntityType.Door, underground: false));
+        Assert.Equal(d.IsInteractable(WorldEntityType.Door, underground: true),
+            d.GetRange(WorldEntityType.Door, underground: true) > 0);
+    }
+
+    [Fact]
+    public void AMissingLocationBlockReadsZeroRatherThanThrowing() {
+        // The bounds checks the duplicate lookup in WorldEntityBuilder used to carry: one location
+        // block present, and the other asked for.
+        var d = new DetectData("DETECT.DAT");
+        d.Locations.Add(new DetectLocationRanges { Location = "Aboveground" });
+
+        Assert.Equal(0, d.GetRange(WorldEntityType.Container, underground: true));
+        Assert.False(d.IsInteractable(WorldEntityType.Container, underground: true));
+    }
 }
