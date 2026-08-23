@@ -20,6 +20,23 @@ public static class SaveGameOffsets {
     public const int Chapter = 0;      // Int16
     public const int PartyGold = 2;    // Int32
     public const int GameTime = 6;     // Int32 (gameTimeIn2Seconds)
+    // ---- Section 0 head, cross-checked against canassa bak/INCLUDE/gstate.inc (2026-08-23) ----
+    // The .inc gives the block as a flat ordered list, which turns a probed offset into its
+    // neighbours. Every offset below that we already had matches it exactly. Two results worth
+    // keeping:
+    //
+    //   21..28  canassa zoneDefaultCameraPos (8 bytes)  = our PositionX + PositionY. The player
+    //           position IS the zone's camera position, which is why the names differ.
+    //   29..32  canassa rsvd_1d (UNIDENTIFIED there)    = our PositionZ. We are ahead of canassa
+    //           here; do not "correct" our model to match its reserved block.
+    //   33      canassa wZoneDefaultCameraHeading       = our Rotation. Exact match.
+    //
+    // Modelled but not yet written (raise ModelledScalarBytes in SaveGameWriterTests when wired):
+    public const int CombatExitRequest = 14;    // byte  — canassa bCombatExitRequest
+    public const int WorldLoopExitRequest = 15; // byte  — canassa nWorldLoopExitRequest
+    // 16 is canassa rsvd_10, a genuine reserved byte — leave it to passthrough.
+    public const int PreviousZone = 17;         // byte  — canassa nPrevZoneId
+
     public const int CurrentZone = 18; // byte
     public const int WorldX = 19;      // byte
     public const int WorldY = 20;      // byte
