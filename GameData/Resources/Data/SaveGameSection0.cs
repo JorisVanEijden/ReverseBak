@@ -23,8 +23,8 @@ public class SaveGameStateData {
         int positionZ,
         short currentZRotation,
         TeleportDestination teleportDestination,
-        short stepSize,
-        short turnSize,
+        short lastSeenStepSpeed,
+        short lastSeenGridStride,
         SaveGameMovementData movementData,
         string[] actorNames,
         byte[] partyActorData,
@@ -55,8 +55,8 @@ public class SaveGameStateData {
         PositionZ = positionZ;
         CurrentZRotation = currentZRotation;
         TeleportDestination = teleportDestination;
-        StepSize = stepSize;
-        TurnSize = turnSize;
+        LastSeenStepSpeed = lastSeenStepSpeed;
+        LastSeenGridStride = lastSeenGridStride;
         MovementData = movementData;
         ActorNames = actorNames ?? Array.Empty<string>();
         PartyActorData = partyActorData ?? Array.Empty<byte>();
@@ -93,8 +93,33 @@ public class SaveGameStateData {
     public int PositionZ { get; }
     public short CurrentZRotation { get; }
     public TeleportDestination TeleportDestination { get; }
-    public short StepSize { get; }
-    public short TurnSize { get; }
+    /// <summary>
+    /// The world step speed as it was when the game last looked — <c>nLastSeenStepSpeed</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a movement setting.</b> It is a CHANGE DETECTOR, and it is easy to mistake for
+    /// <see cref="Config.Preferences.StepSize"/>, which is the actual preference. On a region or
+    /// chapter transition the game compares the live step speed against this saved copy
+    /// (<c>worldmove_rgn_chap_trans_apply</c>) and, <b>only if the live value has INCREASED</b>,
+    /// resets the step tick, resolves a pending step, and calls <c>rgnenc_reset_and_save</c> —
+    /// which puts defeated encounter groups back on the field.
+    ///
+    /// <para>So a port that writes a stale or zero value here does not merely lose a setting: the
+    /// next transition can see a spurious increase and respawn encounters the party already
+    /// cleared. That is why the writer still lets these two bytes pass through untouched rather
+    /// than authoring them — see <c>SaveGameWriter</c>.</para>
+    /// </remarks>
+    public short LastSeenStepSpeed { get; }
+
+    /// <summary>
+    /// The world grid stride as it was when the game last looked — <c>nLastSeenGridStride</c>.
+    /// </summary>
+    /// <remarks>
+    /// Same shape as <see cref="LastSeenStepSpeed"/> and compared in the same routine; an increase
+    /// re-aligns the player's heading to the grid (<c>worldmove_plr_hdg_align_grid</c>) rather than
+    /// resetting encounters.
+    /// </remarks>
+    public short LastSeenGridStride { get; }
     public SaveGameMovementData MovementData { get; }
     public string[] ActorNames { get; }
 

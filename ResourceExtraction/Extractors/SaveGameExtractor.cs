@@ -279,8 +279,8 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             Id = 0
         };
 
-        short stepSize = sectionReader.ReadInt16();
-        short turnSize = sectionReader.ReadInt16();
+        short lastSeenStepSpeed = sectionReader.ReadInt16();
+        short lastSeenGridStride = sectionReader.ReadInt16();
 
         var movementData = new SaveGameMovementData(
             sectionReader.ReadInt16(),
@@ -373,8 +373,8 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             positionZ,
             currentZRotation,
             teleportDestination,
-            stepSize,
-            turnSize,
+            lastSeenStepSpeed,
+            lastSeenGridStride,
             movementData,
             actorNames,
             partyActorData,

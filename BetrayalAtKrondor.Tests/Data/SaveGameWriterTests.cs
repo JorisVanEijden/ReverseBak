@@ -116,6 +116,25 @@ public class SaveGameWriterTests {
         Assert.False(IsAuthored(r.Coverage, 16));
     }
 
+    [Fact]
+    public void TheChangeDetectorBytesStayInPassthrough() {
+        byte[] body = PatternBody();
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
+
+        // lastSeenStepSpeed (0x2E) and lastSeenGridStride (0x30) are NOT settings — they are the
+        // world scalars as the game last saw them. A region or chapter transition acts on an
+        // INCREASE against these, and for step speed that action is rgnenc_reset_and_save, which
+        // puts defeated encounter groups back. Authoring a stale or zero value here would respawn
+        // encounters the party had already cleared, so they must keep coming through from the body
+        // we were handed until something owns them.
+        Assert.False(IsAuthored(r.Coverage, 0x2E));
+        Assert.False(IsAuthored(r.Coverage, 0x30));
+        // The teleport record between the rotation and them is unowned for the same reason.
+        for (var offset = 0x23; offset < 0x2E; offset++) {
+            Assert.False(IsAuthored(r.Coverage, offset));
+        }
+    }
+
     private static bool IsAuthored(SaveCoverage cov, int offset) {
         foreach (var (o, len) in cov.AuthoredRanges) {
             if (offset >= o && offset < o + len) { return true; }
