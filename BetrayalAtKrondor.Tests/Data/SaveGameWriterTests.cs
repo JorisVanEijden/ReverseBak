@@ -26,6 +26,9 @@ public class SaveGameWriterTests {
         GameTime: BitConverter.ToInt32(body, SaveGameOffsets.GameTime),
         TimeSnapshot: BitConverter.ToInt32(body, SaveGameOffsets.TimeSnapshot),
         PaletteEventMask: BitConverter.ToInt16(body, SaveGameOffsets.PaletteEventMask),
+        PartyDeathState: body[SaveGameOffsets.PartyDeathState],
+        ChapterTransitionPending: body[SaveGameOffsets.ChapterTransitionPending],
+        PreviousZone: body[SaveGameOffsets.PreviousZone],
         CurrentZone: body[SaveGameOffsets.CurrentZone],
         WorldX: body[SaveGameOffsets.WorldX],
         WorldY: body[SaveGameOffsets.WorldY],
@@ -88,15 +91,29 @@ public class SaveGameWriterTests {
     public void Coverage_CountsExactlyTheModeledScalarBytes() {
         byte[] body = PatternBody();
         SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
-        // chapter2 + gold4 + time4 + snapshot4 + palEventMask2 + zone1 + worldX1 + worldY1
-        // + posX4 + posY4 + posZ4 + rot2 = 33.
+        // chapter2 + gold4 + time4 + snapshot4 + palEventMask2 + partyDeath1 + chapterPending1
+        // + prevZone1 + zone1 + worldX1 + worldY1 + posX4 + posY4 + posZ4 + rot2 = 36.
         // Scalars only — this call passes no container/actor/timer edits, which are covered
         // separately. Raise this number deliberately as more of the block is modelled; that is
         // what makes coverage growth visible rather than accidental.
-        const int ModelledScalarBytes = 33;
+        const int ModelledScalarBytes = 36;
         Assert.Equal(ModelledScalarBytes, r.Coverage.AuthoredBytes);
         Assert.Equal(SaveGameOffsets.BodySize, r.Coverage.TotalBodyBytes);
         Assert.Equal(SaveGameOffsets.BodySize - ModelledScalarBytes, r.Coverage.PassthroughBytes);
+    }
+
+    [Fact]
+    public void TheReservedByteBetweenTheHeadFlagsStaysInPassthrough() {
+        byte[] body = PatternBody();
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
+
+        // 14, 15 and 17 are real state (party wiped / chapter transition pending / previous zone).
+        // 16 between them is reserved in the original and has no field to author it from, so it
+        // must keep coming through from the body we were handed rather than being zeroed.
+        Assert.True(IsAuthored(r.Coverage, SaveGameOffsets.PartyDeathState));
+        Assert.True(IsAuthored(r.Coverage, SaveGameOffsets.ChapterTransitionPending));
+        Assert.True(IsAuthored(r.Coverage, SaveGameOffsets.PreviousZone));
+        Assert.False(IsAuthored(r.Coverage, 16));
     }
 
     private static bool IsAuthored(SaveCoverage cov, int offset) {

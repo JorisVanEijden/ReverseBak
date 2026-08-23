@@ -247,7 +247,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         byte partyDeathState = sectionReader.ReadByte();
         byte chapterTransitionPending = sectionReader.ReadByte();
         byte padding = sectionReader.ReadByte();
-        byte maxZoneNumber = sectionReader.ReadByte();
+        byte previousZoneNumber = sectionReader.ReadByte();
         byte currentZoneNumber = sectionReader.ReadByte();
         byte worldXCoordinate = sectionReader.ReadByte();
         byte worldYCoordinate = sectionReader.ReadByte();
@@ -364,7 +364,7 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             partyDeathState,
             chapterTransitionPending,
             padding,
-            maxZoneNumber,
+            previousZoneNumber,
             currentZoneNumber,
             worldXCoordinate,
             worldYCoordinate,

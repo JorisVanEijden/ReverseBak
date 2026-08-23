@@ -22,7 +22,8 @@ public class SaveGameActorWriteTests {
     private static byte[] EmptyBody() => new byte[SaveGameOffsets.BodySize];
 
     private static SaveGameFields Fields() => new SaveGameFields(
-        Chapter: 1, PartyGold: 0, GameTime: 0, TimeSnapshot: 0, PaletteEventMask: 0, CurrentZone: 1, WorldX: 0, WorldY: 0,
+        Chapter: 1, PartyGold: 0, GameTime: 0, TimeSnapshot: 0, PaletteEventMask: 0,
+        PartyDeathState: 0, ChapterTransitionPending: 0, PreviousZone: 0, CurrentZone: 1, WorldX: 0, WorldY: 0,
         PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
 
     private static SaveGame RoundTrip(DirtyActorEdit[] edits) {
@@ -247,7 +248,8 @@ public class SaveGameActorWriteTests {
     [Fact]
     public void TheLastRestSnapshotIsWritten() {
         var fields = new SaveGameFields(
-            Chapter: 1, PartyGold: 0, GameTime: 90000, TimeSnapshot: 87654, PaletteEventMask: 0, CurrentZone: 1,
+            Chapter: 1, PartyGold: 0, GameTime: 90000, TimeSnapshot: 87654, PaletteEventMask: 0,
+        PartyDeathState: 0, ChapterTransitionPending: 0, PreviousZone: 0, CurrentZone: 1,
             WorldX: 0, WorldY: 0, PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
         SaveGameWriteResult written = SaveGameWriter.Write(EmptyBody(), fields, "test", 0, 0, 0);
 

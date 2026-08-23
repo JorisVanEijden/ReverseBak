@@ -10,6 +10,15 @@ public readonly record struct SaveGameFields(
     int GameTime,
     int TimeSnapshot,
     short PaletteEventMask,
+    /// <summary>Non-zero once the whole active party is down; ends the world loop.</summary>
+    byte PartyDeathState,
+
+    /// <summary>1 when the world loop should exit into the next chapter.</summary>
+    byte ChapterTransitionPending,
+
+    /// <summary>The zone the party came FROM, used to detect a zone CHANGE.</summary>
+    byte PreviousZone,
+
     byte CurrentZone,
     byte WorldX,
     byte WorldY,

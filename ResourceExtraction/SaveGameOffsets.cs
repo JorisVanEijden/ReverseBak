@@ -31,11 +31,16 @@ public static class SaveGameOffsets {
     //           here; do not "correct" our model to match its reserved block.
     //   33      canassa wZoneDefaultCameraHeading       = our Rotation. Exact match.
     //
-    // Modelled but not yet written (raise ModelledScalarBytes in SaveGameWriterTests when wired):
-    public const int CombatExitRequest = 14;    // byte  — canassa bCombatExitRequest
-    public const int WorldLoopExitRequest = 15; // byte  — canassa nWorldLoopExitRequest
+    // 14/15/17 are the three bytes the reader already models on SaveGameSection0. canassa calls
+    // them bCombatExitRequest / nWorldLoopExitRequest / nPrevZoneId, but its first two names
+    // describe the world loop's reaction rather than the state: 14 is set to 1 only when EVERY
+    // active party member's condition[6] is set (STAT.C) and to 2 when the arena kills the last
+    // of them (CACTOR.C), and 15 == 1 means the loop exits to the next chapter (GMAIN.C mode 5).
+    // Our reader's names are the accurate ones, so they win.
+    public const int PartyDeathState = 14;          // byte
+    public const int ChapterTransitionPending = 15; // byte
     // 16 is canassa rsvd_10, a genuine reserved byte — leave it to passthrough.
-    public const int PreviousZone = 17;         // byte  — canassa nPrevZoneId
+    public const int PreviousZone = 17;             // byte — the zone the party came FROM
 
     public const int CurrentZone = 18; // byte
     public const int WorldX = 19;      // byte

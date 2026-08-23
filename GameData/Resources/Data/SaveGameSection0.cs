@@ -14,7 +14,7 @@ public class SaveGameStateData {
         byte partyDeathState,
         byte chapterTransitionPending,
         byte padding,
-        byte maxZoneNumber,
+        byte previousZoneNumber,
         byte currentZoneNumber,
         byte worldXCoordinate,
         byte worldYCoordinate,
@@ -46,7 +46,7 @@ public class SaveGameStateData {
         PartyDeathState = partyDeathState;
         ChapterTransitionPending = chapterTransitionPending;
         Padding = padding;
-        MaxZoneNumber = maxZoneNumber;
+        PreviousZoneNumber = previousZoneNumber;
         CurrentZoneNumber = currentZoneNumber;
         WorldXCoordinate = worldXCoordinate;
         WorldYCoordinate = worldYCoordinate;
@@ -79,7 +79,12 @@ public class SaveGameStateData {
     public byte PartyDeathState { get; }
     public byte ChapterTransitionPending { get; }
     public byte Padding { get; }
-    public byte MaxZoneNumber { get; }
+    /// <summary>
+    /// The zone the party came FROM. Zone loading compares it against
+    /// <see cref="CurrentZoneNumber"/> to tell a zone CHANGE from a rebuild of the same zone,
+    /// then overwrites it — so in a save taken after the load settles the two are equal.
+    /// </summary>
+    public byte PreviousZoneNumber { get; }
     public byte CurrentZoneNumber { get; }
     public byte WorldXCoordinate { get; }
     public byte WorldYCoordinate { get; }

@@ -61,6 +61,12 @@ public static class SaveGameWriter {
         // original stores it too — so a save restored mid-effect shows it at once instead of waiting
         // for the clock to move, which on a stationary party is a long time.
         PatchI16(SaveGameOffsets.PaletteEventMask, fields.PaletteEventMask);
+        // Offsets 14, 15 and 17 — cross-checked against canassa's gstate.inc. Offset 16 between
+        // them is rsvd_10, a genuine reserved byte, so it stays in passthrough rather than being
+        // written as a zero we cannot justify.
+        PatchU8(SaveGameOffsets.PartyDeathState, fields.PartyDeathState);
+        PatchU8(SaveGameOffsets.ChapterTransitionPending, fields.ChapterTransitionPending);
+        PatchU8(SaveGameOffsets.PreviousZone, fields.PreviousZone);
         PatchU8(SaveGameOffsets.CurrentZone, fields.CurrentZone);
         PatchU8(SaveGameOffsets.WorldX, fields.WorldX);
         PatchU8(SaveGameOffsets.WorldY, fields.WorldY);

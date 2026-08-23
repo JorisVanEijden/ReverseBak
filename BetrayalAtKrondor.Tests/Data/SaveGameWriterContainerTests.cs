@@ -11,6 +11,7 @@ public class SaveGameWriterContainerTests {
 
     private static readonly SaveGameFields ZeroFields = new(
         Chapter: 0, PartyGold: 0, GameTime: 0, TimeSnapshot: 0, PaletteEventMask: 0,
+        PartyDeathState: 0, ChapterTransitionPending: 0, PreviousZone: 0,
         CurrentZone: 0, WorldX: 0, WorldY: 0,
         PositionX: 0, PositionY: 0, PositionZ: 0, Rotation: 0);
 
