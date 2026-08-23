@@ -338,6 +338,35 @@ public class SpriteBMeshFace : MeshFaceRecord
     /// <summary>+0x02. Index into pBitmapSlots[]; 0xFFFF triggers placeholder lookup. Read at 0x23066.</summary>
     public ushort BitmapIndex { get; set; }
 
+    /// <summary>Divisor applied to <see cref="SizeScale"/> — the sprite's size is a 128ths fraction.</summary>
+    public const int SizeScaleDivisor = 128;
+
+    /// <summary>What <see cref="SizeScale"/> 0 stands for: the entity extent at 2x.</summary>
+    public const int SizeScaleWhenZero = 256;
+
+    /// <summary>
+    /// World extent of the sprite's LARGER axis, in game units.
+    /// </summary>
+    /// <param name="sizeScale">The face's <see cref="SizeScale"/>.</param>
+    /// <param name="entityExtent">
+    /// The owning entity's extent, already shifted by its vertex scale
+    /// (<c>TableDatInfo.Extent</c> ships pre-shifted).
+    /// </param>
+    /// <remarks>
+    /// <b>The texture's pixel dimensions only set the ASPECT RATIO, not the size.</b> Derived from
+    /// <c>renderSprite2</c> @0x23031 with <c>RenderWorldItem</c> @0x2a95a: the bitmap's larger
+    /// dimension is scaled to <c>2 * ((SizeScale * entityExtent) &gt;&gt; 8)</c> screen px, and the
+    /// projection that produced the screen extent cancels — so the result is depth-independent and
+    /// needs no runtime constant.
+    ///
+    /// <para>Absolute, because a negative extent is a direction rather than a size.</para>
+    /// </remarks>
+    public static int WorldExtentFor(int sizeScale, int entityExtent) {
+        int effective = sizeScale != 0 ? sizeScale : SizeScaleWhenZero;
+        int extent = entityExtent < 0 ? -entityExtent : entityExtent;
+        return effective * extent / SizeScaleDivisor;
+    }
+
     /// <summary>+0x04. Anchor/hotspot <b>Y</b> in unscaled source-bitmap pixels. Scaled by the
     /// sprite's <c>si</c> factor and subtracted from the projected anchor-vertex screen Y to get
     /// the bitmap's top edge (renderSprite2 0x231c2 low byte → 0x23260). Typically near the
