@@ -72,21 +72,48 @@ public static class GlobalRef {
     }
 
     /// <summary>
-    /// Decode a write. <paramref name="mask"/> != 0 is a masked global_flags2
-    /// bitfield write (expanded to a flag list); mask == 0 is a direct write of
-    /// <paramref name="value"/> to <c>global[key]</c>.
+    /// Decode a write.
     /// </summary>
-    public static Effect DecodeEffect(int key, int mask, int data, int value) {
-        if (mask != 0) {
+    /// <remarks>
+    /// <b>The bit-group form is THREE masks applied in order, not a "which bits" mask plus its
+    /// data.</b> The setter (canassa DIALOG.C, dialog op 4) does, for a key that is
+    /// <c>&gt;= 56000</c> and a multiple of 10:
+    /// <code>
+    /// group &amp;= andMask;   group |= orMask;   group ^= xorMask;
+    /// </code>
+    /// So a bit is forced to 0 only where <paramref name="andMask"/> clears it, forced to 1 where
+    /// <paramref name="orMask"/> sets it, and otherwise LEFT ALONE. Reading the first byte as
+    /// "which bits are being written" gets the eight-bit case exactly backwards: with the shipped
+    /// <c>and=0xDF or=0x00</c> it would clear the seven bits the AND preserves and skip the one it
+    /// actually clears.
+    ///
+    /// <para>Measured across the shipped tree: 125 bit-group writes, <b>117 with andMask 0xFF</b>
+    /// (pure sets, which is why the old reading looked right) and <b>8 that really do clear</b>
+    /// — including one <c>and=0xDF or=0x10</c> that clears one bit and sets another in the same op.
+    /// <paramref name="xorMask"/> is <b>0 in every one of them</b>, so no shipped write toggles.</para>
+    ///
+    /// <para>Which key selects this form is the setter's own test, not a range guess: the reader and
+    /// writer both compute <c>row = (key - 56000) / 10</c> and <c>bit = (key - 56000) % 10 - 1</c>
+    /// (GSTATE.C), which is exactly the absolute-flag arithmetic used below.</para>
+    /// </remarks>
+    public static Effect DecodeEffect(int key, int andMask, int orMask, int xorMask, int value) {
+        if (key >= Flags2Base && key % Flags2Stride == 0) {
             int group = (key - Flags2Base) / Flags2Stride;
             var flags = new List<FlagState>();
             for (var bit = 0; bit < 8; bit++) {
-                if (((mask >> bit) & 1) != 0) {
-                    flags.Add(new FlagState {
-                        Flag = Flags2Base + group * Flags2Stride + bit + 1,
-                        Set = ((data >> bit) & 1) != 0,
-                    });
+                bool clears = ((andMask >> bit) & 1) == 0;
+                bool sets = ((orMask >> bit) & 1) != 0;
+                bool toggles = ((xorMask >> bit) & 1) != 0;
+                if (toggles || (!clears && !sets)) {
+                    // A toggle is not expressible as {Flag, Set} and never occurs in shipped data;
+                    // an untouched bit must not become a row, or the write clears its neighbours.
+                    continue;
                 }
+                flags.Add(new FlagState {
+                    Flag = Flags2Base + group * Flags2Stride + bit + 1,
+                    // OR wins: it runs after the AND, so a bit in both masks ends up set.
+                    Set = sets,
+                });
             }
             return new SetFlagsEffect { Flags = flags };
         }
