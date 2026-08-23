@@ -191,6 +191,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--start") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractStartData(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--movement") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractMovementData(gamePath);
@@ -1180,6 +1186,23 @@ internal static class Program {
         string json = JsonSerializer.Serialize(map, ResourceExtensions.JsonOptions);
         File.WriteAllText("CHAPSONG.json", json);
         Console.WriteLine($"[CHAPSONG] {map.Entries.Count} chapter entries written to CHAPSONG.json");
+    }
+
+    private static void ExtractStartData(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "START.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[START] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        StartData data = new StartDataExtractor().Extract("START.DAT", stream);
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
+        File.WriteAllText("START.json", json);
+        Console.WriteLine($"[START] eye={data.CameraHeightAboveGround}/{data.CameraHeightUnderground} " +
+                          $"pitch={data.CameraPitchAboveGround}/{data.CameraPitchUnderground} " +
+                          $"gridCell={data.CombatGridCellSize} " +
+                          $"viewport={data.ViewportX},{data.ViewportY},{data.ViewportWidth},{data.ViewportHeight} " +
+                          $"written to START.json");
     }
 
     private static void ExtractMovementData(string gamePath) {

@@ -49,6 +49,8 @@ public static class ExtractorFactory {
         }, {
             typeof(MovementData), typeof(MovementExtractor)
         }, {
+            typeof(StartData), typeof(StartDataExtractor)
+        }, {
             typeof(SaveGame), typeof(SaveGameExtractor)
         }, {
             typeof(ChapterStartData), typeof(ChapterDataExtractor)
