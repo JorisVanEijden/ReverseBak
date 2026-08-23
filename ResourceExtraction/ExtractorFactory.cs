@@ -53,6 +53,8 @@ public static class ExtractorFactory {
         }, {
             typeof(ChapterStartData), typeof(ChapterDataExtractor)
         }, {
+            typeof(GameData.Resources.Combat.PartyCombatEntries), typeof(PartyCombatEntryExtractor)
+        }, {
             typeof(FontResource), typeof(FontExtractor)
         }, {
             typeof(LabelSet), typeof(LabelExtractor)
