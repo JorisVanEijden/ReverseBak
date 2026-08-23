@@ -27,6 +27,46 @@ public class UiElement {
     // cannot change — the model recomputes on load — which is worse than omitting it. Contrast
     // ZoneTable.TextureBitmap, a resolved value that IS serialized because it is settable and needs
     // context the entry does not carry.
+    /// <summary>The two BICONS files every REQ icon comes from.</summary>
+    public const string IconFileEven = "BICONS1.BMX";
+
+    /// <inheritdoc cref="IconFileEven"/>
+    public const string IconFileOdd = "BICONS2.BMX";
+
+    /// <summary>
+    /// The index above which the original bumps by one before splitting the icon index.
+    /// </summary>
+    public const int IconBumpThreshold = 50;
+
+    /// <summary>
+    /// Resolves a combined icon index (an <see cref="IconBase"/> plus the renderer's state offset)
+    /// to the resource key of the actual bitmap.
+    /// </summary>
+    /// <remarks>
+    /// <c>sub_seg029_A9</c> @0x2b579: indices above <see cref="IconBumpThreshold"/> are bumped by
+    /// one BEFORE the parity test; even goes to <see cref="IconFileEven"/> and odd to
+    /// <see cref="IconFileOdd"/>; the sub-image is the index halved.
+    ///
+    /// <para><b>The offset must be added BEFORE this, never after.</b> The bump makes the mapping
+    /// discontinuous, so there is no "base key plus N" a consumer could apply: at base 49 the run is
+    /// BICONS2#24, BICONS1#25, BICONS1#26, BICONS2#26 — the file alternation breaks and a sub-image
+    /// is skipped. That is why this takes the combined index rather than returning a base key.</para>
+    ///
+    /// <para><b>How many states an element has is the CONSUMER's business.</b> Toggle and
+    /// ImageButton use four (+0 on, +1 on-hovered, +2 off, +3 off-hovered — <c>menu_type_3_4</c>
+    /// @0x2b898); ClickArea, InputField and TextLink use two (+0, +1 hovered) and only when
+    /// <see cref="State"/> is non-zero (<c>menu_type_0_1_5</c> @0x2b92a), which no shipped element
+    /// sets; TextButton reads no icon at all, so its <see cref="IconBase"/> is vestigial.</para>
+    ///
+    /// <para>A method rather than a property, so it stays out of the serialized surface: it is a
+    /// pure function of <see cref="IconBase"/>, which is already emitted.</para>
+    /// </remarks>
+    public static string IconKeyForCombined(int combined) {
+        int index = combined > IconBumpThreshold ? combined + 1 : combined;
+        string file = (index & 1) == 0 ? IconFileEven : IconFileOdd;
+        return $"{file}#{index >> 1}";
+    }
+
     /// <summary>The default click cue — <c>sound_pound</c>, what an element with no custom sound plays.</summary>
     public const int DefaultClickSoundId = 83;
 

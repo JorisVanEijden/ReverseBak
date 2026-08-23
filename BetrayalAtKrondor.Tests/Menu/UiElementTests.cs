@@ -5,11 +5,36 @@ using GameData.Resources.Menu;
 using Xunit;
 
 /// <summary>
-/// Which of the two click cues an element plays — <c>menu_resolveHoverAndClick</c> @0x2c97f.
+/// The resolutions <c>UiElement</c> does for its consumers: which click cue plays
+/// (<c>menu_resolveHoverAndClick</c> @0x2c97f) and which bitmap an icon index names
+/// (<c>sub_seg029_A9</c> @0x2b579).
 /// </summary>
-public class UiElementSoundTests {
+public class UiElementTests {
     private static UiElement Element(int soundFlags, int clickSound = 0) =>
         new UiElement { SoundFlags = soundFlags, ClickSound = clickSound };
+
+    [Theory]
+    // Straight from the scheme: even -> BICONS1, odd -> BICONS2, sub-image = index / 2.
+    [InlineData(10, "BICONS1.BMX#5")]
+    [InlineData(11, "BICONS2.BMX#5")]
+    // The bump: 51 becomes 52, so it lands in BICONS1 rather than BICONS2.
+    [InlineData(50, "BICONS1.BMX#25")]
+    [InlineData(51, "BICONS1.BMX#26")]
+    [InlineData(52, "BICONS2.BMX#26")]
+    public void TheIconIndexSplitsAcrossTwoFilesWithABumpAboveFifty(int combined, string expected) {
+        Assert.Equal(expected, UiElement.IconKeyForCombined(combined));
+    }
+
+    [Fact]
+    public void TheStateOffsetMustBeAddedBeforeResolving() {
+        // The reason there is no "base key + N": across the bump the run is discontinuous, so a
+        // consumer holding only the base key cannot reach the other states. Base 49's four states
+        // skip BICONS2#25 entirely and repeat BICONS1.
+        string[] states = { "BICONS2.BMX#24", "BICONS1.BMX#25", "BICONS1.BMX#26", "BICONS2.BMX#26" };
+        for (var offset = 0; offset < states.Length; offset++) {
+            Assert.Equal(states[offset], UiElement.IconKeyForCombined(49 + offset));
+        }
+    }
 
     [Fact]
     public void BitZeroGatesThePress_BitOneGatesTheRelease() {
