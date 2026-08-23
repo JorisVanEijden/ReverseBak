@@ -106,4 +106,32 @@ public class PitDescentTests {
         Assert.Equal(-640, normal);   // 8 * 0x50
         Assert.Equal(-960, held);     // 12 * 0x50
     }
+
+    [Fact]
+    public void TheFallFlagsThePartyAsDown_NotAWorldLoopReload() {
+        // The routine writes bCombatExitRequest, which is the byte at save offset 14 — the one we
+        // model as PartyDeathState. It is NOT nWorldLoopExitRequest at offset 15. The constant was
+        // named for the wrong one of the two adjacent bytes, and nothing had wired it yet, so this
+        // pins which field it belongs in before something does.
+        Assert.Equal(2, PitDescent.PartyDeathStateOnFall);
+        Assert.Equal(14, ResourceExtraction.SaveGameOffsets.PartyDeathState);
+        Assert.Equal(15, ResourceExtraction.SaveGameOffsets.ChapterTransitionPending);
+
+        // And 2 rather than 1: 1 is what the stat code raises when it NOTICES the whole party is at
+        // Near-death, and it makes the map screen play dialog 0x145. The pit asserts the state
+        // itself and has already played its own dialog, so it must not land on 1.
+        Assert.NotEqual(1, PitDescent.PartyDeathStateOnFall);
+    }
+
+    [Fact]
+    public void TheFallIsWhatPutsThePartyInThatState() {
+        // The value above is only coherent because the fall really does down the whole party — so
+        // assert the two together rather than trusting the constant on its own.
+        var party = new[] { new ActorConditions(), new ActorConditions() };
+        PitDescent.ApplyToParty(party);
+
+        foreach (ActorConditions member in party) {
+            Assert.Equal(ActorConditions.MaxRank, member[ActorCondition.NearDeath]);
+        }
+    }
 }

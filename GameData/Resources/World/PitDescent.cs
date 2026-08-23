@@ -5,8 +5,16 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Walking into a pit — <c>worldcross_dungeon_descent_anim</c>
-/// (<c>SRC/GAME/WORLD/WORLDCRS.C</c>). Terrain kind 15 is walkable on purpose: falling in is how you
-/// get to the level below.
+/// (<c>SRC/GAME/WORLD/WORLDCRS.C</c>). Terrain kind 15 is walkable on purpose: falling in is the
+/// point.
+///
+/// <para><b>It does not take you to the level below</b>, despite reading that way and despite the
+/// collision spec having said so. The camera is moved to the next type-0x0f entity in the SAME zone
+/// and dropped; there is no zone or level transition anywhere in the routine. What ends the trip is
+/// the party being flagged as down — see <see cref="PartyDeathStateOnFall"/>.</para>
+///
+/// <para>Distinct from <see cref="PitRopeCrossing"/>, which is the world OBJECT you click to swing
+/// over a chasm. This is the <c>m_pit</c> POLYGON you walk onto.</para>
 /// </summary>
 public static class PitDescent {
     /// <summary>The walkable terrain kind that drops you.</summary>
@@ -38,11 +46,29 @@ public static class PitDescent {
     public const int LandingDialogId = 0x115;
 
     /// <summary>
-    /// The value the original writes to <c>bCombatExitRequest</c> to make the world loop exit into
-    /// the level below. It is not a combat flag despite the name — the same field doubles as the
-    /// loop's general "leave, for this reason" signal.
+    /// The value the fall writes to the party-death byte — the field we model as
+    /// <c>SaveGameFields.PartyDeathState</c> (save body offset 14).
     /// </summary>
-    public const int WorldLoopExitRequest = 2;
+    /// <remarks>
+    /// <b>It is not a "world loop exit request", and the distinction is not cosmetic.</b> The
+    /// original has TWO adjacent bytes and this writes the first: <c>bCombatExitRequest</c> at
+    /// offset 14 (ours: <c>PartyDeathState</c>), not <c>nWorldLoopExitRequest</c> at offset 15
+    /// (ours: <c>ChapterTransitionPending</c>). Wiring this constant into the byte its old name
+    /// named would ask the world loop for a plain reload and leave the party un-flagged.
+    ///
+    /// <para><b>And it really is the party-death byte, used for exactly what it is for.</b> The
+    /// stat code raises the same field to 1 when it NOTICES every active member has Near-death set;
+    /// the arena writes 2 when it has just killed the last of them. The fall has itself put the
+    /// whole party at full Near-death, so it writes <b>2</b> — asserting the state directly rather
+    /// than waiting to be noticed. The 1/2 split matters downstream: 1 makes the map screen play
+    /// dialog 0x145, and the pit skips that because it has already played
+    /// <see cref="LandingDialogId"/>.</para>
+    ///
+    /// <para><b>There is no level change.</b> Nothing in the routine transitions zone or level — the
+    /// camera is moved to the next type-0x0f entity in the SAME zone and dropped. "Exits to the
+    /// level below" was in the collision spec and in this comment, and both were wrong.</para>
+    /// </remarks>
+    public const int PartyDeathStateOnFall = 2;
 
     /// <summary>
     /// What the fall does to the party.
