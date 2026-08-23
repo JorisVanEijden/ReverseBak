@@ -49,7 +49,8 @@ public enum CombatantFlags {
     /// </remarks>
     Fleeing = 0x10,
 
-    /// <summary>Poisoned — <c>CAF_POISON</c>. Here for the bit; nothing reads it yet.</summary>
+    /// <summary>Poisoned — <c>CAF_POISON</c>. Read by <see cref="PoisonTick"/> at the end of the
+    /// bearer's own turn.</summary>
     Poisoned = 0x20,
 
     /// <summary>Knocked back — <c>CAF_KNOCKBACK</c>. Here for the bit; nothing reads it yet.</summary>
