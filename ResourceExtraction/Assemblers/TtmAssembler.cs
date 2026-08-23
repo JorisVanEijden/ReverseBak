@@ -308,7 +308,7 @@ public class TtmAssembler {
                         writer.Write((ushort)unknownCommandA5A7.ImageSlot);
                         writer.Write((ushort)unknownCommandA5A7.Width);
                         writer.Write((ushort)unknownCommandA5A7.Height);
-                        writer.Write((ushort)unknownCommandA5A7.Angle);
+                        writer.Write(DrawImageRotated.RawFromDegrees(unknownCommandA5A7.AngleDegrees));
 
                         break;
                     case DrawAreaFromBuffer drawBuffer:

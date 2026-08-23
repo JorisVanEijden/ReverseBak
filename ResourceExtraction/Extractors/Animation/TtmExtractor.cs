@@ -443,7 +443,7 @@ public class TtmExtractor : ExtractorBase<AnimationResource> {
                     ImageSlot = commandReader.ReadInt16(),
                     Width = commandReader.ReadInt16(),
                     Height = commandReader.ReadInt16(),
-                    Angle = commandReader.ReadUInt16()
+                    AngleDegrees = DrawImageRotated.DegreesFromRaw(commandReader.ReadUInt16())
                 };
 
                 break;
