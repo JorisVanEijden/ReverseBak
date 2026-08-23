@@ -378,6 +378,18 @@ public class SpriteBMeshFace : MeshFaceRecord
 /// Z##L.SCX strip system can substitute strip samples for selected pen colors at draw time
 /// (see ZoneTable-DAT.md §4.5).
 /// </summary>
+/// <summary>When a face's pen samples the zone's terrain strip.</summary>
+public enum TerrainStripSampling {
+    /// <summary>Never — the face is a flat fill in its own colour.</summary>
+    None,
+
+    /// <summary>Always: pens 0x00-0x09, the ground and track strips.</summary>
+    Always,
+
+    /// <summary>Only at <c>levelOfDetail &gt; 1</c>: the 0xE0-0xE7 / 0xF7-0xFF shade ramps.</summary>
+    LevelOfDetail,
+}
+
 public class PolygonFace
 {
     /// <summary>+0x00. bits 0-1 = type (0=double-sided, 1/3=single-sided cull, 2=skip),
@@ -398,6 +410,41 @@ public class PolygonFace
 
     /// <summary>+0x01. Pen color used when VGA_byte_dseg_20DF == 0 (VGA mode).</summary>
     public byte VgaColor { get; set; }
+
+    /// <summary>
+    /// Whether this face's pen samples the zone's terrain strip, and under what condition.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is a property of the PEN, not of the entity or the face.</b> A face whose
+    /// <see cref="VgaColor"/> falls in 0x00-0x09 always samples the strip (ground, road, river,
+    /// waterfall, horizon); one in the 0xE0-0xE7 or 0xF7-0xFF ramps samples it only at
+    /// <c>levelOfDetail &gt; 1</c>. Those two ranges are <b>two parallel 8-entry shade ramps</b> —
+    /// the atmospheric shading on mountains and distant hills — gated by <c>flags &amp; 2</c>. See
+    /// <c>docs/FileFormats/ZoneTable-DAT.md</c>.
+    ///
+    /// <para><b>Which material each pen ends up with is the consumer's business.</b> Our renderer
+    /// gives both ramps a single material and pairs 3/4 and 6/7 — reasonable, and a port decision,
+    /// not something the data says. This property only answers "does it sample, and when".</para>
+    ///
+    /// <para>Not serialized: it is a pure function of <see cref="VgaColor"/>, which is emitted.
+    /// (<see cref="CullMode"/> next door predates that rule and IS emitted; changing it would
+    /// rewrite every TBL file, so it is left alone rather than churned here.)</para>
+    /// </remarks>
+#if JSON_SERIALIZE
+    [JsonIgnore]
+#endif
+    public TerrainStripSampling StripSampling => StripSamplingFor(VgaColor);
+
+    /// <inheritdoc cref="StripSampling"/>
+    public static TerrainStripSampling StripSamplingFor(byte pen) {
+        if (pen <= 0x09) {
+            return TerrainStripSampling.Always;
+        }
+        if ((pen >= 0xE0 && pen <= 0xE7) || pen >= 0xF7) {
+            return TerrainStripSampling.LevelOfDetail;
+        }
+        return TerrainStripSampling.None;
+    }
 
     /// <summary>+0x02. Shade-table input + background color (VGA mode).</summary>
     public byte VgaShade { get; set; }
