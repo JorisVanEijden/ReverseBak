@@ -1,6 +1,7 @@
 namespace GameData.Resources.Menu;
 
 using GameData.Resources.Layout;
+using System.Text.Json.Serialization;
 
 [Serializable]
 public class UiElement {
@@ -21,6 +22,11 @@ public class UiElement {
     public int SoundFlags { get; set; } // bit 0 = suppress press-down sound, bit 1 = suppress click-release sound
     public int ClickSound { get; set; } // custom sound id played on click (overrides default "pound" click); 0 = use default
 
+    // JsonIgnore on the resolved pair below: they are COMPUTED from SoundFlags + ClickSound, both
+    // of which are serialized. Emitting them too would put a value in an override file that editing
+    // cannot change — the model recomputes on load — which is worse than omitting it. Contrast
+    // ZoneTable.TextureBitmap, a resolved value that IS serialized because it is settable and needs
+    // context the entry does not carry.
     /// <summary>The default click cue — <c>sound_pound</c>, what an element with no custom sound plays.</summary>
     public const int DefaultClickSoundId = 83;
 
@@ -38,12 +44,15 @@ public class UiElement {
     /// deliberately collapses them to a single select cue; that is a port choice about presentation
     /// and it stays there. This pair says what the original would play.</para>
     /// </remarks>
+    [JsonIgnore]
     public int? PressSound => (SoundFlags & 1) != 0 ? null : EffectiveSound;
 
     /// <summary>Sound played when the button is RELEASED, or null when silent on release.</summary>
     /// <inheritdoc cref="PressSound"/>
+    [JsonIgnore]
     public int? ReleaseSound => (SoundFlags & 2) != 0 ? null : EffectiveSound;
 
+    [JsonIgnore]
     private int EffectiveSound => ClickSound != 0 ? ClickSound : DefaultClickSoundId;
     public string Label { get; set; }
     public string LabelAlt { get; set; } // alternate label; only rendered by InputField when State == 0 (the toggle-off text)
