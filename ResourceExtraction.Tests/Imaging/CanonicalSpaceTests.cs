@@ -155,7 +155,11 @@ public class CanonicalSpaceTests {
                 new DrawImage { X = 13, Y = 11 },                           // plain: X,Y only
                 new DrawImageScaled { X = 2, Y = 3, Width = 4, Height = 5 },// scaled: X,Y,W,H
                 new FillArea { X = 1, Y = 2, Width = 3, Height = 4 },       // IArea: X,Y,W,H
-                new ScreenTransitionBoxIn { X = 10, Y = 20, Width = 30, Height = 40 }
+                new ScreenTransitionBoxIn { X = 10, Y = 20, Width = 30, Height = 40 },
+                // NOT an IArea (its Width/Height are inclusive maxima), but still VGA and still
+                // scaled. C11 is the real cutscene that sets one; when this command fell out of the
+                // pass its clip stayed VGA against canonical draws and every image was skipped.
+                new SetClipArea { X = 15, Y = 11, Width = 303, Height = 111 }
             } }
         });
 
@@ -180,5 +184,11 @@ public class CanonicalSpaceTests {
         Assert.Equal(120, trans.Y);
         Assert.Equal(150, trans.Width);
         Assert.Equal(240, trans.Height);
+        // The exact values C11.TTM's first clip carries, and what generated/TTM/C11.json holds.
+        var clip = Assert.IsType<SetClipArea>(cmds[4]);
+        Assert.Equal(75, clip.X);
+        Assert.Equal(66, clip.Y);
+        Assert.Equal(1515, clip.Width);
+        Assert.Equal(666, clip.Height);
     }
 }

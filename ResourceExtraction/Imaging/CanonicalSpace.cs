@@ -124,6 +124,19 @@ public static class CanonicalSpace {
                     area.Width = AspectCorrection.ScaleVgaX(area.Width);
                     area.Height = AspectCorrection.ScaleVgaY(area.Height);
                 }
+                // SetClipArea deliberately does NOT implement IArea — its Width/Height are inclusive
+                // MAXIMA rather than extents, and every generic IArea consumer would misread them.
+                // Its four numbers are still VGA coordinates, so they still have to be scaled, and
+                // the maxima scale by the same factors as the edges they bound. Handled explicitly
+                // because dropping the interface (2026-08-22) silently dropped this command out of
+                // the pass: the clip stayed in VGA while every draw around it became canonical, so
+                // the rect came out ~5x too small and every clipped draw was skipped as off-area.
+                else if (command is SetClipArea clip) {
+                    clip.X = AspectCorrection.ScaleVgaX(clip.X);
+                    clip.Y = AspectCorrection.ScaleVgaY(clip.Y);
+                    clip.Width = AspectCorrection.ScaleVgaX(clip.Width);
+                    clip.Height = AspectCorrection.ScaleVgaY(clip.Height);
+                }
                 // Plain image draws (no Width/Height): scale position only.
                 else if (command is DrawImageBase image) {
                     image.X = AspectCorrection.ScaleVgaX(image.X);
