@@ -11,7 +11,6 @@ public class SaveGamePartyConfigurationData {
         byte attributeIncreasedFlag,
         short rewardMoneyCounter,
         short[] initialAttributeGainModifiers,
-        byte unusedPadding,
         SaveGameActorStatusEffectsData[] actorStatusEffects
     ) {
         NumberOfActivePartyCharacters = numberOfActivePartyCharacters;
@@ -21,7 +20,6 @@ public class SaveGamePartyConfigurationData {
         AttributeIncreasedFlag = attributeIncreasedFlag;
         RewardMoneyCounter = rewardMoneyCounter;
         InitialAttributeGainModifiers = initialAttributeGainModifiers ?? Array.Empty<short>();
-        UnusedPadding = unusedPadding;
         ActorStatusEffects = actorStatusEffects ?? Array.Empty<SaveGameActorStatusEffectsData>();
     }
 
@@ -31,7 +29,14 @@ public class SaveGamePartyConfigurationData {
     public uint SharedInventoryPointer2 { get; }
     public byte AttributeIncreasedFlag { get; }
     public short RewardMoneyCounter { get; }
+    /// <summary>
+    /// Six int16 — canassa's <c>aSkillTrainRate</c>. <b>Its purpose is not established</b>; the one
+    /// routine that appeared to read it was a base+displacement into the next array.
+    /// </summary>
+    /// <remarks>
+    /// It held TWO entries and a stray padding byte until 2026-08-24, which left the whole rest of
+    /// this section — the condition ranks above all — seven bytes early. See TASK-203.
+    /// </remarks>
     public short[] InitialAttributeGainModifiers { get; }
-    public byte UnusedPadding { get; }
     public SaveGameActorStatusEffectsData[] ActorStatusEffects { get; }
 }

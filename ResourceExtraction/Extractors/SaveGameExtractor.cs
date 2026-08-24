@@ -303,11 +303,15 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         uint sharedInventoryPointer2 = sectionReader.ReadUInt32();
         byte attributeIncreasedFlag = sectionReader.ReadByte();
         short rewardMoneyCounter = sectionReader.ReadInt16();
-        short[] initialAttributeGainModifiers = {
-            sectionReader.ReadInt16(),
-            sectionReader.ReadInt16()
-        };
-        byte unusedPadding = sectionReader.ReadByte();
+        // *** SIX int16, NOT two-and-a-pad. *** gstate.inc declares this `dw 6 dup` (12 bytes) and
+        // reading five bytes here left every following field in this section SEVEN BYTES EARLY —
+        // most visibly the condition ranks, which begin at 0x2cc and were being read from 0x2c5, so
+        // each character got the previous one's row. The reader and the writer shared the offset, so
+        // every round trip agreed with itself and nothing failed. See TASK-203.
+        short[] initialAttributeGainModifiers = new short[InitialAttributeGainModifierCount];
+        for (var i = 0; i < initialAttributeGainModifiers.Length; i++) {
+            initialAttributeGainModifiers[i] = sectionReader.ReadInt16();
+        }
         var actor0StatusEffects = new SaveGameActorStatusEffectsData(
             sectionReader.ReadByte(),
             sectionReader.ReadByte(),
@@ -332,8 +336,11 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             );
         }
 
-        // Remaining 7 bytes in this 42-byte block are documented as trailing/unused.
-        sectionReader.ReadBytes(ActorStatusEffectsSize);
+        // *** THE "TRAILING UNUSED 7 BYTES" WERE CHARACTER 0's ROW, READ AT THE WRONG END. ***
+        // This block is exactly 6 x 7 = 42 bytes and every one of them belongs to a character. The
+        // old reader started seven bytes early (see the aSkillTrainRate read above), consumed six
+        // rows, and then swallowed a seventh "unused" run to get back into step — which is why the
+        // section's TOTAL was always right and nothing ever failed. TASK-203.
 
         var partyConfigurationData = new SaveGamePartyConfigurationData(
             numberOfActivePartyCharacters,
@@ -343,7 +350,6 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
             attributeIncreasedFlag,
             rewardMoneyCounter,
             initialAttributeGainModifiers,
-            unusedPadding,
             actorStatusEffects
         );
 
@@ -497,6 +503,17 @@ public class SaveGameExtractor : ExtractorBase<SaveGame> {
         return actors;
     }
 
+
+    /// <summary>
+    /// Entries in the <c>aSkillTrainRate</c> array — <c>dw 6 dup</c>, one per party character.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its purpose is NOT established.</b> The name is ours and canassa's is <c>aSkillTrainRate</c>;
+    /// the one routine that appeared to read it — the combat rest gate — turned out to be a
+    /// base+displacement into the NEXT array (<c>abActorStatusRanks</c>), so nothing known reads this
+    /// at all. What is established is its SIZE, which is what the surrounding fields depend on.
+    /// </remarks>
+    private const int InitialAttributeGainModifierCount = 6;
 
     private static SaveGameCombatData[] ParseCombatData(byte[] combatDataBytes) {
         var combatData = new SaveGameCombatData[CombatSlotCount];

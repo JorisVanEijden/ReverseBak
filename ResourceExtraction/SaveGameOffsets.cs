@@ -122,7 +122,19 @@ public static class SaveGameOffsets {
     public const int ActorAttributeCount = 16;
 
     /// <summary>First actor's seven affliction ranks; 7 bytes each, in character-id order.</summary>
-    public const int ActorStatusEffects = 709;
+    /// <remarks>
+    /// <b>0x2cc, not 0x2c5.</b> It read 709 until 2026-08-24, seven bytes early, because the reader
+    /// modelled <c>aSkillTrainRate</c> as two int16 and a pad rather than the six int16 the struct
+    /// declares. Character N therefore carried character N-1's ranks and character 0 carried seven
+    /// bytes of the preceding array. The writer used the same constant, so every round trip agreed
+    /// with itself — see TASK-203.
+    ///
+    /// <para>Confirmed three ways: <c>gstate.inc</c> sums to <see cref="StateDataSize"/>; its other
+    /// offsets land on <see cref="PartyActors"/>, <see cref="TimerPoolCount"/> and
+    /// <see cref="PaletteEventMask"/>; and the engine's rest gate indexes
+    /// <c>aSkillTrainRate + N + charSlot * 7</c> with a 1-BASED slot, which puts character 0 here.</para>
+    /// </remarks>
+    public const int ActorStatusEffects = 0x2cc;
     public const int ActorStatusEffectsStride = 7;
     public const int ActorStatusEffectCount = 7;
 
