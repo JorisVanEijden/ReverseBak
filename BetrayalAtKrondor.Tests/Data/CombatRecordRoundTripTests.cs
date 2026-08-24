@@ -130,6 +130,61 @@ public class CombatRecordRoundTripTests {
             combatantEdits: new[] { new DirtyCombatantEdit(SaveGameOffsets.CombatSlotCount, record) }));
     }
 
+    [Fact]
+    public void TheActivePartyIsWrittenAsSizeAndMembersTogether() {
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, new SaveGameFields(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ActiveParty: new byte[] { 4, 2 }),
+            "test", 0, 0, 0);
+
+        int at = r.Bytes.Length - SaveGameOffsets.BodySize;
+        Assert.Equal(2, r.Bytes[at + SaveGameOffsets.ActivePartySize]);
+        Assert.Equal(4, r.Bytes[at + SaveGameOffsets.ActivePartyMembers]);
+        Assert.Equal(2, r.Bytes[at + SaveGameOffsets.ActivePartyMembers + 1]);
+    }
+
+    [Fact]
+    public void SpareSlotsAreLEFTALONERatherThanZeroed() {
+        // The engine reads only the first `size` slots. Zeroing the rest would claim character 0
+        // sits in them — and 0 is a real character.
+        var body = new byte[SaveGameOffsets.BodySize];
+        body[SaveGameOffsets.ActivePartyMembers + 2] = 0x5a;
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, new SaveGameFields(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ActiveParty: new byte[] { 4, 2 }),
+            "test", 0, 0, 0);
+
+        int at = r.Bytes.Length - SaveGameOffsets.BodySize;
+        Assert.Equal(0x5a, r.Bytes[at + SaveGameOffsets.ActivePartyMembers + 2]);
+    }
+
+    [Fact]
+    public void NullLeavesTheSavesOwnPartyUntouched() {
+        var body = new byte[SaveGameOffsets.BodySize];
+        body[SaveGameOffsets.ActivePartySize] = 3;
+        body[SaveGameOffsets.ActivePartyMembers] = 9;
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, new SaveGameFields(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+            "test", 0, 0, 0);
+
+        int at = r.Bytes.Length - SaveGameOffsets.BodySize;
+        Assert.Equal(3, r.Bytes[at + SaveGameOffsets.ActivePartySize]);
+        Assert.Equal(9, r.Bytes[at + SaveGameOffsets.ActivePartyMembers]);
+    }
+
+    [Fact]
+    public void APartyLargerThanTheArrayIsRefused() {
+        Assert.Throws<System.ArgumentException>(() => SaveGameWriter.Write(
+            new byte[SaveGameOffsets.BodySize],
+            new SaveGameFields(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ActiveParty: new byte[] { 1, 2, 3, 4 }),
+            "test", 0, 0, 0));
+    }
+
     private static byte[]? ReadGameFile(string name) {
         var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
         while (dir != null) {

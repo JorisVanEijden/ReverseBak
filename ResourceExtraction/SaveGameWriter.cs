@@ -54,6 +54,22 @@ public static class SaveGameWriter {
             coverage.Add(offset, 1);
         }
 
+        // The active party. Size and members are written together because they are one fact: a size
+        // that disagrees with the array is a party the engine reads past the end of.
+        if (fields.ActiveParty != null) {
+            if (fields.ActiveParty.Length > SaveGameOffsets.ActivePartySlots) {
+                throw new ArgumentException(
+                    $"The active party holds at most {SaveGameOffsets.ActivePartySlots} characters, "
+                    + $"was {fields.ActiveParty.Length}.", nameof(fields));
+            }
+            PatchU8(SaveGameOffsets.ActivePartySize, (byte)fields.ActiveParty.Length);
+            for (var slot = 0; slot < fields.ActiveParty.Length; slot++) {
+                PatchU8(SaveGameOffsets.ActivePartyMembers + slot, fields.ActiveParty[slot]);
+            }
+            // Slots past the party's size are LEFT ALONE, not zeroed: the engine reads only the
+            // first `size` of them, and zeroing would claim character 0 sits in the spare slots.
+        }
+
         PatchI16(SaveGameOffsets.Chapter, fields.Chapter);
         PatchI32(SaveGameOffsets.PartyGold, fields.PartyGold);
         PatchI32(SaveGameOffsets.GameTime, fields.GameTime);

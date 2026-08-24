@@ -88,6 +88,21 @@ public static class SaveGameOffsets {
     // reaches these sequentially rather than by offset, so SaveGameOffsetsTests pins every constant
     // below by writing at it and reading the value back out through SaveGameExtractor — if the
     // parse order ever shifts, those tests fail rather than the writer quietly corrupting a save.
+    /// <summary>How many characters are in the active party — <c>partySize</c>.</summary>
+    /// <remarks>
+    /// Offsets computed from <c>canassa/bak/INCLUDE/gstate.inc</c>, whose fields sum to
+    /// <see cref="StateDataSize"/> (2775 = 0xad7) and whose <c>characters</c> array lands on the
+    /// already-known <see cref="PartyActors"/> = 119 — two independent checks that the arithmetic is
+    /// right, which matters because a wrong offset here still parses.
+    /// </remarks>
+    public const int ActivePartySize = 0x2b1;
+
+    /// <summary>The active party's character indices — <c>activeParty</c>, three bytes.</summary>
+    public const int ActivePartyMembers = 0x2b2;
+
+    /// <summary>Slots the active-party array holds.</summary>
+    public const int ActivePartySlots = 3;
+
     public const int PartyActorCount = 6;
 
     /// <summary>First party actor record; 95 bytes each, in character-id order.</summary>

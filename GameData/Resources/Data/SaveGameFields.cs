@@ -25,4 +25,23 @@ public readonly record struct SaveGameFields(
     int PositionX,
     int PositionY,
     int PositionZ,
-    short Rotation);
+
+    short Rotation,
+
+    /// <summary>
+    /// The active party's character indices, or null to leave the save's own untouched.
+    /// </summary>
+    /// <remarks>
+    /// <b>Written back because the SESSION owns it</b> — party composition changes through a dialog
+    /// action, and a change that is not written is lost on save. Nothing mutates it at runtime yet,
+    /// so today this writes what the backing body already holds; it becomes load-bearing the moment
+    /// that lands, and adding it after the fact is the kind of gap nobody looks for.
+    ///
+    /// <para>Null rather than an empty array means "not supplied". An empty array is a real party of
+    /// nobody and would be written as such.</para>
+    ///
+    /// <para><b>LAST on purpose.</b> This is a positional record and several callers construct it
+    /// positionally; a parameter added in the middle rebinds every one of them, which is exactly how
+    /// SaveGameWriter.Write's optional-argument break happened earlier the same day.</para>
+    /// </remarks>
+    byte[] ActiveParty = null);
