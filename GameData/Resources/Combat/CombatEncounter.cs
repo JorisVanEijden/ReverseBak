@@ -52,6 +52,22 @@ public sealed class CombatEncounter {
     /// </summary>
     public bool HasObjective { get; set; }
 
+    /// <summary>
+    /// Whether this encounter may be retreated from at all — TRAPS.DAT's
+    /// <see cref="TrapElementType.RetreatLock"/> element, read once on entry.
+    /// </summary>
+    /// <remarks>
+    /// <b>Defaults to true, and that is the correct default rather than an optimistic one.</b> The
+    /// original raises the flag as it opens the encounter's record and only one element type lowers
+    /// it, so an encounter with no record allows escape exactly as an ordinary one does.
+    ///
+    /// <para><b>Not the same thing as <see cref="HasObjective"/>.</b> Both are trap-puzzle traits and
+    /// both disable a way out of the fight — the objective refuses auto-resolve, this refuses
+    /// retreat — but they come from different markers and 30 encounters carry an exit without
+    /// carrying this lock.</para>
+    /// </remarks>
+    public bool EscapeAllowed { get; set; } = true;
+
     /// <summary>Whoever is acting, or null once the encounter is over.</summary>
     public Combatant Current { get; private set; }
 

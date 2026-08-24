@@ -37,6 +37,28 @@ public class TrapData : IResource {
 
     /// <summary>One entry per encounter number (index = the encounter's record index).</summary>
     public List<TrapEncounter> Encounters { get; set; } = new();
+
+    /// <summary>
+    /// Whether the party may attempt to retreat from an encounter — see
+    /// <see cref="TrapElementType.RetreatLock"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>An encounter this file knows nothing about still allows escape.</b> The flag is raised
+    /// before the record is read and only a <see cref="TrapElementType.RetreatLock"/> element lowers
+    /// it, so "no record" and "an ordinary record" answer the same — which is what makes true the
+    /// safe answer for a missing table rather than a guess.
+    ///
+    /// <para>A static predicate rather than a property on <see cref="TrapEncounter"/> deliberately:
+    /// that type is serialized into <c>generated/TRAPS.json</c>, and a computed property there would
+    /// change the committed output.</para>
+    /// </remarks>
+    public bool AllowsRetreat(int encounterNumber) {
+        TrapEncounter record = Encounters?.Find(e => e.Index == encounterNumber);
+        if (record?.Elements == null) {
+            return true;
+        }
+        return !record.Elements.Exists(e => e.Type == (int)TrapElementType.RetreatLock);
+    }
 }
 
 /// <summary>One combat encounter's grid layout (a 62-byte record).</summary>
@@ -118,6 +140,28 @@ public enum TrapElementType {
     /// <summary>-17 — actor placement, combat slot 2.</summary>
     ActorSlot2 = -17,
 
-    /// <summary>-18 — clears the combat flag <c>word_dseg_50F6</c> (no grid placement).</summary>
-    ClearCombatFlag = -18,
+    /// <summary>
+    /// -18 — <b>this encounter cannot be retreated from</b>. Places nothing on the grid.
+    /// </summary>
+    /// <remarks>
+    /// <b>The only element type that is a rule rather than a placement</b>, which is why its
+    /// coordinates are meaningless (four of the five records that carry it store (0,0), and the
+    /// fifth stores junk). Every other type either sets a tile effect or positions an actor; this one
+    /// takes a branch that does neither.
+    ///
+    /// <para><b>The flag it clears defaults to SET, so this record is an opt-OUT.</b> The loader
+    /// raises the flag unconditionally as it opens the file and only this record lowers it, so 763
+    /// of the 768 encounters allow a retreat and five forbid it — reading the flag as "trap data was
+    /// loaded" (the shape of the original's variable name) inverts the default and would forbid
+    /// escape everywhere.</para>
+    ///
+    /// <para>The five are 259, 347, 348, 349 and 463 — all trap-puzzle rooms, each also carrying an
+    /// <see cref="Exit"/> tile and the three actor placements. <b>But the exit is not the rule</b>:
+    /// 35 encounters carry an <see cref="Exit"/> and only these five carry the lock, so a port that
+    /// derived "no retreat" from the presence of an exit would lock thirty fights the game lets you
+    /// leave. The two markers are independent.</para>
+    ///
+    /// <para>Consumed by <c>CombatCommands.EscapeRollPasses</c>.</para>
+    /// </remarks>
+    RetreatLock = -18,
 }

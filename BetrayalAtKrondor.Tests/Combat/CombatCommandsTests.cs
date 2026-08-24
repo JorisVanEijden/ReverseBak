@@ -76,12 +76,12 @@ public class CombatCommandsTests {
         // always lands on the mismatch refusal. Asserting them as one story is what would catch the
         // dialogs being swapped — each alone reads fine either way round.
         const bool someoneDown = true;
-        Assert.False(CombatCommands.EscapeRollPasses(someoneDown, roll: 0, trapsLoaded: true));
+        Assert.False(CombatCommands.EscapeRollPasses(someoneDown, roll: 0, encounterAllowsEscape: true));
         Assert.Equal(CombatCommands.RetreatRefusedMismatchDialog,
             CombatCommands.RetreatRefusalDialog(someoneDown));
 
         // Whole party up and the roll simply missed.
-        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, trapsLoaded: true));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, encounterAllowsEscape: true));
         Assert.Equal(CombatCommands.RetreatRefusedDialog,
             CombatCommands.RetreatRefusalDialog(anyPartyMemberDown: false));
     }
@@ -92,21 +92,21 @@ public class CombatCommandsTests {
         // has already lost someone is committed to the fight — the opposite of the intuition that
         // losing makes you likelier to run, so it is asserted with a roll that would otherwise pass.
         Assert.False(CombatCommands.EscapeRollPasses(
-            anyPartyMemberDead: true, roll: 0, trapsLoaded: true));
+            anyPartyMemberDead: true, roll: 0, encounterAllowsEscape: true));
     }
 
     [Fact]
     public void TheRollIsFiftyPercentAndExclusiveAtTheBoundary() {
-        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 49, trapsLoaded: true));
-        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 50, trapsLoaded: true));
-        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 0, trapsLoaded: true));
+        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 49, encounterAllowsEscape: true));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 50, encounterAllowsEscape: true));
+        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 0, encounterAllowsEscape: true));
     }
 
     [Fact]
-    public void WithoutTheTrapDataTheEscapeFailsHoweverTheRollWent() {
+    public void ALockedEncounterRefusesTheEscapeHoweverTheRollWent() {
         // Tested LAST and ANDed with the rest, so it overrides a passing roll.
-        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 0, trapsLoaded: false));
-        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, trapsLoaded: false));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 0, encounterAllowsEscape: false));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, encounterAllowsEscape: false));
     }
 
 

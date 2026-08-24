@@ -170,7 +170,9 @@ public static class CombatCommands {
     /// member (the original tests <c>charSlot != 0</c>), so a dead summon does not block the escape.
     /// </param>
     /// <param name="roll">A roll in <c>[0, 100)</c>.</param>
-    /// <param name="trapsLoaded">Whether the trap data is loaded.</param>
+    /// <param name="encounterAllowsEscape">
+    /// Whether this encounter permits retreat at all — <see cref="TrapData.AllowsRetreat"/>.
+    /// </param>
     /// <remarks>
     /// <b>Three conditions, and only one of them is the coin flip.</b>
     /// <list type="number">
@@ -178,20 +180,28 @@ public static class CombatCommands {
     ///     one and never reaches the roll. So a party that has already lost someone is committed to
     ///     the fight, which is the opposite of the intuition that losing makes you likelier to run.</item>
     ///   <item>Then the 50% roll.</item>
-    ///   <item>Then <b>the trap data must be loaded</b>, tested last and ANDed with the rest. Without
-    ///     it the escape fails however the roll went.</item>
+    ///   <item>Then <b>the encounter must permit escape at all</b>, tested last and ANDed with the
+    ///     rest, so a locked encounter refuses however the roll went.</item>
     /// </list>
+
+    /// <para><b>That third condition is a per-encounter lock, not a load check.</b> The original
+    /// reads a flag whose name says "traps loaded", and taking the name at face value is wrong twice
+    /// over: the flag is raised unconditionally when the encounter's TRAPS.DAT record is opened, and
+    /// it is lowered only by one element type that places nothing
+    /// (<see cref="TrapElementType.RetreatLock"/>). So it defaults to ALLOW and five encounters out
+    /// of 768 opt out — the opposite polarity to "escape needs data that may be missing", which
+    /// would forbid retreat in every ordinary fight.</para>
     ///
     /// <para><b>The name is the usual hazard.</b> "maybe_random_trap" describes a side effect; the
     /// return value is what the caller reads as "you got away" (it plays
     /// <see cref="RetreatEscapeDialog"/> and cancels the fight). See
     /// <see cref="RetreatSucceeded"/>, which records the same warning from the other end.</para>
     /// </remarks>
-    public static bool EscapeRollPasses(bool anyPartyMemberDead, int roll, bool trapsLoaded) {
+    public static bool EscapeRollPasses(bool anyPartyMemberDead, int roll, bool encounterAllowsEscape) {
         if (anyPartyMemberDead) {
             return false;
         }
-        return roll < EscapeChancePercent && trapsLoaded;
+        return roll < EscapeChancePercent && encounterAllowsEscape;
     }
 
     /// <summary>Plays when the retreat gets out.</summary>
