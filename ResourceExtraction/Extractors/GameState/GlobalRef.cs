@@ -124,8 +124,10 @@ public static class GlobalRef {
         if (key is >= 1 and <= 8499) {
             return new SetFlagEffect { Flag = key, Set = value != 0 };
         }
-        // Unconfirmed direct write -> keep the raw key as a var write (lossless).
-        return new SetVarEffect { Var = key, Value = value };
+        // Unconfirmed direct write. Its own type, not a SetVarEffect carrying a raw key: that
+        // overload meant `30000 + Var` — the obvious way to apply a var write — silently landed on a
+        // global nothing reads. RawGlobalCondition is the same idea on the read side.
+        return new RawGlobalWriteEffect { Key = key, Value = value };
     }
 
     /// <summary>Decode a SetTemporaryFlag write (a timed flag set).</summary>

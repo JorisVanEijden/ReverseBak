@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(SetVarEffect), nameof(SetVarEffect))]
 [JsonDerivedType(typeof(SetFlagsEffect), nameof(SetFlagsEffect))]
 [JsonDerivedType(typeof(SetFlagBitsEffect), nameof(SetFlagBitsEffect))]
+[JsonDerivedType(typeof(RawGlobalWriteEffect), nameof(RawGlobalWriteEffect))]
 #endif
 
 /// <summary>
@@ -25,17 +26,13 @@ public class SetFlagEffect : Effect {
     public uint? ForTicks { get; set; }
 }
 
-/// <summary>Set named variable <see cref="Var"/> (= key − 30000, or raw key when unconfirmed) to <see cref="Value"/>.</summary>
+/// <summary>Set named variable <see cref="Var"/> (= key − 30000) to <see cref="Value"/>.</summary>
 /// <remarks>
-/// <b><see cref="Var"/> CARRIES TWO DIFFERENT THINGS and nothing on the object says which.</b> The
-/// decoder emits <c>key - 30000</c> for the confirmed named-variable range (30000..30029) and the
-/// RAW key for any unconfirmed direct write, so applying it needs
-/// <see cref="GlobalKey"/> rather than a bare addition either way.
-///
-/// <para>The clean fix is a distinct raw-write effect, mirroring <c>RawGlobalCondition</c> on the
-/// condition side — the effect vocabulary is missing that counterpart and overloads this type
-/// instead. That change touches the extractor and every generated file, so it is recorded rather
-/// than made here.</para>
+/// <b><see cref="Var"/> is a decoded variable index and nothing else.</b> It used to double as a raw
+/// key for unconfirmed direct writes, with only a range check on <see cref="GlobalKey"/> telling the
+/// two apart — an overload that made <c>30000 + Var</c>, the obvious way to apply this, silently
+/// write to the wrong global. Those writes are <see cref="RawGlobalWriteEffect"/> now, so the
+/// ambiguity is gone from the type rather than managed inside it.
 /// </remarks>
 public class SetVarEffect : Effect {
     public int Var { get; set; }
@@ -47,23 +44,27 @@ public class SetVarEffect : Effect {
     /// <summary>How many named variables that range holds.</summary>
     public const int VarRangeCount = 30;
 
-    /// <summary>
-    /// The save-state key this write lands on.
-    /// </summary>
-    /// <remarks>
-    /// <b>Disambiguated by range, which works because the two forms cannot overlap in practice.</b>
-    /// A decoded variable is 0..29; a raw key that reached the fallback is outside 1..8499 and
-    /// outside the variable range, so it is far above 29. Across the whole shipped tree there are 39
-    /// of these — 38 decoded (vars 0, 4, 14, 15, 16, 17) and exactly one raw (56277) — and no value
-    /// is ambiguous between the two readings.
-    ///
-    /// <para>The one theoretical collision is key 0: it is excluded from the flag range by
-    /// <c>key >= 1</c> and would fall through as <c>Var = 0</c>, indistinguishable from variable 0.
-    /// It does not occur in the shipped data. If it ever does, this returns 30000 for it — which is
-    /// the reason to make the extractor emit a distinct type rather than to add a guess here.</para>
-    /// </remarks>
-    public int GlobalKey =>
-        Var >= 0 && Var < VarRangeCount ? VarRangeBase + Var : Var;
+    /// <summary>The save-state key this write lands on.</summary>
+    public int GlobalKey => VarRangeBase + Var;
+}
+
+/// <summary>
+/// Fallback for an unconfirmed direct write: <c>SetGlobalValue(Key, Value)</c> on a raw key.
+/// </summary>
+/// <remarks>
+/// <b>The counterpart to <see cref="RawGlobalCondition"/></b>, which the effect vocabulary was
+/// missing — an asymmetry between the two halves of one spec. Reads had an honest carrier for
+/// "a key we have not confirmed"; writes borrowed <see cref="SetVarEffect"/> for it instead.
+///
+/// <para><b>The key is absolute, not an offset.</b> That is the whole point of the type: nothing has
+/// to work out which of two meanings the number carries.</para>
+///
+/// <para>Rare in shipped data — exactly one instance (key 56277) across the generated tree — but the
+/// rarity is why the overload survived unnoticed, not a reason to keep it.</para>
+/// </remarks>
+public class RawGlobalWriteEffect : Effect {
+    public int Key { get; set; }
+    public int Value { get; set; }
 }
 
 /// <summary>A masked multi-flag write expanded to a list of per-flag writes.</summary>

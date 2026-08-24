@@ -87,6 +87,16 @@ public class GlobalRefTests {
     }
 
     [Fact]
+    public void UnconfirmedDirectWrite_DecodesToRawWriteNotSetVar() {
+        // 56277 is the one raw write in the shipped tree. It must NOT come back as a SetVarEffect:
+        // that type means "key - 30000", so a consumer adding the base back would write 86277.
+        Effect e = GlobalRef.DecodeEffect(56277, andMask: 0xFF, orMask: 0, xorMask: 0, value: 1);
+        var raw = Assert.IsType<RawGlobalWriteEffect>(e);
+        Assert.Equal(56277, raw.Key);
+        Assert.Equal(1, raw.Value);
+    }
+
+    [Fact]
     public void DirectWriteToStoryFlag_DecodesToSetFlag() {
         var f = Assert.IsType<SetFlagEffect>(GlobalRef.DecodeEffect(8127, 0xFF, 0, 0, 1));
         Assert.Equal(8127, f.Flag);
