@@ -62,6 +62,30 @@ public class CombatCommandsTests {
     }
 
     [Fact]
+    public void ADeadPartyMemberBlocksTheEscapeOutright() {
+        // The loop breaks on the first dead party member and never reaches the roll. A party that
+        // has already lost someone is committed to the fight — the opposite of the intuition that
+        // losing makes you likelier to run, so it is asserted with a roll that would otherwise pass.
+        Assert.False(CombatCommands.EscapeRollPasses(
+            anyPartyMemberDead: true, roll: 0, trapsLoaded: true));
+    }
+
+    [Fact]
+    public void TheRollIsFiftyPercentAndExclusiveAtTheBoundary() {
+        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 49, trapsLoaded: true));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 50, trapsLoaded: true));
+        Assert.True(CombatCommands.EscapeRollPasses(false, roll: 0, trapsLoaded: true));
+    }
+
+    [Fact]
+    public void WithoutTheTrapDataTheEscapeFailsHoweverTheRollWent() {
+        // Tested LAST and ANDed with the rest, so it overrides a passing roll.
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 0, trapsLoaded: false));
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, trapsLoaded: false));
+    }
+
+
+    [Fact]
     public void TheThreeRetreatDialogsAreDistinct() {
         Assert.NotEqual(CombatCommands.RetreatEscapeDialog, CombatCommands.RetreatRefusedDialog);
         Assert.NotEqual(CombatCommands.RetreatEscapeDialog, CombatCommands.RetreatRefusedMismatchDialog);

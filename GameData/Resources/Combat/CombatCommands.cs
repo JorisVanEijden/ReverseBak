@@ -159,6 +159,41 @@ public static class CombatCommands {
     /// </remarks>
     public static bool RetreatSucceeded(bool escapeRollPassed) => escapeRollPassed;
 
+    /// <summary>Percentage chance the escape roll passes, once the party qualifies to try.</summary>
+    public const int EscapeChancePercent = 50;
+
+    /// <summary>
+    /// The escape roll itself — <c>combat_arena_maybe_random_trap</c> (canassa COMBAT.C:1545).
+    /// </summary>
+    /// <param name="anyPartyMemberDead">
+    /// Whether any actor on the party's side is dead. A combatant counts only if it is a real party
+    /// member (the original tests <c>charSlot != 0</c>), so a dead summon does not block the escape.
+    /// </param>
+    /// <param name="roll">A roll in <c>[0, 100)</c>.</param>
+    /// <param name="trapsLoaded">Whether the trap data is loaded.</param>
+    /// <remarks>
+    /// <b>Three conditions, and only one of them is the coin flip.</b>
+    /// <list type="number">
+    ///   <item><b>A dead party member blocks the retreat outright</b> — the loop breaks on the first
+    ///     one and never reaches the roll. So a party that has already lost someone is committed to
+    ///     the fight, which is the opposite of the intuition that losing makes you likelier to run.</item>
+    ///   <item>Then the 50% roll.</item>
+    ///   <item>Then <b>the trap data must be loaded</b>, tested last and ANDed with the rest. Without
+    ///     it the escape fails however the roll went.</item>
+    /// </list>
+    ///
+    /// <para><b>The name is the usual hazard.</b> "maybe_random_trap" describes a side effect; the
+    /// return value is what the caller reads as "you got away" (it plays
+    /// <see cref="RetreatEscapeDialog"/> and cancels the fight). See
+    /// <see cref="RetreatSucceeded"/>, which records the same warning from the other end.</para>
+    /// </remarks>
+    public static bool EscapeRollPasses(bool anyPartyMemberDead, int roll, bool trapsLoaded) {
+        if (anyPartyMemberDead) {
+            return false;
+        }
+        return roll < EscapeChancePercent && trapsLoaded;
+    }
+
     /// <summary>Plays when the retreat gets out.</summary>
     public const int RetreatEscapeDialog = 0x22;
 
