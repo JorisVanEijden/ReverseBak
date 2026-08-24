@@ -125,4 +125,15 @@ public class CombatCommandsTests {
         Assert.Equal(CombatCommands.CastId, CombatMenuSlots.CastActionId);
         Assert.Equal(CombatCommands.CapabilityLabelId, CombatMenuSlots.NeitherActionId);
     }
+
+    [Fact]
+    public void TheSuspendButtonOpensTheINVENTORYUnlessAModifierIsHeld() {
+        // *** The canassa name says "char_screen" and describes the branch it does NOT usually
+        // take. *** An ordinary press runs cmbinv_inventory_screen_run; charscreen_info_loop is the
+        // Shift path. Trusting the name puts the wrong screen on the common path in combat.
+        Assert.Equal(CombatCommands.SuspendScreen.Inventory,
+            CombatCommands.SuspendScreenFor(modifierHeld: false));
+        Assert.Equal(CombatCommands.SuspendScreen.CharacterSheet,
+            CombatCommands.SuspendScreenFor(modifierHeld: true));
+    }
 }

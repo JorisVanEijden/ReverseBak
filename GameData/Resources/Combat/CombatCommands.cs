@@ -48,7 +48,10 @@ public static class CombatCommands {
         /// </summary>
         CapabilityLabel,
 
-        /// <summary>Open the character screen — <c>combat_arena_suspend_char_screen</c>.</summary>
+        /// <summary>
+        /// Suspend the fight and open a screen — the <b>inventory</b> unless a modifier is held.
+        /// See <see cref="SuspendScreenFor"/>; the routine's canassa name is misleading.
+        /// </summary>
         CharacterScreen,
 
         /// <summary>
@@ -240,4 +243,37 @@ public static class CombatCommands {
 
     /// <summary><b>A failed retreat still costs the turn.</b></summary>
     public static bool FailedRetreatSpendsTheTurn => true;
+
+    /// <summary>Which screen the suspend button opens.</summary>
+    public enum SuspendScreen {
+        /// <summary>The acting character's pack — what an unmodified press gives.</summary>
+        Inventory,
+
+        /// <summary>The character sheet, reached only with a modifier held.</summary>
+        CharacterSheet,
+    }
+
+    /// <summary>
+    /// <b>Id 22 opens the INVENTORY, not the character sheet — the sheet needs Shift.</b>
+    /// </summary>
+    /// <param name="modifierHeld">
+    /// Whether a shift key is down (the original tests both 0x2a and 0x36), or the menu is already
+    /// in its state-2 mode.
+    /// </param>
+    /// <remarks>
+    /// <b>canassa calls this routine <c>combat_arena_suspend_char_screen</c>, and the name describes
+    /// the branch it does NOT usually take.</b> The body is an if/else: with a modifier held it runs
+    /// <c>charscreen_info_loop</c>, and otherwise — the ordinary press — it runs
+    /// <c>cmbinv_inventory_screen_run</c>. A port that trusted the name would put the wrong screen on
+    /// the most common path in combat, and the right one behind a modifier nobody would think to try.
+    ///
+    /// <para><b>The party is copied OUT to the save's character records before the screen and back
+    /// afterwards</b>, with each combatant's <c>inner</c> pointer preserved across the round trip.
+    /// The screens read the save, not the fight, so without that copy a character would show its
+    /// pre-battle health while standing there wounded. Any port that opens a real screen mid-combat
+    /// has to reconcile the same two representations — see <c>CombatRuntime.ResolveMelee</c>, which
+    /// writes damage through to the save for the same reason.</para>
+    /// </remarks>
+    public static SuspendScreen SuspendScreenFor(bool modifierHeld) =>
+        modifierHeld ? SuspendScreen.CharacterSheet : SuspendScreen.Inventory;
 }
