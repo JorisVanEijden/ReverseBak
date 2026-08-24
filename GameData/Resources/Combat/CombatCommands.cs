@@ -197,11 +197,36 @@ public static class CombatCommands {
     /// <summary>Plays when the retreat gets out.</summary>
     public const int RetreatEscapeDialog = 0x22;
 
-    /// <summary>Refusal shown when the living count differs from the other side's.</summary>
+    /// <summary>Refusal shown when someone on the party side is down.</summary>
     public const int RetreatRefusedMismatchDialog = 0x23;
 
-    /// <summary>The other refusal.</summary>
+    /// <summary>Refusal shown when the whole party is standing and the attempt simply failed.</summary>
     public const int RetreatRefusedDialog = 0x12f;
+
+    /// <summary>
+    /// Which refusal plays when the escape does not get out.
+    /// </summary>
+    /// <param name="anyPartyMemberDown">Whether any slot on the party's side is not alive.</param>
+    /// <remarks>
+    /// <b>The two refusals are not interchangeable flavour — they answer different failures.</b> The
+    /// original compares <c>combatenc_alive_actor_count()</c> against <c>g_nCombatOtherCount</c>
+    /// while the target state is SWAPPED (<c>combat_arena_swap_tgt_state</c> exchanges the active and
+    /// other lists around the test), so both sides of that comparison are the PARTY: living members
+    /// against total slots. Unequal means someone is down.
+    ///
+    /// <para>That dovetails with <see cref="EscapeRollPasses"/>, and is what makes the pair
+    /// coherent: a dead party member blocks the roll outright, so it lands here with the counts
+    /// unequal and plays <see cref="RetreatRefusedMismatchDialog"/> — "you cannot leave, someone is
+    /// down". Reaching here with the whole party standing means the roll itself failed, which is
+    /// <see cref="RetreatRefusedDialog"/> — "you tried and did not get away".</para>
+    ///
+    /// <para><b>Reading the swap as cosmetic inverts this.</b> Without it the comparison looks like
+    /// living-enemies against enemy-slots, which would make the dialog depend on enemy casualties
+    /// and put the wrong line on screen in exactly the case the player notices — having just lost
+    /// someone.</para>
+    /// </remarks>
+    public static int RetreatRefusalDialog(bool anyPartyMemberDown) =>
+        anyPartyMemberDown ? RetreatRefusedMismatchDialog : RetreatRefusedDialog;
 
     /// <summary><b>A failed retreat still costs the turn.</b></summary>
     public static bool FailedRetreatSpendsTheTurn => true;

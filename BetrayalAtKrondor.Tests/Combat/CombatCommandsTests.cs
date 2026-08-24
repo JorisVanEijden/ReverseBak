@@ -62,6 +62,31 @@ public class CombatCommandsTests {
     }
 
     [Fact]
+    public void TheTwoRefusalsAnswerDifferentFailures() {
+        // Someone down -> "you cannot leave"; whole party standing -> "you tried and failed".
+        Assert.Equal(CombatCommands.RetreatRefusedMismatchDialog,
+            CombatCommands.RetreatRefusalDialog(anyPartyMemberDown: true));
+        Assert.Equal(CombatCommands.RetreatRefusedDialog,
+            CombatCommands.RetreatRefusalDialog(anyPartyMemberDown: false));
+    }
+
+    [Fact]
+    public void TheRefusalAgreesWithWhyTheRollFailed() {
+        // The pair is coherent only together: a down member blocks the roll outright, so that case
+        // always lands on the mismatch refusal. Asserting them as one story is what would catch the
+        // dialogs being swapped — each alone reads fine either way round.
+        const bool someoneDown = true;
+        Assert.False(CombatCommands.EscapeRollPasses(someoneDown, roll: 0, trapsLoaded: true));
+        Assert.Equal(CombatCommands.RetreatRefusedMismatchDialog,
+            CombatCommands.RetreatRefusalDialog(someoneDown));
+
+        // Whole party up and the roll simply missed.
+        Assert.False(CombatCommands.EscapeRollPasses(false, roll: 99, trapsLoaded: true));
+        Assert.Equal(CombatCommands.RetreatRefusedDialog,
+            CombatCommands.RetreatRefusalDialog(anyPartyMemberDown: false));
+    }
+
+    [Fact]
     public void ADeadPartyMemberBlocksTheEscapeOutright() {
         // The loop breaks on the first dead party member and never reaches the roll. A party that
         // has already lost someone is committed to the fight — the opposite of the intuition that
