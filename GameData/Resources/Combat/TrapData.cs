@@ -39,25 +39,27 @@ public class TrapData : IResource {
     public List<TrapEncounter> Encounters { get; set; } = new();
 
     /// <summary>
-    /// Whether the party may attempt to retreat from an encounter — see
-    /// <see cref="TrapElementType.RetreatLock"/>.
+    /// One encounter's elements in the shape <see cref="TrapPuzzleBuilder.Build"/> reads, or an
+    /// empty sequence when the file has nothing for it.
     /// </summary>
     /// <remarks>
-    /// <b>An encounter this file knows nothing about still allows escape.</b> The flag is raised
-    /// before the record is read and only a <see cref="TrapElementType.RetreatLock"/> element lowers
-    /// it, so "no record" and "an ordinary record" answer the same — which is what makes true the
-    /// safe answer for a missing table rather than a guess.
+    /// <b>The single adapter from this file to the puzzle rules</b>, so that every question about an
+    /// encounter's grid — its layout, its exit, whether it may be retreated from — is answered by
+    /// building the puzzle rather than by re-scanning the elements per question. An encounter with
+    /// no record builds an empty puzzle, which is what an ordinary fight is.
     ///
-    /// <para>A static predicate rather than a property on <see cref="TrapEncounter"/> deliberately:
-    /// that type is serialized into <c>generated/TRAPS.json</c>, and a computed property there would
-    /// change the committed output.</para>
+    /// <para>A method rather than a property on <see cref="TrapEncounter"/> deliberately: that type
+    /// is serialized into <c>generated/TRAPS.json</c>, and a computed property there would change the
+    /// committed output.</para>
     /// </remarks>
-    public bool AllowsRetreat(int encounterNumber) {
+    public IEnumerable<(int Type, int X, int Y)> ElementsFor(int encounterNumber) {
         TrapEncounter record = Encounters?.Find(e => e.Index == encounterNumber);
         if (record?.Elements == null) {
-            return true;
+            yield break;
         }
-        return !record.Elements.Exists(e => e.Type == (int)TrapElementType.RetreatLock);
+        foreach (TrapElement element in record.Elements) {
+            yield return (element.Type, element.GridX, element.GridY);
+        }
     }
 }
 

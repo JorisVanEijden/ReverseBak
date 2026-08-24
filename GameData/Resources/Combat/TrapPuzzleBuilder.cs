@@ -68,10 +68,21 @@ public sealed class TrapPuzzle {
     public (int X, int Y)?[] PartyStarts { get; } = new (int X, int Y)?[TrapPuzzleBuilder.PartySlots];
 
     /// <summary>
-    /// False when the puzzle carried the "clear the combat flag" marker, which the original uses to
-    /// say this encounter is a pure puzzle rather than a fight.
+    /// False when the encounter carried the <see cref="TrapElementType.RetreatLock"/> marker: the
+    /// party may not retreat from this fight.
     /// </summary>
-    public bool CombatFlag { get; internal set; } = true;
+    /// <remarks>
+    /// <b>Corrected 2026-08-24 — this was recorded as "a pure puzzle rather than a fight", which was
+    /// a guess and is wrong.</b> The flag has exactly one behavioural consumer, the escape roll in
+    /// <see cref="CombatCommands.EscapeRollPasses"/>; its only other reads are in the original's
+    /// TRAPS.DAT writer, which round-trips the marker back to disk as <c>0xffee</c>. Nothing
+    /// anywhere branches on it to decide whether an encounter is a fight.
+    ///
+    /// <para><b>The default is the meaningful half.</b> The original raises this flag before reading
+    /// the record and only the marker lowers it, so it is an opt-OUT that five of 768 encounters
+    /// use — see <see cref="TrapElementType.RetreatLock"/>.</para>
+    /// </remarks>
+    public bool AllowsRetreat { get; internal set; } = true;
 
     /// <summary>
     /// Shoves whatever stands on a tile one step along <paramref name="dx"/>,<paramref name="dy"/>.
@@ -233,7 +244,7 @@ public static class TrapPuzzleBuilder {
     /// <summary>Party slots a puzzle can place (markers −15, −16, −17).</summary>
     public const int PartySlots = 3;
 
-    private const int ClearCombatFlagId = 18;
+    private const int RetreatLockId = -(int)TrapElementType.RetreatLock;
     private const int FirstPartySlotId = 15;
     private const int FirstCannonId = 10;
     private const int LastCannonId = 13;
@@ -309,8 +320,8 @@ public static class TrapPuzzleBuilder {
             return;
         }
 
-        if (id == ClearCombatFlagId) {
-            puzzle.CombatFlag = false;
+        if (id == RetreatLockId) {
+            puzzle.AllowsRetreat = false;
             return;
         }
 

@@ -136,8 +136,8 @@ public class TrapPuzzleBuilderTests {
 
     [Fact]
     public void TheClearFlagMarkerTurnsTheEncounterIntoAPurePuzzle() {
-        Assert.True(TrapPuzzleBuilder.Build(Elements((-6, 1, 1))).CombatFlag);
-        Assert.False(TrapPuzzleBuilder.Build(Elements((-18, 0, 0))).CombatFlag);
+        Assert.True(TrapPuzzleBuilder.Build(Elements((-6, 1, 1))).AllowsRetreat);
+        Assert.False(TrapPuzzleBuilder.Build(Elements((-18, 0, 0))).AllowsRetreat);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class TrapPuzzleBuilderTests {
         TrapPuzzle puzzle = TrapPuzzleBuilder.Build(null);
 
         Assert.Empty(puzzle.Elements);
-        Assert.True(puzzle.CombatFlag);
+        Assert.True(puzzle.AllowsRetreat);
         Assert.All(puzzle.PartyStarts, Assert.Null);
     }
 
