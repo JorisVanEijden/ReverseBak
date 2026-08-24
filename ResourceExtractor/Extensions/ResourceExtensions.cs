@@ -16,7 +16,6 @@ using GameData.Resources.Object;
 using GameData.Resources.Palette;
 using GameData.Resources.Scene;
 using GameData.Resources.Spells;
-using ResourceExtractor.Extractors.Container;
 using ResourceExtractor.Imaging;
 using System.Text;
 using System.Text.Json;
@@ -108,7 +107,7 @@ public static class ResourceExtensions {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 
-    public static string ToJson(this List<Container> resource) {
+    public static string ToJson(this List<SaveGameContainerData> resource) {
         return JsonSerializer.Serialize(resource, JsonOptions);
     }
 

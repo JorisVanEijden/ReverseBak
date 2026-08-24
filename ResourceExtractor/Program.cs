@@ -27,7 +27,6 @@ using ResourceExtraction.Extractors.Def;
 using ResourceExtraction.Providers;
 using ResourceExtractor.Extensions;
 using ResourceExtractor.Extractors;
-using ResourceExtractor.Extractors.Container;
 using ResourceExtraction.Extractors.Dialog;
 using ResourceExtraction.Extractors.Exe;
 using ResourceExtractor.Imaging;
@@ -460,12 +459,20 @@ internal static class Program {
             File.AppendAllText("tempdebug.txt", s);
         }
 
-        // Fully qualified: the runtime library now has its own OBJFIXED reader (into the save's
-        // container model). This CLI one still emits the legacy JSON shape — see TASK-160.
-        var objFixedExtractor = new ResourceExtractor.Extractors.Container.ObjFixedExtractor();
-        string path = "OBJFIXED.DAT";
-        List<Container> fixedObjects = objFixedExtractor.Extract(Path.Combine(filePath, path));
-        WriteToJsonFile(path, ResourceType.DAT, fixedObjects.ToJson());
+        // TASK-162: the CLI's own OBJFIXED reader and its nine-file Container model are gone. This
+        // is the shared one, which parses the records through SaveGameExtractor.ParseContainer —
+        // the same code the save uses, because OBJFIXED holds byte-for-byte the same records.
+        //
+        // The two readers were compared field by field over the shipped file before collapsing them,
+        // and they differed in signedness in four places. That mattered: on the one field where they
+        // disagreed on real data the CLI was RIGHT, so folding blindly would have propagated a bug.
+        // It was fixed in the shared parser first (0613d92) — see the task note.
+        const string objFixedDat = "OBJFIXED.DAT";
+        using (FileStream objFixedStream = File.OpenRead(Path.Combine(filePath, objFixedDat))) {
+            FixedObjectSet fixedObjects =
+                new ResourceExtraction.Extractors.ObjFixedExtractor().Extract(objFixedDat, objFixedStream);
+            WriteToJsonFile(objFixedDat, ResourceType.DAT, fixedObjects.Containers.ToJson());
+        }
 
         const string teleportDat = "teleport.dat";
         // The extractor now lives in ResourceExtraction so the table is loadable at runtime too
