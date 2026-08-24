@@ -12,6 +12,12 @@ public static class SaveGameOffsets {
     public const int WorldDataSize = 34320;
     public const int ActorDataSize = 164350;
     public const int CombatDataSize = 38060;
+
+    /// <summary>Combat records — one per actor, so this is the actor table's count.</summary>
+    public const int CombatSlotCount = CombatDataSize / 22;
+
+    /// <summary>Where the combat block starts in a save BODY (not in the file — mind the header).</summary>
+    public const int CombatDataOffset = StateDataSize + WorldDataSize + ActorDataSize;
     public const int ZoneContainerDataSize = 95000;
     public const int BodySize =
         StateDataSize + WorldDataSize + ActorDataSize + CombatDataSize + ZoneContainerDataSize; // 334505

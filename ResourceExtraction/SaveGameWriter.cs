@@ -25,6 +25,7 @@ public static class SaveGameWriter {
         string name, short headerWorldX, short headerWorldY, short mapIcon,
         IReadOnlyList<DirtyContainerEdit> containerEdits = null,
         IReadOnlyList<DirtyActorEdit> actorEdits = null,
+        IReadOnlyList<DirtyCombatantEdit> combatantEdits = null,
         IReadOnlyList<SaveGameTimerData> timers = null,
         EncounterVisitTable automapVisits = null) {
         if (backingBody is null) {
@@ -111,6 +112,26 @@ public static class SaveGameWriter {
 
         // Live party state. Without this, anything that changes an actor at runtime — upkeep,
         // healing, skill advancement — would be applied and then silently lost on save.
+        // The combat block: one 22-byte CombatantState per actor, 1730 of them. Patched per slot
+        // like every other edit, so an untouched slot stays byte-identical to what the engine wrote.
+        if (combatantEdits != null) {
+            foreach (DirtyCombatantEdit edit in combatantEdits) {
+                if (edit.ActorSlot < 0 || edit.ActorSlot >= SaveGameOffsets.CombatSlotCount) {
+                    throw new ArgumentOutOfRangeException(nameof(combatantEdits),
+                        $"Actor slot {edit.ActorSlot} is outside the {SaveGameOffsets.CombatSlotCount} combat records.");
+                }
+                if (edit.Record == null) {
+                    continue;
+                }
+
+                int at = SaveGameOffsets.CombatDataOffset
+                    + (edit.ActorSlot * Extractors.CombatRecordWriter.RecordSize);
+                byte[] record = Extractors.CombatRecordWriter.ToBytes(edit.Record);
+                record.CopyTo(body, at);
+                coverage.Add(at, record.Length);
+            }
+        }
+
         if (actorEdits != null) {
             foreach (DirtyActorEdit edit in actorEdits) {
                 if (edit.CharacterIndex < 0 || edit.CharacterIndex >= SaveGameOffsets.PartyActorCount) {
