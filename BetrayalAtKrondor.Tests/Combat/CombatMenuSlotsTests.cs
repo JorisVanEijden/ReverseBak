@@ -113,4 +113,29 @@ public class CombatMenuSlotsTests {
         Assert.False(CombatMenuSlots.QuarrelIsAvailable(0, CombatMenuSlots.SecondPage, quarrelsOfThatKind: 5),
             "its page is not showing");
     }
+
+    [Fact]
+    public void TheHiddenCharacterZoneIsTheOneEntryTheMenuNeverActivates() {
+        // Every other id gets bActive_flag = 1 each turn; 0x16 keeps whatever the file gave it,
+        // and SHOOT.DAT ships it invisible.
+        Assert.False(CombatMenuSlots.IsActivatedByTheMenu(CombatMenuSlots.NeverActivatedActionId));
+        Assert.True(CombatMenuSlots.IsActivatedByTheMenu(CombatMenuSlots.PageFlipActionId));
+        Assert.True(CombatMenuSlots.IsActivatedByTheMenu(2));
+    }
+
+    [Fact]
+    public void BackIsTheOneEntryWithTheOtherEnableGateValue() {
+        // Modelled as the value WRITTEN, not as "enabled"/"disabled": what the field does is not
+        // established, and a name would be a guess a renderer could invert.
+        Assert.Equal(0, CombatMenuSlots.EnableGateFor(CombatMenuSlots.DistinctEnableGateActionId));
+        Assert.Equal(1, CombatMenuSlots.EnableGateFor(2));
+        Assert.Equal(1, CombatMenuSlots.EnableGateFor(CombatMenuSlots.NeverActivatedActionId));
+    }
+
+    [Fact]
+    public void TheTwoRulesPickDIFFERENTIdsOut() {
+        // Easy to conflate into one "special entry" rule; they are two ids and two fields.
+        Assert.NotEqual(CombatMenuSlots.NeverActivatedActionId,
+            CombatMenuSlots.DistinctEnableGateActionId);
+    }
 }

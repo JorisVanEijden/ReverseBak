@@ -188,4 +188,44 @@ public static class CombatMenuSlots {
         }
         return cells;
     }
+
+    // ---------------------------------------------------------------- per-turn entry flags
+
+    /// <summary>
+    /// The one entry the shoot menu never activates — the hidden character-screen zone.
+    /// </summary>
+    /// <remarks>
+    /// <c>combat_arena_menu_entry_flags</c> sets <c>bActive_flag = 1</c> on every entry whose action
+    /// id is not <c>0x16</c>. So this zone keeps whatever the file gave it, and SHOOT.DAT ships it
+    /// <c>Visible: false</c> — it is present, hit-testable in the original's sense, and never
+    /// activated by the menu itself.
+    /// </remarks>
+    public const int NeverActivatedActionId = 0x16;      // 22
+
+    /// <summary>The one entry that is given the OTHER value of the enable gate — Back.</summary>
+    /// <remarks>
+    /// The same routine writes <c>wEnable_gate = 1</c> for every id except <c>0x21</c>, which gets
+    /// <c>0</c>. <b>What that field then does is not established</b>, so this models the write
+    /// rather than an interpretation of it — naming it "enabled" or "disabled" would be a guess
+    /// that a renderer could then invert. See <see cref="EnableGateFor"/>.
+    /// </remarks>
+    public const int DistinctEnableGateActionId = 0x21;  // 33
+
+    /// <summary>Whether the menu activates this entry on a turn.</summary>
+    public static bool IsActivatedByTheMenu(int actionId) => actionId != NeverActivatedActionId;
+
+    /// <summary>The enable-gate value the menu writes for an entry — 1 for all but one id.</summary>
+    /// <inheritdoc cref="DistinctEnableGateActionId"/>
+    public static int EnableGateFor(int actionId) =>
+        actionId == DistinctEnableGateActionId ? 0 : 1;
+
+    /// <summary>
+    /// <b>The flags are rewritten EVERY TURN, not once when the menu is built.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>combat_arena_menu_entry_flags</c> is the first thing <c>combat_arena_turn_loop</c> calls,
+    /// so anything that disabled an entry during a turn is undone before the next one. A port that
+    /// set these once at construction would let a one-turn state leak into the rest of the fight.
+    /// </remarks>
+    public static bool EntryFlagsAreRewrittenEachTurn => true;
 }
