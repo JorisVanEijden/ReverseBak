@@ -38,6 +38,30 @@ public class SpellAffinityTable : IResource {
 
     /// <summary>One entry per spell (index = spell number).</summary>
     public List<SpellAffinity> Spells { get; set; } = new();
+
+    /// <summary>
+    /// Whether this table lists <paramref name="creatureType"/> for <paramref name="spellNumber"/>.
+    /// </summary>
+    /// <remarks>
+    /// The original's <c>check_spell_weakness</c> / <c>check_spell_resistance</c> (ovr177 @0x6b5db,
+    /// @0x6b595): <c>mask[spell * 3 + creatureType / 16] &amp; (1 &lt;&lt; (creatureType % 16))</c>.
+    /// The extractor has already decoded those bits into <see cref="SpellAffinity.CreatureTypes"/>,
+    /// so this is a membership test — but it is the ONE the callers all make, and leaving each
+    /// consumer to index <see cref="Spells"/> itself invites an out-of-range spell number becoming
+    /// an exception where the original reads a zero bit.
+    ///
+    /// <para><b>Out of range reads false</b>, matching the original: it indexes the allocation it
+    /// made from the file's own count, so a spell number past the end simply never matches.</para>
+    /// </remarks>
+    public bool Lists(int spellNumber, int creatureType) {
+        if (spellNumber < 0 || spellNumber >= Spells.Count) {
+            return false;
+        }
+        if (creatureType < 0 || creatureType >= CreatureTypeCount) {
+            return false;
+        }
+        return Spells[spellNumber].CreatureTypes.Contains(creatureType);
+    }
 }
 
 /// <summary>The creature types a single spell is weak/resistant against.</summary>
