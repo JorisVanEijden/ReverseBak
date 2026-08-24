@@ -41,6 +41,18 @@ public static class EncounterActorPersistence {
     /// <summary>Not present: what a removal writes, and what slots 1..34 initialise to.</summary>
     public const int Removed = 0x100;
 
+    /// <summary>Alive again but not yet on the field — what the encounter reset writes.</summary>
+    public const int Unplaced = 0x200;
+
+    /// <summary>
+    /// Placed and walking a movement pattern.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only this state moves.</b> Both the roaming updater and the sprite renderer gate on it, so
+    /// a movement pattern on a <see cref="Placed"/> actor does nothing.
+    /// </remarks>
+    public const int Roaming = 0x300;
+
     /// <summary>Standing in the world.</summary>
     public const int Placed = 0x400;
 

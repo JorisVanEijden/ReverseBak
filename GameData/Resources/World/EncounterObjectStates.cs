@@ -18,24 +18,29 @@ namespace GameData.Resources.World;
 /// starts — two derivations meeting at 0x90e7, which is what makes this offset trustworthy rather
 /// than merely plausible.</para>
 /// </summary>
+/// <para><b>The same block <see cref="EncounterActorPersistence"/> describes.</b> That class owns
+/// the addressing and the state vocabulary (it named them first); this one owns the byte layout and
+/// the read/write of the block out of a save body. Every constant here defers to it rather than
+/// restating a number — they were duplicated for two sessions, which is exactly the drift a shared
+/// definition prevents.</para>
 public sealed class EncounterObjectStates {
     /// <summary>Ref-pairs (zone/chapter pairings) the block covers.</summary>
-    public const int RefPairs = 40;
+    public const int RefPairs = EncounterActorPersistence.RefPairs;
 
     /// <summary>Encounter records per ref-pair.</summary>
-    public const int RecordsPerRefPair = 5;
+    public const int RecordsPerRefPair = EncounterActorPersistence.RecordsPerRefPair;
 
     /// <summary>Actor slots per encounter record — the roster width.</summary>
-    public const int SlotsPerRecord = 7;
+    public const int SlotsPerRecord = EncounterActorPersistence.SlotsPerRecord;
 
     /// <summary>Entries per ref-pair: <c>0x23</c>, the stride the original multiplies by.</summary>
-    public const int EntriesPerRefPair = RecordsPerRefPair * SlotsPerRecord;
+    public const int EntriesPerRefPair = EncounterActorPersistence.SlotsPerRefPair;
 
     /// <summary>Total entries: 40 x 5 x 7.</summary>
     public const int EntryCount = RefPairs * EntriesPerRefPair;
 
     /// <summary>Bytes per entry: two int32 offsets, an int16 facing and an uint16 kind/state.</summary>
-    public const int EntrySize = 12;
+    public const int EntrySize = EncounterActorPersistence.StateSize;
 
     /// <summary>Size of the whole block.</summary>
     public const int SaveSize = EntryCount * EntrySize;
@@ -51,10 +56,48 @@ public sealed class EncounterObjectStates {
     public const int FileOffset = BodyOffset + 0x64;
 
     /// <summary>Kind byte meaning "this actor was removed" — written on a roster actor's death.</summary>
-    public const int KindRemoved = 1;
+    public const int KindRemoved = EncounterActorPersistence.Removed >> 8;
 
-    /// <summary>Kind byte written by the encounter reset, which puts a defeated group back.</summary>
-    public const int KindReset = 2;
+    /// <summary>
+    /// Kind byte written by the encounter reset: alive again, but not yet placed on the field.
+    /// </summary>
+    public const int KindReset = EncounterActorPersistence.Unplaced >> 8;
+
+    /// <summary>Roaming — the actor walks a movement pattern.</summary>
+    /// <remarks>
+    /// <b>Only this kind moves.</b> Both the updater and the renderer gate on it, so a movement
+    /// pattern set on a <see cref="KindStanding"/> actor does nothing at all.
+    /// </remarks>
+    public const int KindRoaming = EncounterActorPersistence.Roaming >> 8;
+
+    /// <summary>Placed and standing still.</summary>
+    public const int KindStanding = EncounterActorPersistence.Placed >> 8;
+
+    /// <summary>
+    /// Stops every roaming actor in one encounter record, as defeating it does.
+    /// </summary>
+    /// <returns>How many slots were stopped.</returns>
+    /// <remarks>
+    /// <c>rgnenc_mark_defended</c> rewrites any slot whose kind is <see cref="KindRoaming"/> to
+    /// <see cref="KindStanding"/> — <b>a one-way trip</b>. Nothing in the game ever promotes a
+    /// standing actor back to roaming, so once an encounter has been defeated (or merely saved
+    /// while placed) its patrol never resumes.
+    ///
+    /// <para><b>The low byte goes with it.</b> The kind and the walk frame/direction share one word,
+    /// so a stopped actor loses its animation phase too — which is correct: it is no longer walking.
+    /// Preserving the low bits would leave a standing actor holding a mid-stride frame.</para>
+    /// </remarks>
+    public int StopRoaming(int refPair, int recordIndex) {
+        var stopped = 0;
+        for (var slot = 0; slot < SlotsPerRecord; slot++) {
+            int at = IndexOf(refPair, recordIndex, slot);
+            if (_entries[at].Kind == KindRoaming) {
+                Write(at, KindStanding);
+                stopped++;
+            }
+        }
+        return stopped;
+    }
 
     /// <summary>One entry.</summary>
     public struct Entry {
@@ -92,7 +135,7 @@ public sealed class EncounterObjectStates {
     /// <c>refPair * 0x23 + recordIndex * 7 + slotIndex</c>.
     /// </summary>
     public static int IndexOf(int refPair, int recordIndex, int slotIndex) =>
-        (refPair * EntriesPerRefPair) + (recordIndex * SlotsPerRecord) + slotIndex;
+        EncounterActorPersistence.StateIndex(refPair, recordIndex, slotIndex);
 
     public Entry this[int index] => _entries[index];
 
@@ -149,6 +192,13 @@ public sealed class EncounterObjectStates {
     /// <summary>Records the encounter reset that puts a defeated group back on the field.</summary>
     public void MarkReset(int refPair, int recordIndex, int slotIndex) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), KindReset);
+
+    /// <summary>
+    /// Sets a slot's kind directly. For tests and for a loader replaying a state the game wrote —
+    /// the named Mark* methods cover the transitions the game itself performs.
+    /// </summary>
+    public void SetKindForTest(int refPair, int recordIndex, int slotIndex, int kind) =>
+        Write(IndexOf(refPair, recordIndex, slotIndex), kind);
 
     private void Write(int index, int kind) {
         _entries[index] = new Entry { KindState = (ushort)(kind << 8) };
