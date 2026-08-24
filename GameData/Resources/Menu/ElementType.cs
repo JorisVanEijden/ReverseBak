@@ -3,8 +3,11 @@ namespace GameData.Resources.Menu;
 /// <summary>
 /// A REQ menu element's widget kind — the on-disk <c>uiElement.elementType</c>, dispatched by
 /// <c>menu_drawElement</c> (@0x2b73a) to a per-type renderer. (The engine also defines a type 8,
-/// a <see cref="TextButton"/> variant sharing <c>menu_type_6_8</c>; it is unused by any shipped
-/// REQ and not modelled here.)
+/// a <see cref="TextButton"/> variant sharing <c>menu_type_6_8</c>. It appears in no shipped REQ
+/// FILE, which is why it is not in this enum — but the engine does use it: the keyword menu builds
+/// type 8 at runtime for an already-asked topic. The only difference is in the UNPRESSED branch of
+/// <c>widget_draw_text_button</c> — text pen 0x0a becomes 1 and the drop shadow is dropped — so it
+/// is the same button, differently lettered, and it still presses.)
 /// </summary>
 public enum ElementType {
     /// <summary>Invisible click hotspot, no chrome (<c>menu_type_0_1_5</c>).</summary>
