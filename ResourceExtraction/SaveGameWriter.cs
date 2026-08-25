@@ -28,7 +28,8 @@ public static class SaveGameWriter {
         IReadOnlyList<DirtyCombatantEdit> combatantEdits = null,
         IReadOnlyList<SaveGameTimerData> timers = null,
         EncounterVisitTable automapVisits = null,
-        EncounterObjectStates encounterActorStates = null) {
+        EncounterObjectStates encounterActorStates = null,
+        IReadOnlyDictionary<int, int> globalFlagEdits = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -108,6 +109,37 @@ public static class SaveGameWriter {
         if (encounterActorStates != null
             && encounterActorStates.Save(body, EncounterObjectStates.BodyOffset)) {
             coverage.Add(EncounterObjectStates.BodyOffset, EncounterObjectStates.SaveSize);
+        }
+
+        // *** THE STORY FLAGS. *** Until 2026-08-25 nothing wrote these at all — the session kept
+        // them in an in-memory overlay and a save simply dropped it, so every flag a dialog set
+        // (618 low writes and 144 high ones across the shipped corpus: who you have spoken to, what
+        // you have been told) lasted only until you saved. See TASK-210.
+        //
+        // The edits are applied ONTO the bytes already in the body rather than replacing them: the
+        // overlay holds only what changed this session, and the rest is the loaded save's own state.
+        if (globalFlagEdits != null && globalFlagEdits.Count > 0) {
+            var low = new byte[SaveGameOffsets.GlobalFlagsSize];
+            var high = new byte[SaveGameOffsets.GlobalFlags2Size];
+            Array.Copy(body, SaveGameOffsets.GlobalFlags, low, 0, low.Length);
+            Array.Copy(body, SaveGameOffsets.GlobalFlags2, high, 0, high.Length);
+
+            var wrote = false;
+            foreach (KeyValuePair<int, int> edit in globalFlagEdits) {
+                // A "flag" that is really a game-state field is not ours to write here — it has its
+                // own home in the header fields above (GameStateEventFields).
+                if (GameData.Resources.GameState.GlobalFlagLayout.TryWrite(
+                        low, high, edit.Key, edit.Value != 0)) {
+                    wrote = true;
+                }
+            }
+
+            if (wrote) {
+                low.CopyTo(body, SaveGameOffsets.GlobalFlags);
+                high.CopyTo(body, SaveGameOffsets.GlobalFlags2);
+                coverage.Add(SaveGameOffsets.GlobalFlags, SaveGameOffsets.GlobalFlagsSize);
+                coverage.Add(SaveGameOffsets.GlobalFlags2, SaveGameOffsets.GlobalFlags2Size);
+            }
         }
 
         if (containerEdits != null) {

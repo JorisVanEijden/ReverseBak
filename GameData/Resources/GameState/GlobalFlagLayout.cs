@@ -72,6 +72,47 @@ public static class GlobalFlagLayout {
         return row >= 0 && row < HighByteCount && bit >= 0 && bit <= 7;
     }
 
+    /// <summary>Where a low-bitmap flag sits: the ordinary <c>id &gt;&gt; 3</c> / <c>id &amp; 7</c>.</summary>
+    public static bool TryLowPosition(int id, out int index, out int bit) {
+        index = 0;
+        bit = 0;
+        if (!IsLowFlag(id)) {
+            return false;
+        }
+        index = id >> 3;
+        bit = id & 7;
+        return index < LowByteCount;
+    }
+
+    /// <summary>
+    /// Writes a flag into whichever bitmap owns it.
+    /// </summary>
+    /// <param name="low">The low bitmap.</param>
+    /// <param name="high">The high bitmap.</param>
+    /// <param name="id">The event id.</param>
+    /// <param name="set">Whether to set or clear it.</param>
+    /// <returns>False when the id belongs to neither map, or has no addressable position.</returns>
+    /// <remarks>
+    /// <b>The inverse of the reads above and deliberately in the same class</b>, because the two got
+    /// out of step once already: a reader and a writer that each compute the position are free to
+    /// disagree, and a round trip between them agrees with itself either way (TASK-203, TASK-209).
+    ///
+    /// <para><b>An unaddressable high position is REFUSED, not rounded.</b> The original's write for
+    /// <c>bit == 8</c> is discarded by the byte truncation and its <c>bit == -1</c> is undefined —
+    /// picking a bit here would invent state the game does not keep.</para>
+    /// </remarks>
+    public static bool TryWrite(byte[] low, byte[] high, int id, bool set) {
+        if (low != null && TryLowPosition(id, out int index, out int lowBit) && index < low.Length) {
+            low[index] = (byte)(set ? low[index] | (1 << lowBit) : low[index] & ~(1 << lowBit));
+            return true;
+        }
+        if (high != null && TryHighPosition(id, out int row, out int bit) && row < high.Length) {
+            high[row] = (byte)(set ? high[row] | (1 << bit) : high[row] & ~(1 << bit));
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>Reads a high-bitmap flag out of the block.</summary>
     /// <returns>False when the id has no addressable position — see <see cref="TryHighPosition"/>.</returns>
     public static bool TryReadHigh(byte[] highBitmap, int id, out int value) {

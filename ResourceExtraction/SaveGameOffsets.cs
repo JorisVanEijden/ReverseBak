@@ -138,6 +138,34 @@ public static class SaveGameOffsets {
     public const int ActorStatusEffectsStride = 7;
     public const int ActorStatusEffectCount = 7;
 
+    /// <summary>
+    /// The low event bitmap — <c>event_bitmap_lo[1063]</c>, one bit per id below 0x2134.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived by summing gstate.inc, not probed.</b> The struct totals to
+    /// <see cref="StateDataSize"/> and its other offsets land on <see cref="PartyActors"/>,
+    /// <see cref="TimerPoolCount"/>, <see cref="PaletteEventMask"/> and
+    /// <see cref="ActorStatusEffects"/> — four independent agreements, which is what makes these
+    /// two trustworthy without a probe. The pair also ends exactly at the block's last byte
+    /// (2725 + 50 = 2775).
+    /// </remarks>
+    public const int GlobalFlags = 1662;
+
+    /// <inheritdoc cref="GlobalFlags"/>
+    public const int GlobalFlagsSize = 1063;
+
+    /// <summary>
+    /// The high event bitmap — <c>event_bitmap_hi[50]</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a linear bitfield.</b> Ten flags per byte from a 16-bit-wrapped index; see
+    /// <c>GlobalFlagLayout</c>, and TASK-209 for what reading it linearly did.
+    /// </remarks>
+    public const int GlobalFlags2 = 2725;
+
+    /// <inheritdoc cref="GlobalFlags2"/>
+    public const int GlobalFlags2Size = 50;
+
     // 100-byte slot header field offsets (within the header, which precedes the body on disk).
     // Name length + total size are the reader's (SaveGameHeader) — one source of truth.
     public const int HeaderName = 0;
