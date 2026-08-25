@@ -174,7 +174,11 @@ public class SaveGameStateData {
             return flagValue;
         }
 
-        if (key >= 56000 && TryReadFlag(GlobalFlags2, key - 56000, out int extendedFlagValue)) {
+        // *** THE HIGH BITMAP IS NOT LINEAR. *** It packs TEN flags per byte from a sum that wraps
+        // in 16 bits (GlobalFlagLayout). Reading it as `key - 56000` — which this did until
+        // 2026-08-25 — needs 51 bytes for the 50 the block has and puts 114 shipped story flags on
+        // the wrong bits. Nothing reported it because our reader and writer shared the wrong index.
+        if (GameState.GlobalFlagLayout.TryReadHigh(GlobalFlags2, key, out int extendedFlagValue)) {
             return extendedFlagValue;
         }
 
