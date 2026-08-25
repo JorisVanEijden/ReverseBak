@@ -64,7 +64,9 @@ public static class KeywordAvailability {
 
     /// <summary>One topic's hand-written condition.</summary>
     public readonly struct SpecialCase {
-        public SpecialCase(Requirement requirement, int first = 0, int second = 0, string note = "") {
+        public SpecialCase(Requirement requirement, int first = 0, int second = 0, string note = "",
+            int third = 0) {
+            Third = third;
             Requirement = requirement;
             First = first;
             Second = second;
@@ -72,6 +74,9 @@ public static class KeywordAvailability {
         }
 
         public Requirement Requirement { get; }
+
+        /// <summary>A third parameter, used only by <see cref="Requirement.TwoFlagsAndItem"/>.</summary>
+        public int Third { get; }
 
         /// <summary>Flag key, chapter, or spell word — read the <see cref="Requirement"/>.</summary>
         public int First { get; }
@@ -110,7 +115,8 @@ public static class KeywordAvailability {
             [132] = new SpecialCase(Requirement.EitherFlagSet, 51021, 6521),
             [133] = new SpecialCase(Requirement.FlagRedirect, 56212),
             [148] = new SpecialCase(Requirement.PartyLacksItem, RationsObjectId, note: "Rations"),
-            [163] = new SpecialCase(Requirement.TwoFlagsAndItem, 142, 170, note: "Abbot's Journal"),
+            [163] = new SpecialCase(Requirement.TwoFlagsAndItem, 142, 170,
+                note: "Abbot's Journal", third: AbbotsJournalObjectId),
             [164] = new SpecialCase(Requirement.FlagSet, 6514),
         };
 
@@ -133,6 +139,16 @@ public static class KeywordAvailability {
     /// table. Two topics, one condition — the table is not one case per key.
     /// </remarks>
     public const int RationsObjectId = 0x48;        // 72
+
+    /// <summary>
+    /// Topic 163's item — <c>itemtbl_partySize_by_kind(0x7c)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its polarity is the opposite of the other item gates.</b> They require
+    /// <c>== 0</c> (the party must NOT carry it); this one requires <c>!= 0</c> — the journal must
+    /// be in hand.
+    /// </remarks>
+    public const int AbbotsJournalObjectId = 0x7c;  // 124
 
     /// <summary>
     /// The character every <see cref="Requirement.SpellNotKnown"/> gate asks about.
@@ -195,9 +211,12 @@ public static class KeywordAvailability {
     /// tail check whatever the gate said. Treating the special cases as overrides lets retired
     /// topics come back.
     ///
-    /// <para><b>The gates NARROW; they do not grant.</b> Twelve of the fifteen bail out first when
-    /// the topic's own flag is clear. The two <see cref="Requirement.FlagRedirect"/> cases are the
-    /// exception and a different shape: they REPLACE the value the general rule then tests.</para>
+    /// <para><b>Most gates NARROW, but THREE REPLACE.</b> Twelve bail out first when the topic's own
+    /// flag is clear (<c>avail = avail &amp;&amp; …</c>). The two <see cref="Requirement.FlagRedirect"/>
+    /// cases and <see cref="Requirement.TwoFlagsAndItem"/> assign instead (<c>avail = …</c>), so the
+    /// topic's own flag is never consulted for them. An earlier note here said there were two
+    /// exceptions; there are three, and treating the third as one more "and" hides its topic
+    /// whenever its own flag is clear.</para>
     /// </remarks>
     public static Decision Evaluate(int globalKey, int ownFlagValue, int suppressedFlagValue,
         Func<int, int> flagValue, int chapter,
@@ -213,6 +232,20 @@ public static class KeywordAvailability {
             }
             return new Decision(
                 IsAvailable(flagValue(special.First), suppressedFlagValue), null);
+        }
+
+        // *** SO DOES TwoFlagsAndItem — it ASSIGNS, it does not narrow. *** ASKABOUT.C:233 reads
+        // `avail = flag(0x8e) && flag(0xaa) && carries(0x7c)`, with no `avail &&` in front of it,
+        // unlike the twelve that do. The topic's own flag is therefore NOT consulted, and treating
+        // this as one more "and" hides it whenever that flag happens to be clear.
+        if (special.Requirement == Requirement.TwoFlagsAndItem) {
+            if (flagValue == null || partyCarriesItem == null) {
+                return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), special.Requirement);
+            }
+            bool met = flagValue(special.First) != 0
+                && flagValue(special.Second) != 0
+                && partyCarriesItem(special.Third);
+            return new Decision(met && suppressedFlagValue == 0, null);
         }
 
         bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, spellsKnownWord);
@@ -246,10 +279,7 @@ public static class KeywordAvailability {
                     ? null
                     : (spellsKnownWord(special.First - 1) & special.Second) == 0;
             case Requirement.TwoFlagsAndItem:
-                // Its object id is still unresolved: the two parameters are already spent on the
-                // two flags, so there is nowhere on the case to put it. Left refused rather than
-                // guessed — see the note on key 163.
-                return null;
+                return null;   // handled above: it replaces rather than narrows
             default:
                 return null;   // Unmodelled, and anything added without an arm
         }

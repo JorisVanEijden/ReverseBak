@@ -132,12 +132,39 @@ public class KeywordAvailabilityEvaluateTests {
     }
 
     [Fact]
-    public void TheItemHalfOfTheTwoFlagsAndItemGateIsStillUnresolved() {
-        // Key 163's two parameters are already spent on its two flags, so there is nowhere to put
-        // the object id. Refused rather than guessed.
-        Assert.Equal(KeywordAvailability.Requirement.TwoFlagsAndItem,
-            KeywordAvailability.Evaluate(163, 1, 0, Flags(), chapter: 1,
-                partyCarriesItem: _ => false).Unevaluated);
+    public void TwoFlagsAndItem_REPLACESTheGeneralRuleRatherThanNarrowingIt() {
+        // *** THE THIRD REPLACER, and it was classified as a narrower. *** ASKABOUT.C:233 reads
+        //   avail = flag(0x8e) && flag(0xaa) && carries(0x7c)
+        // with NO `avail &&` in front, unlike the twelve that narrow. So the topic's OWN flag is not
+        // consulted — and with own flag CLEAR the topic must still be offered when the three
+        // conditions hold. Treating it as one more "and" hides it exactly then.
+        KeywordAvailability.Decision d = KeywordAvailability.Evaluate(
+            163, ownFlagValue: 0, suppressedFlagValue: 0,
+            Flags((142, 1), (170, 1)), chapter: 1,
+            partyCarriesItem: id => id == KeywordAvailability.AbbotsJournalObjectId);
+
+        Assert.True(d.Available);
+        Assert.Null(d.Unevaluated);
+    }
+
+    [Fact]
+    public void TwoFlagsAndItem_WantsTheItemCARRIED_UnlikeTheOtherItemGates() {
+        // Opposite polarity: the others require == 0 (party must NOT carry), this one != 0.
+        Assert.False(KeywordAvailability.Evaluate(
+            163, 1, 0, Flags((142, 1), (170, 1)), chapter: 1,
+            partyCarriesItem: _ => false).Available);
+
+        // And both flags are required, not either.
+        Assert.False(KeywordAvailability.Evaluate(
+            163, 1, 0, Flags((142, 1)), chapter: 1, partyCarriesItem: _ => true).Available);
+    }
+
+    [Fact]
+    public void SuppressionStillEndsTheReplacers() {
+        // Every path falls through the same tail check, replacers included.
+        Assert.False(KeywordAvailability.Evaluate(
+            163, 1, suppressedFlagValue: 1, Flags((142, 1), (170, 1)), chapter: 1,
+            partyCarriesItem: _ => true).Available);
     }
 
     [Fact]
