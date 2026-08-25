@@ -165,6 +165,45 @@ public class SaveGameWriterTests {
     }
 
     [Fact]
+    public void TheEncounterActorStateBlockIsWrittenIntoTheBodyAndReadsBack() {
+        byte[] body = PatternBody();
+        var states = new GameData.Resources.World.EncounterObjectStates();
+        states.MarkRemoved(refPair: 3, recordIndex: 2, slotIndex: 5);
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, FieldsFrom(body), "Slot A", 40, 41, 3, encounterActorStates: states);
+        byte[] outBody = r.Bytes[SaveGameOffsets.HeaderSize..];
+
+        var reloaded = new GameData.Resources.World.EncounterObjectStates();
+        reloaded.Load(outBody);
+        Assert.Equal(GameData.Resources.World.EncounterObjectStates.KindRemoved,
+            reloaded[GameData.Resources.World.EncounterObjectStates.IndexOf(3, 2, 5)].Kind);
+
+        // The neighbouring slot is untouched: the block is written whole, so a bug that shifted the
+        // record would still read back SOMETHING at the queried index.
+        Assert.True(reloaded[GameData.Resources.World.EncounterObjectStates.IndexOf(3, 2, 4)].IsEmpty);
+
+        // Body offset, not the file offset — the same 100-byte confusion the automap block records.
+        Assert.Equal(GameData.Resources.World.EncounterObjectStates.FileOffset,
+            SaveGameOffsets.HeaderSize + GameData.Resources.World.EncounterObjectStates.BodyOffset);
+    }
+
+    [Fact]
+    public void WithoutAStateBlockTheEncounterBytesPassThroughUnauthored() {
+        // A save taken outside any fight must not rewrite the block with an empty one — that would
+        // resurrect everything the party has ever killed.
+        byte[] body = PatternBody();
+
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "Slot A", 40, 41, 3);
+
+        Assert.False(IsAuthored(r.Coverage,
+            GameData.Resources.World.EncounterObjectStates.BodyOffset));
+        Assert.Equal(body[GameData.Resources.World.EncounterObjectStates.BodyOffset],
+            r.Bytes[SaveGameOffsets.HeaderSize
+                + GameData.Resources.World.EncounterObjectStates.BodyOffset]);
+    }
+
+    [Fact]
     public void ATableLoadedFromAFullBlockDropsNewMarks() {
         // Not a contrivance — the pattern body has no free slots (a free one is three 0xff bytes),
         // so loading it yields the full table the model documents. The original has no eviction, so

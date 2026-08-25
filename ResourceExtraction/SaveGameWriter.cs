@@ -27,7 +27,8 @@ public static class SaveGameWriter {
         IReadOnlyList<DirtyActorEdit> actorEdits = null,
         IReadOnlyList<DirtyCombatantEdit> combatantEdits = null,
         IReadOnlyList<SaveGameTimerData> timers = null,
-        EncounterVisitTable automapVisits = null) {
+        EncounterVisitTable automapVisits = null,
+        EncounterObjectStates encounterActorStates = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -98,6 +99,15 @@ public static class SaveGameWriter {
         // unit to patch. Body offset, not the 0xb3b a save FILE shows: see EncounterVisitTable.
         if (automapVisits != null && automapVisits.Save(body, EncounterVisitTable.BodyOffset)) {
             coverage.Add(EncounterVisitTable.BodyOffset, EncounterVisitTable.SaveSize);
+        }
+
+        // What happened to each encounter's actors — the block that makes a killed roaming group
+        // stay killed. Written whole for the same reason the automap is: the original writes the
+        // ref pair's 0x1a4 span in one go, and a removal is a 12-byte record inside a run of them
+        // rather than a field with a patchable address of its own.
+        if (encounterActorStates != null
+            && encounterActorStates.Save(body, EncounterObjectStates.BodyOffset)) {
+            coverage.Add(EncounterObjectStates.BodyOffset, EncounterObjectStates.SaveSize);
         }
 
         if (containerEdits != null) {

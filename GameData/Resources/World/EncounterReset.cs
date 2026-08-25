@@ -75,6 +75,58 @@ public static class EncounterReset {
     }
 
     /// <summary>
+    /// The encounter record ids a zone-ref chunk holds, in <b>trigger order</b> — the original's
+    /// <c>g_anEncounterRecordIds</c>.
+    /// </summary>
+    /// <param name="triggersInOrder">
+    /// Every trigger in the chunk, in list order, with the encounter record id each one names.
+    /// A trigger that names none (or that is not a <see cref="CarriesEncounter"/> kind) passes
+    /// <c>null</c> and is skipped, exactly as the original's kind test skips it.
+    /// </param>
+    /// <remarks>
+    /// <b>The list stops at <see cref="MaxRecordsPerZone"/> and that is not a formality.</b>
+    /// <c>rgnenc_load_encounter_actors</c> appends only while
+    /// <c>g_nEncounter_record_count &lt; 5</c>, so a sixth encounter in one chunk gets no entry —
+    /// and therefore <b>no state slot</b>. Everything addressed through this list (placement,
+    /// defeat, reset, the removal a death persists) simply does not apply to it. A port that let the
+    /// list grow would compute a slot inside the NEXT ref pair's block and corrupt a different
+    /// zone's encounters.
+    /// </remarks>
+    public static List<long> RecordIds(
+        IEnumerable<(TileEventType Type, long? RecordId)> triggersInOrder) {
+        var ids = new List<long>();
+        if (triggersInOrder == null) {
+            return ids;
+        }
+        foreach ((TileEventType type, long? recordId) in triggersInOrder) {
+            if (ids.Count >= MaxRecordsPerZone) {
+                break;
+            }
+            if (CarriesEncounter(type) && recordId.HasValue) {
+                ids.Add(recordId.Value);
+            }
+        }
+        return ids;
+    }
+
+    /// <summary>
+    /// Which encounter record within the ref pair a given record id is, or -1 when it has none.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the lookup every write to the encounter-state block starts with.</b> Both
+    /// <c>rgnenc_persist_actor_removed</c> and <c>rgnenc_persist_actor_placed</c> open by scanning
+    /// <c>g_anEncounterRecordIds</c> for the id and <b>return 0 without writing</b> when it is not
+    /// there — so an encounter that never made the list is silently not persisted rather than
+    /// persisted somewhere wrong. -1 carries that same "do not write" answer.
+    ///
+    /// <para><b>The first match wins.</b> Two triggers naming one encounter share a record index,
+    /// which is right: they are two ways into the same group of actors.</para>
+    /// </remarks>
+    public static int RecordIndexOf(
+        IEnumerable<(TileEventType Type, long? RecordId)> triggersInOrder, long recordId) =>
+        RecordIds(triggersInOrder).IndexOf(recordId);
+
+    /// <summary>
     /// The per-hotspot flags a reset clears, alongside the encounter's own "fought" flag.
     /// </summary>
     /// <remarks>

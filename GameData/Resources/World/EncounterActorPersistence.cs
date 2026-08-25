@@ -57,6 +57,46 @@ public static class EncounterActorPersistence {
     public const int Placed = 0x400;
 
     /// <summary>
+    /// Which encounter record a fight belongs to — the pair every write to this block needs, and
+    /// the pair a port is most likely to swap.
+    /// </summary>
+    /// <remarks>
+    /// The two numbers come from different places and mean different things: the ref pair is the
+    /// chunk's slot in <c>Z##REF.DAT</c> (the same index the done-flag key multiplies by ten), and
+    /// the record index is the encounter's position in that chunk's encounter list
+    /// (<c>EncounterReset.RecordIndexOf</c>). Both are small, both are ints, and swapping them
+    /// writes into a real slot belonging to someone else — which is why they travel together and
+    /// named rather than as two loose arguments.
+    /// </remarks>
+    public readonly struct RecordAddress {
+        public RecordAddress(int refPair, int recordIndex) {
+            RefPair = refPair;
+            RecordIndex = recordIndex;
+        }
+
+        /// <summary>The chunk's slot in <c>Z##REF.DAT</c>.</summary>
+        public int RefPair { get; }
+
+        /// <summary>The encounter's position in that chunk's encounter list, 0..4.</summary>
+        public int RecordIndex { get; }
+
+        /// <summary>
+        /// Whether this addresses a real slot. <b>An unknown address must not be written.</b>
+        /// </summary>
+        /// <remarks>
+        /// Both originals return without writing when the record id is not in the chunk's list, so
+        /// "we do not know where this goes" is an ordinary outcome rather than an error — see
+        /// <c>EncounterReset.RecordIndexOf</c>.
+        /// </remarks>
+        public bool IsKnown =>
+            RefPair >= 0 && RefPair < RefPairs
+            && RecordIndex >= 0 && RecordIndex < RecordsPerRefPair;
+
+        /// <summary>An address that is deliberately not known.</summary>
+        public static RecordAddress None => new RecordAddress(-1, -1);
+    }
+
+    /// <summary>
     /// Where one actor's state lives, as an index into the save's encounter-state array.
     /// </summary>
     /// <param name="refPair">The zone-ref pair index.</param>
