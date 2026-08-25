@@ -71,11 +71,13 @@ public enum ItemUseOutcome {
 /// <summary>What one item-use did: the original's outcome, the record it wants played, and
 /// whether the used item left the container (so a caller re-renders rather than re-indexes).</summary>
 public readonly struct ItemUseResult {
-    public ItemUseResult(ItemUseOutcome outcome, int dialogId, int dialogVar0, bool sourceRemoved) {
+    public ItemUseResult(ItemUseOutcome outcome, int dialogId, int dialogVar0, bool sourceRemoved,
+        int musicTrack = Audio.MusicPlayback.QueryOnly) {
         Outcome = outcome;
         DialogId = dialogId;
         DialogVar0 = dialogVar0;
         SourceRemoved = sourceRemoved;
+        MusicTrack = musicTrack;
     }
 
     public ItemUseOutcome Outcome { get; }
@@ -87,6 +89,22 @@ public readonly struct ItemUseResult {
     public int DialogVar0 { get; }
 
     public bool SourceRemoved { get; }
+
+    /// <summary>
+    /// A track to play <b>while <see cref="DialogId"/> is on screen</b>, putting back whatever was
+    /// playing once it closes. <see cref="Audio.MusicPlayback.QueryOnly"/> — the default — means
+    /// this use does not touch the music.
+    /// </summary>
+    /// <remarks>
+    /// <b>Interrupts rather than replaces.</b> The one use that sets it (the practice lute) saves
+    /// the outgoing track and restores it, so the tune is heard over the top of whatever the party
+    /// was listening to and the zone's music comes straight back.
+    ///
+    /// <para><see cref="Audio.MusicPlayback.QueryOnly"/> rather than
+    /// <see cref="Audio.MusicPlayback.NoTrack"/> for "nothing to do", because NoTrack means
+    /// <i>silence</i> — every ordinary item use would then stop the music.</para>
+    /// </remarks>
+    public int MusicTrack { get; }
 }
 
 /// <summary>
@@ -213,7 +231,7 @@ public static class InventoryUse {
                 outcome = Restring(source, target, trec);
                 break;
             case ObjectType.Usable:            // 25 — ITEMUSE.C:386-459, two target-directed cases
-                return UsableSpecial(container, sourceIndex, source, target, rec);
+                return UsableSpecial(container, sourceIndex, source, target, rec, context);
             case ObjectType.MagicalScroll:     // 13 — ITEMUSE.C:262, combat_actor_bitmap_set_bit
                 if (context == null || !context.IsUsable || context.KnownSpells == null) {
                     return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
@@ -361,15 +379,81 @@ public static class InventoryUse {
     /// the lute, Pug's spell sharing) need screens or runtimes the remake lacks.
     /// </summary>
     private static ItemUseResult UsableSpecial(RuntimeContainer container, int sourceIndex,
-        RuntimeItem source, RuntimeItem target, ObjectInfo rec) {
+        RuntimeItem source, RuntimeItem target, ObjectInfo rec, ItemUseContext context) {
         switch (source.ObjectId) {
             case RawMannaId:
                 return RechargeStaff(container, sourceIndex, source, target);
             case ShellId:
                 return AwakenExoticSwords(container, target, rec, sourceIndex);
+            case Audio.MusicSelection.PracticeLuteItemId:
+                return PractiseLute(container, sourceIndex, source, rec, context);
             default:
                 return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
+    }
+
+    /// <summary>
+    /// Playing the practice lute — <c>ITEMUSE.C</c>'s <c>case 0x51</c>, the item-81 arm of the
+    /// category-25 switch.
+    /// </summary>
+    /// <remarks>
+    /// Four things happen, in this order, and the order is the interesting part:
+    /// <list type="number">
+    ///   <item>the player's <b>Barding</b> is read;</item>
+    ///   <item>a tune is chosen from it (<see cref="Audio.MusicSelection.ForLutePractice"/>) and
+    ///     started, keeping whatever was playing;</item>
+    ///   <item>the "you use it" record plays;</item>
+    ///   <item><b>only then</b> is Barding raised, and the saved track put back.</item>
+    /// </list>
+    ///
+    /// <para><b>So you always hear the tune for the skill you had BEFORE practising</b>, never the
+    /// one the practice just earned you. Raising the skill first would let a player at the top of a
+    /// band hear the better tune on the very run that got them there.</para>
+    ///
+    /// <para><b>The gain is a FRACTION of a point.</b> The roll goes to the stat modifier unshifted
+    /// where every other caller shifts by eight, so one practice is worth roughly a sixth to
+    /// two-thirds of a point — see
+    /// <see cref="Audio.MusicSelection.PracticeGainIsFractional"/>. It banks in the stat's
+    /// experience remainder like any other sub-unit change.</para>
+    ///
+    /// <para><b>The Barding read is the EFFECTIVE value, not the stored one</b> (<c>mode 0</c>), so
+    /// it carries the actor's modifiers and the health scaling with it: <b>a wounded musician plays
+    /// a worse tune</b>, and recovers the better one by resting rather than by practising.</para>
+    ///
+    /// <para><b>THE LUTE IS A CHARGED ITEM, so the common tail has to run.</b> Its arm sets
+    /// <c>outcome = -1</c> and <c>break</c>s — it does not return — so control reaches
+    /// <c>done:</c>, which spends a use and discards the lute when the last one goes. The shipped
+    /// record carries <c>LimitedUses | DiscardWhenEmpty</c>, so this is not hypothetical: skipping
+    /// the tail (which the first cut of this did, while its own comment claimed otherwise) gives an
+    /// infinite lute. The tail is asked for <see cref="ItemUseOutcome.Handled"/>, which adds no
+    /// record of its own — the arm has already named one, and the original's tail plays its record
+    /// only for <c>outcome == 1</c>, so the message is heard exactly once.</para>
+    /// </remarks>
+    private static ItemUseResult PractiseLute(RuntimeContainer container, int sourceIndex,
+        RuntimeItem source, ObjectInfo rec, ItemUseContext context) {
+        if (context == null || !context.IsUsable || context.Random == null) {
+            return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+        }
+
+        ActorStat barding = StatOf(context, ActorAttribute.Barding);
+        ActorStat health = HealthOf(context);
+        if (barding == null || health == null) {
+            return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+        }
+
+        int skill = StatEngine.Get(barding, ActorAttribute.Barding, health);
+        int track = Audio.MusicSelection.ForLutePractice(skill);
+
+        // RNDR(low, high) — inclusive of both ends, so the span is high - low + 1.
+        int gain = Audio.MusicSelection.PracticeGainLow
+            + context.Random(Audio.MusicSelection.PracticeGainHigh
+                - Audio.MusicSelection.PracticeGainLow + 1);
+        StatEngine.Modify(barding, ActorAttribute.Barding, gain, StatChangeMode.Absolute);
+
+        byte objectId = source.ObjectId;
+        container.Dirty = true;
+        ItemUseResult tail = Tail(container, sourceIndex, rec, ItemUseOutcome.Handled);
+        return new ItemUseResult(tail.Outcome, UsedRecord, objectId, tail.SourceRemoved, track);
     }
 
     /// <summary>
@@ -491,11 +575,16 @@ public static class InventoryUse {
     // Only the Near-death branch of ConditionEngine.Apply reads these, and no shipping restorative
     // applies Near-death — but an override could, and passing them is what makes the collapse
     // behave rather than silently skipping the health reset.
+    private static ActorStat StatOf(ItemUseContext context, ActorAttribute attribute) =>
+        context.Stats != null && context.Stats.Length > (int)attribute
+            ? context.Stats[(int)attribute]
+            : null;
+
     private static ActorStat HealthOf(ItemUseContext context) =>
-        context.Stats.Length > (int)ActorAttribute.Health ? context.Stats[(int)ActorAttribute.Health] : null;
+        StatOf(context, ActorAttribute.Health);
 
     private static ActorStat StaminaOf(ItemUseContext context) =>
-        context.Stats.Length > (int)ActorAttribute.Stamina ? context.Stats[(int)ActorAttribute.Stamina] : null;
+        StatOf(context, ActorAttribute.Stamina);
 
     private static ItemUseResult Tail(RuntimeContainer container, int sourceIndex, ObjectInfo rec,
         ItemUseOutcome outcome) {
