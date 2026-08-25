@@ -1205,8 +1205,8 @@ internal static class Program {
         StartData data = new StartDataExtractor().Extract("START.DAT", stream);
         string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
         File.WriteAllText("START.json", json);
-        Console.WriteLine($"[START] eye={data.CameraHeightAboveGround}/{data.CameraHeightUnderground} " +
-                          $"pitch={data.CameraPitchAboveGround}/{data.CameraPitchUnderground} " +
+        Console.WriteLine($"[START] combatEye={data.CombatCameraHeightAboveGround}/{data.CombatCameraHeightUnderground} " +
+                          $"combatPitch={data.CombatCameraPitchAboveGround}/{data.CombatCameraPitchUnderground} " +
                           $"gridCell={data.CombatGridCellSize} " +
                           $"viewport={data.ViewportX},{data.ViewportY},{data.ViewportWidth},{data.ViewportHeight} " +
                           $"written to START.json");

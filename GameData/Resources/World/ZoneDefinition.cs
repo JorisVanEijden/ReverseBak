@@ -27,14 +27,56 @@ public class ZoneDefinition : IResource
     /// <summary>The <see cref="ZoneLocation"/> value that means underground.</summary>
     public const short UndergroundZoneLocation = 2;
     public short ZonePointer { get; set; }
+
+    /// <summary>
+    /// Height of the player's eye while walking this zone — 230 in every outdoor zone, 250
+    /// underground.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the world view's camera, and there are two others to keep it apart from.</b>
+    /// <see cref="CameraZPosition"/> a few fields down is the OVERHEAD MAP's camera height, and
+    /// START.DAT carries a third pair for the combat arena. All three are heights of a camera in
+    /// this zone; only this one is what the player looks through while moving.
+    ///
+    /// <para>Confusing it with START.DAT's 1024 tilts the walking view visibly wrong, which is how
+    /// the mix-up gets caught — but only after it has shipped, so prefer the branch: the explore
+    /// camera reads THIS, and nothing else does.</para>
+    /// </remarks>
     public uint DefaultCameraZ { get; set; }
+
+    /// <summary>
+    /// Pitch of the player's eye while walking, in 16-bit angle units — 280 outdoors (near level),
+    /// 0 underground.
+    /// </summary>
+    /// <inheritdoc cref="DefaultCameraZ"/>
     public ushort DefaultCameraPitch { get; set; }
+
     public ZoneFlags Flags { get; set; }
     public byte SkyColor { get; set; }
     public byte GroundColor { get; set; }
+
+    /// <summary>Lowest the overhead map's camera may be zoomed — 23000 outdoors, 6000 underground.</summary>
+    /// <inheritdoc cref="CameraZPosition"/>
     public uint MapMinZ { get; set; }
+
+    /// <summary>
+    /// Starting height of the OVERHEAD MAP's camera — 133000 outdoors, 18000 underground.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not the walking camera</b> — see <see cref="DefaultCameraZ"/> for that. This one is the
+    /// bird's-eye view, and it sits between <see cref="MapMinZ"/> and <see cref="MapMaxZ"/> because
+    /// those two and <see cref="MapZoomStep"/> are the range the player zooms it through. The
+    /// engine remembers the current value across zones and only re-seeds it from here when the zone
+    /// actually CHANGES, so it is a starting height rather than a fixed one.
+    /// </remarks>
     public uint CameraZPosition { get; set; }
+
+    /// <summary>Highest the overhead map's camera may be zoomed — 203000 outdoors, 120000 underground.</summary>
+    /// <inheritdoc cref="CameraZPosition"/>
     public uint MapMaxZ { get; set; }
+
+    /// <summary>How far one zoom press moves the overhead map's camera.</summary>
+    /// <inheritdoc cref="CameraZPosition"/>
     public uint MapZoomStep { get; set; }
     public short RmpResourceCount { get; set; }
     public short SpriteFogDivisor { get; set; }
