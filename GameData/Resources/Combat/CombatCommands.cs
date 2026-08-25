@@ -33,7 +33,9 @@ public static class CombatCommands {
         Cast,
 
         /// <summary>
-        /// Hand the fight to the AI and let it play out — <c>combat_arena_turn_loop</c>.
+        /// Let the AI play — <c>combat_arena_turn_loop</c>. <b>Not an instant resolution:</b> it
+        /// stops at every party turn to offer the menu, and one press takes control back. See
+        /// <see cref="AutoResolveLoop"/>.
         /// </summary>
         AutoResolve,
 
