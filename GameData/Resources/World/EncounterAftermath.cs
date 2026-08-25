@@ -40,6 +40,32 @@ public static class EncounterAftermath {
     /// </remarks>
     public static bool FoughtTimeIsStampedRegardless => true;
 
+    /// <summary>
+    /// Which outcome a finished fight reports.
+    /// </summary>
+    /// <param name="enemiesAlive">Enemies still standing.</param>
+    /// <param name="partyAlive">Party members still standing.</param>
+    /// <param name="partyFled">Whether the party left rather than finished the fight.</param>
+    /// <remarks>
+    /// <b>"The fight ended" is not one case, and the difference decides whether the encounter ever
+    /// fires again.</b> Only a WIN is <see cref="Outcome.Resolved"/>: a flight relocates the party
+    /// and marks nothing, and a wipe marks nothing either — treating either as resolved clears an
+    /// ambush the party did not beat.
+    ///
+    /// <para><b>The flight answer wins over the roster.</b> A party that runs from a fight it was
+    /// winning has still not resolved it, so the flag is asked first rather than inferred from who
+    /// is left standing.</para>
+    /// </remarks>
+    public static Outcome OutcomeFor(int enemiesAlive, int partyAlive, bool partyFled = false) {
+        if (partyFled) {
+            return Outcome.PartyMoved;
+        }
+        if (partyAlive <= 0) {
+            return Outcome.Nothing;
+        }
+        return enemiesAlive <= 0 ? Outcome.Resolved : Outcome.Nothing;
+    }
+
     /// <summary>Whether the party is relocated.</summary>
     public static bool RelocatesTheParty(Outcome outcome) => outcome == Outcome.PartyMoved;
 

@@ -78,4 +78,45 @@ public class EncounterAftermathTests {
         // outcomes looking like the fight never happened.
         Assert.True(EncounterAftermath.FoughtTimeIsStampedRegardless);
     }
+
+    // ---- which outcome a finished fight reports -------------------------------------------------
+
+    [Fact]
+    public void OnlyAWinIsRESOLVED() {
+        // *** This is what decides whether the encounter ever fires again. *** The fought flag had
+        // been read since the activate pass was built and written by nothing, so every defeated
+        // ambush stayed armed and fired on the party's next step.
+        Assert.Equal(EncounterAftermath.Outcome.Resolved,
+            EncounterAftermath.OutcomeFor(enemiesAlive: 0, partyAlive: 3));
+        Assert.True(EncounterAftermath.FiresThePostEvent(
+            EncounterAftermath.OutcomeFor(0, 3)));
+    }
+
+    [Fact]
+    public void AWipeSettlesNOTHING() {
+        // Ending the fight is not winning it. Marking it fought here clears an ambush the party
+        // lost to — and IsOver() is true for both, which is exactly how they get conflated.
+        Assert.Equal(EncounterAftermath.Outcome.Nothing,
+            EncounterAftermath.OutcomeFor(enemiesAlive: 2, partyAlive: 0));
+        Assert.Equal(EncounterAftermath.Outcome.Nothing,
+            EncounterAftermath.OutcomeFor(enemiesAlive: 0, partyAlive: 0));
+    }
+
+    [Fact]
+    public void AFightStillRunningIsNothing() {
+        Assert.Equal(EncounterAftermath.Outcome.Nothing,
+            EncounterAftermath.OutcomeFor(enemiesAlive: 1, partyAlive: 3));
+    }
+
+    [Fact]
+    public void FLEEINGBeatsTheRoster_evenFromAFightThePartyWasWinning() {
+        // Running away has not resolved the encounter however well it was going, so the flag is
+        // asked first rather than inferred from who is left standing.
+        Assert.Equal(EncounterAftermath.Outcome.PartyMoved,
+            EncounterAftermath.OutcomeFor(enemiesAlive: 0, partyAlive: 3, partyFled: true));
+        Assert.False(EncounterAftermath.FiresThePostEvent(
+            EncounterAftermath.OutcomeFor(0, 3, partyFled: true)));
+        Assert.True(EncounterAftermath.RelocatesTheParty(
+            EncounterAftermath.OutcomeFor(0, 3, partyFled: true)));
+    }
 }
