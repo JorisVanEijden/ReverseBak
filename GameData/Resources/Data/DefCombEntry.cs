@@ -43,4 +43,23 @@ public class DefCombEntry {
     // Scouting to detect); when false it fires unconditionally (only Dragon's Breath can still
     // stealth past it). combTrigger_phase2 @0x7409d. Higher bits are always 0 in shipping data.
     public bool Avoidable { get; set; }
+
+    /// <summary>
+    /// The landing an approach direction selects, from
+    /// <see cref="World.EncounterAftermath.LandingFor"/>.
+    /// </summary>
+    /// <remarks>
+    /// Lives on the record because it is the record's own shape — four fields at 0x12, 0x1C, 0x26
+    /// and 0x30 — and a caller that switched on the direction itself would have to know those
+    /// offsets by their property names to do it.
+    ///
+    /// <para>Never null: <see cref="LandingDir1"/> is both direction 1's landing and the default,
+    /// which is the original's jump table and not a fallback invented here.</para>
+    /// </remarks>
+    public LandingPosition LandingFor(World.EncounterAftermath.Landing landing) => landing switch {
+        World.EncounterAftermath.Landing.Direction2 => LandingDir2,
+        World.EncounterAftermath.Landing.Direction4 => LandingDir4,
+        World.EncounterAftermath.Landing.Direction8 => LandingDir8,
+        _ => LandingDir1,
+    };
 }
