@@ -117,6 +117,103 @@ public static class KeywordAvailability {
     /// <summary>Whether this topic has a condition the data does not express.</summary>
     public static bool HasSpecialCase(int globalKey) => SpecialCases.ContainsKey(globalKey);
 
+    /// <summary>What an availability decision came out as, and how much of it was actually applied.</summary>
+    public readonly struct Decision {
+        public Decision(bool available, Requirement? unevaluated) {
+            Available = available;
+            Unevaluated = unevaluated;
+        }
+
+        /// <summary>Whether the topic is offered.</summary>
+        public bool Available { get; }
+
+        /// <summary>
+        /// The gate that could NOT be evaluated, or null when the answer is complete.
+        /// </summary>
+        /// <remarks>
+        /// <b>Non-null means the answer used the general rule alone.</b> Because twelve of the
+        /// fifteen gates NARROW, that errs toward offering a topic the original would hide — worth
+        /// reporting rather than silently returning a bare bool.
+        /// </remarks>
+        public Requirement? Unevaluated { get; }
+    }
+
+    /// <summary>
+    /// Decide whether a topic is offered, applying its hand-written gate where the inputs exist.
+    /// </summary>
+    /// <param name="globalKey">The topic's keyword key.</param>
+    /// <param name="ownFlagValue">The topic's own flag.</param>
+    /// <param name="suppressedFlagValue">Its <see cref="SuppressedFlag"/>.</param>
+    /// <param name="flagValue">Reads any save-state flag; required for the flag-based gates.</param>
+    /// <param name="chapter">The current chapter.</param>
+    /// <param name="partyCarriesItem">
+    /// Whether the party carries an item, by OBJECT ID. Null when unavailable — the item gates then
+    /// report themselves unevaluated rather than guessing.
+    /// </param>
+    /// <param name="knowsSpell">
+    /// Whether a character knows a spell, by (character, spell word). Null when unavailable.
+    /// </param>
+    /// <remarks>
+    /// <b>THE SUPPRESSION FLAG HAS THE LAST WORD, on every path.</b> A special condition answering
+    /// "yes" is still withdrawn when the topic is suppressed — the original falls through the same
+    /// tail check whatever the gate said. Treating the special cases as overrides lets retired
+    /// topics come back.
+    ///
+    /// <para><b>The gates NARROW; they do not grant.</b> Twelve of the fifteen bail out first when
+    /// the topic's own flag is clear. The two <see cref="Requirement.FlagRedirect"/> cases are the
+    /// exception and a different shape: they REPLACE the value the general rule then tests.</para>
+    /// </remarks>
+    public static Decision Evaluate(int globalKey, int ownFlagValue, int suppressedFlagValue,
+        Func<int, int> flagValue, int chapter,
+        Func<int, bool> partyCarriesItem = null, Func<int, int, bool> knowsSpell = null) {
+        if (!SpecialCases.TryGetValue(globalKey, out SpecialCase special)) {
+            return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), null);
+        }
+
+        // A redirect swaps the value the general rule tests, then the general rule runs as usual.
+        if (special.Requirement == Requirement.FlagRedirect) {
+            if (flagValue == null) {
+                return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), special.Requirement);
+            }
+            return new Decision(
+                IsAvailable(flagValue(special.First), suppressedFlagValue), null);
+        }
+
+        bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, knowsSpell);
+        if (extra == null) {
+            // Inputs missing: fall back to the general rule and SAY so.
+            return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), special.Requirement);
+        }
+
+        // Narrowing: the extra condition and the general rule must BOTH hold.
+        return new Decision(
+            extra.Value && IsAvailable(ownFlagValue, suppressedFlagValue), null);
+    }
+
+    private static bool? EvaluateExtra(SpecialCase special, Func<int, int> flagValue, int chapter,
+        Func<int, bool> partyCarriesItem, Func<int, int, bool> knowsSpell) {
+        switch (special.Requirement) {
+            case Requirement.FlagSet:
+                return flagValue == null ? null : flagValue(special.First) != 0;
+            case Requirement.EitherFlagSet:
+                return flagValue == null
+                    ? null
+                    : flagValue(special.First) != 0 || flagValue(special.Second) != 0;
+            case Requirement.AtChapter:
+                return chapter == special.First;
+            case Requirement.PartyLacksItem:
+                // The object id is recorded by SYMBOL NAME in the table's note, not resolved against
+                // the object table, so there is nothing to ask about yet.
+                return null;
+            case Requirement.SpellNotKnown:
+                return knowsSpell == null ? null : !knowsSpell(special.First, special.Second);
+            case Requirement.TwoFlagsAndItem:
+                return null;   // needs the item half; see PartyLacksItem
+            default:
+                return null;   // Unmodelled, and anything added without an arm
+        }
+    }
+
     /// <summary>
     /// The condition for a topic, or <c>null</c> when the general rule is the whole story.
     /// </summary>
