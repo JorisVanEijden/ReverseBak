@@ -129,4 +129,74 @@ public static class PitDescent {
     /// </summary>
     public static bool Triggers(int crossingKind, int zoneKind) =>
         zoneKind == RequiredZoneKind && crossingKind == PitTerrainKind;
+
+    // ---------------------------------------------------------------- where the party lands
+
+    /// <summary>
+    /// Which entity the fall drops the party onto — <c>proxscan_paged_find_next_type0f</c>
+    /// (PROXSCAN.C:279).
+    /// </summary>
+    /// <param name="visibleEntityKinds">
+    /// The visibility pass's entry list, <b>in the order it appended them</b>, each entry's shape
+    /// kind (<c>WorldEntityType</c>).
+    /// </param>
+    /// <returns>The index to land on, or <see cref="NoTarget"/>.</returns>
+    /// <remarks>
+    /// <b>THE NAME IS WRONG IN THREE WAYS, AND EACH ONE MISLEADS DIFFERENTLY.</b> There is no
+    /// paging, no cursor and no "next":
+    /// <code>
+    /// for (i = g_nVisibleEntryCount - 1; i >= 0; i--)
+    ///     if (ts_get_shape(entry[i]-&gt;shapeId)-&gt;kind == 0x0f) return 1;
+    /// </code>
+    /// It scans the visible-entity list <b>backwards</b> and takes the first match — so the answer is
+    /// the <b>LAST</b> pit the visibility pass appended.
+    ///
+    /// <para><b>This is a PROXIMITY-FILTERED set, not the zone.</b> <c>proxscan_visibility</c>
+    /// rebuilds the list every pass: each combat-zone region in order, then the world-object pool,
+    /// keeping only entries inside their own kind's threshold from the party
+    /// (<c>g_aFilterTable[kind]</c>). So the party lands on a pit that is <i>near</i> them, and the
+    /// list is <b>appended in the zone's own entity order and never sorted</b> — the backwards scan
+    /// is reverse insertion order, NOT "the farthest" or "the nearest".</para>
+    ///
+    /// <para><b>Recorded because this task was blocked on believing otherwise:</b> the order was
+    /// written up as an unreproducible paged-list cursor, making the choice of pit look like a
+    /// fidelity decision between inventing an order and modelling one. It is neither — the rule is
+    /// ordinary and reproducible by anything that walks the same entity lists in the same order.</para>
+    ///
+    /// <para><b>The kind comes from the SHAPE record</b>, not from a tile's type id. A world tile's
+    /// <c>TypeId</c> is an index into the zone's entity table; looking for kind 15 in the tile data
+    /// finds nothing and concludes the zone has no pits.</para>
+    /// </remarks>
+    public static int SelectTarget(IReadOnlyList<int> visibleEntityKinds) {
+        if (visibleEntityKinds == null) {
+            return NoTarget;
+        }
+        for (int i = visibleEntityKinds.Count - 1; i >= 0; i--) {
+            if (visibleEntityKinds[i] == PitTerrainKind) {
+                return i;
+            }
+        }
+        return NoTarget;
+    }
+
+    /// <summary>No entity to land on. <b>An ordinary outcome, not an error</b>.</summary>
+    /// <remarks>
+    /// The party still takes the condition, still hears <see cref="FallSoundId"/> and still reads
+    /// <see cref="LandingDialogId"/>; only the camera move and the drop are skipped. So a pit with
+    /// nothing to fall to still downs the party where they stand.
+    /// </remarks>
+    public const int NoTarget = -1;
+
+    /// <summary>
+    /// <b>A pending full redraw suppresses the descent — but nothing else.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original gates the lookup on <c>g_full_redraw_needed == 0</c>, so the same branch that
+    /// handles "no pit found" also handles "the screen is about to be rebuilt". Both land in
+    /// <see cref="NoTarget"/> territory, and the conditions, sound and dialog happen either way.
+    /// Modelled rather than folded into the caller because it is the one input that makes an
+    /// otherwise-valid target not be used.
+    /// </remarks>
+    public static bool DescentIsAnimated(bool fullRedrawPending, int target) =>
+        !fullRedrawPending && target != NoTarget;
 }

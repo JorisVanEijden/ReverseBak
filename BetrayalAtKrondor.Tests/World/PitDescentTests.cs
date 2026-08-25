@@ -134,4 +134,45 @@ public class PitDescentTests {
             Assert.Equal(ActorConditions.MaxRank, member[ActorCondition.NearDeath]);
         }
     }
+
+    // ---- where the party lands (proxscan_paged_find_next_type0f) -------------------------------
+
+    [Fact]
+    public void TheTargetIsTheLASTPitInTheList_notTheFirst() {
+        // *** The name says "find_next"; the loop runs BACKWARDS. *** Taking the first match
+        // forwards lands the party on a different pit in any zone with more than one, and looks
+        // entirely reasonable.
+        var kinds = new[] { PitDescent.PitTerrainKind, 3, PitDescent.PitTerrainKind, 7 };
+
+        Assert.Equal(2, PitDescent.SelectTarget(kinds));
+    }
+
+    [Fact]
+    public void AListWithNoPitAnswersNoTarget() {
+        Assert.Equal(PitDescent.NoTarget, PitDescent.SelectTarget(new[] { 3, 7, 14 }));
+        Assert.Equal(PitDescent.NoTarget, PitDescent.SelectTarget(new int[0]));
+        Assert.Equal(PitDescent.NoTarget, PitDescent.SelectTarget(null));
+    }
+
+    [Fact]
+    public void NoTargetStillDropsTheParty_itJustDoesNotMoveThem() {
+        // The lookup sits inside the animation branch; the condition, sound and dialog are outside
+        // it. A pit with nothing to fall to still downs the party where they stand.
+        Assert.False(PitDescent.DescentIsAnimated(fullRedrawPending: false, PitDescent.NoTarget));
+    }
+
+    [Fact]
+    public void APendingFullRedrawSuppressesTheDescentEvenWithAValidTarget() {
+        // g_full_redraw_needed == 0 gates the lookup, so the same branch handles "no pit" and "the
+        // screen is about to be rebuilt".
+        Assert.True(PitDescent.DescentIsAnimated(fullRedrawPending: false, target: 4));
+        Assert.False(PitDescent.DescentIsAnimated(fullRedrawPending: true, target: 4));
+    }
+
+    [Fact]
+    public void TheKindLookedForIsTheTerrainKindTheFallTriggersOn() {
+        // One number, two uses: the crossing kind that drops you and the entity kind you land on
+        // are both 15, which is why WorldEntityType.Pit and PitTerrainKind agree.
+        Assert.Equal((int)WorldEntityType.Pit, PitDescent.PitTerrainKind);
+    }
 }
