@@ -103,7 +103,13 @@ public class KeywordAvailabilityTests {
     public void EveryRequirementKindInTheTableIsOneWeNamed() {
         Assert.All(KeywordAvailability.SpecialCases.Values,
             c => Assert.True(System.Enum.IsDefined(typeof(KeywordAvailability.Requirement), c.Requirement)));
-        Assert.Contains(KeywordAvailability.SpecialCases.Values,
+
+        // *** THIS ASSERTED THE OPPOSITE UNTIL 2026-08-25. *** It required the table to still
+        // CONTAIN an Unmodelled case — a fence around "something here is not decoded yet". Keys 17
+        // and 103 were that something, and they are PartyHasDamagedArmour now, so the fence flips:
+        // nothing is undecoded, and a new case added without a decode goes red here rather than
+        // quietly taking the general rule.
+        Assert.DoesNotContain(KeywordAvailability.SpecialCases.Values,
             c => c.Requirement == KeywordAvailability.Requirement.Unmodelled);
     }
 }

@@ -168,10 +168,28 @@ public class KeywordAvailabilityEvaluateTests {
     }
 
     [Fact]
-    public void TheUnmodelledGatesStayRefusedRatherThanGuessed() {
-        KeywordAvailability.Decision d = KeywordAvailability.Evaluate(
-            17, ownFlagValue: 1, suppressedFlagValue: 0, Flags(), chapter: 1);
-
-        Assert.Equal(KeywordAvailability.Requirement.Unmodelled, d.Unevaluated);
+    public void TheLastTwoGatesAskWhetherThePartyCarriesDAMAGEDARMOUR() {
+        // Was "Unmodelled / stub128 query" until 2026-08-25. It is
+        // evtcond_range_d_read_handler(0x9c44) -> evtcond_pty_inv_repair_cnt(&i,&j,0); return j > 0,
+        // and j counts category-4 (Armor) items with condition < 100 across the ACTIVE party.
+        // Which is why an armourer has something to say about it.
+        foreach (int key in new[] { 17, 103 }) {
+            Assert.True(KeywordAvailability.Evaluate(
+                key, 1, 0, Flags(), chapter: 1, partyHasDamagedArmour: () => true).Available);
+            Assert.False(KeywordAvailability.Evaluate(
+                key, 1, 0, Flags(), chapter: 1, partyHasDamagedArmour: () => false).Available);
+        }
     }
+
+    [Fact]
+    public void TheArmourGateNarrows_AndStillReportsItselfWithoutALookup() {
+        // It is `avail = avail && ...`, so the topic's own flag still has to be set.
+        Assert.False(KeywordAvailability.Evaluate(
+            17, ownFlagValue: 0, suppressedFlagValue: 0, Flags(), chapter: 1,
+            partyHasDamagedArmour: () => true).Available);
+
+        Assert.Equal(KeywordAvailability.Requirement.PartyHasDamagedArmour,
+            KeywordAvailability.Evaluate(17, 1, 0, Flags(), chapter: 1).Unevaluated);
+    }
+
 }

@@ -58,6 +58,21 @@ public static class KeywordAvailability {
         /// </summary>
         FlagRedirect,
 
+        /// <summary>
+        /// Someone in the ACTIVE party is carrying armour that needs repair.
+        /// </summary>
+        /// <remarks>
+        /// <c>evtcond_range_d_read_handler(0x9c44)</c> -> <c>evtcond_pty_inv_repair_cnt(&amp;i, &amp;j, 0);
+        /// return j &gt; 0</c>, and <c>j</c> counts every item of <b>category 4 (Armor)</b> whose
+        /// <c>condition &lt; 100</c>, across every active party member (EVTCOND.C:21).
+        ///
+        /// <para>Which is why an armourer has something to say. The same routine does the repairing
+        /// when its third argument is set — and it writes the count to <c>lEvtArgValue</c> and
+        /// MULTIPLIES <c>lEvtArgGoldCost</c> by it, so the price quoted is per damaged piece. That
+        /// half is not modelled here; it belongs with whoever builds the repair service.</para>
+        /// </remarks>
+        PartyHasDamagedArmour,
+
         /// <summary>A gate whose backing routine is not modelled here.</summary>
         Unmodelled,
     }
@@ -104,11 +119,11 @@ public static class KeywordAvailability {
         new Dictionary<int, SpecialCase> {
             [9] = new SpecialCase(Requirement.PartyLacksItem, WaaniObjectId, note: "Waani"),
             [11] = new SpecialCase(Requirement.PartyLacksItem, BagOfGrainObjectId, note: "Bag of Grain"),
-            [17] = new SpecialCase(Requirement.Unmodelled, 40004, note: "stub128 query"),
+            [17] = new SpecialCase(Requirement.PartyHasDamagedArmour, 40004, note: "0x9c44"),
             [44] = new SpecialCase(Requirement.FlagSet, 8044),
             [71] = new SpecialCase(Requirement.SpellNotKnown, 1, 0x10, note: "Owyn"),
             [76] = new SpecialCase(Requirement.PartyLacksItem, RationsObjectId, note: "Rations"),
-            [103] = new SpecialCase(Requirement.Unmodelled, 40004, note: "stub128 query"),
+            [103] = new SpecialCase(Requirement.PartyHasDamagedArmour, 40004, note: "0x9c44"),
             [106] = new SpecialCase(Requirement.SpellNotKnown, 3, 0x200, note: "Owyn"),
             [117] = new SpecialCase(Requirement.AtChapter, 6),
             [130] = new SpecialCase(Requirement.FlagRedirect, 56222),
@@ -220,7 +235,8 @@ public static class KeywordAvailability {
     /// </remarks>
     public static Decision Evaluate(int globalKey, int ownFlagValue, int suppressedFlagValue,
         Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem = null, Func<int, int> spellsKnownWord = null) {
+        Func<int, bool> partyCarriesItem = null, Func<int, int> spellsKnownWord = null,
+        Func<bool> partyHasDamagedArmour = null) {
         if (!SpecialCases.TryGetValue(globalKey, out SpecialCase special)) {
             return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), null);
         }
@@ -248,7 +264,8 @@ public static class KeywordAvailability {
             return new Decision(met && suppressedFlagValue == 0, null);
         }
 
-        bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, spellsKnownWord);
+        bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, spellsKnownWord,
+            partyHasDamagedArmour);
         if (extra == null) {
             // Inputs missing: fall back to the general rule and SAY so.
             return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), special.Requirement);
@@ -260,7 +277,8 @@ public static class KeywordAvailability {
     }
 
     private static bool? EvaluateExtra(SpecialCase special, Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem, Func<int, int> spellsKnownWord) {
+        Func<int, bool> partyCarriesItem, Func<int, int> spellsKnownWord,
+        Func<bool> partyHasDamagedArmour) {
         switch (special.Requirement) {
             case Requirement.FlagSet:
                 return flagValue == null ? null : flagValue(special.First) != 0;
@@ -278,6 +296,8 @@ public static class KeywordAvailability {
                 return spellsKnownWord == null
                     ? null
                     : (spellsKnownWord(special.First - 1) & special.Second) == 0;
+            case Requirement.PartyHasDamagedArmour:
+                return partyHasDamagedArmour?.Invoke();
             case Requirement.TwoFlagsAndItem:
                 return null;   // handled above: it replaces rather than narrows
             default:
