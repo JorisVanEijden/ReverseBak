@@ -108,4 +108,80 @@ public class RoamingMovementTests {
         Assert.False(RoamingMovement.AdoptsRoadHeading(1));
         Assert.False(RoamingMovement.AdoptsRoadHeading(4));
     }
+
+    // ---- from the C the earlier note said did not exist (RGNENC.C:677) --------------------------
+
+    [Fact]
+    public void TheStepIsExactlyAQuarterCell_whichIsWhyArrivalCanBeExactEquality() {
+        // The waypoints sit on the cell lattice, so four steps land precisely on the next one.
+        // A per-creature speed or a frame-scaled float breaks the arrival test, not the distance.
+        Assert.Equal(RoadTravel.CellSize / 4, RoamingMovement.StepDistance);
+        Assert.Equal(0x190, RoamingMovement.StepDistance);
+
+        const int start = RoadTravel.HalfCell;
+        int x = start;
+        for (var tick = 0; tick < 4; tick++) {
+            x += RoamingMovement.Step(0x4000).Dx;   // due west: -delta on x, 0 on y
+        }
+        Assert.Equal(start - RoadTravel.CellSize, x);
+        Assert.True(RoamingMovement.IsAtWaypoint(x, 0, start - RoadTravel.CellSize, 0));
+    }
+
+    [Fact]
+    public void TheStepUsesTheSameAxisOffsetRoadTravelDoes_diagonalsMoveBothAxesFully() {
+        // Not trigonometry: a diagonal covers the full delta on each axis, so it is ~1.41x an
+        // orthogonal step. Resolving it with sin/cos drifts off the integer lattice.
+        Assert.Equal(RoadTravel.AxisOffset(0x2000, RoamingMovement.StepDistance),
+            RoamingMovement.Step(0x2000));
+
+        (int dx, int dy) = RoamingMovement.Step(0x2000);   // 45 degrees
+        Assert.Equal(RoamingMovement.StepDistance, System.Math.Abs(dx));
+        Assert.Equal(RoamingMovement.StepDistance, System.Math.Abs(dy));
+    }
+
+    [Fact]
+    public void OnlyRoadFollowingCanHaveItsStepREFUSED() {
+        // *** Patterns 1-3 apply the offset outright, with no walkability test at all. *** A
+        // patrolling monster walks through whatever is in its way, and running patrols through the
+        // party's collision instead would strand them wherever an authored route clips scenery.
+        Assert.True(RoamingMovement.StepCanBeBlocked(RoamingMovement.Pattern.RoadFollowing));
+        Assert.False(RoamingMovement.StepCanBeBlocked(RoamingMovement.Pattern.BackAndForth));
+        Assert.False(RoamingMovement.StepCanBeBlocked(RoamingMovement.Pattern.CircuitTurningNegative));
+        Assert.False(RoamingMovement.StepCanBeBlocked(RoamingMovement.Pattern.CircuitTurningPositive));
+        Assert.False(RoamingMovement.StepCanBeBlocked(RoamingMovement.Pattern.Stationary));
+    }
+
+    [Fact]
+    public void TheRoadIsConsultedOnlyAtACellCentre() {
+        // The sweep runs only when BOTH coordinates are exactly half a cell in; anywhere else the
+        // outcome is reported as nothing without probing. So a follower ignores bends for three
+        // ticks out of four and takes them on the fourth.
+        Assert.True(RoamingMovement.ConsidersTheRoadAt(RoadTravel.HalfCell, RoadTravel.HalfCell));
+        Assert.True(RoamingMovement.ConsidersTheRoadAt(
+            (5 * RoadTravel.CellSize) + RoadTravel.HalfCell, RoadTravel.HalfCell));
+
+        Assert.False(RoamingMovement.ConsidersTheRoadAt(RoadTravel.HalfCell, 0));
+        Assert.False(RoamingMovement.ConsidersTheRoadAt(0, RoadTravel.HalfCell));
+        Assert.False(RoamingMovement.ConsidersTheRoadAt(
+            RoadTravel.HalfCell + RoamingMovement.StepDistance, RoadTravel.HalfCell));
+    }
+
+    [Fact]
+    public void AForkReadsAsNoRoadAtAll() {
+        // worldmove_sweep_adjacent_cells returns 0 for "nothing" AND for "a second continuation".
+        // For a roaming actor both mean: keep the heading and walk on.
+        Assert.Equal(0, (int)RoamingMovement.RoadOutcome.NoneOrForked);
+        Assert.False(RoamingMovement.AdoptsRoadHeading((int)RoamingMovement.RoadOutcome.NoneOrForked));
+    }
+
+    [Fact]
+    public void RunningStraightOnDoesNotCountAsABend() {
+        // The original returns its `mode` argument (1 for the actor updater) when the road
+        // continues ahead, and the reported target is the CURRENT heading — so excluding it changes
+        // nothing. Pinned because that exclusion otherwise looks arbitrary.
+        Assert.Equal(1, (int)RoamingMovement.RoadOutcome.StraightOn);
+        Assert.False(RoamingMovement.AdoptsRoadHeading((int)RoamingMovement.RoadOutcome.StraightOn));
+        Assert.True(RoamingMovement.AdoptsRoadHeading((int)RoamingMovement.RoadOutcome.BendsOneWay));
+        Assert.True(RoamingMovement.AdoptsRoadHeading((int)RoamingMovement.RoadOutcome.BendsTheOther));
+    }
 }
