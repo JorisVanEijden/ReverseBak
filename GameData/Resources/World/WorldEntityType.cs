@@ -17,10 +17,26 @@ namespace GameData.Resources.World;
 /// candidates on <c>DrawPriority != 0</c> to reproduce the renderer's "proud geometry first"
 /// ordering, so <b>collision already depends on exactly this set</b>.</para>
 ///
-/// <para><b>Still deliberately unnamed.</b> Knowing they are three layers of one tile does not say
-/// what each layer IS, and IDA's <c>interactable</c> enum does not name them either — there is
-/// nothing to copy and inventing names is what we do not do. Six type-0 entries sit at priority 7
-/// rather than 8, which is the anomaly to explain before anyone tries.</para>
+/// <para><b>NAMED 2026-08-25, from the original rather than from the letters.</b> Three
+/// independent sources agree:</para>
+/// <list type="bullet">
+///   <item><b>Type 1 is <see cref="Road"/>, straight from the original's own travel gate.</b>
+///     <c>worldmove_prox_query_at_cell</c> (WORLDMOV.C:524) reads
+///     <c>ts_get_shape(...)-&gt;kind</c> — this byte — and returns true for <b>1 or 2 only</b>.
+///     Type 2 is already named <c>bridge*</c> in the data, so 1 is the road it pairs with. Its
+///     faces confirm it: 2151 of them use pen 1 (Road) and 619 pen 2 (Path), and almost nothing
+///     else.</item>
+///   <item><b>Type 3 is <see cref="Water"/>.</b> Its faces are pen 3 (River) 422 to 82, it is the
+///     one paint layer that is NOT walkable, and its single human-named member is literally
+///     <c>water</c>.</item>
+///   <item><b>Type 0 is <see cref="Ground"/>.</b> Nine entries are named <c>ground</c>, its faces
+///     are pens 0 and 5 (Ground and Dirt) plus the two shade ramps, and it is the bottom layer.</item>
+/// </list>
+///
+/// <para><b>The type is not the layer — the PRIORITY is.</b> Six type-0 entries, all named
+/// <c>field</c> (one per zone Z01-Z06), sit at priority 7 alongside type 1 rather than at 8 with the
+/// rest of type 0. So the mapping is not a bijection, and a port that inferred the paint order from
+/// the type would put every field on the wrong layer.</para>
 ///
 /// <para>26–28 all route to <c>handle_Bush</c> (@0x76ed7) but are three DIFFERENT bushes: the
 /// handler re-reads the world item's own subtype byte and picks a different pair of dialogs for
@@ -29,6 +45,7 @@ namespace GameData.Resources.World;
 /// they are three members here and not one.</para>
 /// </summary>
 public enum WorldEntityType : byte {
+    Ground      = 0,   Road        = 1,   Water     = 3,
     Container   = 6,   RiftMachine = 9,   Building  = 10,  Grave      = 12,
     WayMarker   = 13,  Pit         = 15,  Corpse    = 16,  Dirt       = 17,
     Corn        = 18,  Ashes       = 19,  Tunnel    = 20,  Door       = 23,
