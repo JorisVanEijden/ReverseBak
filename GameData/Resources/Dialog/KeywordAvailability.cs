@@ -97,22 +97,51 @@ public static class KeywordAvailability {
     /// </remarks>
     public static readonly IReadOnlyDictionary<int, SpecialCase> SpecialCases =
         new Dictionary<int, SpecialCase> {
-            [9] = new SpecialCase(Requirement.PartyLacksItem, note: "Waani"),
-            [11] = new SpecialCase(Requirement.PartyLacksItem, note: "Bag of Grain"),
+            [9] = new SpecialCase(Requirement.PartyLacksItem, WaaniObjectId, note: "Waani"),
+            [11] = new SpecialCase(Requirement.PartyLacksItem, BagOfGrainObjectId, note: "Bag of Grain"),
             [17] = new SpecialCase(Requirement.Unmodelled, 40004, note: "stub128 query"),
             [44] = new SpecialCase(Requirement.FlagSet, 8044),
             [71] = new SpecialCase(Requirement.SpellNotKnown, 1, 0x10, note: "Owyn"),
-            [76] = new SpecialCase(Requirement.PartyLacksItem, note: "Rations"),
+            [76] = new SpecialCase(Requirement.PartyLacksItem, RationsObjectId, note: "Rations"),
             [103] = new SpecialCase(Requirement.Unmodelled, 40004, note: "stub128 query"),
             [106] = new SpecialCase(Requirement.SpellNotKnown, 3, 0x200, note: "Owyn"),
             [117] = new SpecialCase(Requirement.AtChapter, 6),
             [130] = new SpecialCase(Requirement.FlagRedirect, 56222),
             [132] = new SpecialCase(Requirement.EitherFlagSet, 51021, 6521),
             [133] = new SpecialCase(Requirement.FlagRedirect, 56212),
-            [148] = new SpecialCase(Requirement.PartyLacksItem, note: "Rations"),
+            [148] = new SpecialCase(Requirement.PartyLacksItem, RationsObjectId, note: "Rations"),
             [163] = new SpecialCase(Requirement.TwoFlagsAndItem, 142, 170, note: "Abbot's Journal"),
             [164] = new SpecialCase(Requirement.FlagSet, 6514),
         };
+
+    // ---------------------------------------------------------------- resolved object ids
+    //
+    // Taken from the literal operands in askabout_dispatch_topic (ASKABOUT.C:193-232), NOT by
+    // matching the symbol names against the object table. That mattered: "Rations" is ambiguous
+    // there — 72 Rations, 73 Rations (Poisoned), 74 Rations (Spoiled), 134 Days Rations — and only
+    // the disassembly says which. It is 72.
+
+    /// <summary>Topic 9's item — <c>itemtbl_partySize_by_kind(0x65)</c>.</summary>
+    public const int WaaniObjectId = 0x65;          // 101
+
+    /// <summary>Topic 11's item — <c>itemtbl_partySize_by_kind(0x3c)</c>.</summary>
+    public const int BagOfGrainObjectId = 0x3c;     // 60
+
+    /// <summary>The item topics 76 and 148 SHARE — <c>itemtbl_partySize_by_kind(0x48)</c>.</summary>
+    /// <remarks>
+    /// Plain Rations, not the poisoned, spoiled or "Days" variants that share the name in the object
+    /// table. Two topics, one condition — the table is not one case per key.
+    /// </remarks>
+    public const int RationsObjectId = 0x48;        // 72
+
+    /// <summary>
+    /// The character every <see cref="Requirement.SpellNotKnown"/> gate asks about.
+    /// </summary>
+    /// <remarks>
+    /// Both gates read <c>g_gameState.characters[CHR_OWYN].spellsKnown[...]</c> — the character is
+    /// fixed in the code, not a parameter, so it is a constant here rather than a field on the case.
+    /// </remarks>
+    public const int SpellGateCharacter = 1;        // Owyn
 
     /// <summary>Whether this topic has a condition the data does not express.</summary>
     public static bool HasSpecialCase(int globalKey) => SpecialCases.ContainsKey(globalKey);
@@ -150,9 +179,16 @@ public static class KeywordAvailability {
     /// Whether the party carries an item, by OBJECT ID. Null when unavailable — the item gates then
     /// report themselves unevaluated rather than guessing.
     /// </param>
-    /// <param name="knowsSpell">
-    /// Whether a character knows a spell, by (character, spell word). Null when unavailable.
+    /// <param name="spellsKnownWord">
+    /// Owyn's <c>spellsKnown[i]</c> for a ZERO-BASED word index. Null when unavailable.
     /// </param>
+    /// <remarks>
+    /// <b>Not a (character, spell) lookup.</b> Both spell gates read
+    /// <c>characters[CHR_OWYN].spellsKnown[n] &amp; mask</c> with the character fixed in the code —
+    /// so the case's <see cref="SpecialCase.First"/> is the WORD, one-based, and
+    /// <see cref="SpecialCase.Second"/> the mask. Reading First as a character id (as this did when
+    /// first written) asks the wrong question of the wrong table.
+    /// </remarks>
     /// <remarks>
     /// <b>THE SUPPRESSION FLAG HAS THE LAST WORD, on every path.</b> A special condition answering
     /// "yes" is still withdrawn when the topic is suppressed — the original falls through the same
@@ -165,7 +201,7 @@ public static class KeywordAvailability {
     /// </remarks>
     public static Decision Evaluate(int globalKey, int ownFlagValue, int suppressedFlagValue,
         Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem = null, Func<int, int, bool> knowsSpell = null) {
+        Func<int, bool> partyCarriesItem = null, Func<int, int> spellsKnownWord = null) {
         if (!SpecialCases.TryGetValue(globalKey, out SpecialCase special)) {
             return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), null);
         }
@@ -179,7 +215,7 @@ public static class KeywordAvailability {
                 IsAvailable(flagValue(special.First), suppressedFlagValue), null);
         }
 
-        bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, knowsSpell);
+        bool? extra = EvaluateExtra(special, flagValue, chapter, partyCarriesItem, spellsKnownWord);
         if (extra == null) {
             // Inputs missing: fall back to the general rule and SAY so.
             return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), special.Requirement);
@@ -191,7 +227,7 @@ public static class KeywordAvailability {
     }
 
     private static bool? EvaluateExtra(SpecialCase special, Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem, Func<int, int, bool> knowsSpell) {
+        Func<int, bool> partyCarriesItem, Func<int, int> spellsKnownWord) {
         switch (special.Requirement) {
             case Requirement.FlagSet:
                 return flagValue == null ? null : flagValue(special.First) != 0;
@@ -202,13 +238,18 @@ public static class KeywordAvailability {
             case Requirement.AtChapter:
                 return chapter == special.First;
             case Requirement.PartyLacksItem:
-                // The object id is recorded by SYMBOL NAME in the table's note, not resolved against
-                // the object table, so there is nothing to ask about yet.
-                return null;
+                // The id is the literal operand of itemtbl_partySize_by_kind, resolved 2026-08-25.
+                return partyCarriesItem == null ? null : !partyCarriesItem(special.First);
             case Requirement.SpellNotKnown:
-                return knowsSpell == null ? null : !knowsSpell(special.First, special.Second);
+                // First is the ONE-BASED spellsKnown word; the mask is Second.
+                return spellsKnownWord == null
+                    ? null
+                    : (spellsKnownWord(special.First - 1) & special.Second) == 0;
             case Requirement.TwoFlagsAndItem:
-                return null;   // needs the item half; see PartyLacksItem
+                // Its object id is still unresolved: the two parameters are already spent on the
+                // two flags, so there is nowhere on the case to put it. Left refused rather than
+                // guessed — see the note on key 163.
+                return null;
             default:
                 return null;   // Unmodelled, and anything added without an arm
         }
