@@ -85,6 +85,77 @@ public static class EncounterAftermath {
 
     // ---------------------------------------------------------------- where the party lands
 
+    /// <summary>
+    /// Which side of the encounter's box the party finished on — <c>worldmove_aabb_outcode_rotated</c>
+    /// (WORLDMOV.C:192). The answer feeds <see cref="LandingFor"/>.
+    /// </summary>
+    /// <param name="partyTileX">The party's tile, which is also the base for the box's cells.</param>
+    /// <param name="partyTileY"><inheritdoc cref="ApproachDirection" path="/param[@name='partyTileX']"/></param>
+    /// <param name="partyWorldX">The party's absolute world position.</param>
+    /// <param name="partyWorldY"><inheritdoc cref="ApproachDirection" path="/param[@name='partyWorldX']"/></param>
+    /// <param name="boxStartX">The box's four bytes <b>in their on-disk order</b> — see the remarks.</param>
+    /// <param name="boxEndY"><inheritdoc cref="ApproachDirection" path="/param[@name='boxStartX']"/></param>
+    /// <param name="boxEndX"><inheritdoc cref="ApproachDirection" path="/param[@name='boxStartX']"/></param>
+    /// <param name="boxStartY"><inheritdoc cref="ApproachDirection" path="/param[@name='boxStartX']"/></param>
+    /// <returns>1, 2, 4 or 8 — never any other value.</returns>
+    /// <remarks>
+    /// <b>The box is stored minX, maxY, maxX, minY — NOT min, min, max, max.</b> The original walks
+    /// it through a <c>unsigned char*</c> by index, so the on-disk order IS the meaning, and reading
+    /// it as a conventional (min, min, max, max) rectangle swaps the two Y bounds and inverts the
+    /// answer for every party above or below the box. <see cref="TileEventTrigger"/> stores the same
+    /// four bytes in the same order under the names this signature uses, so passing its fields
+    /// straight across is correct and re-sorting them is not.
+    ///
+    /// <para><b>What each answer means, stated against the box rather than the compass:</b></para>
+    /// <list type="table">
+    ///   <item><term>1</term><description>past the box's max-Y edge.</description></item>
+    ///   <item><term>2</term><description>short of its min-X edge.</description></item>
+    ///   <item><term>4</term><description>short of its min-Y edge.</description></item>
+    ///   <item><term>8</term><description>anything else — the +X side, and also INSIDE the box.</description></item>
+    /// </list>
+    /// <para>So 1 and 4 are the two Y answers and 2 and 8 the two X answers. Which of those reads as
+    /// north or east is a compass convention this routine does not establish, and guessing it is how
+    /// a fleeing party gets thrown to the opposite side of the encounter.</para>
+    ///
+    /// <para><b>The two min edges are tested one cell in, the max edge is not.</b> The min-X and
+    /// min-Y comparisons use <c>+ 1</c> and the max-Y comparison uses the stored byte, so a party
+    /// standing exactly on the min-X column counts as 2 while one standing exactly on the max-Y row
+    /// does not count as 1. The asymmetry is the original's; making it symmetric moves the boundary
+    /// by a cell on three of the four sides.</para>
+    ///
+    /// <para><b>Only the second corner's Y is used.</b> The original computes its X and never reads
+    /// it, so there is no fourth comparison to add — a port that tested both axes of both corners
+    /// would be inventing a rule.</para>
+    /// </remarks>
+    public static int ApproachDirection(int partyTileX, int partyTileY,
+        long partyWorldX, long partyWorldY,
+        int boxStartX, int boxEndY, int boxEndX, int boxStartY) {
+        if (WorldPlacement.CornerOf(partyTileY, boxEndY) < partyWorldY) {
+            return 1;
+        }
+        if (partyWorldX < WorldPlacement.CornerOf(partyTileX, boxStartX + 1)) {
+            return 2;
+        }
+        return partyWorldY < WorldPlacement.CornerOf(partyTileY, boxStartY + 1) ? 4 : 8;
+    }
+
+    /// <inheritdoc cref="ApproachDirection(int, int, long, long, int, int, int, int)"/>
+    /// <param name="trigger">The hotspot whose box the party is being placed against.</param>
+    /// <param name="partyTileX"><inheritdoc cref="ApproachDirection(int, int, long, long, int, int, int, int)" path="/param[@name='partyTileX']"/></param>
+    /// <param name="partyTileY"><inheritdoc cref="ApproachDirection(int, int, long, long, int, int, int, int)" path="/param[@name='partyTileX']"/></param>
+    /// <param name="partyWorldX"><inheritdoc cref="ApproachDirection(int, int, long, long, int, int, int, int)" path="/param[@name='partyWorldX']"/></param>
+    /// <param name="partyWorldY"><inheritdoc cref="ApproachDirection(int, int, long, long, int, int, int, int)" path="/param[@name='partyWorldX']"/></param>
+    /// <remarks>
+    /// Prefer this over the eight-argument form: the box's order is the trap, and here it cannot be
+    /// got wrong.
+    /// </remarks>
+    public static int ApproachDirection(TileEventTrigger trigger,
+        int partyTileX, int partyTileY, long partyWorldX, long partyWorldY) =>
+        trigger == null
+            ? 1
+            : ApproachDirection(partyTileX, partyTileY, partyWorldX, partyWorldY,
+                trigger.StartX, trigger.EndY, trigger.EndX, trigger.StartY);
+
     /// <summary>Which of the record's four landings an approach direction selects.</summary>
     /// <remarks>
     /// <b>Only three directions have their own landing; the other five share the first.</b> The

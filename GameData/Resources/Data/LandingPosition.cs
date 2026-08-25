@@ -21,8 +21,17 @@ namespace GameData.Resources.Data;
 // is the same entry direction 1 uses. So five of the eight directions
 // share one landing. Executable form + tests: EncounterAftermath.LandingFor.
 //
-// The directional values look like cardinal-direction bit flags
-// (N=1, E=2, S=4, W=8) but the exact mapping is still not confirmed.
+// CONFIRMED 2026-08-25 what the four values MEAN, from the selector itself
+// (worldmove_aabb_outcode_rotated, WORLDMOV.C:192 — EncounterAftermath.ApproachDirection):
+//   1 → the party is past the hotspot box's max-Y edge
+//   2 → short of its min-X edge
+//   4 → short of its min-Y edge
+//   8 → anything else: the +X side, and also inside the box
+// So 1/4 are the two Y answers and 2/8 the two X answers. Which reads as north
+// or east is a compass convention the selector does not establish, so the old
+// "N=1, E=2, S=4, W=8" guess is right about the axes and unverified about the
+// direction within them — and getting 2 and 8 backwards throws a fleeing party
+// to the far side of the encounter.
 //
 // For DEF_COMB the direction is measured AFTER the fight, from where the
 // party is standing then — so the landing depends on which side they
