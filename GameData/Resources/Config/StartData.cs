@@ -15,15 +15,20 @@ namespace GameData.Resources.Config;
 /// <list type="table">
 ///   <item>
 ///     <term>explore</term>
-///     <description>The world viewport the player walks around in. Its height and pitch come from
-///       <see cref="World.ZoneDefinition.DefaultCameraZ"/>/<c>DefaultCameraPitch</c> (230/280
-///       outdoors) at zone load, and its viewport rect comes from ZONE.DAT.</description>
+///     <description>The world viewport the player walks around in. Its pitch comes from
+///       <see cref="World.ZoneDefinition.DefaultCameraPitch"/> and its height is
+///       <see cref="World.ZoneDefinition.DefaultCameraZ"/> (230 outdoors) <b>plus the ground under
+///       the party</b> — every completed step writes the scanned ground z and then adds the zone
+///       default (<c>worldmove_party_attempt_move</c>, WORLDMOV.C:87-123). Its viewport rect comes
+///       from ZONE.DAT.</description>
 ///   </item>
 ///   <item>
 ///     <term>arena</term>
 ///     <description>A separate full-screen camera that copies the explore camera's X/Y and heading
 ///       but overwrites its height and pitch from THIS file every frame. It is drawn by exactly one
-///       routine, and that routine's only callers are the combat grid and the combat arena.</description>
+///       routine, and that routine's only callers are the combat grid and the combat arena.
+///       <b>Its height is ABSOLUTE</b> — no ground term — which is the other half of why the two
+///       cameras' numbers are not comparable.</description>
 ///   </item>
 /// </list>
 ///
