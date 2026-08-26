@@ -101,13 +101,16 @@ public sealed class EncounterObjectStates {
 
     /// <summary>One entry.</summary>
     public struct Entry {
-        /// <summary>Sub-tile X offset of the actor's pose. Zeroed by both writers.</summary>
+        /// <summary>
+        /// Sub-tile X offset of the actor's pose. Zeroed by the removal and the reset;
+        /// <see cref="MarkPlaced"/> is the one writer that keeps it.
+        /// </summary>
         public int WorldXOffset;
 
-        /// <summary>Sub-tile Y offset. Zeroed by both writers.</summary>
+        /// <inheritdoc cref="WorldXOffset"/>
         public int WorldYOffset;
 
-        /// <summary>Facing. Zeroed by both writers.</summary>
+        /// <inheritdoc cref="WorldXOffset"/>
         public short Facing;
 
         /// <summary>
@@ -178,9 +181,12 @@ public sealed class EncounterObjectStates {
     /// Records that one roster actor was removed, so it does not come back on revisit.
     /// </summary>
     /// <remarks>
-    /// <b>The pose is zeroed, not preserved.</b> Both writers clear the offsets and facing and keep
-    /// only the kind — the record says "gone", not "gone from here". A port that stored the death
-    /// position would be inventing state the original does not keep.
+    /// <b>THIS writer zeroes the pose.</b> The removal and the reset clear the offsets and facing and
+    /// keep only the kind — the record says "gone", not "gone from here". A port that stored the
+    /// death position here would be inventing state the original does not keep.
+    ///
+    /// <para>Note that is a property of these two writers and not of the block:
+    /// <see cref="MarkPlaced"/> carries a real pose.</para>
     ///
     /// <para>Called on death only for an actor that was actually REMOVED from the field and found
     /// in the enemy array — a corpse-leaving death writes nothing here, which is why some kills
@@ -192,6 +198,39 @@ public sealed class EncounterObjectStates {
     /// <summary>Records the encounter reset that puts a defeated group back on the field.</summary>
     public void MarkReset(int refPair, int recordIndex, int slotIndex) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), KindReset);
+
+    /// <summary>
+    /// Records an actor as placed and standing, keeping a pose — <c>rgnenc_persist_actor_placed</c>
+    /// (RGNENC.C:414).
+    /// </summary>
+    /// <param name="underground">Whether the zone is underground; see the remarks.</param>
+    /// <remarks>
+    /// <b>THE THIRD WRITER, AND THE ONLY ONE THAT KEEPS A POSE.</b> The other two — the removal and
+    /// the reset — zero the offsets and facing, which made "the pose is not preserved" look like a
+    /// property of the block. It is a property of THOSE writers. This one carries a real pose, and a
+    /// port that assumed otherwise would bring every saved roamer back at its tile's origin.
+    ///
+    /// <para><b>Above ground the caller's pose is written; underground the stored one is kept.</b>
+    /// The original branches on the zone kind: outdoors it assigns <c>record.pose = src->pose</c>,
+    /// underground it re-reads the existing entry and leaves the pose alone, writing back only the
+    /// kind. So a dungeon actor resumes exactly where the block last had it, and an outdoor one
+    /// resumes where it had walked to.</para>
+    ///
+    /// <para><b>The kind becomes <see cref="KindStanding"/> whatever it was.</b> Nothing ever
+    /// promotes a standing actor back to roaming, so a wandering monster that is saved comes back
+    /// stopped and stays stopped — the same one-way trip <see cref="StopRoaming"/> describes.</para>
+    /// </remarks>
+    public void MarkPlaced(int refPair, int recordIndex, int slotIndex,
+        int worldXOffset, int worldYOffset, short facing, bool underground) {
+        int at = IndexOf(refPair, recordIndex, slotIndex);
+        Entry kept = _entries[at];
+        _entries[at] = new Entry {
+            WorldXOffset = underground ? kept.WorldXOffset : worldXOffset,
+            WorldYOffset = underground ? kept.WorldYOffset : worldYOffset,
+            Facing = underground ? kept.Facing : facing,
+            KindState = (ushort)(KindStanding << 8),
+        };
+    }
 
     /// <summary>
     /// Sets a slot's kind directly. For tests and for a loader replaying a state the game wrote —
