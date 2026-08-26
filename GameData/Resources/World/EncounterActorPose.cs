@@ -36,9 +36,16 @@ public static class EncounterActorPose {
     /// <summary>Bit of the packed state word that holds the gait's direction of travel.</summary>
     public const int AdvancingBit = 4;
 
-    // Sprite column per octant. Octants 5-7 reuse 3, 0 and 1 mirrored, which is why the last three
-    // repeat earlier columns. Stride 3, one per walk frame.
-    private static readonly int[] WalkingColumns = { 0, 3, 6, 9, 12, 9, 0, 3 };
+    // Sprite column per octant, stride 3 (one per walk frame). The far half of the turn is the near
+    // half MIRRORED, so the table is symmetric about octant 4: 5 reuses 3's column, 6 reuses 2's,
+    // 7 reuses 1's.
+    //
+    // *** INDEX 6 WAS 0 UNTIL 2026-08-26 AND SHOULD ALWAYS HAVE BEEN 6. *** The original's
+    // `case 6:` sets the mirror flag and does NOT reassign spriteDir, so the column stays 6 — a
+    // transcription that read the empty arm as "falls to zero" instead. The symmetry is the tell:
+    // 5<->3 and 7<->1 pair up, and a 0 at 6 leaves octant 2 with no partner while drawing the
+    // creature's FRONT when it is walking away.
+    private static readonly int[] WalkingColumns = { 0, 3, 6, 9, 12, 9, 6, 3 };
 
     // Sprite column per quadrant. Quadrant 3 reuses quadrant 1 mirrored. Stride 4 — and note the
     // first is 3, not 0: this kind's sheet does not start at column zero.

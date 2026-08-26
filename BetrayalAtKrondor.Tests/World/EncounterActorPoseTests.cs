@@ -50,12 +50,35 @@ public class EncounterActorPoseTests {
             columns.Add((column, mirrored));
         }
 
+        // *** OCTANT 6 WAS PINNED AT 0 HERE UNTIL 2026-08-26, AND IT IS 6. *** The original's
+        // `case 6:` sets the mirror flag and does not reassign the column, and this test had
+        // codified reading that empty arm as "falls to zero" — a passing test pinning the reading
+        // rather than the game.
         Assert.Equal(
             new[] {
                 (0, false), (3, false), (6, false), (9, false),
-                (12, false), (9, true), (0, true), (3, true),
+                (12, false), (9, true), (6, true), (3, true),
             },
             columns);
+    }
+
+    [Fact]
+    public void TheFarHalfOfTheTurnMIRRORSTheNearHalf() {
+        // The check that would have caught the wrong column without anyone re-reading the original:
+        // the far octants are the near ones reflected about octant 4, so 5<->3, 6<->2 and 7<->1 must
+        // share a column and differ only in the mirror flag. A stray value breaks exactly one pair.
+        for (var octant = 5; octant < EncounterActorPose.Octants; octant++) {
+            int mirrorOf = EncounterActorPose.Octants - octant;   // 5->3, 6->2, 7->1
+
+            int far = EncounterActorPose.SpriteColumn(
+                EncounterActorPose.WalkingKind, octant, out bool farMirrored);
+            int near = EncounterActorPose.SpriteColumn(
+                EncounterActorPose.WalkingKind, mirrorOf, out bool nearMirrored);
+
+            Assert.Equal(near, far);
+            Assert.True(farMirrored, $"octant {octant} is the far side and must be mirrored");
+            Assert.False(nearMirrored, $"octant {mirrorOf} is the near side and must not be");
+        }
     }
 
     [Fact]
