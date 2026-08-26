@@ -92,4 +92,85 @@ public class CombatTableCreatureIndexTests {
 
         Assert.True(seen > 20, $"only {seen} creature shapes matched — the indexing may have moved");
     }
+
+    // Faces in the first LOD's first six meshes, per creature entry that has geometry.
+    private static List<(int Index, string Name, int[] Prefix)> MeshProfiles() {
+        var profiles = new List<(int, string, int[])>();
+        JsonElement? entries = Entries();
+        if (entries == null) {
+            return profiles;
+        }
+
+        foreach (JsonElement entry in entries.Value.EnumerateArray()) {
+            int index = entry.GetProperty("Index").GetInt32();
+            if (index < (int)CreatureType.Gorath) {
+                continue;   // 0-14 are projectiles, spell effects and crystals
+            }
+            JsonElement lods = entry.GetProperty("Dat").GetProperty("Lods");
+            if (lods.GetArrayLength() == 0) {
+                continue;
+            }
+            JsonElement meshes = lods[0].GetProperty("Meshes");
+            profiles.Add((index,
+                entry.TryGetProperty("Name", out JsonElement n) ? n.GetString() ?? "" : "",
+                meshes.EnumerateArray().Take(6)
+                    .Select(m => m.GetProperty("MeshFaceCount").GetInt32()).ToArray()));
+        }
+        return profiles;
+    }
+
+    [Fact]
+    public void MeshZeroHoldsTheWALKFacesAndMeshOneTheSTANDINGOnes() {
+        // *** WHICH MESH IS WHICH IS THE LAST THING THE DRAW NEEDS. *** EncounterActorPose's
+        // walking columns run 0, 3, 6, 9, 12 with three frames each — indices up to 14, so 15
+        // faces — and its standing columns are 3, 7, 11, so 12. The shipped profile is exactly
+        // that, for the overwhelming majority of creatures.
+        List<(int Index, string Name, int[] Prefix)> profiles = MeshProfiles();
+        if (profiles.Count == 0) {
+            return;
+        }
+
+        var standard = profiles.Where(p => p.Prefix.Length >= 6
+            && p.Prefix[0] == 15 && p.Prefix[1] == 12 && p.Prefix[2] == 12
+            && p.Prefix[3] == 6 && p.Prefix[4] == 3 && p.Prefix[5] == 3).ToList();
+
+        Assert.True(standard.Count >= 30,
+            $"only {standard.Count} of {profiles.Count} entries carry the 15/12/12/6/3/3 profile");
+    }
+
+    [Fact]
+    public void FOURCreaturesAreONEFaceSHORTOfTheWalkRange() {
+        // *** A PORT THAT INDEXES BLINDLY GOES OUT OF RANGE ON THESE. *** Column 12 plus frame 2 is
+        // index 14, so a 14-face mesh has no face for the rearmost column's last frame. The three
+        // wyverns and the spider ship exactly that. Whether the original reads a missing face there
+        // or those four use a different column set is NOT established — this pins the condition so
+        // it is met deliberately rather than as a crash.
+        List<(int Index, string Name, int[] Prefix)> profiles = MeshProfiles();
+        if (profiles.Count == 0) {
+            return;
+        }
+
+        var short14 = profiles
+            .Where(p => p.Prefix.Length >= 1 && p.Prefix[0] == 14)
+            .Select(p => p.Name).OrderBy(n => n).ToList();
+
+        Assert.Equal(new[] { "spider", "wyvern", "wyvern", "wyvern" }, short14);
+    }
+
+    [Fact]
+    public void SomeEntriesInTheCreatureRangeAreNOTCreatures() {
+        // rock, dots, blackcry, spell5, spell6 and sling sit at creature indices and carry a single
+        // one-face mesh. An index being in range is not proof it names a creature — the roster and
+        // the encounter record decide that, not the table's extent.
+        List<(int Index, string Name, int[] Prefix)> profiles = MeshProfiles();
+        if (profiles.Count == 0) {
+            return;
+        }
+
+        var props = profiles.Where(p => p.Prefix.Length >= 1 && p.Prefix[0] == 1)
+            .Select(p => p.Name).ToList();
+
+        Assert.Contains("rock", props);
+        Assert.Contains("sling", props);
+    }
 }
