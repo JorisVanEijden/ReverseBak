@@ -73,6 +73,13 @@ public static class EncounterActorSpawn {
     /// <param name="standingOnly">
     /// The record's flag bit 0. When set, <b>only stationary actors appear</b> — a roaming group
     /// authored on such a record simply does not show up.
+    ///
+    /// <para><b>It is the same bit as <see cref="Data.DefCombEntry.Avoidable"/>.</b> The placement
+    /// loop reads <c>type1_rec.flags &amp; 1</c>, and that word sits at <c>0x3A + 0x153 = 0x18D</c> —
+    /// the template starts at 0x3A and <see cref="Data.EncounterActorSetup"/> is 339 bytes — which is
+    /// exactly the offset the avoidable bit is read from. Two models, one bit, and they agree:
+    /// <b>an encounter you can slip past is one whose members stand still.</b> A roaming group comes
+    /// to you, so there is nothing to sneak around.</para>
     /// </param>
     /// <remarks>
     /// <see cref="Gone"/> and <see cref="Unseeded"/> are never placed: they fall to the switch's

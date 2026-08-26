@@ -42,6 +42,12 @@ public class DefCombEntry {
     // gate as DEF_TRAP's Avoidable (+0x197). When true the party rolls Stealth to evade (and
     // Scouting to detect); when false it fires unconditionally (only Dragon's Breath can still
     // stealth past it). combTrigger_phase2 @0x7409d. Higher bits are always 0 in shipping data.
+    //
+    // THE SAME BIT ALSO GATES PLACEMENT. rgnenc_load_encounter_actors reads it as
+    // EncounterActorSpawn.IsPlaced's standingOnly: when set, only STATIONARY actors of this record
+    // appear in the world. The two readings are one property — an encounter you can slip past is one
+    // whose members stand still, because a roaming group comes to you. Do not model them as two
+    // flags; they are one word at 0x18D, which is 0x3A (the template) + 0x153 (its length).
     public bool Avoidable { get; set; }
 
     /// <summary>
