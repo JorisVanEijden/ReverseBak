@@ -37,4 +37,24 @@ public class DefTrapEntry {
     // stealth past it. Gate in trapTrigger_phase2 @0x746c4 / trapTrigger_phase1 @0x745bf; the same
     // bit-0 toggle is DEF_COMB's field_18D. Higher bits are always 0 in shipping data.
     public bool Avoidable { get; set; }
+
+    /// <summary>
+    /// The landing an approach direction selects — the same four entries, at the same offsets
+    /// relative to the record, as <see cref="DefCombEntry.LandingFor"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Duplicated rather than shared, because the two records are not related types.</b> They
+    /// happen to carry the same four landings in the same order; nothing in the format says they
+    /// must, and an interface over two data records would be inventing a relationship the original
+    /// does not have. Five lines each is the cheaper of the two mistakes.
+    ///
+    /// <para><see cref="LandingPrimary"/> is NOT in this switch: it is the non-directional landing
+    /// the trap uses to place the party when it springs, which is a different moment.</para>
+    /// </remarks>
+    public LandingPosition LandingFor(World.EncounterAftermath.Landing landing) => landing switch {
+        World.EncounterAftermath.Landing.Direction2 => LandingDir2,
+        World.EncounterAftermath.Landing.Direction4 => LandingDir4,
+        World.EncounterAftermath.Landing.Direction8 => LandingDir8,
+        _ => LandingDir1,
+    };
 }
