@@ -195,6 +195,63 @@ public sealed class EncounterObjectStates {
     public void MarkRemoved(int refPair, int recordIndex, int slotIndex) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), KindRemoved);
 
+    /// <summary>
+    /// The once-ever seed pass for a ref pair — the opening of
+    /// <c>rgnenc_load_encounter_actors</c> (RGNENC.C:184-215).
+    /// </summary>
+    /// <param name="refPair">The chunk's ref pair.</param>
+    /// <param name="recordIds">
+    /// The chunk's encounter record ids <b>in trigger order</b> — <see cref="EncounterReset.RecordIds"/>.
+    /// </param>
+    /// <param name="rosterOf">The seven roster entries of a record; <c>-1</c> marks an empty slot.</param>
+    /// <param name="actorIsDead">Whether a roster combatant is dead.</param>
+    /// <returns>True when the pass ran; false when this ref pair was already seeded.</returns>
+    /// <remarks>
+    /// <b>Seeded from the LIVING, not from the record.</b> The pass reads each named combatant's own
+    /// saved flags and marks a slot pending only when that combatant is not dead — so a group the
+    /// party already wiped out never comes back, and it is the combatant table rather than the
+    /// encounter record that remembers.
+    ///
+    /// <para><b>Slot 0 is stamped BEFORE the walk, and the walk may overwrite it.</b> The original
+    /// writes <see cref="KindRemoved"/> into the first slot as its "this pair is seeded" marker and
+    /// then runs the roster walk over the same entries, so a live slot 0 ends up
+    /// <see cref="KindReset"/> instead. The invariant is only that the first slot is never kind 0
+    /// afterwards — which is all <see cref="EncounterActorSpawn.NeedsSeeding"/> asks. A port that
+    /// wrote the marker AFTER the walk would clobber a live first actor every time.</para>
+    ///
+    /// <para><b>Deliberate divergence:</b> the original's seed walk has no record cap while its
+    /// placement loop stops at five, so a chunk with six encounter hotspots walks past the end of
+    /// the ref pair's block and into the next pair's. That is undefined behaviour rather than a
+    /// rule, so this stops at <see cref="RecordsPerRefPair"/>. Callers using
+    /// <see cref="EncounterReset.RecordIds"/> are already capped there; this is the backstop.</para>
+    /// </remarks>
+    public bool Seed(int refPair, System.Collections.Generic.IReadOnlyList<long> recordIds,
+        System.Func<long, System.Collections.Generic.IReadOnlyList<short>> rosterOf,
+        System.Func<int, bool> actorIsDead) {
+        if (!EncounterActorSpawn.NeedsSeeding(_entries[IndexOf(refPair, 0, 0)].KindState)) {
+            return false;
+        }
+
+        Write(IndexOf(refPair, 0, 0), KindRemoved);
+        if (recordIds == null || rosterOf == null || actorIsDead == null) {
+            return true;
+        }
+
+        for (var record = 0; record < recordIds.Count && record < RecordsPerRefPair; record++) {
+            System.Collections.Generic.IReadOnlyList<short> roster = rosterOf(recordIds[record]);
+            for (var slot = 0; slot < SlotsPerRecord; slot++) {
+                int actor = roster != null && slot < roster.Count ? roster[slot] : -1;
+                // Short-circuit rather than asking about slot -1: an empty slot names no combatant,
+                // and a caller's dead-check has no answer for one.
+                if (actor >= 0 && EncounterActorSpawn.SeedsAsPending(actor, actorIsDead(actor))) {
+                    Write(IndexOf(refPair, record, slot),
+                        EncounterActorSpawn.KindOf(EncounterActorSpawn.Pending));
+                }
+            }
+        }
+        return true;
+    }
+
     /// <summary>Records the encounter reset that puts a defeated group back on the field.</summary>
     public void MarkReset(int refPair, int recordIndex, int slotIndex) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), KindReset);
