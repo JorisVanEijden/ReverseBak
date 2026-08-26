@@ -219,6 +219,120 @@ public static class RoamingMovement {
         Mod(x, RoadTravel.CellSize) == RoadTravel.HalfCell
         && Mod(y, RoadTravel.CellSize) == RoadTravel.HalfCell;
 
+    // ---- one tick ---------------------------------------------------------------------------------
+
+    /// <summary>Where a road-following step ended up, and what the sweep saw.</summary>
+    public readonly struct RoadStep {
+        public RoadStep(bool moved, long x, long y, int outcome = 0, ushort target = 0) {
+            Moved = moved;
+            X = x;
+            Y = y;
+            Outcome = outcome;
+            Target = target;
+        }
+
+        /// <summary>False when the way was blocked — the actor turns around instead of moving.</summary>
+        public bool Moved { get; }
+
+        public long X { get; }
+
+        public long Y { get; }
+
+        /// <summary>A <see cref="RoadOutcome"/>.</summary>
+        public int Outcome { get; }
+
+        /// <summary>The heading the sweep reported, meaningful only for the two bends.</summary>
+        public ushort Target { get; }
+    }
+
+    /// <summary>One actor's state between ticks.</summary>
+    public readonly struct Pose {
+        public Pose(long x, long y, ushort heading) {
+            X = x;
+            Y = y;
+            Heading = heading;
+        }
+
+        public long X { get; }
+
+        public long Y { get; }
+
+        public ushort Heading { get; }
+    }
+
+    /// <summary>
+    /// Advances one roaming actor by a tick — the body of
+    /// <c>rgnenc_corpse_tbl_iterate_22byte</c> (RGNENC.C:677-760).
+    /// </summary>
+    /// <param name="pose">Where the actor is now.</param>
+    /// <param name="pattern">Its route.</param>
+    /// <param name="waypointX">The route's waypoints, <b>in world coordinates</b>.</param>
+    /// <param name="waypointY"><inheritdoc cref="Tick" path="/param[@name='waypointX']"/></param>
+    /// <param name="roadStep">
+    /// Takes the road-following step, or reports that it was refused. Only
+    /// <see cref="Pattern.RoadFollowing"/> calls it; null refuses every step, which turns such an
+    /// actor on the spot rather than letting it walk through the world unchecked.
+    /// </param>
+    /// <remarks>
+    /// <b>There is no current-waypoint index.</b> The actor steps and then compares its new position
+    /// against EVERY waypoint of its route, turning on the first match. That is what makes exact
+    /// equality workable, and it means nothing has to be remembered between ticks beyond the pose.
+    ///
+    /// <para><b>Patterns 1-3 take their step unconditionally</b> — no walkability test of any kind,
+    /// so a patrolling monster walks through whatever is in its way. That reads as an oversight and
+    /// invites a port to run patrols through the party's collision, which would strand them wherever
+    /// an authored route clips scenery. Faithful here, and a decision to revisit deliberately rather
+    /// than by accident.</para>
+    ///
+    /// <para><b>Arriving beats the road.</b> A road-follower that lands on an end of its route
+    /// about-faces, and only an actor that landed on neither consults the sweep's heading.</para>
+    /// </remarks>
+    public static Pose Tick(Pose pose, Pattern pattern,
+        System.Collections.Generic.IReadOnlyList<long> waypointX,
+        System.Collections.Generic.IReadOnlyList<long> waypointY,
+        System.Func<Pose, RoadStep> roadStep = null) {
+        if (!Moves(pattern)) {
+            return pose;
+        }
+
+        if (pattern != Pattern.RoadFollowing) {
+            (int dx, int dy) = Step(pose.Heading);
+            var moved = new Pose(pose.X + dx, pose.Y + dy, pose.Heading);
+            return ArrivedAt(moved, waypointX, waypointY, WaypointCount(pattern))
+                ? Turned(moved, TurnOnReach(pattern))
+                : moved;
+        }
+
+        RoadStep step = roadStep?.Invoke(pose) ?? new RoadStep(false, pose.X, pose.Y);
+        if (!step.Moved) {
+            return Turned(pose, BlockedTurn);
+        }
+
+        var after = new Pose(step.X, step.Y, pose.Heading);
+        if (ArrivedAt(after, waypointX, waypointY, WaypointCount(pattern))) {
+            return Turned(after, TurnOnReach(pattern));
+        }
+        return AdoptsRoadHeading(step.Outcome)
+            ? new Pose(after.X, after.Y, step.Target)
+            : after;
+    }
+
+    private static bool ArrivedAt(Pose pose, System.Collections.Generic.IReadOnlyList<long> xs,
+        System.Collections.Generic.IReadOnlyList<long> ys, int count) {
+        if (xs == null || ys == null) {
+            return false;
+        }
+        for (var i = 0; i < count && i < xs.Count && i < ys.Count; i++) {
+            if (pose.X == xs[i] && pose.Y == ys[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Pose Turned(Pose pose, int delta) =>
+        new Pose(pose.X, pose.Y, unchecked((ushort)(pose.Heading + delta)));
+
     private static int Mod(int value, int m) {
         int r = value % m;
         return r < 0 ? r + m : r;
