@@ -85,19 +85,19 @@ public class EncounterActorPoseTests {
     public void AStandingActorResolvesToAQuadrantWithItsOwnColumns() {
         // Not a walking actor with fewer frames: different stride, and the first column is 3 rather
         // than 0 — its sheet does not start at column zero.
-        Assert.Equal(3, EncounterActorPose.SpriteColumn(EncounterActorPose.StandingKind, 0, out _));
-        Assert.Equal(3, EncounterActorPose.SpriteColumn(EncounterActorPose.StandingKind, 1, out _));
-        Assert.Equal(7, EncounterActorPose.SpriteColumn(EncounterActorPose.StandingKind, 2, out _));
-        Assert.Equal(11, EncounterActorPose.SpriteColumn(EncounterActorPose.StandingKind, 4, out _));
+        Assert.Equal(3, EncounterActorPose.SpriteColumn(EncounterActorPose.DownedKind, 0, out _));
+        Assert.Equal(3, EncounterActorPose.SpriteColumn(EncounterActorPose.DownedKind, 1, out _));
+        Assert.Equal(7, EncounterActorPose.SpriteColumn(EncounterActorPose.DownedKind, 2, out _));
+        Assert.Equal(11, EncounterActorPose.SpriteColumn(EncounterActorPose.DownedKind, 4, out _));
 
-        EncounterActorPose.SpriteColumn(EncounterActorPose.StandingKind, 7, out bool mirrored);
+        EncounterActorPose.SpriteColumn(EncounterActorPose.DownedKind, 7, out bool mirrored);
         Assert.True(mirrored);
     }
 
     [Fact]
     public void OnlyTheTwoKnownKindsAreDrawn() {
         Assert.True(EncounterActorPose.IsDrawn(EncounterActorPose.WalkingKind));
-        Assert.True(EncounterActorPose.IsDrawn(EncounterActorPose.StandingKind));
+        Assert.True(EncounterActorPose.IsDrawn(EncounterActorPose.DownedKind));
         Assert.False(EncounterActorPose.IsDrawn(0));
         Assert.False(EncounterActorPose.IsDrawn(5));
     }

@@ -27,8 +27,27 @@ public static class EncounterActorPose {
     /// <summary>The kind that walks: eight facings and a three-frame gait.</summary>
     public const int WalkingKind = 3;
 
-    /// <summary>The kind that does not: four facings and a single pose.</summary>
-    public const int StandingKind = 4;
+    /// <summary>
+    /// The kind a DOWNED actor draws with: four facings and a single pose, no gait.
+    /// </summary>
+    /// <remarks>
+    /// <b>Called "standing" here until 2026-08-26, and that was wrong.</b> The name cost real work:
+    /// the combat arena asked for this kind for every live enemy and drew corpses, and three
+    /// sessions went looking for the fault in mesh indexing before anyone looked at the art.
+    ///
+    /// <para>What settles it: <c>renderEncounterEnemySprite</c> writes this kind's column into
+    /// slot 1 of the actor's flags block, a mesh reads the slot its <c>RuntimeFlagsIndex</c> names,
+    /// and for a mordel that mesh's columns 3/7/11 are bitmaps 18, 22 and 26 — which are pictures of
+    /// a dead mordel collapsed under its cloak. Column 7 of the WALK set, bitmap 7, is the same
+    /// creature standing with a sword.</para>
+    ///
+    /// <para>The shape of the model was right the whole time — "four facings and a single pose, no
+    /// frame" describes a corpse exactly. Only the name lied.</para>
+    ///
+    /// <para><b>A live but stationary actor is not this kind.</b> It uses
+    /// <see cref="WalkingKind"/> at frame 0.</para>
+    /// </remarks>
+    public const int DownedKind = 4;
 
     /// <summary>Frames in the walk cycle.</summary>
     public const int WalkFrames = 3;
@@ -48,8 +67,9 @@ public static class EncounterActorPose {
     private static readonly int[] WalkingColumns = { 0, 3, 6, 9, 12, 9, 6, 3 };
 
     // Sprite column per quadrant. Quadrant 3 reuses quadrant 1 mirrored. Stride 4 — and note the
-    // first is 3, not 0: this kind's sheet does not start at column zero.
-    private static readonly int[] StandingColumns = { 3, 7, 11, 7 };
+    // first is 3, not 0: this kind's sheet does not start at column zero. Confirmed against
+    // renderEncounterEnemySprite's own switch (0x75f3e): {3, 7, 11, 7}, mirrored on quadrant 3.
+    private static readonly int[] DownedColumns = { 3, 7, 11, 7 };
 
     /// <summary>
     /// Which of the eight facings the actor presents to the camera.
@@ -90,11 +110,11 @@ public static class EncounterActorPose {
 
             return WalkingColumns[octant];
         }
-        if (kind == StandingKind) {
+        if (kind == DownedKind) {
             int quadrant = octant >> 1;
             mirrored = quadrant == 3;
 
-            return StandingColumns[quadrant];
+            return DownedColumns[quadrant];
         }
         mirrored = false;
 
@@ -103,9 +123,9 @@ public static class EncounterActorPose {
 
     /// <summary>
     /// Whether this kind of actor is drawn at all. Anything that is not
-    /// <see cref="WalkingKind"/> or <see cref="StandingKind"/> is skipped outright.
+    /// <see cref="WalkingKind"/> or <see cref="DownedKind"/> is skipped outright.
     /// </summary>
-    public static bool IsDrawn(int kind) => kind == WalkingKind || kind == StandingKind;
+    public static bool IsDrawn(int kind) => kind == WalkingKind || kind == DownedKind;
 
     /// <summary>
     /// Advance the walk cycle one tick.

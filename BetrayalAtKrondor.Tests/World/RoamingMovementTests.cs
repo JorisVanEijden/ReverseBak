@@ -92,7 +92,7 @@ public class RoamingMovementTests {
     public void OnlyTheWalkingKindRoams() {
         // Standing actors are drawn and never updated, so a pattern set on one does nothing.
         Assert.Equal(EncounterActorPose.WalkingKind, RoamingMovement.RoamingKind);
-        Assert.NotEqual(EncounterActorPose.StandingKind, RoamingMovement.RoamingKind);
+        Assert.NotEqual(EncounterActorPose.DownedKind, RoamingMovement.RoamingKind);
     }
 
     [Fact]
