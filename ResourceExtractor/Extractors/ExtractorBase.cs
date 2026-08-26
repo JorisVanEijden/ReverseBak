@@ -19,17 +19,12 @@ public abstract class ExtractorBase {
     }
 
    
-    protected static byte[] DecompressToByteArray(BinaryReader resourceReader, long length = 0) {
-        long endPosition = length == 0 ? resourceReader.BaseStream.Length : resourceReader.BaseStream.Position + length;
-        var compressionType = (CompressionType)resourceReader.ReadByte();
-        var decompressedSize = (int)resourceReader.ReadUInt32();
-
-        ICompression compression = CompressionFactory.Create(compressionType);
-        Stream decompressedStream = compression.Decompress(resourceReader.BaseStream, endPosition);
-
-        var decompressedDataBuffer = new byte[decompressedSize];
-        decompressedStream.ReadExactly(decompressedDataBuffer);
-
-        return decompressedDataBuffer;
-    }
+    /// <summary>Reads one compressed block — see <see cref="CompressedBlock"/>.</summary>
+    /// <remarks>
+    /// A wrapper, not an implementation: the read itself is shared with the other project's
+    /// <c>ExtractorBase</c>, which held a byte-for-byte copy of it until 2026-08-26. Kept as a
+    /// protected member so nothing deriving from this base had to change.
+    /// </remarks>
+    protected static byte[] DecompressToByteArray(BinaryReader resourceReader, long length = 0) =>
+        CompressedBlock.Read(resourceReader, length);
 }
