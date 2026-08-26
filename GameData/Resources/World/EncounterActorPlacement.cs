@@ -36,14 +36,43 @@ public static class EncounterActorPlacement {
     /// <summary>One actor, placed.</summary>
     public readonly struct Placed {
         public Placed(int rosterSlot, int creatureNumber, long worldX, long worldY, short facing,
-            bool roams) {
+            bool roams, RoamingMovement.Pattern pattern = RoamingMovement.Pattern.Stationary,
+            long[] waypointX = null, long[] waypointY = null) {
             RosterSlot = rosterSlot;
             CreatureNumber = creatureNumber;
             WorldX = worldX;
             WorldY = worldY;
             Facing = facing;
             Roams = roams;
+            Pattern = pattern;
+            WaypointX = waypointX ?? System.Array.Empty<long>();
+            WaypointY = waypointY ?? System.Array.Empty<long>();
         }
+
+        /// <summary>Which route this actor walks, from its template slot.</summary>
+        public RoamingMovement.Pattern Pattern { get; }
+
+        /// <summary>
+        /// The route's waypoints, <b>already rebased into world coordinates</b>.
+        /// </summary>
+        /// <remarks>
+        /// <b>THE REBASE IS THE WHOLE REASON THE ARRIVAL TEST WORKS.</b> The record stores them
+        /// tile-relative, like the primary spawn — measured across the shipped data, every waypoint a
+        /// moving pattern actually reads is in <c>[0, 64000)</c>. The original adds the party-tile
+        /// origin to all four at placement time (RGNENC.C:280-283) and the updater then compares them
+        /// against the actor's ABSOLUTE position by exact equality. Left tile-relative, that
+        /// comparison can only ever match in tile (0, 0), and every patrol elsewhere walks off in a
+        /// straight line forever — which is exactly the failure
+        /// <see cref="RoamingMovement.IsAtWaypoint"/> warns about.
+        ///
+        /// <para><b>The original rebases a COPY of the template</b>, taken per placement. Doing it in
+        /// place would add the origin again on the next chunk, and the route would drift a tile
+        /// further away every time the party walked back.</para>
+        /// </remarks>
+        public System.Collections.Generic.IReadOnlyList<long> WaypointX { get; }
+
+        /// <inheritdoc cref="WaypointX"/>
+        public System.Collections.Generic.IReadOnlyList<long> WaypointY { get; }
 
         /// <summary>Index within the record's seven slots.</summary>
         public int RosterSlot { get; }
@@ -121,9 +150,19 @@ public static class EncounterActorPlacement {
             facing = stored.Facing;
         }
 
+        var pattern = (RoamingMovement.Pattern)(slot?.MovementPattern ?? 0);
+        int waypoints = RoamingMovement.WaypointCount(pattern);
+        var wx = new long[waypoints];
+        var wy = new long[waypoints];
+        for (var i = 0; i < waypoints; i++) {
+            wx[i] = originX + (slot.AltSpawnX != null && i < slot.AltSpawnX.Length ? slot.AltSpawnX[i] : 0);
+            wy[i] = originY + (slot.AltSpawnY != null && i < slot.AltSpawnY.Length ? slot.AltSpawnY[i] : 0);
+        }
+
         placed = new Placed(0, slot?.CreatureNumber ?? 0, x, y, facing,
             EncounterActorSpawn.KindOf(stateWordAfter)
-                == EncounterActorSpawn.KindOf(EncounterActorSpawn.Roaming));
+                == EncounterActorSpawn.KindOf(EncounterActorSpawn.Roaming),
+            pattern, wx, wy);
         return true;
     }
 
@@ -143,7 +182,8 @@ public static class EncounterActorPlacement {
         }
 
         placed = new Placed(rosterSlot, bare.CreatureNumber, bare.WorldX, bare.WorldY, bare.Facing,
-            bare.Roams);
+            bare.Roams, bare.Pattern, System.Linq.Enumerable.ToArray(bare.WaypointX),
+            System.Linq.Enumerable.ToArray(bare.WaypointY));
         return true;
     }
 }
