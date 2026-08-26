@@ -50,4 +50,54 @@ public static class DialogBackdrop {
     /// <summary>Whether this entry is drawn on the full-screen parchment.</summary>
     public static bool DrawsFullScreenBackdrop(DialogEntry entry) =>
         entry != null && DrawsFullScreenBackdrop(entry.Flags);
+
+    /// <summary>
+    /// <b>The world keeps drawing on top of the parchment.</b> The blit fills the screen, and then
+    /// the world viewport is re-rendered over it, so the speaker stands against the landscape.
+    /// </summary>
+    /// <remarks>
+    /// This is the part a port gets wrong by reading only the blit: the parchment covers everything
+    /// for one instant and the viewport is immediately painted back. <c>ExecuteDialog</c>'s
+    /// backdrop arm saves the world camera and widget, re-points the camera (see
+    /// <see cref="RepointsCameraForSpeaker"/>), calls the world renderer, outlines the viewport and
+    /// restores both. The image itself carries no green field — extracting it gives bare parchment.
+    /// </remarks>
+    public const bool RedrawsWorldViewport = true;
+
+    /// <summary>
+    /// <b>The camera is MOVED before that render, so the view is not what the player was looking
+    /// at.</b>
+    /// </summary>
+    /// <remarks>
+    /// The original overwrites the camera's height with the zone default plus the world-crossing
+    /// coordinate, its pitch with the zone default, and — when the speaker is a party member —
+    /// turns the yaw roughly about-face and offsets it by the speaker's slot in the marching order,
+    /// so each companion is framed against a slightly different bearing. It restores the saved
+    /// camera immediately afterwards, so nothing the player sees afterwards moves.
+    ///
+    /// <para>That is why a reference screenshot of this dialog can show a flat, featureless green
+    /// field while the party is standing beside a corpse on a road: the shot is of a DIFFERENT
+    /// camera. Matching the original here means re-pointing the camera, not painting a fill.</para>
+    ///
+    /// <para><b>Not yet applied</b> — our backdrop renders the live camera. Tracked on the task; the
+    /// rule is recorded here so the reason the two differ is not rediscovered from scratch.</para>
+    /// </remarks>
+    public const bool RepointsCameraForSpeaker = true;
+
+    /// <summary>Palette pen the viewport's outline is drawn in.</summary>
+    /// <remarks>
+    /// <c>bGfx_outline_color = 6</c> with fill and clipping both switched off, so the line lands
+    /// OUTSIDE the viewport rather than eating a pixel of the world.
+    /// </remarks>
+    public const int ViewportOutlinePen = 6;
+
+    /// <summary>
+    /// How far outside the viewport that outline sits, in original screen px.
+    /// </summary>
+    /// <remarks>
+    /// The call is <c>draw_rect_filled(xmin - 1, ymin - 1, (xmax - xmin) + 3, (ymax - ymin) + 3)</c>
+    /// — one px out on every side, which is what makes it a frame around the world rather than a
+    /// border drawn over its edge.
+    /// </remarks>
+    public const int ViewportOutlineInset = 1;
 }
