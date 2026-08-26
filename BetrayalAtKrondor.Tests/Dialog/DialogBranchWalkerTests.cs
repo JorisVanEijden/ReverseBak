@@ -45,6 +45,70 @@ public class DialogBranchWalkerTests {
         }
     }
 
+    // ---- Id-addressed targets ------------------------------------------------------------
+    //
+    // A branch names its target by offset-in-this-file OR by global dialog id, and this walker can
+    // only follow the first. Squire Phillip's router (DIAL_Z30 offset 131137) is empty and carries
+    // a single default branch to dialog 2000001 — the shared ask-about page — so read as a dead end
+    // his conversation ends where the topic list belongs. That is the bug these pin.
+
+    [Fact]
+    public void AnIdAddressedBranchIsReportedRatherThanSwallowed() {
+        var router = E(131137, null, new DefaultBranch { TargetId = 2000001 });
+        Dialog d = Dlg(router);
+
+        // The walk itself still stops — it only indexes this file.
+        Assert.Same(router, DialogBranchWalker.WalkToLeaf(d, router, _ => 0));
+        // ...but the destination is recoverable, which is what lets the caller load the other DDX.
+        Assert.Equal(2000001, DialogBranchWalker.IdAddressedTargetOf(router, _ => 0));
+    }
+
+    [Fact]
+    public void AnOffsetBranchIsNotMistakenForAnIdAddressedOne() {
+        // *** The failure this catches. *** Deciding it by whether the key resolves would send
+        // every dangling in-file offset off to load a dialog named by a null id. The destination
+        // FIELD decides, the same way bit 31 of the key decides in the original.
+        var router = E(200, null, new DefaultBranch { TargetOffset = 300 });
+        Assert.Null(DialogBranchWalker.IdAddressedTargetOf(router, _ => 0));
+    }
+
+    [Fact]
+    public void ADanglingOffsetIsStillNotAnIdAddressedHop() {
+        var router = E(200, null, new DefaultBranch { TargetOffset = 999 });
+        Dialog d = Dlg(router); // 999 is not in the file
+        Assert.Same(router, DialogBranchWalker.WalkToLeaf(d, router, _ => 0));
+        Assert.Null(DialogBranchWalker.IdAddressedTargetOf(router, _ => 0));
+    }
+
+    [Fact]
+    public void TheIdAddressedTargetFollowsTHESAMEBranchTheWalkChose() {
+        // A router whose choice depends on state must not report the other arm's destination.
+        var router = E(500, null,
+            new ConditionalBranch { Condition = new FlagCondition { Flag = 42, Set = true }, TargetId = 111 },
+            new DefaultBranch { TargetId = 222 });
+        Assert.Equal(111, DialogBranchWalker.IdAddressedTargetOf(router, k => k == 42 ? 1 : 0));
+        Assert.Equal(222, DialogBranchWalker.IdAddressedTargetOf(router, _ => 0));
+    }
+
+    [Fact]
+    public void AnEntryWithNoBranchesAtAllReportsNothing() {
+        Assert.Null(DialogBranchWalker.IdAddressedTargetOf(E(700, null), _ => 0));
+        Assert.Null(DialogBranchWalker.IdAddressedTargetOf(null, _ => 0));
+    }
+
+    [Fact]
+    public void AChoiceMenuIsWhereTheWalkSTOPS_NotSomethingItWalksThrough() {
+        // Dialog 2000001 is the shape: no text, and twelve KeywordChoiceBranches. The walk has to
+        // hand it back so the renderer can draw the topic grid — walking INTO a topic would answer
+        // a question the player was never asked, and there is no id-addressed hop to chase either.
+        var menu = E(3000, null,
+            new KeywordChoiceBranch { Keyword = 1, TargetOffset = 3799 },
+            new KeywordChoiceBranch { Keyword = 2, TargetOffset = 4359 });
+        var topic = E(3799, "about the inns");
+        Assert.Same(menu, DialogBranchWalker.WalkToLeaf(Dlg(menu, topic), menu, _ => 0));
+        Assert.Null(DialogBranchWalker.IdAddressedTargetOf(menu, _ => 0));
+    }
+
     [Fact] public void LeafWithText_ReturnedAsIs() {
         var leaf = E(100, "hello");
         Assert.Same(leaf, DialogBranchWalker.WalkToLeaf(Dlg(leaf), leaf, _ => 0));

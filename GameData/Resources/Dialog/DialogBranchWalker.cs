@@ -39,7 +39,9 @@ public static class DialogBranchWalker {
             }
             DialogBranchBase chosen = ChooseBranch(current, getGlobal, roll);
             if (chosen?.TargetKey == null || !byKey.TryGetValue(chosen.TargetKey, out DialogEntry next)) {
-                return current; // dead end (incl. sentinel target / cross-file id key)
+                // Dead end BY OFFSET. An id-addressed target is not really a dead end — see
+                // IdAddressedTargetOf, which the caller resolves by loading that dialog.
+                return current;
             }
             current = next;
         }
@@ -158,6 +160,51 @@ public static class DialogBranchWalker {
     /// be a different distribution.
     /// </remarks>
     public const int RandomBranchRollWindow = 0x1000;
+
+    /// <summary>
+    /// The dialog id a walk that stopped on <paramref name="entry"/> was heading for, when its
+    /// chosen branch names its destination by ID rather than by offset — otherwise null.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two addressing modes are not interchangeable, and this walker can only follow one of
+    /// them.</b> A branch names its target either as an offset into the file it is already in or as
+    /// a global dialog id; the original picks between them on bit 31 of the key and, for an id,
+    /// re-derives the FILE from the id itself (<c>key / 100000</c> names the DDX) before loading.
+    /// This walker indexes one file by offset, so every id-addressed branch — including one that
+    /// happens to land in the same file — resolves to nothing and reads as the end of the
+    /// conversation.
+    ///
+    /// <para><b>That is not a rare edge.</b> Hundreds of shipped branches are id-addressed, and it
+    /// is how every NPC reaches the shared ask-about pages, which all live in DIAL_Z20. Squire
+    /// Phillip's router (DIAL_Z30 offset 131137) is an empty entry whose one default branch is
+    /// dialog 2000001 and nothing else, so his conversation ended precisely where his topic list
+    /// belongs.</para>
+    ///
+    /// <para><b>Decided by which destination field is set, never by whether a key resolves.</b>
+    /// That is the original's own test, and it keeps a dangling in-file offset — a genuine dead end
+    /// — from being mistaken for a hop and sent off to load a DDX named by a null id.</para>
+    ///
+    /// <para>Asking the entry the walk STOPPED on re-picks the branch the walk itself picked:
+    /// <see cref="ChooseBranch"/> is a pure function of the entry and the globals.</para>
+    /// </remarks>
+    public static int? IdAddressedTargetOf(DialogEntry entry, Func<int, int?> getGlobal,
+        Func<int> roll = null) {
+        if (entry == null) {
+            return null;
+        }
+        DialogBranchBase chosen = ChooseBranch(entry, getGlobal, roll);
+        return chosen != null && chosen.TargetOffset == null ? chosen.TargetId : null;
+    }
+
+    /// <summary>
+    /// How many id-addressed targets one resolve may follow before giving up.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="MaxHops"/>, which bounds offset hops within a file: each of these
+    /// may load a different DDX, so the guard against malformed or cyclic data wants to be much
+    /// tighter.
+    /// </remarks>
+    public const int MaxIdAddressedHops = 4;
 
     private static DialogBranchBase ChooseBranch(DialogEntry entry, Func<int, int?> getGlobal,
         Func<int> roll = null) {
