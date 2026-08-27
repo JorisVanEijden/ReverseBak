@@ -12,12 +12,17 @@ using System.Collections.Generic;
 /// </summary>
 public static class AiTurnPackets {
     /// <summary>
-    /// <b>The AI's target search radius is a constant 6.</b>
+    /// <b>THIS WRAPPER FAMILY's target search radius — not the AI's.</b>
     /// </summary>
     /// <remarks>
-    /// Every one of the six wrappers passes 6 as <c>combatenc_ai_pick_target_by_role</c>'s
-    /// <c>max_distance</c>. <see cref="CombatAi.SelectTarget"/> takes that as a parameter and nothing
-    /// supplied it; this is the value.
+    /// Every one of the six <c>combat_ai_execute_turn</c> wrappers passes 6 as
+    /// <c>combatenc_ai_pick_target_by_role</c>'s <c>max_distance</c>, and this is that value.
+    ///
+    /// <para><b>It was documented here as "the AI's target search radius is a constant 6", which is
+    /// true of these six wrappers and of nothing else.</b> Two other families were named later and
+    /// pass different numbers — melee sweeps 100, a crossbow shot sweeps 10, and only the "anyone"
+    /// variants fall back to 6. Use <see cref="CombatAi.SearchRadiusFor"/>, which knows all three;
+    /// reading this constant as the AI's radius is what put a resolver-wide 12 into the game.</para>
     ///
     /// <para><b>It is not the grid's reach.</b> The arena is 8 x 13, so a monster simply cannot see a
     /// target on the far side — a port that passed the grid diagonal instead would have monsters

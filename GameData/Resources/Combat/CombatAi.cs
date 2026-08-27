@@ -58,8 +58,17 @@ public sealed class TargetCandidate {
     public bool TargetsTheLeader { get; set; }
 
     /// <summary>How many of the monster's own side stand within the required clearance of this
-    /// candidate. Non-zero disqualifies it.</summary>
+    /// candidate. Non-zero disqualifies it. <b>Ranged path only</b> — the melee selector has no
+    /// clearance parameter and uses <see cref="AttackersAlready"/> instead.</summary>
     public int AlliesNearby { get; set; }
+
+    /// <summary>
+    /// How many live attackers are ALREADY aimed at this candidate. <b>Melee path only</b> — the
+    /// melee selector skips a candidate once this reaches
+    /// <see cref="CombatAi.MaxAttackersPerCandidate"/>, which is how that half of the AI spreads
+    /// the pack. Counted from the monsters' own side, like <see cref="AlliesNearby"/>.
+    /// </summary>
+    public int AttackersAlready { get; set; }
 }
 
 /// <summary>What a monster does on its turn.</summary>
@@ -141,19 +150,134 @@ public static class CombatAi {
     /// <see cref="TargetCandidate.AlliesNearby"/> from the wrong side. That field's own doc had it
     /// right.</para>
     /// </param>
+    /// <summary>Radius the "anyone" behaviours sweep — <c>monster_*AnyoneWithinSix</c>.</summary>
+    public const int AnyoneSearchRadius = 6;
+
+    /// <summary>Radius a melee behaviour sweeps for its specific role: the whole field.</summary>
+    public const int MeleeSearchRadius = 100;
+
+    /// <summary>Radius a ranged behaviour sweeps for its specific role.</summary>
+    public const int RangedSearchRadius = 10;
+
+    /// <summary>
+    /// How far a behaviour looks for its target. <b>The radius belongs to the BEHAVIOUR, not to the
+    /// AI.</b>
+    /// </summary>
+    /// <remarks>
+    /// There is no single search radius, which is the thing that is easy to get wrong because one
+    /// family really does use a constant. Three families are named in IDA and they pass three
+    /// different numbers:
+    /// <list type="table">
+    ///   <item><term><c>combat_ai_execute_turn</c> wrappers</term><description>6 — see
+    ///     <see cref="AiTurnPackets.TargetSearchRadius"/></description></item>
+    ///   <item><term>ovr170 melee <c>monster_engage*</c> (6 of 7)</term><description>100</description></item>
+    ///   <item><term>ovr172 ranged <c>monster_shoot*</c> (5 of 6)</term><description>10</description></item>
+    ///   <item><term><c>monster_engageAnyoneWithinSix</c> / <c>monster_shootAnyoneWithinSix</c></term>
+    ///     <description>6</description></item>
+    /// </list>
+    /// Each family searches wide for its <i>specific</i> role — the whole field for a melee
+    /// creature, ten cells for a crossbow shot — and falls back to a short radius-6 sweep for
+    /// "anyone". A resolver-wide constant matches none of them.
+    /// </remarks>
+    public static int SearchRadiusFor(AiAction action, TargetRole role) =>
+        // Casting goes through the combat_ai_execute_turn wrappers, which are the family that
+        // passes 6 (AiTurnPackets.TargetSearchRadius) — the same number the "anyone" sweeps use.
+        // Without this arm a caster picking a SPECIFIC role would fall through to melee's 100.
+        action == AiAction.Cast || role == TargetRole.Anyone ? AnyoneSearchRadius
+        : action == AiAction.Shoot ? RangedSearchRadius
+        : MeleeSearchRadius;
+
+    /// <summary>
+    /// How much room a shooter needs around its target, derived from its crossbow accuracy.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is a won't-shoot-into-a-melee rule, not a range or a to-hit modifier.</b>
+    /// <c>monster_crossbowShotByTargetMode</c> @0x663d9 computes it and hands it to
+    /// <c>combat_selectTargetByMode</c> as the clearance that rejects a candidate with anyone
+    /// standing too close:
+    /// <code>
+    /// 663f0  add ax, 24
+    /// 663f3  mov bx, 25
+    /// 663f7  idiv bx          ; (accuracy + 24) / 25
+    /// 663f9  mov dx, 4
+    /// 663fc  sub dx, ax       ; clearance = 4 - that
+    /// </code>
+    /// A poor shot refuses a target with anyone within four cells; a perfect shot fires regardless.
+    /// Leaving it at 0 makes every monster a perfect shot.
+    ///
+    /// <para><b>The steps do not fall on multiples of 25.</b> <c>idiv</c> truncates toward zero, so
+    /// the breaks are at 1, 26, 51 and 76 — accuracy 25 still needs 3 cells and it is 26 that drops
+    /// to 2. A table sampled at 0/25/50/75/100 reads as though the boundaries were the round
+    /// numbers, and a port built from that sampling is wrong for exactly one accuracy point in
+    /// four.</para>
+    ///
+    /// <para>Clamped at 0 because an accuracy above 100 would otherwise go negative, and "less than
+    /// no clearance" is not a thing the rule can mean — a perfect shot already fires regardless.</para>
+    /// </remarks>
+    public static int AllyClearanceForAccuracy(int crossbowAccuracy) {
+        int steps = (crossbowAccuracy + 24) / 25;
+        int clearance = 4 - steps;
+        return clearance < 0 ? 0 : clearance;
+    }
+
+    /// <summary>
+    /// How many of its own side the melee selector lets pile onto one candidate.
+    /// </summary>
+    /// <remarks>
+    /// <b>The two selectors spread the pack by different rules.</b> The ranged copy skips a
+    /// candidate with anyone standing within <c>exclusionRadius</c> of it. The melee copy
+    /// (<c>combat_selectTargetByCriterion</c> @0x64ff6) has no such parameter — it counts how many
+    /// live attackers are ALREADY aimed at the candidate and skips it once that reaches this cap,
+    /// computed once at entry as <c>ceil(attackers / candidates)</c> and floored at 1. Six
+    /// attackers against two targets gives 3.
+    ///
+    /// <para>Porting the ranged clearance onto the melee path is the easy mistake — it looks like
+    /// the same "spread out" behaviour and it is not the rule the melee selector runs. Porting
+    /// neither is worse: the pack converges on whoever is nearest.</para>
+    /// </remarks>
+    public static int MaxAttackersPerCandidate(int liveAttackers, int liveCandidates) {
+        if (liveCandidates <= 0) {
+            return 1;
+        }
+        int cap = (liveAttackers + liveCandidates - 1) / liveCandidates;
+        return cap < 1 ? 1 : cap;
+    }
+
+    /// <param name="maxAttackersPerCandidate">
+    /// The melee saturation cap from <see cref="MaxAttackersPerCandidate"/>; 0 disables the rule,
+    /// which is what the ranged path wants — it spreads with
+    /// <paramref name="minAllyClearance"/> instead.
+    /// </param>
+    /// <param name="excludeAtMaxDistance">
+    /// <b>The two selectors bound the distance differently.</b> The game ships this routine twice —
+    /// <c>combat_selectTargetByMode</c> @0x63ce6 (ovr169, ranged) accepts
+    /// <c>dist &lt;= maxDistance</c>, while <c>combat_selectTargetByCriterion</c> @0x64ff6 (ovr170,
+    /// melee) <i>skips</i> on <c>dist &gt;= maxDistance</c>. Set this for the melee families, where
+    /// a radius of 6 means "within 5". It makes no difference at 100 and all the difference at 6.
+    /// </param>
     public static int SelectTarget(
         int fromX, int fromY, IReadOnlyList<TargetCandidate> candidates,
-        int maxDistance, TargetRole role, int minAllyClearance) {
+        int maxDistance, TargetRole role, int minAllyClearance,
+        bool excludeAtMaxDistance = false, int maxAttackersPerCandidate = 0) {
         var chosen = -1;
         if (candidates == null) {
             return chosen;
         }
 
+        // *** The behaviour's radius and the nearest-so-far bound are kept APART. *** They used to
+        // be one variable that each acceptance tightened, which is equivalent while the test is
+        // `>` — but applying the melee `>=` rule to a tightened bound would also start rejecting a
+        // candidate at the SAME distance as the best so far, silently flipping which of two
+        // equidistant targets wins. That tie-break is not something the exclusive bound was
+        // observed to change, so it is left exactly as it was.
+        int nearestSoFar = int.MaxValue;
+
         for (var i = 0; i < candidates.Count; i++) {
             TargetCandidate candidate = candidates[i];
             int distance = CombatGrid.ChebyshevDistance(fromX, fromY, candidate.X, candidate.Y);
 
-            if (distance > maxDistance || candidate.IsDead) {
+            bool outOfRange = excludeAtMaxDistance ? distance >= maxDistance : distance > maxDistance;
+            if (outOfRange || distance > nearestSoFar || candidate.IsDead) {
                 continue;
             }
             // The clearance test uses the caller-supplied count; a 0 clearance disables it, matching
@@ -161,12 +285,18 @@ public static class CombatAi {
             if (minAllyClearance != 0 && candidate.AlliesNearby != 0) {
                 continue;
             }
+            // The melee half of the same idea: not "who is standing near it" but "how many of us
+            // are already swinging at it".
+            if (maxAttackersPerCandidate != 0
+                && candidate.AttackersAlready >= maxAttackersPerCandidate) {
+                continue;
+            }
             if (!MatchesRole(candidate, role)) {
                 continue;
             }
 
             chosen = i;
-            maxDistance = distance;
+            nearestSoFar = distance;
         }
         return chosen;
     }
