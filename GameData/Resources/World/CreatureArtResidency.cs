@@ -24,6 +24,21 @@ using System.Collections.Generic;
 /// encounter only being able to show a creature whose art is resident. So an actor naming a creature
 /// outside the roster is <b>ordinary</b> — it is what the fifth slot exists for — and not a data
 /// error to reject.</para>
+///
+/// <para><b>THIS HAS NO UNITY CONSUMER, DELIBERATELY (TASK-105).</b> It is not an unfinished port.
+/// The question it answers — "which creature art must I keep resident for this chunk?" — only
+/// exists because the original had to decide what to hold in 16-bit memory. Unity loads an encounter
+/// actor's sprite on demand and caches it, so the draw already warms exactly the art that is
+/// actually used, and the only thing this list would add is the roster's four types whether or not
+/// anything on screen needs them: art for monsters that may never appear. That is a pessimisation
+/// dressed as fidelity, and porting it would be porting the 1993 engine's memory budget rather than
+/// the game's behaviour.
+///
+/// <para>Kept because the placement rule it encodes (RGNENC.C:311-322 — check each placed creature
+/// against the four slots, collect the ones that miss) is real RE worth not rediscovering, and
+/// because the roster/permission distinction above is the thing a future reader most needs. If a
+/// measured loading hitch ever justifies pre-warming, this is the correct list to warm from — but
+/// measure first.</para></para>
 /// </remarks>
 public static class CreatureArtResidency {
     /// <summary>
