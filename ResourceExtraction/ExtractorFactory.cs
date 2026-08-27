@@ -92,6 +92,8 @@ public static class ExtractorFactory {
         }, {
             typeof(CreatureBitmaps), typeof(BNamesExtractor)
         }, {
+            typeof(GameData.Resources.Palette.ColorRemapTable), typeof(ColorRemapTableExtractor)
+        }, {
             typeof(CastRing), typeof(CastRingExtractor)
         }, {
             typeof(ChapterSongMap), typeof(ChapterSongMapExtractor)
