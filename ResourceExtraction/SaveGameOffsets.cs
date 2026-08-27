@@ -109,6 +109,30 @@ public static class SaveGameOffsets {
     public const int PartyActors = 119;
     public const int PartyActorStride = 95;
 
+    /// <summary>
+    /// The 1730-entry actor table — the roster every encounter's enemies are drawn from.
+    /// </summary>
+    /// <remarks>
+    /// <b>Same 95-byte record as <see cref="PartyActors"/>, a different section.</b> The six party
+    /// records live in the state block at 119; these are the whole actor table, and a slot here is
+    /// what an encounter roster names. Conflating the two fields a party member as an enemy — the
+    /// trap <c>GameSession.RosterStatsOf</c> exists to avoid.
+    ///
+    /// <para><b>Confirmed from the engine's own write path, not only by summing sections.</b>
+    /// <c>SaveEncounterNpcsToTempGam</c> (IDA <c>0x63265</c>) writes each surviving enemy back at
+    /// <c>0x90E7 + slot * 0x5F</c> — 0x90E7 is 37095, exactly
+    /// <see cref="StateDataSize"/> + <see cref="WorldDataSize"/>, and 0x5F is 95. The same routine's
+    /// combat write lands on <see cref="CombatDataOffset"/>, so both agree independently.</para>
+    ///
+    /// <para><b>That routine copies the WHOLE 95-byte record</b>, so the original lets a fight
+    /// change any byte of it. Our writer patches only the attribute block, which is the same picture
+    /// while combat changes nothing else; widen it the day something does.</para>
+    /// </remarks>
+    public const int RosterActors = StateDataSize + WorldDataSize;
+
+    /// <inheritdoc cref="RosterActors"/>
+    public const int RosterActorCount = ActorDataSize / PartyActorStride;
+
     /// <summary>The three known-spell words within an actor record, right after the name pointer.
     /// Confirmed by <c>combat_actor_bitmap_set_bit</c>, which indexes them as
     /// <c>record + 2 + (spellId / 16) * 2</c>.</summary>

@@ -29,7 +29,8 @@ public static class SaveGameWriter {
         IReadOnlyList<SaveGameTimerData> timers = null,
         EncounterVisitTable automapVisits = null,
         EncounterObjectStates encounterActorStates = null,
-        IReadOnlyDictionary<int, int> globalFlagEdits = null) {
+        IReadOnlyDictionary<int, int> globalFlagEdits = null,
+        IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -187,6 +188,39 @@ public static class SaveGameWriter {
                 byte[] record = Extractors.CombatRecordWriter.ToBytes(edit.Record);
                 record.CopyTo(body, at);
                 coverage.Add(at, record.Length);
+            }
+        }
+
+        if (rosterActorEdits != null) {
+            foreach (DirtyRosterActorEdit edit in rosterActorEdits) {
+                if (edit.ActorSlot < 0 || edit.ActorSlot >= SaveGameOffsets.RosterActorCount) {
+                    throw new ArgumentOutOfRangeException(nameof(rosterActorEdits),
+                        $"Actor slot {edit.ActorSlot} is outside the {SaveGameOffsets.RosterActorCount}-entry actor table.");
+                }
+                if (edit.Stats == null) {
+                    continue;
+                }
+
+                // The same attribute quintuples as a party record — identical layout, different
+                // section. The original writes the WHOLE 95 bytes back for a surviving enemy
+                // (SaveEncounterNpcsToTempGam, IDA 0x63265); patching the attribute block is the
+                // same picture while combat changes nothing outside it.
+                int recordOffset = SaveGameOffsets.RosterActors
+                    + edit.ActorSlot * SaveGameOffsets.PartyActorStride
+                    + SaveGameOffsets.ActorAttributesInRecord;
+                int attributes = Math.Min(edit.Stats.Length, SaveGameOffsets.ActorAttributeCount);
+                for (int i = 0; i < attributes; i++) {
+                    ActorStat stat = edit.Stats[i];
+                    if (stat == null) {
+                        continue;
+                    }
+                    int at = recordOffset + i * SaveGameOffsets.ActorAttributeStride;
+                    PatchU8(at + 0, stat.Max);
+                    PatchU8(at + 1, stat.Base);
+                    PatchU8(at + 2, stat.Effective);
+                    PatchU8(at + 3, stat.Experience);
+                    PatchU8(at + 4, unchecked((byte)stat.Modifier));
+                }
             }
         }
 
