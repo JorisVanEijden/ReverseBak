@@ -196,6 +196,12 @@ internal static class Program {
             return;
         }
 
+        if (args.Length >= 1 && args[0] == "--partycombat") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            ExtractPartyCombatEntries(gamePath);
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--movement") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             ExtractMovementData(gamePath);
@@ -1210,6 +1216,32 @@ internal static class Program {
                           $"gridCell={data.CombatGridCellSize} " +
                           $"viewport={data.ViewportX},{data.ViewportY},{data.ViewportWidth},{data.ViewportHeight} " +
                           $"written to START.json");
+    }
+
+    /// <summary>
+    /// P1.DAT — one 22-byte combat record per playable character.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its <c>CreatureType</c> is the only translation from a character index to a drawable
+    /// creature.</b> The 1730-slot actor table's low slots are monsters, so indexing THAT with a
+    /// character index draws a goblin for Locklear; the six values here are 17, 15, 16, 45, 51, 47
+    /// (Locklear, Gorath, Owyn, Pug, James, Patrus) in BNAMES numbering, and they are neither
+    /// sequential nor in name order. Emitted so the mapping is visible in <c>generated/</c> rather
+    /// than only reachable by loading the file at runtime.
+    /// </remarks>
+    private static void ExtractPartyCombatEntries(string gamePath) {
+        string fullPath = Path.Combine(gamePath, "P1.DAT");
+        if (!File.Exists(fullPath)) {
+            Console.Error.WriteLine($"[P1] missing: {fullPath}");
+            return;
+        }
+        using var stream = File.OpenRead(fullPath);
+        PartyCombatEntries data = new PartyCombatEntryExtractor().Extract("P1.DAT", stream);
+        string json = JsonSerializer.Serialize(data, ResourceExtensions.JsonOptions);
+        File.WriteAllText("P1.json", json);
+        Console.WriteLine($"[P1] {data.Slots.Count} records; creatures "
+            + string.Join(",", data.Slots.Select(r => r.CreatureType))
+            + " written to P1.json");
     }
 
     private static void ExtractMovementData(string gamePath) {
