@@ -37,7 +37,8 @@ public static class EncounterActorPlacement {
     public readonly struct Placed {
         public Placed(int rosterSlot, int creatureNumber, long worldX, long worldY, short facing,
             bool roams, RoamingMovement.Pattern pattern = RoamingMovement.Pattern.Stationary,
-            long[] waypointX = null, long[] waypointY = null) {
+            long[] waypointX = null, long[] waypointY = null, bool downed = false) {
+            Downed = downed;
             RosterSlot = rosterSlot;
             CreatureNumber = creatureNumber;
             WorldX = worldX;
@@ -48,6 +49,17 @@ public static class EncounterActorPlacement {
             WaypointX = waypointX ?? System.Array.Empty<long>();
             WaypointY = waypointY ?? System.Array.Empty<long>();
         }
+
+        /// <summary>
+        /// This is a body, not a creature — draw it in the downed pose.
+        /// </summary>
+        /// <remarks>
+        /// <b>A flag of its own rather than "is it stationary".</b> The sprite builder used to pick
+        /// the pose from whether an actor roamed, which drew every standing guard as a corpse; the
+        /// two questions are unrelated, and <see cref="Roams"/> answers the other one. See
+        /// <c>EncounterActorPose.DownedKind</c>.
+        /// </remarks>
+        public bool Downed { get; }
 
         /// <summary>Which route this actor walks, from its template slot.</summary>
         public RoamingMovement.Pattern Pattern { get; }

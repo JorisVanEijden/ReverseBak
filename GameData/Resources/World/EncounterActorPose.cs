@@ -49,6 +49,26 @@ public static class EncounterActorPose {
     /// </remarks>
     public const int DownedKind = 4;
 
+    /// <summary>
+    /// Which slot of the actor's flags block each kind writes its column into — and therefore which
+    /// MESH draws it, since a mesh reads the slot its <c>RuntimeFlagsIndex</c> names.
+    /// </summary>
+    /// <remarks>
+    /// <b>The kind picks the mesh, NOT a column of one mesh.</b> Both sets live in the same LOD and
+    /// the two column tables overlap (walking uses 0/3/6/9/12, downed 3/7/11), so indexing the walk
+    /// mesh with a downed column silently yields a walking frame — the creature dies and goes on
+    /// standing. Measured on a mordel: mesh <c>RuntimeFlagsIndex</c> 0 has 15 faces and is the walk
+    /// set; index 1 has 12, and its columns 3/7/11 are the bitmaps of it collapsed under its cloak.
+    /// </remarks>
+    public const int WalkingFlagsSlot = 0;
+
+    /// <inheritdoc cref="WalkingFlagsSlot"/>
+    public const int DownedFlagsSlot = 1;
+
+    /// <summary>The flags slot, and so the mesh, a kind draws from.</summary>
+    public static int FlagsSlotFor(int kind) =>
+        kind == DownedKind ? DownedFlagsSlot : WalkingFlagsSlot;
+
     /// <summary>Frames in the walk cycle.</summary>
     public const int WalkFrames = 3;
 
