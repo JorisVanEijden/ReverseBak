@@ -69,4 +69,78 @@ public class QuarrelInventoryTests {
     public void AnAbsentPackIsZeroRatherThanAThrow() {
         Assert.Equal(0, QuarrelInventory.Count(null));
     }
+
+    [Fact]
+    public void TheScanTakesTheBestKindItHas_NotTheFirstOne() {
+        // *** The rule this pins. *** Kind 7 (Enchanted) and kind 0 (plain) in the same pack: the
+        // archer fires the enchanted one. Scanning 0..7 instead would hoard the good quarrels for
+        // a fight that never comes.
+        RuntimeContainer pack = Pack(Item(0x24, 10), Item(0x2b, 2));
+        Assert.Equal(7, QuarrelInventory.Pick(pack, creatureType: 1, spend: false));
+    }
+
+    [Fact]
+    public void TheScanFallsPastKindsTheArcherIsOutOf() {
+        // An entry that exists but is empty must not win the scan — Variable holds the count.
+        RuntimeContainer pack = Pack(Item(0x2b, 0), Item(0x27, 3));
+        Assert.Equal(4, QuarrelInventory.Pick(pack, creatureType: 1, spend: false));
+    }
+
+    [Fact]
+    public void PickingSpendsOne() {
+        RuntimeContainer pack = Pack(Item(0x25, 3));
+        Assert.Equal(1, QuarrelInventory.Pick(pack, creatureType: 1));
+        Assert.Equal(2, QuarrelInventory.Count(pack, kind: 1));
+    }
+
+    [Fact]
+    public void TheLastQuarrelLeavesTheStackBehind() {
+        RuntimeContainer pack = Pack(Item(0x25, 1));
+        Assert.Equal(1, QuarrelInventory.Pick(pack, creatureType: 1));
+        Assert.Equal(0, QuarrelInventory.Count(pack));
+        // ... and the next shot finds nothing.
+        Assert.Equal(QuarrelInventory.NoQuarrel, QuarrelInventory.Pick(pack, creatureType: 1));
+    }
+
+    [Fact]
+    public void NotSpendingLeavesThePackAlone() {
+        RuntimeContainer pack = Pack(Item(0x25, 3));
+        QuarrelInventory.Pick(pack, creatureType: 1, spend: false);
+        Assert.Equal(3, QuarrelInventory.Count(pack, kind: 1));
+    }
+
+    [Fact]
+    public void AnEmptyPackFiresNothing() {
+        Assert.Equal(QuarrelInventory.NoQuarrel,
+            QuarrelInventory.Pick(Pack(), creatureType: 1));
+        Assert.Equal(QuarrelInventory.NoQuarrel,
+            QuarrelInventory.Pick(Pack(Item(0x10, 99)), creatureType: 1));
+    }
+
+    [Fact]
+    public void AnInsistedKindIsHonoured_AndRefusedWhenAbsent() {
+        RuntimeContainer pack = Pack(Item(0x24, 10), Item(0x2b, 2));
+        // Insisting on plain quarrels overrides the best-first scan.
+        Assert.Equal(0, QuarrelInventory.Pick(pack, 1, preferredKind: 0, spend: false));
+        // Insisting on a kind the pack lacks is not silently downgraded to another kind.
+        Assert.Equal(QuarrelInventory.NoQuarrel,
+            QuarrelInventory.Pick(pack, 1, preferredKind: 3, spend: false));
+    }
+
+    [Fact]
+    public void KindNineCreatureShootsWithoutOwningAnything() {
+        // *** creature 26 returns before the pack is ever looked at. *** Its kind is outside the
+        // eight-entry table on purpose, so a port that indexes ObjectIdByKind with the result
+        // throws instead of shooting.
+        RuntimeContainer empty = Pack();
+        Assert.Equal(QuarrelInventory.FreeAmmoKind,
+            QuarrelInventory.Pick(empty, QuarrelInventory.FreeAmmoCreatureType));
+        Assert.True(QuarrelInventory.FreeAmmoKind >= QuarrelInventory.ObjectIdByKind.Length);
+
+        // And it does not raid a pack it happens to have.
+        RuntimeContainer stocked = Pack(Item(0x2b, 2));
+        Assert.Equal(QuarrelInventory.FreeAmmoKind,
+            QuarrelInventory.Pick(stocked, QuarrelInventory.FreeAmmoCreatureType));
+        Assert.Equal(2, QuarrelInventory.Count(stocked, kind: 7));
+    }
 }

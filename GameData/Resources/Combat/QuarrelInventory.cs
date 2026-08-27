@@ -1,6 +1,8 @@
 namespace GameData.Resources.Combat;
 
 using GameData.Resources.Inventory;
+using GameData.Resources.Object;
+using System;
 
 /// <summary>
 /// How much ammunition a combatant is carrying — <c>combat_actor_cnt_qrls_kind</c>
@@ -69,5 +71,73 @@ public static class QuarrelInventory {
             }
         }
         return total;
+    }
+
+    /// <summary>Creature type whose shots come out of nowhere. See <see cref="Pick"/>.</summary>
+    public const int FreeAmmoCreatureType = 0x1a;
+
+    /// <summary>The kind <see cref="FreeAmmoCreatureType"/> always fires.</summary>
+    /// <remarks>
+    /// Outside the eight real kinds on purpose — it indexes nothing, so it cannot be looked up in a
+    /// pack or spent. Treat it as "a quarrel appeared", not as an entry in
+    /// <see cref="ObjectIdByKind"/>.
+    /// </remarks>
+    public const int FreeAmmoKind = 9;
+
+    /// <summary>No quarrel could be fired.</summary>
+    public const int NoQuarrel = -1;
+
+    /// <summary>
+    /// Picks the quarrel an archer fires and, unless told otherwise, takes it out of the pack.
+    /// </summary>
+    /// <param name="container">The archer's pack.</param>
+    /// <param name="creatureType">
+    /// The shooter's creature type. Only <see cref="FreeAmmoCreatureType"/> is special.
+    /// </param>
+    /// <param name="preferredKind">
+    /// A kind to insist on, or <see cref="AllKinds"/> (the default) to let the scan choose.
+    /// </param>
+    /// <param name="spend">Whether the pick also consumes the quarrel.</param>
+    /// <param name="lookup">Object id → record, for <see cref="InventoryConsume.TryConsumeOne"/>.</param>
+    /// <returns>The kind fired, or <see cref="NoQuarrel"/> when the archer has none.</returns>
+    /// <remarks>
+    /// Ported from <c>combat_actor_pickQuarrelKind</c> @0x66309, the ammunition half of a monster's
+    /// ranged turn (<c>monster_crossbowShotByTargetMode</c> calls it as "no preference, spend it"
+    /// and treats <see cref="NoQuarrel"/> as "no shot").
+    ///
+    /// <para><b>The scan runs kind 7 down to 0, so an archer burns its BEST ammunition first</b> —
+    /// Enchanted before Poisoned Tsurani before … before plain Quarrels. Scanning upward instead
+    /// hoards the good quarrels and fires them never.</para>
+    ///
+    /// <para><b>Selecting and spending are one step.</b> The original takes the quarrel on the same
+    /// call that chooses it, so splitting them apart moves when an archer runs dry.</para>
+    /// </remarks>
+    public static int Pick(RuntimeContainer container, int creatureType,
+        int preferredKind = AllKinds, bool spend = true, Func<int, ObjectInfo> lookup = null) {
+        // Checked before the pack is: this creature never looks, and never spends.
+        if (creatureType == FreeAmmoCreatureType) {
+            return FreeAmmoKind;
+        }
+
+        int kind = preferredKind;
+        if (kind == AllKinds) {
+            for (int k = ObjectIdByKind.Length - 1; k >= 0; k--) {
+                if (Count(container, k) != 0) {
+                    kind = k;
+                    break;
+                }
+            }
+        }
+
+        // Covers three cases at once: the scan found nothing (kind is still AllKinds), the caller
+        // named a kind outside the table, and the caller named one it has none of.
+        if (kind < 0 || kind >= ObjectIdByKind.Length || Count(container, kind) == 0) {
+            return NoQuarrel;
+        }
+
+        if (spend) {
+            InventoryConsume.TryConsumeOne(container, ObjectIdByKind[kind], lookup);
+        }
+        return kind;
     }
 }
