@@ -54,7 +54,7 @@ public class EncounterObjectStatesTests {
         var states = new EncounterObjectStates();
         states.MarkRemoved(0, 0, 0);
         states.MarkRemoved(39, 4, 6);
-        states.MarkReset(7, 2, 1);
+        states.SetKindForTest(7, 2, 1, EncounterObjectStates.KindReset);
 
         var body = new byte[EncounterObjectStates.BodyOffset + EncounterObjectStates.SaveSize];
         Assert.True(states.Save(body));
@@ -123,4 +123,59 @@ public class EncounterObjectStatesTests {
         }
         return null;
     }
+
+    // ---- the encounter reset sweep (rgnenc_reset_and_save, RGNENC.C:457) --------------------
+
+    [Fact]
+    public void THERESETSweepTouchesRoamersOnly() {
+        // *** The filter is the point. *** A removed actor left alone is what keeps the dead dead;
+        // a sweep without it resurrects everything the fight cleared.
+        var states = new EncounterObjectStates();
+        states.SetKindForTest(3, 0, 0, EncounterObjectStates.KindRoaming);
+        states.SetKindForTest(3, 0, 1, EncounterObjectStates.KindStanding);
+        states.SetKindForTest(3, 0, 2, EncounterObjectStates.KindRemoved);
+
+        int reset = states.ResetRoamers(3);
+
+        Assert.Equal(1, reset);
+        Assert.Equal(EncounterObjectStates.KindReset,
+            states[EncounterObjectStates.IndexOf(3, 0, 0)].Kind);
+        Assert.Equal(EncounterObjectStates.KindStanding,
+            states[EncounterObjectStates.IndexOf(3, 0, 1)].Kind);
+        Assert.Equal(EncounterObjectStates.KindRemoved,
+            states[EncounterObjectStates.IndexOf(3, 0, 2)].Kind);
+    }
+
+    [Fact]
+    public void THERESETZeroesThePose_SoARoamerRestartsAtItsTileOrigin() {
+        // The opposite of MarkPlaced, and invisible to a model that only writes the kind.
+        var states = new EncounterObjectStates();
+        states.MarkPlaced(3, 1, 0, 1234, 5678, 0x4000, underground: false);
+        states.SetKindForTest(3, 1, 0, EncounterObjectStates.KindRoaming);
+
+        states.ResetRoamers(3);
+
+        EncounterObjectStates.Entry entry = states[EncounterObjectStates.IndexOf(3, 1, 0)];
+        Assert.Equal(0, entry.WorldXOffset);
+        Assert.Equal(0, entry.WorldYOffset);
+        Assert.Equal(0, entry.Facing);
+    }
+
+    [Fact]
+    public void THESWEEPLeavesOtherRefPairsAlone() {
+        var states = new EncounterObjectStates();
+        states.SetKindForTest(3, 0, 0, EncounterObjectStates.KindRoaming);
+        states.SetKindForTest(4, 0, 0, EncounterObjectStates.KindRoaming);
+
+        states.ResetRoamers(3);
+
+        Assert.Equal(EncounterObjectStates.KindRoaming,
+            states[EncounterObjectStates.IndexOf(4, 0, 0)].Kind);
+    }
+
+    [Fact]
+    public void ASWEEPThatChangesNothingSaysSo() =>
+        // The count exists so a caller can skip the re-seed; a zone with no roamers must return 0
+        // rather than "some slots exist".
+        Assert.Equal(0, new EncounterObjectStates().ResetRoamers(3));
 }

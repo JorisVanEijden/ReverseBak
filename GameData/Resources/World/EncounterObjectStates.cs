@@ -252,9 +252,60 @@ public sealed class EncounterObjectStates {
         return true;
     }
 
-    /// <summary>Records the encounter reset that puts a defeated group back on the field.</summary>
-    public void MarkReset(int refPair, int recordIndex, int slotIndex) =>
-        Write(IndexOf(refPair, recordIndex, slotIndex), KindReset);
+    /// <summary>
+    /// The encounter reset — <c>rgnenc_reset_and_save</c> (RGNENC.C:457). Puts every <b>roaming</b>
+    /// actor in a ref pair back to "owed a placement", at its tile origin.
+    /// </summary>
+    /// <returns>How many slots were reset, so a caller can skip the re-seed when nothing changed.</returns>
+    /// <remarks>
+    /// <b>This replaces a per-slot <c>MarkReset</c> that modelled the writer wrongly in three ways,
+    /// which is worse than not modelling it at all</b> — it would have compiled, read as covered, and
+    /// done the wrong thing:
+    ///
+    /// <list type="number">
+    /// <item><b>It is a SWEEP, not a slot operation.</b> The original walks the whole zone in one
+    /// pass and then writes the block once.</item>
+    /// <item><b>It filters on <see cref="KindRoaming"/>.</b> A standing or removed actor is left
+    /// alone — so resetting a slot unconditionally would resurrect the dead, which is precisely what
+    /// <see cref="MarkRemoved"/> exists to prevent.</item>
+    /// <item><b>It zeroes the pose as well as the kind.</b> A reset roamer restarts at its tile
+    /// origin rather than where it was last seen — the exact opposite of what
+    /// <see cref="MarkPlaced"/> preserves, and invisible in a model that only writes the kind.</item>
+    /// </list>
+    ///
+    /// <para><b>"Reset" means owed a placement, not cleared.</b> The value written is
+    /// <c>0x200</c> — <see cref="KindReset"/>, which is the same value as
+    /// <c>EncounterActorSpawn.Pending</c> — so the next seed places these actors afresh. The original
+    /// calls <c>rgnenc_load_encounter_actors()</c> immediately afterwards to do exactly that; the
+    /// re-seed is the caller's business here, which is why the count is returned.</para>
+    ///
+    /// <para><b>The trigger is NOT a chapter advance</b>, despite its caller being named
+    /// <c>worldmove_rgn_chap_trans_apply</c>. It fires when the player's <b>step-size preference has
+    /// increased</b> — see <see cref="StepSizeChange"/>. A longer stride changes the granularity
+    /// encounters are placed at, which invalidates roamers positioned for a finer one.</para>
+    /// </remarks>
+    public int ResetRoamers(int refPair) {
+        var reset = 0;
+        for (var record = 0; record < RecordsPerRefPair; record++) {
+            for (var slot = 0; slot < SlotsPerRecord; slot++) {
+                int at = IndexOf(refPair, record, slot);
+                if (_entries[at].Kind != KindRoaming) {
+                    continue;
+                }
+                // Write() zeroes the pose as a side effect of replacing the whole entry, which is
+                // what the original does field by field. Spelled out rather than reused so the
+                // pose-zeroing is visible at the one place that depends on it.
+                _entries[at] = new Entry {
+                    WorldXOffset = 0,
+                    WorldYOffset = 0,
+                    Facing = 0,
+                    KindState = (ushort)(KindReset << 8),
+                };
+                reset++;
+            }
+        }
+        return reset;
+    }
 
     /// <summary>
     /// Records an actor as placed and standing, keeping a pose — <c>rgnenc_persist_actor_placed</c>
