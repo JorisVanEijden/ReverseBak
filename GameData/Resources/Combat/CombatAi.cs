@@ -101,40 +101,61 @@ public static class CombatAi {
     /// <c>combatenc_ai_sel_execute_action</c>'s switch (CBENC.C:925).
     /// </summary>
     /// <remarks>
-    /// <b>These are named for what they DO, not for the original's symbols</b>, one of which is
-    /// actively misleading: <c>combataiact_pick_melee_or_missl</c> does not pick between melee and
-    /// missile — past arm's length it may <i>cast a spell</i> instead (CBTAIACT.C:32).
+    /// <b>NAMED FROM THE BODIES, AFTER AN EARLIER VERSION OF THIS ENUM WAS NAMED FROM THE ORIGINAL'S
+    /// FUNCTION NAMES AND GOT THREE OF THEM BACKWARDS.</b> <c>combataiact_actor_melee_attack</c>
+    /// opens with a ranged knockback, <c>combataiact_melee_random_attack</c> is three ranged variants
+    /// (one of which plays a melee *animation*), and <c>combataiact_action_charge_near</c> shoots and
+    /// charges nothing. Every name here describes what the code does.
     ///
-    /// <para><b>Knowing WHICH routine matters even though none is ported in detail.</b> The switch
-    /// splits thirteen classes into melee-flavoured and ranged-flavoured groups, and treating them
-    /// as one undifferentiated "has its own routine" bucket loses that — which is how every one of
-    /// them ended up doing nothing at all. The detail inside each routine is still TASK-97;
-    /// the branch it belongs to is not a guess.</para>
+    /// <para><b>They share one shape: a ranged-or-cast branch gated on distance and sometimes a roll,
+    /// with a near fallback.</b> The old melee/ranged split could not express that, which is what
+    /// made the mistake invisible — see <see cref="RangedBranchFor"/>.</para>
     /// </remarks>
     public enum SpeciesRoutine {
         /// <summary>
-        /// Adjacent: melee. Otherwise a roll picks a spell or a shot —
-        /// <c>combataiact_pick_melee_or_missl</c> (CBTAIACT.C:23). The only distance-conditional one.
+        /// Adjacent: melee. Beyond that a roll picks a spell or a shot —
+        /// <c>combataiact_pick_melee_or_missl</c> (CBTAIACT.C:23).
         /// </summary>
-        MeleeOrRangedByDistance,
+        MeleeAdjacentElseCastOrShoot,
 
-        /// <summary>Wander, then attack — <c>combataiact_random_move_attack</c> (CBTAIACT.C:39).</summary>
-        RandomMoveAttack,
+        /// <summary>
+        /// Walk to a RANDOM tile first, then melee if that landed adjacent, otherwise cast — and
+        /// otherwise brace. <c>combataiact_random_move_attack</c> (CBTAIACT.C:39).
+        /// </summary>
+        WalkRandomTileThenAttackOrBrace,
 
-        /// <summary>Ranged — <c>combataiact_ranged_attack_turn</c>.</summary>
+        /// <summary>
+        /// Ranged with a per-creature animation and knockback, gated on line of fire and a coin
+        /// flip and <b>no minimum distance</b> — <c>combataiact_ranged_attack_turn</c>
+        /// (CBTAIACT.C:85).
+        /// </summary>
         RangedAttackTurn,
 
-        /// <summary>Straight melee — <c>combataiact_actor_melee_attack</c> (CBTAIACT.C:142).</summary>
-        MeleeAttack,
+        /// <summary>
+        /// Ranged knockback beyond one tile; melee only as the fallback —
+        /// <c>combataiact_actor_melee_attack</c> (CBTAIACT.C:142), whose name is the opposite of its
+        /// first branch.
+        /// </summary>
+        RangedKnockbackElseCloseIn,
 
-        /// <summary>Close on the nearest and attack — <c>combataiact_action_charge_near</c> (CBTAIACT.C:177).</summary>
-        ChargeNearest,
+        /// <summary>
+        /// Shoots from three tiles out on a 95% roll, delegates when closer —
+        /// <c>combataiact_action_charge_near</c> (CBTAIACT.C:177). It charges nothing.
+        /// </summary>
+        ShootAtRangeElseDelegate,
 
-        /// <summary>Melee against a randomly chosen target — <c>combataiact_melee_random_attack</c> (CBTAIACT.C:194).</summary>
-        MeleeRandomTarget,
+        /// <summary>
+        /// One of three ranged variants beyond two tiles —
+        /// <c>combataiact_melee_random_attack</c> (CBTAIACT.C:194). The RANDOM part is the variant,
+        /// not the target, and none of the three is melee.
+        /// </summary>
+        RandomRangedVariantBeyondTwoTiles,
 
-        /// <summary>Ranged — <c>combataiact_ranged_attack</c> (CBTAIACT.C:235).</summary>
-        RangedAttack,
+        /// <summary>
+        /// Ranged with a poison status effect beyond one tile — <c>combataiact_ranged_attack</c>
+        /// (CBTAIACT.C:235).
+        /// </summary>
+        RangedPoisonAttack,
     }
 
     /// <summary>
@@ -143,19 +164,19 @@ public static class CombatAi {
     /// </summary>
     private static readonly Dictionary<int, SpeciesRoutine> SpeciesRoutines =
         new Dictionary<int, SpeciesRoutine> {
-            { 0x13, SpeciesRoutine.MeleeOrRangedByDistance },
-            { 0x31, SpeciesRoutine.RandomMoveAttack },
+            { 0x13, SpeciesRoutine.MeleeAdjacentElseCastOrShoot },
+            { 0x31, SpeciesRoutine.WalkRandomTileThenAttackOrBrace },
             { 0x29, SpeciesRoutine.RangedAttackTurn },
             { 0x2a, SpeciesRoutine.RangedAttackTurn },
             { 0x2b, SpeciesRoutine.RangedAttackTurn },
             { 0x39, SpeciesRoutine.RangedAttackTurn },
-            { 0x38, SpeciesRoutine.MeleeAttack },
-            { 0x1d, SpeciesRoutine.ChargeNearest },
-            { 0x1f, SpeciesRoutine.ChargeNearest },
-            { 0x20, SpeciesRoutine.ChargeNearest },
-            { 0x21, SpeciesRoutine.ChargeNearest },
-            { 0x1c, SpeciesRoutine.MeleeRandomTarget },
-            { 0x36, SpeciesRoutine.RangedAttack },
+            { 0x38, SpeciesRoutine.RangedKnockbackElseCloseIn },
+            { 0x1d, SpeciesRoutine.ShootAtRangeElseDelegate },
+            { 0x1f, SpeciesRoutine.ShootAtRangeElseDelegate },
+            { 0x20, SpeciesRoutine.ShootAtRangeElseDelegate },
+            { 0x21, SpeciesRoutine.ShootAtRangeElseDelegate },
+            { 0x1c, SpeciesRoutine.RandomRangedVariantBeyondTwoTiles },
+            { 0x36, SpeciesRoutine.RangedPoisonAttack },
         };
 
     /// <summary>Whether this class id has its own routine rather than using the cascade.</summary>
@@ -172,15 +193,53 @@ public static class CombatAi {
             : (SpeciesRoutine?)null;
 
     /// <summary>
-    /// Whether a routine's attack is made at range rather than in contact.
+    /// The distance from which a routine's ranged branch is available at all. <b>0 means no distance
+    /// requirement</b> — not "adjacent only".
+    /// </summary>
+    public static int MinRangedDistance(SpeciesRoutine routine) => routine switch {
+        SpeciesRoutine.RangedAttackTurn => 0,                          // line of fire + a coin flip
+        SpeciesRoutine.RandomRangedVariantBeyondTwoTiles => 3,         // distance > 2
+        SpeciesRoutine.ShootAtRangeElseDelegate => 3,                  // distance >= 3
+        _ => 2,                                                        // distance > 1
+    };
+
+    /// <summary>
+    /// The <c>RND(100)</c> floor a routine's ranged branch must clear, or 0 when it rolls nothing.
     /// </summary>
     /// <remarks>
-    /// <b><see cref="SpeciesRoutine.MeleeOrRangedByDistance"/> is deliberately absent</b>, because it
-    /// is neither until you know how far away the target is — the caller has to resolve that one
-    /// with a distance, and a default answer here would silently pick a side.
+    /// <b><see cref="SpeciesRoutine.WalkRandomTileThenAttackOrBrace"/> is deliberately absent</b>:
+    /// its roll is <c>&lt; 0x50</c>, an upper bound rather than a floor, and folding an inverted test
+    /// into this would read as the same rule. It is handled at the call site.
     /// </remarks>
-    public static bool IsRangedRoutine(SpeciesRoutine routine) =>
-        routine == SpeciesRoutine.RangedAttackTurn || routine == SpeciesRoutine.RangedAttack;
+    public static int RangedRollFloor(SpeciesRoutine routine) => routine switch {
+        SpeciesRoutine.RangedAttackTurn => 50,
+        SpeciesRoutine.ShootAtRangeElseDelegate => 5,
+        _ => 0,
+    };
+
+    /// <summary>
+    /// What a routine does at <paramref name="distance"/> with <paramref name="roll"/>, or
+    /// <c>null</c> when the ranged branch is refused and the caller should fall back.
+    /// </summary>
+    /// <remarks>
+    /// <b>The fallback is not "melee" in the original</b> — most of these delegate to
+    /// <c>combataipath_select_action</c>, and one braces. <see cref="AiAction.MeleeOrMove"/> is the
+    /// nearest thing this resolver can carry out, so the caller uses it; that is an approximation and
+    /// is recorded as one rather than dressed up in the table.
+    /// </remarks>
+    public static AiAction? RangedBranchFor(SpeciesRoutine routine, int distance, int roll) {
+        if (routine == SpeciesRoutine.WalkRandomTileThenAttackOrBrace) {
+            // Inverted roll, and the far branch CASTS rather than shoots.
+            return distance >= 2 && roll < 0x50 ? AiAction.Cast : (AiAction?)null;
+        }
+        if (distance < MinRangedDistance(routine) || roll < RangedRollFloor(routine)) {
+            return null;
+        }
+        return routine == SpeciesRoutine.MeleeAdjacentElseCastOrShoot
+            // RND(10) >= distance picks the spell, so a CLOSER target is likelier to be cast at.
+            ? (roll % 10 >= distance ? AiAction.Cast : AiAction.Shoot)
+            : AiAction.Shoot;
+    }
 
     /// <summary>
     /// Decides what a monster does this turn.
