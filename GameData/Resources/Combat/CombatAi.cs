@@ -87,6 +87,18 @@ public enum AiAction {
 
     /// <summary>Close and attack, or move.</summary>
     MeleeOrMove,
+
+    /// <summary>
+    /// Raise a guard and end the turn — <c>combatenc_set_flag8_clear_flag1</c> (CBENC.C:789), which
+    /// sets <c>CAF_PARRY</c> and clears <c>CAF_READY</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Added because the routines genuinely produce it and this enum could not say so.</b>
+    /// <see cref="MonsterMove"/> has carried a <c>Defend</c> since the routines were modelled; the
+    /// resolver had to flatten it to <see cref="MeleeOrMove"/>, which is not a near-miss but the
+    /// opposite instruction.
+    /// </remarks>
+    Defend,
 }
 
 /// <summary>
@@ -107,9 +119,13 @@ public static class CombatAi {
     /// (one of which plays a melee *animation*), and <c>combataiact_action_charge_near</c> shoots and
     /// charges nothing. Every name here describes what the code does.
     ///
-    /// <para><b>They share one shape: a ranged-or-cast branch gated on distance and sometimes a roll,
-    /// with a near fallback.</b> The old melee/ranged split could not express that, which is what
-    /// made the mistake invisible — see <see cref="RangedBranchFor"/>.</para>
+    /// <para><b>This enum is a LABEL, not a rule.</b> The rules — thresholds, roll bounds, damage
+    /// bands, the line-of-fire gate — live in the routine types beside it
+    /// (<see cref="MonsterTurnRoutines"/>, <see cref="MonsterChargeTurn"/>,
+    /// <see cref="MonsterVariantAttackTurn"/>, <see cref="MonsterHeavyRangedTurn"/>,
+    /// <see cref="MonsterRandomMoveAttack"/>), which modelled them correctly before this table
+    /// existed. An earlier version of this file re-derived those thresholds here and got three of
+    /// them backwards; the table's one job is saying WHICH routine a class runs.</para>
     /// </remarks>
     public enum SpeciesRoutine {
         /// <summary>
@@ -191,55 +207,6 @@ public static class CombatAi {
         SpeciesRoutines.TryGetValue(classId, out SpeciesRoutine routine)
             ? routine
             : (SpeciesRoutine?)null;
-
-    /// <summary>
-    /// The distance from which a routine's ranged branch is available at all. <b>0 means no distance
-    /// requirement</b> — not "adjacent only".
-    /// </summary>
-    public static int MinRangedDistance(SpeciesRoutine routine) => routine switch {
-        SpeciesRoutine.RangedAttackTurn => 0,                          // line of fire + a coin flip
-        SpeciesRoutine.RandomRangedVariantBeyondTwoTiles => 3,         // distance > 2
-        SpeciesRoutine.ShootAtRangeElseDelegate => 3,                  // distance >= 3
-        _ => 2,                                                        // distance > 1
-    };
-
-    /// <summary>
-    /// The <c>RND(100)</c> floor a routine's ranged branch must clear, or 0 when it rolls nothing.
-    /// </summary>
-    /// <remarks>
-    /// <b><see cref="SpeciesRoutine.WalkRandomTileThenAttackOrBrace"/> is deliberately absent</b>:
-    /// its roll is <c>&lt; 0x50</c>, an upper bound rather than a floor, and folding an inverted test
-    /// into this would read as the same rule. It is handled at the call site.
-    /// </remarks>
-    public static int RangedRollFloor(SpeciesRoutine routine) => routine switch {
-        SpeciesRoutine.RangedAttackTurn => 50,
-        SpeciesRoutine.ShootAtRangeElseDelegate => 5,
-        _ => 0,
-    };
-
-    /// <summary>
-    /// What a routine does at <paramref name="distance"/> with <paramref name="roll"/>, or
-    /// <c>null</c> when the ranged branch is refused and the caller should fall back.
-    /// </summary>
-    /// <remarks>
-    /// <b>The fallback is not "melee" in the original</b> — most of these delegate to
-    /// <c>combataipath_select_action</c>, and one braces. <see cref="AiAction.MeleeOrMove"/> is the
-    /// nearest thing this resolver can carry out, so the caller uses it; that is an approximation and
-    /// is recorded as one rather than dressed up in the table.
-    /// </remarks>
-    public static AiAction? RangedBranchFor(SpeciesRoutine routine, int distance, int roll) {
-        if (routine == SpeciesRoutine.WalkRandomTileThenAttackOrBrace) {
-            // Inverted roll, and the far branch CASTS rather than shoots.
-            return distance >= 2 && roll < 0x50 ? AiAction.Cast : (AiAction?)null;
-        }
-        if (distance < MinRangedDistance(routine) || roll < RangedRollFloor(routine)) {
-            return null;
-        }
-        return routine == SpeciesRoutine.MeleeAdjacentElseCastOrShoot
-            // RND(10) >= distance picks the spell, so a CLOSER target is likelier to be cast at.
-            ? (roll % 10 >= distance ? AiAction.Cast : AiAction.Shoot)
-            : AiAction.Shoot;
-    }
 
     /// <summary>
     /// Decides what a monster does this turn.

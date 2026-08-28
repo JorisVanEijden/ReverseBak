@@ -87,59 +87,10 @@ public class CombatAiTests {
         }
     }
 
-    // ---- the DISTANCE model, which replaced a melee/ranged split that was wrong ---------------
-
-    [Theory]
-    // *** THE THREE THAT WERE BACKWARDS. *** Each was mapped to melee from the original's function
-    // name; each opens with a ranged branch. Far enough away, with a passing roll, they SHOOT.
-    [InlineData(CombatAi.SpeciesRoutine.RangedKnockbackElseCloseIn, 5, 99)]
-    [InlineData(CombatAi.SpeciesRoutine.RandomRangedVariantBeyondTwoTiles, 5, 99)]
-    [InlineData(CombatAi.SpeciesRoutine.ShootAtRangeElseDelegate, 5, 99)]
-    [InlineData(CombatAi.SpeciesRoutine.RangedPoisonAttack, 5, 99)]
-    [InlineData(CombatAi.SpeciesRoutine.RangedAttackTurn, 5, 99)]
-    public void THEROUTINESThatWereMappedToMeleeActuallyShoot(
-        CombatAi.SpeciesRoutine routine, int distance, int roll) =>
-        Assert.Equal(AiAction.Shoot, CombatAi.RangedBranchFor(routine, distance, roll));
-
-    [Theory]
-    [InlineData(CombatAi.SpeciesRoutine.RangedKnockbackElseCloseIn, 1)]
-    [InlineData(CombatAi.SpeciesRoutine.RangedPoisonAttack, 1)]
-    [InlineData(CombatAi.SpeciesRoutine.RandomRangedVariantBeyondTwoTiles, 2)]
-    [InlineData(CombatAi.SpeciesRoutine.ShootAtRangeElseDelegate, 2)]
-    public void TOOCLOSeRefusesTheRangedBranch(CombatAi.SpeciesRoutine routine, int distance) =>
-        // Null means "fall back", which is where the melee/delegate behaviour lives.
-        Assert.Null(CombatAi.RangedBranchFor(routine, distance, 99));
-
-    [Fact]
-    public void THECOINFLIPRoutineHasNoMinimumDistance() {
-        // 0x29's group is gated on line of fire and RND(100) >= 50 and NOTHING ELSE -- it will shoot
-        // an adjacent target. A distance model that assumed every ranged routine needs range would
-        // have got this one wrong in the other direction.
-        Assert.Equal(0, CombatAi.MinRangedDistance(CombatAi.SpeciesRoutine.RangedAttackTurn));
-        Assert.Equal(AiAction.Shoot,
-            CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.RangedAttackTurn, 1, 50));
-        Assert.Null(CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.RangedAttackTurn, 9, 49));
-    }
-
-    [Fact]
-    public void THEWALKROUTINECastsOnAnINVERTEDRoll() {
-        // Its roll is `< 0x50`, an upper bound where every other routine uses a floor. Folding it
-        // into RangedRollFloor would read as the same rule and silently invert it.
-        Assert.Equal(AiAction.Cast,
-            CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.WalkRandomTileThenAttackOrBrace, 4, 0x4f));
-        Assert.Null(
-            CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.WalkRandomTileThenAttackOrBrace, 4, 0x50));
-    }
-
-    [Fact]
-    public void THEDISTANCEConditionalOneCastsAtCloserTargets() {
-        // RND(10) >= distance picks the spell, so the CLOSER target is likelier to be cast at --
-        // the reverse of the intuitive reading, and worth a test for that reason alone.
-        Assert.Equal(AiAction.Cast,
-            CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.MeleeAdjacentElseCastOrShoot, 2, 8));
-        Assert.Equal(AiAction.Shoot,
-            CombatAi.RangedBranchFor(CombatAi.SpeciesRoutine.MeleeAdjacentElseCastOrShoot, 9, 1));
-    }
+    // The distance/roll rules are NOT tested here any more. They live in the routine types --
+    // MonsterTurnRoutines, MonsterChargeTurn, MonsterVariantAttackTurn, MonsterHeavyRangedTurn --
+    // which had them right before this file had them at all, with their own tests. A second set of
+    // assertions here is how the two models drifted in the first place.
 
     // ---- target selection ----------------------------------------------------------------
 
