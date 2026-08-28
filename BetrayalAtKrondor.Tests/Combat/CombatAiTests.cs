@@ -54,6 +54,62 @@ public class CombatAiTests {
         Assert.False(CombatAi.HasSpeciesRoutine(OrdinaryClass));
     }
 
+    // ---- which bespoke routine (CBENC.C:925) ----------------------------------------------
+
+    [Theory]
+    [InlineData(0x13, CombatAi.SpeciesRoutine.MeleeOrRangedByDistance)]
+    [InlineData(0x31, CombatAi.SpeciesRoutine.RandomMoveAttack)]
+    [InlineData(0x29, CombatAi.SpeciesRoutine.RangedAttackTurn)]
+    [InlineData(0x2a, CombatAi.SpeciesRoutine.RangedAttackTurn)]
+    [InlineData(0x2b, CombatAi.SpeciesRoutine.RangedAttackTurn)]
+    [InlineData(0x39, CombatAi.SpeciesRoutine.RangedAttackTurn)]
+    [InlineData(0x38, CombatAi.SpeciesRoutine.MeleeAttack)]
+    [InlineData(0x1d, CombatAi.SpeciesRoutine.ChargeNearest)]
+    [InlineData(0x1f, CombatAi.SpeciesRoutine.ChargeNearest)]
+    [InlineData(0x20, CombatAi.SpeciesRoutine.ChargeNearest)]
+    [InlineData(0x21, CombatAi.SpeciesRoutine.ChargeNearest)]
+    [InlineData(0x1c, CombatAi.SpeciesRoutine.MeleeRandomTarget)]
+    [InlineData(0x36, CombatAi.SpeciesRoutine.RangedAttack)]
+    public void EachBespokeClassNamesItsOwnRoutine(int classId, CombatAi.SpeciesRoutine expected) =>
+        // The whole switch, transcribed. A single class landing in the wrong group is the failure
+        // mode that matters — four of these are RANGED, and lumping them in with the melee ones is
+        // exactly the loss of information that made all thirteen do nothing.
+        Assert.Equal(expected, CombatAi.SpeciesRoutineOf(classId));
+
+    [Fact]
+    public void AnOrdinaryClassNamesNoRoutine() =>
+        Assert.Null(CombatAi.SpeciesRoutineOf(OrdinaryClass));
+
+    [Fact]
+    public void THETWOTablesAgree_BecauseTheyAreOne() {
+        // HasSpeciesRoutine used to be a separate HashSet. It is now derived from the routine table,
+        // and this is the check that keeps a future edit from re-splitting them.
+        foreach (int classId in new[] {
+                     0x13, 0x31, 0x29, 0x2a, 0x2b, 0x39, 0x38, 0x1d, 0x1f, 0x20, 0x21, 0x1c, 0x36,
+                 }) {
+            Assert.True(CombatAi.HasSpeciesRoutine(classId));
+            Assert.NotNull(CombatAi.SpeciesRoutineOf(classId));
+        }
+    }
+
+    [Theory]
+    [InlineData(CombatAi.SpeciesRoutine.RangedAttackTurn, true)]
+    [InlineData(CombatAi.SpeciesRoutine.RangedAttack, true)]
+    [InlineData(CombatAi.SpeciesRoutine.MeleeAttack, false)]
+    [InlineData(CombatAi.SpeciesRoutine.ChargeNearest, false)]
+    [InlineData(CombatAi.SpeciesRoutine.MeleeRandomTarget, false)]
+    [InlineData(CombatAi.SpeciesRoutine.RandomMoveAttack, false)]
+    public void RANGEDRoutinesAreDistinguishedFromMeleeOnes(
+        CombatAi.SpeciesRoutine routine, bool ranged) =>
+        Assert.Equal(ranged, CombatAi.IsRangedRoutine(routine));
+
+    [Fact]
+    public void THEDISTANCEConditionalOneIsNotClassifiedEitherWay() =>
+        // MeleeOrRangedByDistance is neither until a distance is known, so IsRangedRoutine reports
+        // false and the caller MUST special-case it. Asserted so the "false" is understood as
+        // "not a ranged routine", not as "this one is melee".
+        Assert.False(CombatAi.IsRangedRoutine(CombatAi.SpeciesRoutine.MeleeOrRangedByDistance));
+
     // ---- target selection ----------------------------------------------------------------
 
     [Fact]

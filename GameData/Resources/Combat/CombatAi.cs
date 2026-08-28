@@ -96,18 +96,91 @@ public enum AiAction {
 /// <c>combatenc_ai_pick_target_by_role</c> (<c>SRC/COMBAT/ENC/CBENC.C</c>).</para>
 /// </summary>
 public static class CombatAi {
-    /// <summary>Class ids that have a bespoke routine instead of the capability cascade.</summary>
+    /// <summary>
+    /// Which bespoke routine a species-specific class runs — the seven branches of
+    /// <c>combatenc_ai_sel_execute_action</c>'s switch (CBENC.C:925).
+    /// </summary>
     /// <remarks>
-    /// Their individual behaviours are not ported — see TASK-97. What matters structurally is that
-    /// these classes <b>bypass the cascade entirely</b>: a spell-capable creature on this list still
-    /// runs its own routine rather than casting.
+    /// <b>These are named for what they DO, not for the original's symbols</b>, one of which is
+    /// actively misleading: <c>combataiact_pick_melee_or_missl</c> does not pick between melee and
+    /// missile — past arm's length it may <i>cast a spell</i> instead (CBTAIACT.C:32).
+    ///
+    /// <para><b>Knowing WHICH routine matters even though none is ported in detail.</b> The switch
+    /// splits thirteen classes into melee-flavoured and ranged-flavoured groups, and treating them
+    /// as one undifferentiated "has its own routine" bucket loses that — which is how every one of
+    /// them ended up doing nothing at all. The detail inside each routine is still TASK-97;
+    /// the branch it belongs to is not a guess.</para>
     /// </remarks>
-    private static readonly HashSet<int> SpeciesSpecificClasses = new HashSet<int> {
-        0x13, 0x31, 0x29, 0x2a, 0x2b, 0x39, 0x38, 0x1d, 0x1f, 0x20, 0x21, 0x1c, 0x36,
-    };
+    public enum SpeciesRoutine {
+        /// <summary>
+        /// Adjacent: melee. Otherwise a roll picks a spell or a shot —
+        /// <c>combataiact_pick_melee_or_missl</c> (CBTAIACT.C:23). The only distance-conditional one.
+        /// </summary>
+        MeleeOrRangedByDistance,
+
+        /// <summary>Wander, then attack — <c>combataiact_random_move_attack</c> (CBTAIACT.C:39).</summary>
+        RandomMoveAttack,
+
+        /// <summary>Ranged — <c>combataiact_ranged_attack_turn</c>.</summary>
+        RangedAttackTurn,
+
+        /// <summary>Straight melee — <c>combataiact_actor_melee_attack</c> (CBTAIACT.C:142).</summary>
+        MeleeAttack,
+
+        /// <summary>Close on the nearest and attack — <c>combataiact_action_charge_near</c> (CBTAIACT.C:177).</summary>
+        ChargeNearest,
+
+        /// <summary>Melee against a randomly chosen target — <c>combataiact_melee_random_attack</c> (CBTAIACT.C:194).</summary>
+        MeleeRandomTarget,
+
+        /// <summary>Ranged — <c>combataiact_ranged_attack</c> (CBTAIACT.C:235).</summary>
+        RangedAttack,
+    }
+
+    /// <summary>
+    /// The class-id → routine table, transcribed from <c>combatenc_ai_sel_execute_action</c>'s
+    /// switch (CBENC.C:925). <b>Order of the cases is not meaningful; the grouping is.</b>
+    /// </summary>
+    private static readonly Dictionary<int, SpeciesRoutine> SpeciesRoutines =
+        new Dictionary<int, SpeciesRoutine> {
+            { 0x13, SpeciesRoutine.MeleeOrRangedByDistance },
+            { 0x31, SpeciesRoutine.RandomMoveAttack },
+            { 0x29, SpeciesRoutine.RangedAttackTurn },
+            { 0x2a, SpeciesRoutine.RangedAttackTurn },
+            { 0x2b, SpeciesRoutine.RangedAttackTurn },
+            { 0x39, SpeciesRoutine.RangedAttackTurn },
+            { 0x38, SpeciesRoutine.MeleeAttack },
+            { 0x1d, SpeciesRoutine.ChargeNearest },
+            { 0x1f, SpeciesRoutine.ChargeNearest },
+            { 0x20, SpeciesRoutine.ChargeNearest },
+            { 0x21, SpeciesRoutine.ChargeNearest },
+            { 0x1c, SpeciesRoutine.MeleeRandomTarget },
+            { 0x36, SpeciesRoutine.RangedAttack },
+        };
 
     /// <summary>Whether this class id has its own routine rather than using the cascade.</summary>
-    public static bool HasSpeciesRoutine(int classId) => SpeciesSpecificClasses.Contains(classId);
+    /// <remarks>
+    /// These classes <b>bypass the cascade entirely</b>: a spell-capable creature on this list still
+    /// runs its own routine rather than casting.
+    /// </remarks>
+    public static bool HasSpeciesRoutine(int classId) => SpeciesRoutines.ContainsKey(classId);
+
+    /// <summary>The routine a class runs, or <c>null</c> when it uses the ordinary cascade.</summary>
+    public static SpeciesRoutine? SpeciesRoutineOf(int classId) =>
+        SpeciesRoutines.TryGetValue(classId, out SpeciesRoutine routine)
+            ? routine
+            : (SpeciesRoutine?)null;
+
+    /// <summary>
+    /// Whether a routine's attack is made at range rather than in contact.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="SpeciesRoutine.MeleeOrRangedByDistance"/> is deliberately absent</b>, because it
+    /// is neither until you know how far away the target is — the caller has to resolve that one
+    /// with a distance, and a default answer here would silently pick a side.
+    /// </remarks>
+    public static bool IsRangedRoutine(SpeciesRoutine routine) =>
+        routine == SpeciesRoutine.RangedAttackTurn || routine == SpeciesRoutine.RangedAttack;
 
     /// <summary>
     /// Decides what a monster does this turn.
