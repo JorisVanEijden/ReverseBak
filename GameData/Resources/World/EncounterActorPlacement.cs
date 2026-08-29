@@ -37,8 +37,10 @@ public static class EncounterActorPlacement {
     public readonly struct Placed {
         public Placed(int rosterSlot, int creatureNumber, long worldX, long worldY, short facing,
             bool roams, RoamingMovement.Pattern pattern = RoamingMovement.Pattern.Stationary,
-            long[] waypointX = null, long[] waypointY = null, bool downed = false) {
+            long[] waypointX = null, long[] waypointY = null, bool downed = false,
+            bool partyMember = false) {
             Downed = downed;
+            PartyMember = partyMember;
             RosterSlot = rosterSlot;
             CreatureNumber = creatureNumber;
             WorldX = worldX;
@@ -85,6 +87,20 @@ public static class EncounterActorPlacement {
 
         /// <inheritdoc cref="WaypointX"/>
         public System.Collections.Generic.IReadOnlyList<long> WaypointY { get; }
+
+        /// <summary>
+        /// This actor is one of the PARTY, not one of the encounter.
+        /// </summary>
+        /// <remarks>
+        /// <b><see cref="RosterSlot"/> alone cannot tell you.</b> The arena places both sides
+        /// through here and numbers them from different sequences — a party member carries its
+        /// marching-order slot, an enemy its index in the encounter's roster — so slot 0 is Locklear
+        /// on one placement and the first mordel on the next. Anything that resolves a placement back
+        /// to a combatant (a corpse's container, a click on a target) needs this to know which list
+        /// to index. Placements that are not part of a fight leave it false, which is correct: a
+        /// roaming actor standing on the map is not a party member.
+        /// </remarks>
+        public bool PartyMember { get; }
 
         /// <summary>Index within the record's seven slots.</summary>
         public int RosterSlot { get; }

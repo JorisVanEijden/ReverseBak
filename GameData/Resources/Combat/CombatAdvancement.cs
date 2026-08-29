@@ -49,6 +49,34 @@ public static class CombatAdvancement {
     }
 
     /// <summary>
+    /// The award made for <b>taking a shot at all</b>, before any roll — the shooter improves
+    /// AccuracyCrossbow.
+    /// </summary>
+    /// <remarks>
+    /// <b>The defender is paid NOTHING for being shot at.</b> Melee pays both sides on declaration
+    /// (see <see cref="OnMeleeDeclared"/>) and the ranged routine pays only the shooter — which
+    /// follows from <see cref="CombatFormulas.RangedHitChance"/> ignoring the target's defence
+    /// entirely: there is no defensive skill in play to improve. A port that mirrored the melee pair
+    /// would train Defense off arrows that defence never affected.
+    /// </remarks>
+    public static void OnShotDeclared(ActorStat shooterCrossbow) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow);
+    }
+
+    /// <summary>
+    /// The <b>second</b> AccuracyCrossbow award, made when the shot lands.
+    /// </summary>
+    /// <remarks>
+    /// Same once-for-trying, once-for-connecting shape melee and casting use —
+    /// <see cref="RangedExchange.SkillAwards"/> counts the pair. <b>No Strength award</b>: ranged
+    /// damage has no Strength term (<see cref="CombatFormulas.RangedDamage"/>), so there is nothing
+    /// for it to train.
+    /// </remarks>
+    public static void OnShotHit(ActorStat shooterCrossbow) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow);
+    }
+
+    /// <summary>
     /// The award made for <b>casting at all</b>, before any roll — the caster improves
     /// AccuracyCasting.
     /// </summary>

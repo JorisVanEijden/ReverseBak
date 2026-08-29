@@ -134,11 +134,26 @@ public static class CombatTargetSelection {
     /// (<see cref="CombatCommands.BacksOutOfShootMenu"/>) or <see cref="Resolution.RevertToMove"/>.</para>
     /// </remarks>
     public static Resolution Resolve(bool confirmed, int cursorDistance, int cursorY,
-        bool actorCanShoot, bool hasTarget, int spellTargetingType) {
-        if (!ClickReachesTheField(confirmed, cursorDistance, cursorY)) {
-            return Resolution.Pending;
-        }
+        bool actorCanShoot, bool hasTarget, int spellTargetingType) =>
+        ClickReachesTheField(confirmed, cursorDistance, cursorY)
+            ? ResolveOnField(actorCanShoot, hasTarget, spellTargetingType)
+            : Resolution.Pending;
 
+    /// <summary>
+    /// <see cref="Resolve"/> for a caller whose click has <b>already</b> passed
+    /// <see cref="ClickReachesTheField"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>For a renderer that has no screen Y to offer.</b> The two gates are DOS-space facts — a
+    /// cursor below <see cref="SpellTargetingRules.FieldBottomY"/> is over the menu bar drawn into
+    /// the same framebuffer, and <see cref="SpellTargetingRules.OffGridDistance"/> means the cursor
+    /// found no cell. A port whose menu is a separate UI layer that consumes its own clicks, and
+    /// whose pick returns an actor or nothing, satisfies both structurally and has no honest value
+    /// to pass. Handing in invented coordinates to reach <see cref="Resolve"/> would look like
+    /// modelling and be the opposite.
+    /// </remarks>
+    public static Resolution ResolveOnField(bool actorCanShoot, bool hasTarget,
+        int spellTargetingType) {
         // A crystal-aimed spell commits on an EMPTY cell too, passing the null it found — the one
         // targeting type that reaches the cast with no actor by the same branch an actor would.
         if (hasTarget || (!actorCanShoot && spellTargetingType == CrystalTargetingType)) {
