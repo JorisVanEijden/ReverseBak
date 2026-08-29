@@ -31,8 +31,16 @@ public static class AutoResolveLoop {
     /// </summary>
     /// <remarks>
     /// The loop advances while the current actor is an encounter actor, running each one's turn
-    /// back to back. Only when the picker lands on a party member does it draw the menu and wait.
+    /// back to back. Only when the picker lands on a party member does it draw the menu.
     /// So the interruption granularity is one PARTY turn, not one turn.
+    ///
+    /// <para><b>IT DRAWS THE MENU AND POLLS — IT DOES NOT WAIT.</b> An earlier wording here said
+    /// "draw the menu and wait", which describes a different feature: a turn-by-turn prompt the
+    /// player answers. <c>menupage_run</c> returns whatever is pending and the loop runs the party
+    /// member's AI turn immediately afterwards either way; the menu result is only read to see
+    /// whether the player has asked to <see cref="Bails"/>. So the fight keeps playing at full
+    /// speed and a press interrupts it — which is what the type summary says and what the wording
+    /// contradicted. Corrected 2026-08-29 against COMBAT.C:1620.</para>
     /// </remarks>
     public static bool StopsOnlyOnAPartyTurn => true;
 
