@@ -82,6 +82,36 @@ public static class CombatEncounterOpening {
     /// </remarks>
     public static bool PartyHasTheDrop(Opening opening) => opening == Opening.PartySurprises;
 
+    /// <summary>
+    /// <b>What the drop actually BUYS: every enemy forfeits its opening turn.</b>
+    /// </summary>
+    /// <remarks>
+    /// Read from the disassembly 2026-08-29 rather than inferred. <c>combTrigger_phase2</c> passes
+    /// the flag as <c>runCombatEncounter</c>'s third argument, and that function's pre-round loop
+    /// (@0x62b2d) is the whole of its effect:
+    /// <code>
+    /// cmp [bp+arg_4], 0
+    /// jnz  forfeit
+    ///      pOtherActor = pCurrentActor ; no surprise — the enemy TAKES its turn
+    ///      combatenc_ai_run_turn()
+    ///      jmp  next
+    /// forfeit:
+    ///      pCurrentActor->pCombatData->combatStatus_ &amp;= ~READY
+    /// next:
+    ///      combat_actor_pick_next()
+    /// </code>
+    /// The loop runs while the picker is still on an encounter actor — i.e. over every enemy due to
+    /// act before the party's first turn. So a surprise does not grant an extra action; it takes one
+    /// away from each enemy, once.
+    ///
+    /// <para><b>*** THE CANASSA NAME FOR THIS PARAMETER IS WRONG. ***</b> The reconstruction calls
+    /// it <c>b_has_fired</c> in <c>combat_arena_turn_loop</c>, and its body has exactly this
+    /// shape — run the AI when clear, clear <c>CAF_READY</c> when set. Nothing about it concerns
+    /// firing; it is "the party got the drop". Naming a port after it would leave the surprise
+    /// mechanic looking like ammunition bookkeeping.</para>
+    /// </remarks>
+    public static bool EnemiesForfeitTheirOpeningTurn(Opening opening) => PartyHasTheDrop(opening);
+
     /// <summary>Stealth gained by the whole party for winning the surprise roll.</summary>
     /// <remarks>The same training the avoidance roll gives, for the same stat.</remarks>
     public const int TrainingOnSurprise = 1;
