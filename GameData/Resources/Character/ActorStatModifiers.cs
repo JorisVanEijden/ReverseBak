@@ -29,6 +29,65 @@ public static class ActorStatModifiers {
     /// <summary>Size of the whole block, and the figure gstate.inc declares.</summary>
     public const int BlockSize = Characters * SlotsPerCharacter * SlotSize;
 
+    /// <summary>
+    /// Where the block starts in a TEMP.GAM <b>body</b> — immediately after the condition ranks.
+    /// </summary>
+    /// <remarks>
+    /// <b>A BODY offset, not a file offset.</b> A <c>SAVE##.GAM</c> puts a 100-byte header in front
+    /// of the body, so in a save file this block lives at <c>100 + BodyOffset</c>. Reading it as a
+    /// file offset does not fail — it lands on the condition ranks and neighbouring fields and
+    /// produces slots that look populated, which is exactly how an offset bug survives a round trip.
+    ///
+    /// <para>Derived rather than asserted: the condition-ranks block starts at <c>0x2CC</c> and runs
+    /// six characters by seven bytes, ending at <c>0x2F6</c> — and TASK-203's offset test already
+    /// pins that the ranks end exactly here, with "no room for a trailing unused run".</para>
+    /// </remarks>
+    public const int BodyOffset = 0x2f6;
+
+    /// <summary>Index of one character's slot in the flat block.</summary>
+    public static int IndexOf(int character, int slot) =>
+        (character * SlotsPerCharacter) + slot;
+
+    /// <summary>
+    /// Reads the whole block: <see cref="Characters"/> x <see cref="SlotsPerCharacter"/> slots,
+    /// flat, addressed by <see cref="IndexOf"/>.
+    /// </summary>
+    /// <returns>An empty array when the body is too short — callers get no modifiers rather than a
+    /// throw, matching how the other fixed-size blocks degrade.</returns>
+    public static Slot[] Load(byte[] body, int offset = BodyOffset) {
+        var slots = new Slot[Characters * SlotsPerCharacter];
+        if (body == null || offset < 0 || offset + BlockSize > body.Length) {
+            return slots;
+        }
+        for (var i = 0; i < slots.Length; i++) {
+            int at = offset + (i * SlotSize);
+            slots[i] = new Slot(
+                BitConverter.ToUInt16(body, at),
+                BitConverter.ToUInt16(body, at + 2),
+                BitConverter.ToInt16(body, at + 4),
+                BitConverter.ToUInt32(body, at + 6),
+                BitConverter.ToUInt32(body, at + 10));
+        }
+        return slots;
+    }
+
+    /// <summary>Writes the block back. False when it will not fit.</summary>
+    public static bool Save(IReadOnlyList<Slot> slots, byte[] body, int offset = BodyOffset) {
+        if (slots == null || body == null || offset < 0 || offset + BlockSize > body.Length) {
+            return false;
+        }
+        for (var i = 0; i < Characters * SlotsPerCharacter; i++) {
+            Slot slot = i < slots.Count ? slots[i] : default;
+            int at = offset + (i * SlotSize);
+            BitConverter.GetBytes((ushort)slot.Flags).CopyTo(body, at);
+            BitConverter.GetBytes((ushort)slot.StatMask).CopyTo(body, at + 2);
+            BitConverter.GetBytes(slot.Value).CopyTo(body, at + 4);
+            BitConverter.GetBytes(slot.AppliedAt).CopyTo(body, at + 6);
+            BitConverter.GetBytes(slot.ExpiresAt).CopyTo(body, at + 10);
+        }
+        return true;
+    }
+
     /// <summary>Flags in a slot's first word. The LOW BYTE is not a flag — see <see cref="CostOf"/>.</summary>
     [Flags]
     public enum ModifierFlags {
