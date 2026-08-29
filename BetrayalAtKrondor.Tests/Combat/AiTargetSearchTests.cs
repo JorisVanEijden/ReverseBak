@@ -14,11 +14,19 @@ using Xunit;
 public class AiTargetSearchTests {
     [Fact]
     public void EachFAMILYSearchesItsOwnDistance() {
-        // The three families named in IDA, and the "anyone" fallback they share.
+        // The three families named in IDA. The "anyone" fallback is NOT shared: the ranged family
+        // halves its reach for mode 0 and the melee default path does not.
         Assert.Equal(100, CombatAi.SearchRadiusFor(AiAction.MeleeOrMove, TargetRole.Spellcaster));
         Assert.Equal(10, CombatAi.SearchRadiusFor(AiAction.Shoot, TargetRole.Spellcaster));
-        Assert.Equal(6, CombatAi.SearchRadiusFor(AiAction.MeleeOrMove, TargetRole.Anyone));
         Assert.Equal(6, CombatAi.SearchRadiusFor(AiAction.Shoot, TargetRole.Anyone));
+
+        // *** THIS ASSERTED 6 UNTIL 2026-08-29 AND IT STOPPED EVERY FIGHT FROM STARTING. ***
+        // The resolver's only call site passes Anyone, so melee always searched six cells; the
+        // shipped arena stands the two sides EIGHT apart, so both sides decided MeleeOrMove and
+        // found no target. Auto-resolve ran 512 party turns without a step being taken.
+        // combataipath_follow_tgt_check(actor, 100, 0) — CMBTAI.C:518 — is mode 0 at ONE HUNDRED,
+        // which is what proves distance and mode are independent parameters.
+        Assert.Equal(100, CombatAi.SearchRadiusFor(AiAction.MeleeOrMove, TargetRole.Anyone));
     }
 
     [Fact]

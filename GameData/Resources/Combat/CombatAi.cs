@@ -278,12 +278,41 @@ public static class CombatAi {
     /// creature, ten cells for a crossbow shot — and falls back to a short radius-6 sweep for
     /// "anyone". A resolver-wide constant matches none of them.
     /// </remarks>
+    /// <remarks>
+    /// <b>THE RADIUS FOLLOWS THE ACTION, NOT THE ROLE — and reading it off the role stopped every
+    /// fight in the game from starting.</b> This used to answer <see cref="AnyoneSearchRadius"/>
+    /// whenever <paramref name="role"/> was <see cref="TargetRole.Anyone"/>, on the strength of
+    /// <c>monster_engageAnyoneWithinSix</c>. But the two are INDEPENDENT PARAMETERS in the original:
+    /// <c>combatenc_ai_pick_target_by_role(actor, max_distance, mode, clearance)</c> takes the
+    /// distance from its caller and the mode separately, and <b>mode 0 appears with both</b> —
+    /// <c>combat_ai_execute_turn(actor, 6, 0)</c> against
+    /// <c>combataipath_follow_tgt_check(actor, 100, 0)</c> (CMBTAI.C:518), which is the default
+    /// melee path. So "anyone" says nothing about how far to look.
+    ///
+    /// <para><b>Measured consequence, 2026-08-29.</b> The resolver's only call site passes
+    /// <c>Anyone</c>, so melee always got 6. In a shipped encounter the party stands 8 tiles from
+    /// the enemies, so every combatant on both sides decided <see cref="AiAction.MeleeOrMove"/> and
+    /// found NO TARGET — a standoff that could not resolve. Auto-resolve ran 512 party turns
+    /// without a single step being taken, which is what made it undeniable.</para>
+    ///
+    /// <para><b>The RANGED family keeps its role arm, and that is not an inconsistency.</b>
+    /// <c>combataiturn_action_disp_base(actor, 6, 0)</c> against <c>(actor, 10, &lt;mode&gt;)</c> —
+    /// a shooter really does halve its reach when it will take anyone. Melee's default path has no
+    /// such arm: mode 0 there is 100.</para>
+    ///
+    /// <para><b>What this does NOT fix.</b> The melee radius-6 sweeps are real; they belong to the
+    /// <c>*AnyoneWithinSix</c> SPECIES routines, which reach here through <c>ResolveSpecies</c> also
+    /// passing <c>MeleeOrMove</c> and now get 100 too. That is too generous for those few creatures
+    /// and strictly closer to the original than a standoff for everything. Giving those routines
+    /// their own radius needs the species dispatch to carry one, which it does not yet.</para>
+    /// </remarks>
     public static int SearchRadiusFor(AiAction action, TargetRole role) =>
-        // Casting goes through the combat_ai_execute_turn wrappers, which are the family that
-        // passes 6 (AiTurnPackets.TargetSearchRadius) — the same number the "anyone" sweeps use.
-        // Without this arm a caster picking a SPECIFIC role would fall through to melee's 100.
-        action == AiAction.Cast || role == TargetRole.Anyone ? AnyoneSearchRadius
-        : action == AiAction.Shoot ? RangedSearchRadius
+        action == AiAction.Cast ? AnyoneSearchRadius
+        // The RANGED family really does halve its reach for "anyone":
+        // combataiturn_action_disp_base(actor, 6, 0) against (actor, 10, <specific mode>).
+        // Melee has no such arm on its default path — see the remarks.
+        : action == AiAction.Shoot
+            ? (role == TargetRole.Anyone ? AnyoneSearchRadius : RangedSearchRadius)
         : MeleeSearchRadius;
 
     /// <summary>
