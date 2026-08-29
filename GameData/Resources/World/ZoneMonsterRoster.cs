@@ -18,6 +18,11 @@ using System.Collections.Generic;
 /// (<c>nShapeCount &lt; 1</c>). That is a 16-bit memory budget, not a game rule: a remake with
 /// ordinary asset streaming has no reason to cap a zone at five creature types, so the fifth slot is
 /// documented here and deliberately not modelled.</para>
+///
+/// <para><b>NO PRODUCTION CONSUMER BY DESIGN.</b> This records an animation-residency budget — a 16-bit
+/// memory constraint the remake has no reason to reproduce, kept so the number is on
+/// record rather than rediscovered. Nothing calls it and nothing should; the marker in
+/// this sentence is what keeps it out of the unconsumed-models audit.</para>
 /// </summary>
 public static class ZoneMonsterRoster {
     /// <summary>Creature slots a zone offers per chapter.</summary>

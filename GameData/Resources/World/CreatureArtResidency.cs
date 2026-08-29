@@ -10,6 +10,11 @@ using System.Collections.Generic;
 /// checks the creature against the four slots of <see cref="ZoneMonsterRoster"/> and, if it is not
 /// one of them, records it separately. <c>rgnenc_load_zone_shape_index</c> has already loaded the
 /// four; this is what catches the fifth.</para>
+///
+/// <para><b>NO PRODUCTION CONSUMER BY DESIGN.</b> This records the fifth-slot extra the engine caps at one — a 16-bit
+/// memory constraint the remake has no reason to reproduce, kept so the number is on
+/// record rather than rediscovered. Nothing calls it and nothing should; the marker in
+/// this sentence is what keeps it out of the unconsumed-models audit.</para>
 /// </summary>
 /// <remarks>
 /// <b>The original caps the extras at ONE and we deliberately do not.</b> Its collection loop is
