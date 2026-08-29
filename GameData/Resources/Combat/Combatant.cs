@@ -101,6 +101,28 @@ public sealed class Combatant {
     public Combatant Target { get; set; }
 
     /// <summary>
+    /// The tile a routed monster is running for — the original's
+    /// <c>combatData.target_x_on_grid_</c>/<c>target_y_on_grid_</c>, as written by
+    /// <c>combatenc_pick_flee_destination</c> (@0x63ea1).
+    /// </summary>
+    /// <remarks>
+    /// <b>Chosen once, when the rout starts, and then walked toward on every later turn.</b>
+    /// <c>combatenc_flee_walk_and_exit_field</c> (@0x64175) takes one walk step per turn and
+    /// compares the actor's tile against this one; re-rolling it each turn would make a routed
+    /// monster wander instead of leave, because the scan is deliberately noisy
+    /// (<see cref="MonsterFleeDestination.AcceptsImprovement"/>).
+    ///
+    /// <para>Null means no destination has been chosen — either the monster is not routing, or the
+    /// scan accepted nothing. <b>Here that means it stands still; in the original it does not.</b>
+    /// The original writes into a field the other AI routines also use as their walk target, so a
+    /// refused scan leaves the PREVIOUS destination in place and the monster walks to that instead.
+    /// We have no equivalent stale value — target selection carries a
+    /// <see cref="Combatant"/> and walks to its tile directly, never storing a tile — so there is
+    /// nothing to fall back to. The divergence is confined to the scan-accepted-nothing case.</para>
+    /// </remarks>
+    public (int X, int Y)? FleeDestination { get; set; }
+
+    /// <summary>
     /// Blocked by a lingering spell effect — <c>CanActInCombat</c> @0x63fa2.
     /// </summary>
     /// <remarks>

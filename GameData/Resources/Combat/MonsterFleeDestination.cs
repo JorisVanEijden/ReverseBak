@@ -16,9 +16,25 @@ public static class MonsterFleeDestination {
     /// <remarks>
     /// <b>This is a different guard from <see cref="MonsterMorale.NeverFleesMorale"/> (0xff), and
     /// they are not interchangeable.</b> The rout CHECK returns early on morale 0xff — such a
-    /// creature never decides to flee. This routine returns early on morale <b>0</b> — such a
-    /// creature can be routed but will not move. A port that folded the two into one "never flees"
-    /// value would change the behaviour of one group or the other.
+    /// creature never decides to flee. This routine returns early on morale <b>0</b>, and does so
+    /// <i>before</i> setting the flee flag.
+    ///
+    /// <para><b>CORRECTED 2026-08-29 against IDA — this used to say a morale-0 creature "can be
+    /// routed but will not move", and that is wrong.</b> <c>combatenc_pick_flee_destination</c>
+    /// (@0x63ea1) sets <c>CAF_FLEE</c> and clears the target only <i>after</i> the morale-0 test,
+    /// so a morale-0 creature never carries the flag at all: it does not rout, it fights on
+    /// normally. It never reaches "routed but standing still", because it is never routed.</para>
+    ///
+    /// <para><b>The asymmetry is the other way round from what the names suggest: morale 0 is the
+    /// STRONGER guard.</b> Morale 0xff is only tested in <c>combatenc_morale_flee_check</c>
+    /// (@0x63f23), not here — so the spell-driven rout paths that call this routine directly
+    /// (<c>Cast_Invitiation</c>, <c>Spell_RunAnimationEffect</c>,
+    /// <c>combat_arena_resume_dispatch</c>) CAN rout a never-flees creature, while nothing at all
+    /// can rout a morale-0 one. That is why this guard still earns its place even though
+    /// <see cref="MonsterMorale.Routs"/> already rejects morale 0 on the ordinary path.</para>
+    ///
+    /// <para>The two also differ in RNG cost on the morale path: 0xff returns before the roll,
+    /// morale 0 after it — see <see cref="MonsterMorale.ConsumesARoll"/>.</para>
     /// </remarks>
     public const int WontMoveMorale = 0;
 
