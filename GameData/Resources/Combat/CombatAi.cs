@@ -290,10 +290,14 @@ public static class CombatAi {
     /// melee path. So "anyone" says nothing about how far to look.
     ///
     /// <para><b>Measured consequence, 2026-08-29.</b> The resolver's only call site passes
-    /// <c>Anyone</c>, so melee always got 6. In a shipped encounter the party stands 8 tiles from
-    /// the enemies, so every combatant on both sides decided <see cref="AiAction.MeleeOrMove"/> and
-    /// found NO TARGET — a standoff that could not resolve. Auto-resolve ran 512 party turns
-    /// without a single step being taken, which is what made it undeniable.</para>
+    /// <c>Anyone</c>, so melee always got 6 — while the arena's starting separation VARIES BY
+    /// ENCOUNTER. One shipped encounter measured a nearest gap of 8: every combatant on both sides
+    /// decided <see cref="AiAction.MeleeOrMove"/> and found NO TARGET, a standoff that could not
+    /// resolve, and auto-resolve ran 512 party turns without a single step being taken. Another
+    /// measured 4 and would have engaged. So the damage was to every encounter laid out further
+    /// apart than six, not to all of them — worth stating precisely, because "no fight worked"
+    /// would have been disproved by the first fight anyone tried and the real bug dismissed with
+    /// it.</para>
     ///
     /// <para><b>The RANGED family keeps its role arm, and that is not an inconsistency.</b>
     /// <c>combataiturn_action_disp_base(actor, 6, 0)</c> against <c>(actor, 10, &lt;mode&gt;)</c> —
