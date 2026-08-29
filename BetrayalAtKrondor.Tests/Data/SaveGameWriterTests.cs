@@ -165,6 +165,39 @@ public class SaveGameWriterTests {
     }
 
     [Fact]
+    public void TheStatModifierBlockIsWrittenIntoTheBodyAndAFREEDSlotStaysFreed() {
+        // *** THE POINT IS THE ZERO, NOT THE VALUE. *** Reading a stat frees an expired modifier
+        // slot (GameSession.PartyEffectsFor). If the block is not written back, that expiry is
+        // undone by the next load: the dead slot returns, expires again on the next read, and goes
+        // on occupying one of the eight against a live modifier for ever.
+        byte[] body = PatternBody();
+        var slots = new GameData.Resources.Character.ActorStatModifiers.Slot[
+            GameData.Resources.Character.ActorStatModifiers.Characters
+            * GameData.Resources.Character.ActorStatModifiers.SlotsPerCharacter];
+        slots[GameData.Resources.Character.ActorStatModifiers.IndexOf(2, 0)] =
+            new GameData.Resources.Character.ActorStatModifiers.Slot(
+                flags: 1, statMask: 1 << 5, value: 20, appliedAt: 7, expiresAt: 900);
+        // Slot 1 of the same character is left default — a slot a read has just freed.
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, FieldsFrom(body), "Slot A", 40, 41, 3, statModifiers: slots);
+        byte[] outBody = r.Bytes[SaveGameOffsets.HeaderSize..];
+
+        GameData.Resources.Character.ActorStatModifiers.Slot[] reloaded =
+            GameData.Resources.Character.ActorStatModifiers.Load(outBody);
+
+        GameData.Resources.Character.ActorStatModifiers.Slot live =
+            reloaded[GameData.Resources.Character.ActorStatModifiers.IndexOf(2, 0)];
+        Assert.False(live.IsEmpty);
+        Assert.Equal(20, live.Value);
+        Assert.Equal(900u, live.ExpiresAt);
+
+        Assert.True(
+            reloaded[GameData.Resources.Character.ActorStatModifiers.IndexOf(2, 1)].IsEmpty,
+            "the freed slot must not come back from the pattern bytes underneath it");
+    }
+
+    [Fact]
     public void TheEncounterActorStateBlockIsWrittenIntoTheBodyAndReadsBack() {
         byte[] body = PatternBody();
         var states = new GameData.Resources.World.EncounterObjectStates();

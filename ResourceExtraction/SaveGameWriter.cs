@@ -29,6 +29,7 @@ public static class SaveGameWriter {
         IReadOnlyList<SaveGameTimerData> timers = null,
         EncounterVisitTable automapVisits = null,
         EncounterObjectStates encounterActorStates = null,
+        IReadOnlyList<GameData.Resources.Character.ActorStatModifiers.Slot> statModifiers = null,
         IReadOnlyDictionary<int, int> globalFlagEdits = null,
         IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null) {
         if (backingBody is null) {
@@ -110,6 +111,21 @@ public static class SaveGameWriter {
         if (encounterActorStates != null
             && encounterActorStates.Save(body, EncounterObjectStates.BodyOffset)) {
             coverage.Add(EncounterObjectStates.BodyOffset, EncounterObjectStates.SaveSize);
+        }
+
+        // The eight timed stat modifiers per party member. Written whole, like the two blocks
+        // above, because a slot is a 14-byte record in a fixed table rather than a field with an
+        // address of its own.
+        //
+        // *** THIS EXISTS BECAUSE READING A STAT CAN FREE A SLOT. *** An expired modifier is zeroed
+        // by the read that notices it (GameSession.PartyEffectsFor); without writing the block back
+        // that expiry is lost, the slot returns on the next load and expires again forever — and,
+        // worse, keeps occupying one of the eight against a new modifier.
+        if (statModifiers != null
+            && GameData.Resources.Character.ActorStatModifiers.Save(
+                statModifiers, body, GameData.Resources.Character.ActorStatModifiers.BodyOffset)) {
+            coverage.Add(GameData.Resources.Character.ActorStatModifiers.BodyOffset,
+                GameData.Resources.Character.ActorStatModifiers.BlockSize);
         }
 
         // *** THE STORY FLAGS. *** Until 2026-08-25 nothing wrote these at all — the session kept
