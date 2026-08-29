@@ -251,7 +251,14 @@ public static class CipherPuzzleLayout {
         firstPass || !legible ? AlienFont : PuzzleFont;
 
     /// <summary>The riddle screen's own music track.</summary>
-    public const int MusicTrack = 0x3eb;
+    /// <remarks>
+    /// <b>Delegated so there is one owner.</b> This and
+    /// <see cref="GameData.Resources.Audio.MusicSelection.RiddleTrack"/> were two constants holding
+    /// the same 0x3eb in two types — the music authority and a screen layout — which is the shape
+    /// that drifts the moment one of them is corrected. The value belongs to the music model; this
+    /// stays only because the screen reads its layout from here.
+    /// </remarks>
+    public const int MusicTrack = GameData.Resources.Audio.MusicSelection.RiddleTrack;
 
     /// <summary>Dialog played as the screen opens.</summary>
     public const int OpeningDialog = 0x0b;
