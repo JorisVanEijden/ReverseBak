@@ -127,4 +127,31 @@ public static class SlayerRevival {
     /// stats are touched.
     /// </remarks>
     public static bool RisesAtFullStrength => true;
+
+    /// <summary>
+    /// The actor's flag word once it is up — <b>assigned, not OR-ed</b>.
+    /// </summary>
+    /// <returns>Exactly <see cref="CombatantFlags.Ready"/>, whatever went in.</returns>
+    /// <remarks>
+    /// <b>THE RISE WIPES EVERY OTHER FLAG, AND THIS IS THE ONE LINE A PORT GETS WRONG.</b>
+    /// <c>actor-&gt;inner-&gt;flags = CAF_READY</c> (CBTAIACT.C:303) is a plain assignment, so Dead,
+    /// Fleeing, Poison, Parry and Knockback all go together. Writing <c>flags |= Ready</c> — which
+    /// is what the sentence "it gets up ready to act" suggests, and what the same subsystem does in
+    /// four OTHER places (CBENC.C:751, CACTOR.C:1411) — leaves the Dead bit set. The result is a
+    /// fully-healed corpse standing on the field: <c>IsDead</c> still true, so it never acts, never
+    /// counts as a live enemy and can never be killed again.
+    ///
+    /// <para>The same statement is what clears the poison a creature died of, which is a small
+    /// mercy the data does not state anywhere.</para>
+    ///
+    /// <para>Three more fields are zeroed beside it — <c>knockbackTimer</c>,
+    /// <c>dmgFloatValue</c> and <c>dmgFloatFrames</c>. The last of those IS the revival countdown
+    /// (<see cref="RisesThisTick"/>), so the rise clears its own timer and a risen creature that
+    /// falls again starts a fresh count rather than rising instantly.</para>
+    /// </remarks>
+    public static CombatantFlags FlagsAfterRising(CombatantFlags before) => CombatantFlags.Ready;
+
+    /// <summary>Whether the rise leaves the revival countdown cleared.</summary>
+    /// <inheritdoc cref="FlagsAfterRising"/>
+    public static bool ClearsItsOwnCountdown => true;
 }

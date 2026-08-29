@@ -106,4 +106,28 @@ public class SlayerRevivalTests {
         Assert.Equal(9, SlayerRevival.RisenTileEffect);
         Assert.Equal(400, SlayerRevival.RisenTileEffectDuration);
     }
+
+    [Fact]
+    public void RisingASSIGNSReadyRatherThanORingIt() {
+        // *** THE ONE LINE A PORT GETS WRONG. *** flags = CAF_READY (CBTAIACT.C:303) is a plain
+        // assignment, so Dead, Fleeing, Poison, Parry and Knockback all go together. `flags |=
+        // Ready` — what "it gets up ready to act" suggests, and what the same subsystem does in four
+        // OTHER places — leaves the Dead bit set: a fully-healed corpse that never acts, never
+        // counts as a live enemy and can never be killed again.
+        CombatantFlags before = CombatantFlags.Dead | CombatantFlags.Fleeing
+            | CombatantFlags.Poisoned | CombatantFlags.Parry;
+
+        CombatantFlags after = SlayerRevival.FlagsAfterRising(before);
+
+        Assert.Equal(CombatantFlags.Ready, after);
+        Assert.False(after.HasFlag(CombatantFlags.Dead), "the corpse flag above all");
+        Assert.False(after.HasFlag(CombatantFlags.Poisoned), "and the poison it died of");
+    }
+
+    [Fact]
+    public void TheRiseClearsItsOwnCountdown() {
+        // dmgFloatFrames IS the revival countdown, and the rise zeroes it — so a risen creature
+        // that falls again starts a fresh count rather than rising instantly.
+        Assert.True(SlayerRevival.ClearsItsOwnCountdown);
+    }
 }
