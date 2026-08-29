@@ -19,6 +19,18 @@ using Xunit;
 ///
 /// <para>So the invariant is checked mechanically rather than by remembering: every concrete
 /// <c>ExtractorBase&lt;T&gt;</c> in the assembly must be registered for its own T.</para>
+///
+/// <para><b>KNOWN HOLE: this only sees <c>ExtractorBase&lt;T&gt;</c> subclasses.</b> A resource read
+/// by a plain static class is invisible to it, and one slipped through on exactly that account —
+/// <c>CombatAffinityReader</c> was complete, unregistered and unreachable, so every fight ran with
+/// null affinity tables and the AI flee thresholds never reached <c>MonsterTurnResolver</c>. It
+/// surfaced only as seven swallowed exceptions in an Editor log (2026-08-29), never as a red test.
+/// Fixed by giving it a <c>CombatAffinityExtractor</c> wrapper, which this test can then see.</para>
+///
+/// <para>The remaining static readers were checked by hand at the same time and are helpers used
+/// BY registered extractors (<c>CombatRecordReader</c>, <c>ExeStringReader</c>), not resource
+/// producers — so there is nothing to register for them. If a new static reader ever produces an
+/// <c>IResource</c> the runtime loads, give it a wrapper rather than widening this test to guess.</para>
 /// </summary>
 public class ExtractorFactoryCoverageTests {
     /// <summary>

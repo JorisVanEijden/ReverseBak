@@ -163,6 +163,11 @@ public static class ExtractorFactory {
             typeof(TileEventTile), typeof(TileEventExtractor)
         }, {
             typeof(CreatureNames), typeof(MnamesExtractor)
+        }, {
+            // Read out of KRONDOR.EXE. Absent until 2026-08-29, so every fight ran with null
+            // affinity tables and MonsterTurnResolver never got the shipped flee thresholds.
+            typeof(GameData.Resources.Combat.CombatAffinityTables),
+            typeof(Extractors.Exe.CombatAffinityExtractor)
         }
     };
 
