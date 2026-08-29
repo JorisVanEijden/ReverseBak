@@ -30,6 +30,8 @@ public static class SaveGameWriter {
         EncounterVisitTable automapVisits = null,
         EncounterObjectStates encounterActorStates = null,
         IReadOnlyList<GameData.Resources.Character.ActorStatModifiers.Slot> statModifiers = null,
+        short? lastSeenStepSpeed = null,
+        short? lastSeenGridStride = null,
         IReadOnlyDictionary<int, int> globalFlagEdits = null,
         IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null) {
         if (backingBody is null) {
@@ -95,6 +97,18 @@ public static class SaveGameWriter {
         PatchI32(SaveGameOffsets.PositionY, fields.PositionY);
         PatchI32(SaveGameOffsets.PositionZ, fields.PositionZ);
         PatchI16(SaveGameOffsets.Rotation, fields.Rotation);
+
+        // *** THE CHANGE-DETECTOR BASELINE, AND IT IS ONLY WRITTEN WHEN THE CALLER HAS ONE. ***
+        // The body is cloned, so leaving these alone already round-trips whatever was there. They
+        // are patchable because the baseline has to MOVE: the roaming-encounter reset fires on the
+        // step speed having grown since the game last looked, and then stores the new value —
+        // whether or not it fired. Never storing it would re-fire the reset on every single apply.
+        if (lastSeenStepSpeed.HasValue) {
+            PatchI16(SaveGameOffsets.LastSeenStepSpeed, lastSeenStepSpeed.Value);
+        }
+        if (lastSeenGridStride.HasValue) {
+            PatchI16(SaveGameOffsets.LastSeenGridStride, lastSeenGridStride.Value);
+        }
 
         // The dungeon automap's marks. The block is written whole rather than per-mark because
         // that is how the original does it too (gstate_temp_file_write_at over the entire 0x668),

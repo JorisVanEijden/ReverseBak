@@ -57,6 +57,23 @@ public static class SaveGameOffsets {
     public const int Rotation = 33;    // Int16 (currentZRotation)
 
     /// <summary>
+    /// The world step speed as it stood when the game last compared it — <c>nLastSeenStepSpeed</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived by instrumenting the reader, not counted by hand.</b> The extractor reaches these
+    /// two by a long sequential parse with no offset constant of its own, and the teleport block
+    /// before them is easy to miscount. The round-trip test writes through here and reads back with
+    /// the real extractor, so a wrong offset fails rather than silently shifting the save.
+    ///
+    /// <para>These are the RESOLVED distances (1600 is <c>StepDistances[2]</c>), not preference
+    /// indices — see <c>SaveGameChangeDetectorTests</c>.</para>
+    /// </remarks>
+    public const int LastSeenStepSpeed = 46;   // Int16
+
+    /// <inheritdoc cref="LastSeenStepSpeed"/>
+    public const int LastSeenGridStride = 48;  // Int16
+
+    /// <summary>
     /// Int32. When the party last rested (<c>dwLastActionTimeSnapshot</c>) — exhaustion is measured
     /// from here, so leaving it unwritten loses how tired everyone is.
     /// </summary>

@@ -165,6 +165,43 @@ public class SaveGameWriterTests {
     }
 
     [Fact]
+    public void TheChangeDetectorBaselineIsPatchedAtAnOffsetTheREADERAgreesWith() {
+        // *** THE OFFSET IS THE THING UNDER TEST. *** The extractor reaches these two by a long
+        // sequential parse with no constant of its own, so 46/48 was derived by instrumenting the
+        // reader rather than counted by hand. Writing through the constants and reading back with
+        // the REAL extractor is what makes a wrong offset fail here instead of silently shifting
+        // somebody else's field in every save the game writes.
+        byte[] body = PatternBody();
+
+        SaveGameWriteResult r = SaveGameWriter.Write(
+            body, FieldsFrom(body), "Slot A", 40, 41, 3,
+            lastSeenStepSpeed: 1600, lastSeenGridStride: 900);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        SaveGame parsed = new ResourceExtraction.Extractors.SaveGameExtractor()
+            .Extract("Slot A", new System.IO.MemoryStream(r.Bytes[SaveGameOffsets.HeaderSize..]));
+
+        Assert.Equal(1600, parsed.Data!.StateData.LastSeenStepSpeed);
+        Assert.Equal(900, parsed.Data!.StateData.LastSeenGridStride);
+    }
+
+    [Fact]
+    public void OmittingTheBaselineLeavesTheBodyAlone() {
+        // The body is cloned, so a caller with no baseline to store must not zero one that is there.
+        byte[] body = PatternBody();
+        SaveGameWriteResult before = SaveGameWriter.Write(
+            body, FieldsFrom(body), "Slot A", 40, 41, 3, lastSeenStepSpeed: 1600);
+        SaveGameWriteResult after = SaveGameWriter.Write(
+            before.Bytes[SaveGameOffsets.HeaderSize..], FieldsFrom(body), "Slot A", 40, 41, 3);
+
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        SaveGame parsed = new ResourceExtraction.Extractors.SaveGameExtractor()
+            .Extract("Slot A", new System.IO.MemoryStream(after.Bytes[SaveGameOffsets.HeaderSize..]));
+
+        Assert.Equal(1600, parsed.Data!.StateData.LastSeenStepSpeed);
+    }
+
+    [Fact]
     public void TheStatModifierBlockIsWrittenIntoTheBodyAndAFREEDSlotStaysFreed() {
         // *** THE POINT IS THE ZERO, NOT THE VALUE. *** Reading a stat frees an expired modifier
         // slot (GameSession.PartyEffectsFor). If the block is not written back, that expiry is
