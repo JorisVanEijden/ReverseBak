@@ -49,6 +49,41 @@ public static class WorldTileCache {
     /// </remarks>
     public static int TileOf(long worldPosition) => (int)(worldPosition / TileWorldSize);
 
+    /// <summary>
+    /// How far from the party's own tile a tile can be and still be resident.
+    /// </summary>
+    /// <remarks>
+    /// One, in Chebyshev distance — the party's tile plus the eight around it, which is the
+    /// <see cref="Slots"/> the original keeps and the reason there are nine of them rather than
+    /// some other number.
+    /// </remarks>
+    public const int ResidentRadius = 1;
+
+    /// <summary>
+    /// Whether a tile is one of the nine the party's position keeps resident.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the part of the original's design worth keeping, and the nine SLOTS are not.</b>
+    /// The storage — nine fixed partitions of one 62216-byte allocation — is a 16-bit memory
+    /// budget; WHICH tiles matter is a game-facing rule, because it is what the original keeps
+    /// populated ahead of the party and therefore what it is ever willing to draw.
+    ///
+    /// <para>Chebyshev rather than Euclidean: the ring is a 3x3 square, so a diagonal neighbour is
+    /// as resident as an orthogonal one. Measuring it as a radius would drop the four corners and
+    /// show the player an empty quadrant when they walk diagonally toward a boundary.</para>
+    /// </remarks>
+    public static bool IsResident(int tileX, int tileY, int partyTileX, int partyTileY) {
+        int dx = tileX - partyTileX;
+        int dy = tileY - partyTileY;
+        if (dx < 0) {
+            dx = -dx;
+        }
+        if (dy < 0) {
+            dy = -dy;
+        }
+        return (dx > dy ? dx : dy) <= ResidentRadius;
+    }
+
     /// <summary>Whether the party has left the tile in slot 0.</summary>
     public static bool HasCrossed(int currentTileX, int currentTileY, int slotZeroX, int slotZeroY) =>
         currentTileX != slotZeroX || currentTileY != slotZeroY;
