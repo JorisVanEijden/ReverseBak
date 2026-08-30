@@ -6,19 +6,15 @@ namespace GameData.Resources.Location;
 /// </summary>
 public static class TeleportCost {
     /// <summary>
-    /// The octagonal distance approximation the original uses instead of a real hypotenuse:
-    /// <c>max + min * 3 / 8</c>, with integer division at each step.
-    ///
-    /// <para>It is deliberately cheap and deliberately not Euclidean — the 3/8 term makes a
-    /// diagonal cost about 1.375× a straight line where the true figure is 1.414×, so diagonal
-    /// journeys come out slightly under-priced. Reproduce it rather than substituting a hypotenuse:
-    /// every published fare in the game is this number.</para>
+    /// The fare's distance term — <see cref="World.WorldDistance.Octagonal"/>.
     /// </summary>
-    public static int OctagonalDistance(int dx, int dy) {
-        int a = dx < 0 ? -dx : dx;
-        int b = dy < 0 ? -dy : dy;
-        return a < b ? b + (a * 3 / 8) : a + (b * 3 / 8);
-    }
+    /// <remarks>
+    /// <b>Kept as a named step of the fare, delegating rather than reimplementing.</b> This was the
+    /// only copy for a while, which made a general R3D core routine look like a pricing detail; the
+    /// stash-exposure sweep needs the same distance and would have grown a second one.
+    /// </remarks>
+    public static int OctagonalDistance(int dx, int dy) =>
+        World.WorldDistance.Octagonal(dx, dy);
 
     /// <summary>
     /// The fare between two destinations, in royals.
