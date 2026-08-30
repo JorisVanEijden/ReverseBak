@@ -51,4 +51,24 @@ public class DecoySummonTests {
     public void ItIsStampedWithDannonsDelusions() {
         Assert.Equal(GameData.Resources.Spells.SpellIds.DannonsDelusions, DecoySummon.Spell);
     }
+    [Fact]
+    public void ADecoyIsREADYAndNotFlaggedASummon_TheReverseOfAMonsterSummon() {
+        // The two spawn routines set the flags word to opposite values on both bits. A conjured
+        // monster carries AiSummon and is not ready; the decoy is ready and carries no summon bit,
+        // so nothing keying off that bit will find it.
+        Assert.Equal(CombatantFlags.Ready, DecoySummon.InitialFlags);
+        Assert.False(DecoySummon.InitialFlags.HasFlag(CombatantFlags.AiSummon));
+        Assert.Equal(CombatantFlags.AiSummon, MonsterSummon.InitialFlags);
+        Assert.False(MonsterSummon.InitialFlags.HasFlag(CombatantFlags.Ready));
+    }
+
+    [Fact]
+    public void ADecoyNeverRoutsEither_ButForASimplerReason() {
+        // Same zero, same consequence as MonsterSummon.Morale. The difference is that this routine
+        // writes the decoy's stats directly and never calls the MONSTXX.DAT roll, so there is no
+        // template value for the zero to have to survive.
+        Assert.Equal(0, DecoySummon.Morale);
+        Assert.Equal(DecoySummon.Morale, MonsterSummon.Morale);
+    }
+
 }

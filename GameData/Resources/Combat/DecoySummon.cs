@@ -14,6 +14,19 @@ using GameData.Resources.Spells;
 /// </remarks>
 public static class DecoySummon {
     /// <summary>The spell the decoy's effect slot is stamped with.</summary>
+    /// <remarks>
+    /// <b>The routine writes a literal 1 into the slot's type field, and that field holds a spell
+    /// id</b> — <c>cspell_status_effect_add</c> puts spell numbers there, 0xd for Grief of a
+    /// Thousand Nights among them. So the 1 IS Dannon's Delusions rather than an effect-kind that
+    /// happens to be 1; worth stating, because the two readings are indistinguishable at the call
+    /// site and only one of them is right.
+    ///
+    /// <para>It also explains the spell: Dannon's Delusions is one of the two whose computed
+    /// magnitude the post-animation hook throws away
+    /// (<see cref="Spells.SpellCastTail.ZeroesItsOwnMagnitude"/>). It carries a CostTimesDamage
+    /// calculation, runs the arithmetic, discards the answer — and this decoy is the entire
+    /// effect.</para>
+    /// </remarks>
     public const int Spell = SpellIds.DannonsDelusions;
 
     /// <summary>
@@ -44,6 +57,42 @@ public static class DecoySummon {
 
     /// <summary>Whether the decoy can do anything on its turn.</summary>
     public static bool CanAct => Speed > 0;
+
+    /// <summary>
+    /// The flags a decoy spawns with: <b><see cref="CombatantFlags.Ready"/>, and NOT
+    /// <see cref="CombatantFlags.AiSummon"/>.</b>
+    /// </summary>
+    /// <remarks>
+    /// This is the mechanical difference from <see cref="MonsterSummon.InitialFlags"/>, which is the
+    /// other way round on both bits. A conjured monster is marked as a summon and is not ready; the
+    /// decoy is marked ready and is not marked a summon at all — so nothing downstream that keys off
+    /// the summon bit will find it.
+    ///
+    /// <para>Being READY with <see cref="Speed"/> zero is not a contradiction: it takes its place in
+    /// the order and has nothing to spend there. That is what makes it a thing to be attacked rather
+    /// than a second combatant.</para>
+    /// </remarks>
+    public const CombatantFlags InitialFlags = CombatantFlags.Ready;
+
+    /// <summary>The morale a decoy spawns with: <b>zero, so it never routs.</b></summary>
+    /// <remarks>
+    /// Same value and same consequence as <see cref="MonsterSummon.Morale"/> — zero is one of
+    /// <see cref="MonsterMorale"/>'s two never-flee values — but it gets there without a guard,
+    /// because this routine writes the decoy's stats directly and never calls the MONSTXX.DAT roll.
+    /// There is no template here for a zero to have to survive.
+    /// </remarks>
+    public const int Morale = 0;
+
+    /// <summary>
+    /// <b>The decoy is DELIVERED, not simply placed.</b>
+    /// </summary>
+    /// <remarks>
+    /// Between the tile pick and the actor's creation the routine plays the ranged-attack animation
+    /// from the caster to the chosen tile, with the caster's own creature type as the projectile —
+    /// so the illusion visibly travels there. A port that makes it appear instantly loses the tell
+    /// that says which caster it came from.
+    /// </remarks>
+    public static bool ArrivesOnAProjectile => true;
 
     /// <summary>
     /// <b>It expires.</b>

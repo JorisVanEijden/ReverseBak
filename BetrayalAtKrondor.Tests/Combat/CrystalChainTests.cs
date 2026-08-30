@@ -82,10 +82,29 @@ public class CrystalChainTests {
     }
 
     [Fact]
-    public void AnyKindTracingRejectsCrystalsAndAcceptsEverythingElse() {
-        TrapPuzzle puzzle = PuzzleWith((Crystal, 3, 3));
+    public void TheWildcardACCEPTSCrystals_WhichIsTheOppositeOfWhatThisUsedToAssert() {
+        // *** THIS TEST DEFENDED AN INVERTED RULE. *** It read "any-kind tracing rejects crystals
+        // and accepts everything else". combatgrid_tile_walkable_kind computes
+        // !(cmbt && paged_id != 7 && paged_id != 8): true for an empty tile OR one holding a
+        // crystal, false for a foreign element. A crystal passes; something else does not.
+        TrapPuzzle puzzle = PuzzleWith((Crystal, 3, 3), (Diamond, 4, 3));
 
-        Assert.False(CrystalChain.TileCarriesRun(puzzle, 3, 3, -1));
+        Assert.True(CrystalChain.TileCarriesRun(puzzle, 3, 3, CrystalChain.AnyCrystal));
+        Assert.False(CrystalChain.TileCarriesRun(puzzle, 4, 3, CrystalChain.AnyCrystal),
+            "a foreign element is what blocks, not a crystal");
+    }
+
+    [Fact]
+    public void TheWildcardIsAMOVEMENTQuestion_NotARunTracingOne() {
+        // Nothing in the crystal-push path passes it: the push probes with the pushed element's own
+        // paged_id. Its callers are the combat cursor and the AI's step check, and the answer agrees
+        // with SummonPlacement — crystal ground does not block, which is how the trap goes off.
+        TrapPuzzle puzzle = PuzzleWith((Crystal, 3, 3), (Diamond, 4, 3));
+
+        Assert.True(CrystalChain.TilePermitsMovement(puzzle, 3, 3));
+        Assert.False(CrystalChain.TilePermitsMovement(puzzle, 4, 3));
+        Assert.False(CrystalChain.TilePermitsMovement(puzzle, 9, 9),
+            "and ordinary ground is not crystal ground, so it answers no for a different reason");
     }
 
     [Fact]
