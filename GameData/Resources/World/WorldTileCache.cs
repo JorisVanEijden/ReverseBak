@@ -89,6 +89,25 @@ public static class WorldTileCache {
     /// <inheritdoc cref="FirstClearedGlobal"/>
     public const int LastClearedGlobal = 5219;
 
+    /// <summary>Slots in each of the two transient blocks.</summary>
+    /// <remarks>
+    /// Ten, so the twenty cleared keys are two ten-slot blocks and not one twenty-slot one — which
+    /// is the whole reason <see cref="ScoutTriedFlagKey"/> and <see cref="ScoutedFlagKey"/> are ten
+    /// apart and mean different things.
+    /// </remarks>
+    public const int SlotsPerTransientBlock = 10;
+
+    /// <summary>The "a scout roll was tried for this hotspot" flag.</summary>
+    public static int ScoutTriedFlagKey(int hotspotIndex) => FirstClearedGlobal + hotspotIndex;
+
+    /// <summary>The "this hotspot has been spotted" flag.</summary>
+    /// <remarks>
+    /// The second block, <see cref="SlotsPerTransientBlock"/> above the first. Both are cleared on a
+    /// crossing; clearing only the first lets a spot earned on one tile buy a sneak-past on the next.
+    /// </remarks>
+    public static int ScoutedFlagKey(int hotspotIndex) =>
+        FirstClearedGlobal + SlotsPerTransientBlock + hotspotIndex;
+
     /// <summary>Whether a global is wiped by a tile crossing.</summary>
     public static bool ClearedOnCrossing(int key) =>
         key >= FirstClearedGlobal && key <= LastClearedGlobal;
