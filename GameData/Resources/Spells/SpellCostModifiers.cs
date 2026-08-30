@@ -24,9 +24,19 @@ public static class SpellCostModifiers {
         targetingType == UntargetedTargetingType;
 
     /// <summary>
-    /// The surcharge the storm modifier adds — <b>half of the original cost</b>.
+    /// The surcharge the <b>Infinity Pool</b> adds — half of the original cost.
     /// </summary>
     /// <remarks>
+    /// <b>IT IS AN ITEM, NOT WEATHER.</b> The flag is <c>g_bStormAmplify</c> in the reconstructed
+    /// source and the name says storm, but the only thing that raises it is
+    /// <c>combat_arena_resume_dispatch</c>'s <c>case 0x0d</c> — object 13, the Infinity Pool —
+    /// immediately after the cast menu it opened returns a spell. See
+    /// <see cref="Combat.CombatItemUse"/>. The cast that follows is amplified and the flag is
+    /// cleared, so it is exactly one spell per use.
+    ///
+    /// <para>Recorded because this parameter sat unfed for months as "the storm amplifier, which has
+    /// no source on our side yet" — a search of the world for something that lives in an inventory.</para>
+    ///
     /// Taken from the cost as it arrived, not from the running value, so it is exactly +50% and not
     /// compounded with anything applied afterwards.
     ///
@@ -87,7 +97,7 @@ public static class SpellCostModifiers {
     /// The cost the magnitude is finally computed from.
     /// </summary>
     /// <param name="cost">The cost as the caller supplied it.</param>
-    /// <param name="surcharged">Whether the global surcharge modifier is active.</param>
+    /// <param name="surcharged">Whether the Infinity Pool is amplifying this cast.</param>
     /// <param name="targetIsWeak">Whether the target is weak to this spell.</param>
     /// <remarks>
     /// <b>The order does not commute.</b> Surcharge is taken from the original cost, the sign is
