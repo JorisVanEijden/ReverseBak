@@ -56,6 +56,15 @@ public static class SpellIds {
     /// <summary>Handler is a sound; the spell is its duration effect.</summary>
     public const int HochosHaven = 6;
 
+    /// <summary>
+    /// The restore. Targeting type 2, which is its own delivery — not negative damage.
+    /// </summary>
+    /// <remarks>
+    /// The AI's support turn reaches for this one first and falls back to
+    /// <see cref="HochosHaven"/> — see <c>MonsterHealTurn</c>.
+    /// </remarks>
+    public const int GiftOfSung = 7;
+
     /// <summary>Zeroes its own magnitude unless the target is a Black Slayer.</summary>
     public const int BaneOfBlackSlayers = 9;
 
