@@ -75,6 +75,7 @@ public sealed class CombatGrid {
 
     private readonly CombatTerrain[,] _terrain = new CombatTerrain[Width, Height];
     private readonly bool[,] _occupied = new bool[Width, Height];
+    private readonly int[,] _effectTimer = new int[Width, Height];
 
     /// <summary>
     /// Builds an empty arena. <c>Load_grid</c> always walls off the two far corners, and underground
@@ -82,6 +83,16 @@ public sealed class CombatGrid {
     /// </summary>
     public CombatGrid(bool underground = false) {
         Underground = underground;
+        // *** -1, NOT 0. *** A timer of -1 is what marks a cell as carrying no spell effect, and it
+        // is the whole reason the decay sweep can run over every cell without eating the authored
+        // trap-puzzle terrain: combatgrid_tick_tile_effect touches a cell only when its timer is
+        // >= 0. Leaving these at the default zero would expire every crystal, cannon and wall on
+        // the arena one tick into the first fight.
+        for (var y = 0; y < Height; y++) {
+            for (var x = 0; x < Width; x++) {
+                _effectTimer[x, y] = NoEffect;
+            }
+        }
         _terrain[0, 0] = CombatTerrain.OutOfBounds;
         _terrain[Width - 1, 0] = CombatTerrain.OutOfBounds;
 
@@ -110,6 +121,104 @@ public sealed class CombatGrid {
         if (InBounds(x, y)) {
             _terrain[x, y] = terrain;
         }
+    }
+
+    // ---------------------------------------------------------------- spell fields on the floor
+
+    /// <summary>
+    /// The timer value that means "this cell carries no spell effect".
+    /// </summary>
+    /// <remarks>
+    /// Both the initial state and what expiry writes back, so an expired cell is indistinguishable
+    /// from one that never had an effect — which is what stops a cell being expired twice.
+    /// </remarks>
+    public const int NoEffect = -1;
+
+    /// <summary>
+    /// The one effect kind that reverts to <see cref="CombatTerrain.Crystal"/> instead of
+    /// <see cref="CombatTerrain.Open"/> when it lapses.
+    /// </summary>
+    /// <remarks>
+    /// <b>Kind 9 is what a rising Black Slayer paints</b> (<see cref="SlayerRevival.RisenTileEffect"/>),
+    /// and the tick's expiry branch singles it out: everything else becomes Open, 9 becomes Crystal.
+    /// The revival then resets the cell itself after waiting for the kind to clear, so there the
+    /// crystal is transient — but the rule belongs to the tick, not to the revival, and anything
+    /// else painting a 9 gets crystal ground back.
+    /// </remarks>
+    public const int RevertsToCrystalKind = 9;
+
+    /// <summary>
+    /// Paints a spell field on a cell — <c>combatgrid_set_tile_effect</c> (CMBTGRID.C:174).
+    /// </summary>
+    /// <remarks>
+    /// <b>THE EFFECT IS THE TERRAIN.</b> The original writes the effect kind straight into the
+    /// cell's terrain word with a countdown beside it — there is no overlay and no second field to
+    /// consult. So while a field burns, every reader of <see cref="TerrainAt"/> sees the field
+    /// rather than the floor, which is exactly why standing in one denies shooting and casting
+    /// (<see cref="CombatCapability.DenyingTerrain"/>).
+    /// </remarks>
+    public void SetTileEffect(int x, int y, CombatTerrain kind, int timer) {
+        if (!InBounds(x, y)) {
+            return;
+        }
+        _terrain[x, y] = kind;
+        _effectTimer[x, y] = timer;
+    }
+
+    /// <summary>Ticks remaining on a cell's effect, or <see cref="NoEffect"/>.</summary>
+    public int EffectTimerAt(int x, int y) => InBounds(x, y) ? _effectTimer[x, y] : NoEffect;
+
+    /// <summary>
+    /// Ages one cell's effect — <c>combatgrid_tick_tile_effect</c> (CMBTGRID.C:159).
+    /// </summary>
+    /// <returns>Whether the effect lapsed on this tick.</returns>
+    /// <remarks>
+    /// <b>A cell at <see cref="NoEffect"/> is not touched at all</b>, which is what makes it safe to
+    /// sweep the whole grid: authored terrain never carries a timer, so the crystals, cannons and
+    /// walls of a trap puzzle are invisible to this.
+    ///
+    /// <para><b>Zero is the last tick, not an expired one.</b> The original tests <c>== 0</c> and
+    /// expires there, so a field painted with a timer of N burns for N+1 ticks. Decrementing first
+    /// and testing after would cost every field one tick.</para>
+    /// </remarks>
+    public bool TickTileEffect(int x, int y) {
+        if (!InBounds(x, y) || _effectTimer[x, y] < 0) {
+            return false;
+        }
+
+        if (_effectTimer[x, y] > 0) {
+            _effectTimer[x, y]--;
+            return false;
+        }
+
+        _effectTimer[x, y] = NoEffect;
+        _terrain[x, y] = (int)_terrain[x, y] == RevertsToCrystalKind
+            ? CombatTerrain.Crystal
+            : CombatTerrain.Open;
+        return true;
+    }
+
+    /// <summary>
+    /// Ages every cell that carries an effect — the sweep half of
+    /// <c>cspell_tick_damage_terrain</c> (CSPELL.C:2427).
+    /// </summary>
+    /// <returns>How many effects lapsed.</returns>
+    /// <remarks>
+    /// <b>The original skips kinds 0 and 2 before ticking</b>, which is a shortcut rather than a
+    /// rule: an Open or OutOfBounds cell cannot be carrying a live effect, because painting one
+    /// overwrites the kind. The timer check below is the same guard stated once, and it is the
+    /// honest one — a cell's kind is not what decides whether it is burning, its timer is.
+    /// </remarks>
+    public int TickTileEffects() {
+        var lapsed = 0;
+        for (var y = 0; y < Height; y++) {
+            for (var x = 0; x < Width; x++) {
+                if (TickTileEffect(x, y)) {
+                    lapsed++;
+                }
+            }
+        }
+        return lapsed;
     }
 
     /// <summary>Whether a combatant currently stands on the tile.</summary>
