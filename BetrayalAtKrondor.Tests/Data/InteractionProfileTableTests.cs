@@ -31,18 +31,24 @@ public class InteractionProfileTableTests {
     /// OBJECT is case 15 of the click dispatch and swings the party across on a rope
     /// (<c>handle_Pit</c> @0x79c63, rules in <c>PitRopeCrossing</c>).
     ///
-    /// <para>The profile is empty on purpose rather than incidentally: every field here describes
-    /// describe-or-loot and a pit is neither. Asserting the emptiness is what stops a later pass
-    /// "filling it in" with an examine line the original does not have — including a helpful "you
-    /// have no rope", which the original pointedly does not say.</para>
+    /// <para><b>And the "empty profile" this test asserted for a day was wrong too.</b> It pinned
+    /// <c>ExamineDialogId = 0</c> and said asserting the emptiness stops a later pass "filling it in
+    /// with an examine line the original does not have — including a helpful 'you have no rope',
+    /// which the original pointedly does not say". The disassembly says otherwise on both counts: a
+    /// secondary click shows dialog 177, and a missing rope shows 198. Two wrong claims defended by
+    /// one confident test.</para>
+    ///
+    /// <para>What IS empty stays asserted, because those parts are real: no container, no lock, no
+    /// loot, no range — the reach gate is the pit's own axis band, not a radius.</para>
     /// </remarks>
     [Fact]
-    public void Pit_IsMappedWithAnEmptyProfile() {
+    public void Pit_IsMappedAndCarriesOnlyItsExamineLine() {
         Assert.True(InteractionProfileTable.TryGet(
             WorldEntityType.Pit, out string behavior, out InteractionProfile profile));
         Assert.Equal("pit", behavior);
+        Assert.Equal(GameData.Resources.World.PitRopeCrossing.ExamineDialog,
+            profile.ExamineDialogId);
         Assert.Null(profile.Range);
-        Assert.Equal(0, profile.ExamineDialogId);
         Assert.Equal(0, profile.ActionDialogId);
         Assert.False(profile.OpensLoot);
         Assert.False(profile.HasLock);

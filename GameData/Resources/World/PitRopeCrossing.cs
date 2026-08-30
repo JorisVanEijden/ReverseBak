@@ -105,10 +105,17 @@ public static class PitRopeCrossing {
     /// </summary>
     /// <param name="ropeCount">Ropes held across the whole party, not one member's pack.</param>
     /// <remarks>
-    /// <b>No rope means no offer and no explanation</b> — the original checks the count before it
-    /// looks at the pit at all, and takes a path that says nothing about ropes. A port that
-    /// explained the missing rope would be more helpful than the original and less faithful; that
-    /// is a deliberate call for whoever wires this, not a detail to smooth over silently.
+    /// <b>CORRECTED 2026-08-30 against the disassembly: NO ROPE DOES EXPLAIN ITSELF.</b> This said
+    /// the original "takes a path that says nothing about ropes" and warned that explaining it
+    /// would be less faithful. The opposite is true — the rope count is tested first (@0x79cb1) and
+    /// failing it jumps to a branch that shows <see cref="NoRopeDialog"/>, whose text is "If we only
+    /// had a rope we could probably swing across this pit." A port that stayed silent would be the
+    /// unfaithful one.
+    ///
+    /// <para><b>The GEOMETRY failures are the silent ones</b>, and that is the distinction the old
+    /// remark blurred: a pit at an unusable angle, or a party outside the band, both fall to a flag
+    /// test that returns without a word. So the three outcomes are not two — an explained refusal,
+    /// a silent one, and the offer.</para>
     /// </remarks>
     public static bool CanOffer(int ropeCount, int rotationZ, int alongPit, int pitAlongPit) =>
         ropeCount > 0
@@ -140,11 +147,43 @@ public static class PitRopeCrossing {
     /// </remarks>
     public const int SwingSoundId = 0x32;
 
-    /// <summary>Shown when the party has no rope to spare — dialog 0x114.</summary>
+    /// <summary>
+    /// Shown on a SECONDARY click — "The cavernous pit stretched across the narrow corridor…"
+    /// </summary>
     /// <remarks>
-    /// <b>This is the RAN-OUT message, not the no-rope refusal.</b> The gate in
-    /// <see cref="CanOffer"/> happens first and says nothing at all; this one belongs to the
-    /// consumption at the end of a crossing that was already offered.
+    /// The dispatch tests the button first (@0x79c9c) and sends anything but a primary click here,
+    /// before the rope count is even read. So examining a pit works with no rope and from any
+    /// position, which the crossing does not.
+    /// </remarks>
+    public const int ExamineDialog = 177;
+
+    /// <summary>
+    /// Shown when the party carries no rope — "If we only had a rope…"
+    /// </summary>
+    /// <remarks>
+    /// <b>Not to be confused with <see cref="OutOfRopeDialog"/>.</b> This one refuses a crossing
+    /// that never started; that one reports the last rope breaking after one that did. Both mention
+    /// rope and they are different moments.
+    /// </remarks>
+    public const int NoRopeDialog = 198;
+
+    /// <summary>
+    /// <b>A completed crossing SPENDS a rope.</b>
+    /// </summary>
+    /// <remarks>
+    /// Established 2026-08-30 from the routine's tail (@0x7a11e): once the party lands, it calls
+    /// <c>useItem(Rope)</c> — <c>party_consumeOneOfKindFromAnyMember</c> — and only then re-counts.
+    /// So crossings are limited by the ropes carried, and a port that omits this gives unlimited
+    /// crossings from one rope.
+    /// </remarks>
+    public static bool CrossingConsumesARope => true;
+
+    /// <summary>Shown when that consumption took the LAST rope — dialog 0x114.</summary>
+    /// <remarks>
+    /// <b>This is the RAN-OUT message, not the no-rope refusal.</b> That distinction was right and
+    /// is now sharper: the refusal is <see cref="NoRopeDialog"/>, and this one fires only when the
+    /// post-crossing re-count comes back zero (@0x7a12e). Carrying two ropes and crossing once
+    /// spends one and says nothing.
     /// </remarks>
     public const int OutOfRopeDialog = 0x114;
 

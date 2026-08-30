@@ -146,14 +146,19 @@ public static class InteractionProfileTable {
         // position against the pit's own axis band (PitRopeCrossing.IsLinedUp), not on a radius, so
         // a range here would stack a second and wrong gate on top of the real one.
         //
-        // NotActionableDialogId is NotImportant rather than a "you have no rope" line, deliberately:
-        // the original checks the rope count BEFORE it looks at the pit and takes a path that says
-        // nothing. Explaining the missing rope would be more helpful than the game and less
-        // faithful. The 0x114 rope message belongs to running OUT mid-crossing, a different moment.
+        // ExamineDialogId 177 is real, and was 0 here for a day: the dispatch tests the button
+        // before it reads the rope count (@0x79c9c), so a secondary click describes the pit whatever
+        // the party carries and wherever they stand.
+        //
+        // NotActionableDialogId stays NotImportant, but NOT for the reason first written here. That
+        // said the original "takes a path that says nothing" when the rope is missing. It does not:
+        // it shows dialog 198, "if we only had a rope". The handler owns that, because it is a rope
+        // test rather than an actionable-container one. What IS silent is the geometry — an
+        // unusable angle or a party outside the band say nothing at all.
         [WorldEntityType.Pit] = ("pit", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
-            ExamineDialogId = 0,
+            ExamineDialogId = 177,
             ActionDialogId = 0,
             NotActionableDialogId = NotImportant,
             OpensLoot = false,
