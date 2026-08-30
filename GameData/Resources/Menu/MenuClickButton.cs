@@ -30,6 +30,17 @@ public static class MenuClickButton {
     /// player has both buttons, and any port that reads only real mouse buttons quietly removes
     /// that.
     /// </remarks>
+    /// <remarks>
+    /// <b>NO PRODUCTION CONSUMER BY DESIGN for these two arrays.</b> They are DOS scan codes, and
+    /// Unity's input system addresses keys by its own <c>Key</c> enum — there is no scan-code path
+    /// to read them through, so <c>SystemInputSource</c> binds <c>numpad5Key</c>, <c>numpad0Key</c>
+    /// and <c>numpadPlusKey</c> directly and cannot consume this data.
+    ///
+    /// <para>What transfers is WHICH KEYS, not the numbers. Kept as data anyway because the numbers
+    /// are the evidence for the keys: 0x4c/0x52/0x4e are keypad 5, keypad 0 and keypad + in the
+    /// XT set, and without them the binding is an assertion rather than a reading. If the two ever
+    /// disagree, this file is the one that was right.</para>
+    /// </remarks>
     public static readonly int[] PrimaryScanCodes = { 0x4c, 0x52 };
 
     /// <inheritdoc cref="PrimaryScanCodes"/>
