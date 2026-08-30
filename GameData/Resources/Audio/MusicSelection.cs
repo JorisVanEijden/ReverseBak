@@ -162,6 +162,38 @@ public static class MusicSelection {
     /// <summary>Track started on reaching <see cref="BookPageA"/>.</summary>
     public const int BookPageTrackA = 0x425;
 
+    /// <summary>
+    /// The track a chapter's intro BOOK starts — <c>gmain_play_chapter_intro</c> (GMAIN.C:292).
+    /// </summary>
+    /// <param name="songs">CHAPSONG.DAT, one entry per chapter.</param>
+    /// <param name="chapter">1-based chapter number.</param>
+    /// <param name="part">1 or 2 — which of the chapter's two intro books this is.</param>
+    /// <remarks>
+    /// <b>NOT the same thing as <see cref="ForBookPage"/>, which is pages INSIDE a book.</b> Two
+    /// pages in the whole game change the music as you turn to them; this is the track the chapter
+    /// intro starts when the book OPENS, and it is a different table with a different key.
+    ///
+    /// <para>The original reads a word at <c>(part + (chapter-1)*2 - 1) * 2</c> — a flat pair per
+    /// chapter — and hands it straight to the music call. Anything outside part 1 or 2 leaves
+    /// <c>trackId</c> at its initial -999, which is why that is the answer here for an
+    /// out-of-range key rather than silence.</para>
+    ///
+    /// <para><b>-999 is the same sentinel on both sides and that is not a coincidence.</b>
+    /// <see cref="ChapterSongMap.NoChange"/> and <see cref="MusicPlayback.QueryOnly"/> are both the
+    /// original's own "leave the music alone", so the shipped value passes through the ordinary
+    /// playback path untouched. Four of the nine chapters use it for their SECOND book: chapters
+    /// 2, 4, 6 and 7 change the music once and then let it run.</para>
+    /// </remarks>
+    public static int ForChapterBook(ChapterSongMap songs, int chapter, int part) {
+        if (songs?.Entries == null || part is not (1 or 2)
+            || chapter < 1 || chapter > songs.Entries.Count) {
+            return MusicPlayback.QueryOnly;
+        }
+
+        ChapterSongEntry entry = songs.Entries[chapter - 1];
+        return part == 1 ? entry.Book1Song : entry.Book2Song;
+    }
+
     /// <summary>Track started on reaching <see cref="BookPageB"/>.</summary>
     public const int BookPageTrackB = 0x411;
 
