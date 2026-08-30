@@ -43,11 +43,11 @@ public class AudioExtractor : ExtractorBase<AudioResource> {
         long basePosition = resourceReader.BaseStream.Position;
 
         byte soundFormat;
-        while ((soundFormat = resourceReader.ReadByte()) != 0xFF) {
+        while ((soundFormat = resourceReader.ReadByte()) != AudioChannel.EndOfList) {
             audioResource.Variants[soundFormat] = new AudioDataResource();
             var midiTrackChunks = new List<List<MidiEvent>>();
             byte markerByte = resourceReader.ReadByte();
-            while (markerByte != 0xFF) {
+            while (markerByte != AudioChannel.EndOfList) {
                 byte unknownByte5 = resourceReader.ReadByte(); // always 00
                 ushort dataOffset = resourceReader.ReadUInt16();
                 ushort dataSize = resourceReader.ReadUInt16();
@@ -57,7 +57,9 @@ public class AudioExtractor : ExtractorBase<AudioResource> {
                 byte channel = resourceReader.ReadByte();
                 byte flags = resourceReader.ReadByte();
                 audioResource.Variants[soundFormat].ChannelFlags[channel] = flags;
-                if (channel == 0xFE) {
+                // The sentinel channel, not a real one: this track is a digitised
+                // sample rather than MIDI events. MIDI channels are 0..15.
+                if (channel == AudioChannel.DigitisedSample) {
                     byte[] wavData = AudioParser.ParseWave(resourceReader);
                     audioResource.Variants[soundFormat].WavData = wavData;
                 } else {
