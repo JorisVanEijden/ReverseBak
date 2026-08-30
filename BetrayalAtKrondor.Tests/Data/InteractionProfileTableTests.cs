@@ -21,23 +21,32 @@ public class InteractionProfileTableTests {
     }
 
     /// <summary>
-    /// The traversal types still left out — a zone/level transition mechanic, not
-    /// describe-or-loot, so a click on them must fall through to "no behavior" rather than
-    /// silently borrowing the container one.
+    /// Pit is mapped, and its profile is empty.
     /// </summary>
     /// <remarks>
-    /// <b>Door, and now the clickable traversal trio, have come off this list.</b> None is
-    /// describe-or-loot; each has a mechanic of its own (<c>DoorMechanics</c>,
-    /// <c>TraversalClick</c>) and a row that says so.
+    /// <b>THIS TEST USED TO ASSERT THE OPPOSITE, and the reason it gave was wrong.</b> It read:
+    /// "Pit stays, and not because nobody has got to it. It is the one traversal you never click —
+    /// you walk onto it — so it has no click handler to key." Two code paths share the type: a
+    /// <c>m_pit</c> POLYGON is walkable and dropping in is the movement loop's, while the pit
+    /// OBJECT is case 15 of the click dispatch and swings the party across on a rope
+    /// (<c>handle_Pit</c> @0x79c63, rules in <c>PitRopeCrossing</c>).
     ///
-    /// <para><b>Pit stays, and not because nobody has got to it.</b> It is the one traversal you
-    /// never click — you walk onto it — so it has no click handler to key, and an interaction
-    /// profile would be answering a question the mechanic never asks.</para>
+    /// <para>The profile is empty on purpose rather than incidentally: every field here describes
+    /// describe-or-loot and a pit is neither. Asserting the emptiness is what stops a later pass
+    /// "filling it in" with an examine line the original does not have — including a helpful "you
+    /// have no rope", which the original pointedly does not say.</para>
     /// </remarks>
-    [Theory]
-    [InlineData(WorldEntityType.Pit)]
-    public void TraversalTypes_AreNotMapped(WorldEntityType type) =>
-        Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+    [Fact]
+    public void Pit_IsMappedWithAnEmptyProfile() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.Pit, out string behavior, out InteractionProfile profile));
+        Assert.Equal("pit", behavior);
+        Assert.Null(profile.Range);
+        Assert.Equal(0, profile.ExamineDialogId);
+        Assert.Equal(0, profile.ActionDialogId);
+        Assert.False(profile.OpensLoot);
+        Assert.False(profile.HasLock);
+    }
 
     /// <summary>
     /// The clickable traversal trio share one behaviour key, with empty profiles.

@@ -137,6 +137,28 @@ public static class InteractionProfileTable {
             OpensLoot = false,
             HasLock = false,
         }),
+        // byte 15 = pit (handle_Pit @0x79c63). Its profile is EMPTY ON PURPOSE, and that is what
+        // the row says: every field here describes describe-or-loot, and a pit is neither. No
+        // examine line, no message to play, no container, no lock — a click offers a rope swing and
+        // every rule for that is PitRopeCrossing.
+        //
+        // Range is null for the reason the traversal rows' is: handle_Pit gates on the party's
+        // position against the pit's own axis band (PitRopeCrossing.IsLinedUp), not on a radius, so
+        // a range here would stack a second and wrong gate on top of the real one.
+        //
+        // NotActionableDialogId is NotImportant rather than a "you have no rope" line, deliberately:
+        // the original checks the rope count BEFORE it looks at the pit and takes a path that says
+        // nothing. Explaining the missing rope would be more helpful than the game and less
+        // faithful. The 0x114 rope message belongs to running OUT mid-crossing, a different moment.
+        [WorldEntityType.Pit] = ("pit", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
         // byte 16 = corpse (handle_Corpse @0x76a0a). The only handler with a proximity gate.
         [WorldEntityType.Corpse] = ("container", new InteractionProfile {
             Range = new InteractionRange(7000, 2500),
