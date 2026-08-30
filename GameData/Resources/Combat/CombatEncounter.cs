@@ -110,8 +110,26 @@ public sealed class CombatEncounter {
     /// Starts a new round: everyone becomes ready, defend orders lapse, and anyone whose target died
     /// stops pointing at a corpse (<c>combatenc_refresh_actor_flags</c>).
     /// </summary>
+    /// <summary>
+    /// The fight's lingering spell effects — the original's <c>p20activeSpellEffects</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Per fight, not per session.</b> The pool is twenty slots shared by everyone on the field,
+    /// and its chains hang off <see cref="Combatant.ActiveEffectSlot"/>; both go away with the
+    /// encounter. It also maintains <see cref="Combatant.Incapacitated"/>, which
+    /// <see cref="Combatant.CanAct"/> reads — so an actor under Dannon's Delusions, Despair Thy Eyes
+    /// or Grief of 1000 Nights stops acting because the pool says so, not because anything set a
+    /// flag by hand.
+    /// </remarks>
+    public Spells.ActiveSpellEffectPool Effects { get; } = new Spells.ActiveSpellEffectPool();
+
     public void BeginRound() {
         foreach (Combatant c in AllCombatants()) {
+            // *** THE EFFECTS AGE ONCE PER ROUND, BEFORE READY IS RESTORED. *** Ticking after would
+            // hand a turn to an actor whose incapacitation is about to lapse and take it away again
+            // the same round; ticking here means an effect that expires this round frees the actor
+            // for it.
+            Effects.TickActor(c);
             c.Flags |= CombatantFlags.Ready;
             // combatenc_refresh_actor_flags clears CAF_DEFEND_CMD and nothing else. This used to
             // clear "Defending", which was numbered 0x10 — the FLEE bit — so a routing monster had
