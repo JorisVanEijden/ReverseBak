@@ -91,4 +91,27 @@ public static class DialogButtonRow {
             width * CanonicalScaleX,
             ButtonHeight(fontHeight) * CanonicalScaleY);
     }
+
+    /// <summary>
+    /// The same box, for a caller that only has the panel's CANONICAL size — which is every
+    /// renderer, because the extractor rescales the dialog's rect on the way out.
+    /// </summary>
+    /// <remarks>
+    /// <b>The division back to original px is exact, and it has to happen before the layout
+    /// arithmetic rather than after.</b> <c>AspectCorrection.ScaleVgaX</c> is a plain <c>x * 5</c>
+    /// on the whole VGA pixels the binary stores, so canonical / 5 recovers the original value with
+    /// nothing lost. Doing it here rather than in the renderer keeps the one place that knows about
+    /// 320x200 inside the model — and it is the same reason
+    /// <see cref="ButtonRect"/> scales its result instead of its inputs: the row's spread is an
+    /// integer division, so it must be computed in the space the original computed it in.
+    ///
+    /// <para>The label width and font height are NOT converted, because they never left original
+    /// space: <see cref="Font.FontMetrics"/> measures the game's own bitmap font and the font
+    /// height is its character cell.</para>
+    /// </remarks>
+    public static (int X, int Y, int Width, int Height) ButtonRectOnCanonicalPanel(int buttonIndex,
+        int canonicalPanelWidth, int canonicalPanelHeight, int buttonCount, int widestLabelWidth,
+        int fontHeight) =>
+        ButtonRect(buttonIndex, canonicalPanelWidth / CanonicalScaleX,
+            canonicalPanelHeight / CanonicalScaleY, buttonCount, widestLabelWidth, fontHeight);
 }

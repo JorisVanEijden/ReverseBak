@@ -76,4 +76,30 @@ public class DialogButtonRowTests {
         Assert.Equal(150 + DialogButtonRow.RowInset - (width / 2),
             DialogButtonRow.ButtonX(0, panel, 1, width));
     }
+
+    [Fact]
+    public void ACanonicalPanelDividesBackToTheOriginalExactly() {
+        // AspectCorrection.ScaleVgaX is a plain x5 on the whole VGA pixels the binary stores, so
+        // the round trip loses nothing — which is what makes it safe to take the panel in the
+        // space the renderer actually has.
+        const int original = 301;
+        int canonical = original * DialogButtonRow.CanonicalScaleX;
+
+        Assert.Equal(
+            DialogButtonRow.ButtonRect(0, original, 100, 2, 40, 10),
+            DialogButtonRow.ButtonRectOnCanonicalPanel(0, canonical,
+                100 * DialogButtonRow.CanonicalScaleY, 2, 40, 10));
+    }
+
+    [Fact]
+    public void TheLabelWidthAndFontHeightAreNOTConvertedTwice() {
+        // They never left original space — FontMetrics measures the game's own bitmap font and the
+        // font height is its character cell. Scaling them on the way in would double-count.
+        (_, _, int w, int h) = DialogButtonRow.ButtonRectOnCanonicalPanel(0,
+            300 * DialogButtonRow.CanonicalScaleX, 100 * DialogButtonRow.CanonicalScaleY,
+            2, widestLabelWidth: 40, fontHeight: 10);
+
+        Assert.Equal(DialogButtonRow.ButtonWidth(40) * DialogButtonRow.CanonicalScaleX, w);
+        Assert.Equal(DialogButtonRow.ButtonHeight(10) * DialogButtonRow.CanonicalScaleY, h);
+    }
 }
