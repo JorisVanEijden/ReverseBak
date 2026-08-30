@@ -317,6 +317,87 @@ public static class RoamingMovement {
             : after;
     }
 
+    /// <summary>
+    /// Takes one <see cref="Pattern.RoadFollowing"/> step, or reports that the road refused it —
+    /// <c>worldmove_crossing_check_8dir(pos, yaw, 0x190, mode 1, …)</c> as RGNENC.C:740 calls it.
+    /// </summary>
+    /// <param name="isRoadAt">
+    /// Reports whether a world position stands on road or bridge — the same predicate the party's
+    /// travel mode supplies to <see cref="RoadTravel.ProbeAdjacentCell"/>.
+    /// </param>
+    /// <remarks>
+    /// <b>This is what a road-follower was missing.</b> <see cref="Tick"/> takes the step as a
+    /// delegate and documents a null one as refusing everything, so until something supplied this
+    /// all 149 shipped pattern-4 actors turned on the spot for ever.
+    ///
+    /// <para><b>The probe is taken from a cell CENTRE, not from where the actor stands.</b> Three
+    /// ticks out of four an actor is part-way between centres (the step is a quarter cell), and the
+    /// original steps <i>back</i> half a cell against the heading and snaps to that cell's centre
+    /// before probing. Probing from the actual position instead would sample the cell diagonally
+    /// off the route on every off-centre tick, so a follower would refuse most steps on a road it
+    /// is standing on.</para>
+    ///
+    /// <para><b>Outcome 3 never appears here, and that is not a gap.</b> The sweep's two bend codes
+    /// say which way it widened first; both mean "take the reported heading", which is all
+    /// <see cref="AdoptsRoadHeading"/> asks. <see cref="RoadTravel.FindContinuation"/> reports the
+    /// heading and not the side, so a bend is always <see cref="RoadOutcome.BendsOneWay"/> — the
+    /// pose that comes out is identical either way.</para>
+    /// </remarks>
+    public static RoadStep RoadStepFor(Pose pose, System.Func<int, int, bool> isRoadAt) {
+        if (isRoadAt == null) {
+            throw new System.ArgumentNullException(nameof(isRoadAt));
+        }
+
+        var x = (int)pose.X;
+        var y = (int)pose.Y;
+
+        // A step that would leave the lattice is refused outright — the original's switch bails
+        // before probing anything, and its default arm rejects a non-compass heading.
+        if (!RoadTravel.IsCompassHeading(pose.Heading)
+            || !RoadTravel.IsOnLatticeLine(pose.Heading, x, y)) {
+            return new RoadStep(false, pose.X, pose.Y);
+        }
+
+        (int probeX, int probeY) = ProbeOrigin(pose.Heading, x, y);
+        if (!RoadTravel.ProbeAdjacentCell(probeX, probeY, pose.Heading, isRoadAt)) {
+            return new RoadStep(false, pose.X, pose.Y);
+        }
+
+        (int dx, int dy) = RoadTravel.AxisOffset(pose.Heading, StepDistance);
+        int steppedX = x + dx;
+        int steppedY = y + dy;
+
+        if (!ConsidersTheRoadAt(steppedX, steppedY)) {
+            return new RoadStep(true, steppedX, steppedY);
+        }
+
+        RoadSweep sweep = RoadTravel.FindContinuation(
+            steppedX, steppedY, pose.Heading, backward: false, isRoadAt, out ushort target);
+        int outcome = sweep != RoadSweep.Turn ? (int)RoadOutcome.NoneOrForked
+            : target == pose.Heading ? (int)RoadOutcome.StraightOn
+            : (int)RoadOutcome.BendsOneWay;
+        return new RoadStep(true, steppedX, steppedY, outcome, target);
+    }
+
+    /// <summary>
+    /// Where the road probe is taken from: the actor's own cell centre, reached by stepping back
+    /// half a cell against the heading.
+    /// </summary>
+    /// <remarks>
+    /// Already at a centre, the original skips this and probes in place — so the two agree there and
+    /// this only matters on the three off-centre ticks. Half a cell back is enough because the step
+    /// is a quarter of one; the snap to the centre afterwards is what makes it exact.
+    /// </remarks>
+    private static (int X, int Y) ProbeOrigin(ushort heading, int x, int y) {
+        if (ConsidersTheRoadAt(x, y)) {
+            return (x, y);
+        }
+
+        (int bx, int by) = RoadTravel.AxisOffset(
+            unchecked((ushort)(heading + HalfTurn)), RoadTravel.HalfCell);
+        return (RoadTravel.CellCentre(x + bx), RoadTravel.CellCentre(y + by));
+    }
+
     private static bool ArrivedAt(Pose pose, System.Collections.Generic.IReadOnlyList<long> xs,
         System.Collections.Generic.IReadOnlyList<long> ys, int count) {
         if (xs == null || ys == null) {
