@@ -48,4 +48,32 @@ public class ContainerParamsUnionTests {
         // separate event-state field would find none and conclude the data is unparsed.
         Assert.Equal(0x04, (int)SaveGameContainerDataType.Shop);
     }
+
+    [Fact]
+    public void TheContainerTypeByteISTheActorsResidence() {
+        // Which is what makes the stash sweep's residence test a direct comparison rather than a
+        // mapping. The two exempt values wear domain names on our side — RES_PARTY_SLOT is
+        // Inventory and RES_COMBAT is NpcInventory — so reading the enum for RES_* names finds
+        // neither and the exemption gets written as "unknown".
+        Assert.Equal(1, (int)SaveGameContainerType.Inventory);      // RES_PARTY_SLOT
+        Assert.Equal(7, (int)SaveGameContainerType.NpcInventory);   // RES_COMBAT
+
+        Assert.True(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.Inventory));
+        Assert.True(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.NpcInventory));
+    }
+
+    [Fact]
+    public void AStashLEFTInTheWorldIsNotExemptByResidence() {
+        // The ones that CAN be pilfered: a dropped bag, a chest, a corpse, scripted loot.
+        Assert.False(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.Bag));
+        Assert.False(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.Chest));
+        Assert.False(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.Corpse));
+        Assert.False(GameData.Resources.World.StashExposure.ResidenceZeroesScore(
+            SaveGameContainerType.ScriptedLoot));
+    }
 }

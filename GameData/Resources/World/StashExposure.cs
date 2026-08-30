@@ -173,6 +173,26 @@ public static class StashExposure {
         return score * wholeDaysSinceTouched;
     }
 
+    /// <summary>
+    /// Whether a record's residence zeroes the score outright —
+    /// <c>bResidence == RES_PARTY_SLOT || bResidence == RES_COMBAT</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Our container-type byte IS the DOS <c>bResidence</c></b>, so this is a direct test rather
+    /// than a mapping — see <see cref="Data.SaveGameContainerType"/>, whose own summary records the
+    /// correspondence. Spelled out here because the two exempt values wear domain names on our
+    /// side: RES_PARTY_SLOT is <c>Inventory</c> and RES_COMBAT is <c>NpcInventory</c>. Both are
+    /// somebody's carried inventory rather than a stash left in the world, which is why nothing can
+    /// be pilfered from them.
+    ///
+    /// <para><b>Zeroing the score is not the same as being exempt.</b> A zero-scored record still
+    /// runs the sweep and can be emptied by the force event — see <see cref="IsExempt"/> for the
+    /// four early returns that are immune to it.</para>
+    /// </remarks>
+    public static bool ResidenceZeroesScore(Data.SaveGameContainerType residence) =>
+        residence == Data.SaveGameContainerType.Inventory
+        || residence == Data.SaveGameContainerType.NpcInventory;
+
     /// <summary>Whole days between a touch and now, truncating.</summary>
     /// <remarks>
     /// <b>Integer division, and that is the mechanic's safety catch.</b> Under one day the term is
