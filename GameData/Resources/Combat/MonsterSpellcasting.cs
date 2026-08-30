@@ -83,6 +83,40 @@ public static class MonsterSpellcasting {
     public static bool WellEnoughToAct(int healthStaminaCombined) =>
         healthStaminaCombined >= MinimumPoolToAct;
 
+    /// <summary>
+    /// Whether an AI caster can pay for a spell at all — <c>cspell_check_castable</c>'s cost arm.
+    /// </summary>
+    /// <remarks>
+    /// <b>Strictly greater, so a caster whose pool exactly equals the base cost cannot cast.</b>
+    /// That is the rule that stops any spell taking the last point, and it is the same one
+    /// <see cref="SpellCasting.IsCastable"/> applies to the party.
+    ///
+    /// <para><b>The party's other two arms deliberately do NOT apply to a creature.</b> A monster
+    /// has no spellbook mask and no pack, so the knowledge test and the component test would
+    /// refuse every spell if they were reused here — which is why a monster's castability is this
+    /// one line and not a call into the party's path.</para>
+    /// </remarks>
+    public static bool CanAfford(int minimumCost, int healthStaminaCombined) =>
+        minimumCost < healthStaminaCombined;
+
+    /// <summary>
+    /// The power an AI caster puts behind a spell — <c>cspell_actor_stat_get_comb_dflt</c>
+    /// (CSPELL.C:260).
+    /// </summary>
+    /// <remarks>
+    /// <b>The AI always casts as hard as it can.</b> There is no choice and no roll: it takes the
+    /// spell's own maximum, capped one below its remaining pool. So a healthy caster casts at full
+    /// strength every time and a worn-down one tapers off — which is the whole of the difficulty
+    /// curve a monster caster has.
+    ///
+    /// <para>The cap is <c>pool - 1</c> rather than <c>pool</c> for the same reason
+    /// <see cref="CanAfford"/> is strict: the last point is never spendable.</para>
+    /// </remarks>
+    public static int AiCastPower(int maximumCost, int healthStaminaCombined) {
+        int ceiling = healthStaminaCombined - 1;
+        return maximumCost < ceiling ? maximumCost : ceiling;
+    }
+
     /// <summary>The percentage chance that an attempt is actually made rather than skipped.</summary>
     public const int CommitPercent = 91;
 

@@ -262,4 +262,20 @@ public class MonsterSpellcastingTests {
         Assert.False(MonsterSpellcasting.Selects(SpellIds.Invitation, matchesFilters: true,
             castable: true, coinFlipHeads: true, alreadyOnTarget: false));
     }
+
+    [Fact]
+    public void TheLastPointOfThePoolIsNeverSpendable() {
+        // Strictly greater, both ways: a pool of exactly the base cost cannot cast, and the power
+        // ceiling is pool-1. Using >= and pool would let a caster spend itself to nothing.
+        Assert.False(MonsterSpellcasting.CanAfford(minimumCost: 10, healthStaminaCombined: 10));
+        Assert.True(MonsterSpellcasting.CanAfford(minimumCost: 10, healthStaminaCombined: 11));
+        Assert.Equal(9, MonsterSpellcasting.AiCastPower(maximumCost: 50, healthStaminaCombined: 10));
+    }
+
+    [Fact]
+    public void AHealthyAiCasterAlwaysCastsAtTheSpellsFullStrength() {
+        // No roll and no choice — cspell_actor_stat_get_comb_dflt takes the maximum whenever the
+        // pool allows it. A port that rolled a power here would make monster casters erratic.
+        Assert.Equal(15, MonsterSpellcasting.AiCastPower(maximumCost: 15, healthStaminaCombined: 99));
+    }
 }
