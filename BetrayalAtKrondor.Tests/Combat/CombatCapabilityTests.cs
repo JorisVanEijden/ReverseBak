@@ -150,4 +150,23 @@ public class CombatCapabilityTests {
         Assert.False(CombatCapability.ClearsAnyThreshold(999, null));
         Assert.False(CombatCapability.ClearsAnyThreshold(999, new int[0]));
     }
+
+    [Fact]
+    public void TheDenyingTerrainIsTheWrathOfKilliansFire_notScenery() {
+        // *** SETTLED 2026-08-30 — this kind is written at RUNTIME by a spell, not loaded. ***
+        // combatgrid_set_tile_effect writes the effect kind into the cell's terrain field, the
+        // grid arm of cspell_resolve_cast calls it with the record's damage word as that kind, and
+        // spell 19 (Wrath of Killian) is the one CombatGridElement record whose damage word is 1.
+        // cspell_tick_damage_terrain then damages whoever stands on kind 1, gated on resistance to
+        // spell 0x13 — Wrath of Killian itself.
+        //
+        // The point of pinning it here is that the note this replaces guessed "water" or "under
+        // cover", and both read as perfectly reasonable until someone traced the WRITER.
+        Assert.Equal(1, CombatCapability.DenyingTerrain);
+        Assert.Equal(CombatCapability.DenyingTerrain, WrathOfKilliansGridKind);
+    }
+
+    // Spell 19's damage word, which is what the grid arm paints as the tile kind. Kept as a named
+    // constant rather than a literal so the link to the spell record is visible at the assertion.
+    private const int WrathOfKilliansGridKind = 1;
 }

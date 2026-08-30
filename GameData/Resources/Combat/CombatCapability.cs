@@ -16,22 +16,37 @@ using System.Collections.Generic;
 /// </summary>
 public static class CombatCapability {
     /// <summary>
-    /// The terrain kind that denies both shooting and casting.
+    /// The terrain kind that denies both shooting and casting — <b>the Wrath of Killian's fire</b>.
     /// </summary>
     /// <remarks>
-    /// <b>Our <see cref="CombatTerrain"/> does not name this kind, and neither can we yet.</b>
+    /// <b>SETTLED 2026-08-30, and the answer is that it is not terrain at all.</b> This entry
+    /// previously recorded the kind as unidentified, guessed at "water" or "under cover", and
+    /// wondered whether the branch was dead because the arena grids are not among our extracted
+    /// formats. It is not dead and it is not in the data: <b>kind 1 is written at RUNTIME by a
+    /// spell</b>, which is exactly why no file contains it.
     ///
-    /// <para>What is established: a sweep of every <c>combatgrid_tile_terrain_field</c> call shows
-    /// terrain 1 is compared <b>only</b> in these two predicates (CBENC.C:511 and :530) — nowhere
-    /// else in the game. Its entire observable role is denying ranged attacks and spellcasting to
-    /// whoever stands on it. Other kinds are read all over (4, 5, 9 elsewhere), so this is not an
-    /// artefact of a narrow search.</para>
+    /// <para>The chain, each step read rather than inferred:</para>
+    /// <list type="number">
+    ///   <item><c>combatgrid_set_tile_effect(x, y, type, timer)</c> (CMBTGRID.C:174) writes the
+    ///     effect kind straight into the cell's <c>wTerrain</c> field with a countdown beside it —
+    ///     so a spell field OVERWRITES the terrain rather than overlaying it.</item>
+    ///   <item><c>cspell_resolve_cast</c>'s grid arm calls it with the record's own fields:
+    ///     kind = the spell's damage word, timer = its duration word times the invested power (see
+    ///     <see cref="Spells.SpellEffectApplication.GridElementStrength"/>).</item>
+    ///   <item>Spell 19, <b>Wrath of Killian</b>, is the one record with
+    ///     <c>Calculation = CombatGridElement</c> and a damage word of <b>1</b>. So it paints kind 1.</item>
+    ///   <item><c>cspell_tick_damage_terrain</c> (CSPELL.C:2427) sweeps all 8x13 cells and, for
+    ///     kind 1 alone, deals <c>RND(10..19)</c> to whoever stands there — gated on that creature's
+    ///     resistance to spell <c>0x13</c>, which is Wrath of Killian itself.</item>
+    /// </list>
     ///
-    /// <para>What is NOT established: what the tile actually is. A guess like "water" or "under
-    /// cover" would fit the behaviour and has no evidence behind it. <b>Whether it even occurs in
-    /// shipped data is also unchecked</b> — the combat grid terrain is not among our extracted
-    /// formats (<c>GridData</c> holds only zone border pens), so the branch could be dead. Settling
-    /// it means extracting the arena grids.</para>
+    /// <para>So standing in it stops you shooting and casting because you are standing in fire, and
+    /// the two predicates that read this kind are not describing scenery. <b>The guesses this note
+    /// used to offer — water, cover — would both have been wrong in a way that read as reasonable
+    /// for as long as nobody traced the writer.</b></para>
+    ///
+    /// <para>Kinds 0 and 2 are the ones the tick refuses to decay, so those are real terrain; the
+    /// rest of the values a cell can hold are transient.</para>
     /// </remarks>
     public const int DenyingTerrain = 1;
 
