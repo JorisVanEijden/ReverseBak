@@ -48,8 +48,25 @@ public static class ChestTrap {
     /// <remarks>
     /// Two points, in the same use-based mode every other skill award uses — and only on SUCCESS.
     /// Failing teaches nothing.
+    ///
+    /// <para><b>Pointed at the picklock constant rather than restating 2</b>, because the disarm is
+    /// deliberately the same shape as picking a lock and shares its reward. Two literal 2s could
+    /// drift apart, and nothing would catch it.</para>
     /// </remarks>
-    public const int DisarmSkillAward = 2;
+    public const int DisarmSkillAward = Character.PicklockAttempt.SkillOnSuccess;
+
+    /// <summary>
+    /// <b>Nothing is said when a disarm fails, and the trap stays armed.</b>
+    /// </summary>
+    /// <remarks>
+    /// The failure arm sets a flag and falls through — there is no "you failed" line. The player
+    /// finds out by opening the chest, which is the point: a message would give away for free what
+    /// the detection spell is for.
+    ///
+    /// <para>A failed attempt does not spring the trap either. It costs the attempt and nothing
+    /// else, landing on exactly the prompt an undetected trap shows.</para>
+    /// </remarks>
+    public static bool AnnouncesFailure => false;
 
     /// <summary>
     /// <b>A disarmed trap is gone for good.</b>
