@@ -56,4 +56,30 @@ public class SpellSymbolDisplayTests {
         // And it wraps rather than running away.
         Assert.Equal(208, SpellSymbolDisplay.SelectedColour(32));
     }
+    [Fact]
+    public void TheVerticalLiftIsFIXED_NotHalfTheGlyph() {
+        // *** THE TWO AXES ARE CENTRED DIFFERENTLY AND THAT IS THE ORIGINAL. ***
+        // cspell_menu_animate_hilite subtracts half the MEASURED width from X but a hard-coded
+        // `iHeight = 10` >> 1 from Y, so a tall glyph and a short one are lifted the same five
+        // pixels. CastScreen used a -50%/-50% translate, which centres on the glyph's own box.
+        (int shortX, int shortY) = SpellSymbolDisplay.GlyphOrigin(100, 100, 8, LineBoxHalf);
+        (int tallX, int tallY) = SpellSymbolDisplay.GlyphOrigin(100, 100, 40, LineBoxHalf);
+
+        Assert.Equal(shortY, tallY);
+        Assert.Equal(100 - LineBoxHalf, shortY);
+        Assert.NotEqual(shortX, tallX);
+        Assert.Equal(100 - 4, shortX);
+        Assert.Equal(100 - 20, tallX);
+    }
+
+    [Fact]
+    public void TheCanonicalHalfLineBoxIsThirty() {
+        // Five original pixels, x6 down. Converted in the model rather than at the call site, the
+        // same house rule DialogButtonRow states.
+        Assert.Equal(10, SpellSymbolDisplay.LineBox);
+        Assert.Equal(30, SpellSymbolDisplay.HalfLineBoxCanonical);
+    }
+
+    private const int LineBoxHalf = SpellSymbolDisplay.LineBox / 2;
+
 }

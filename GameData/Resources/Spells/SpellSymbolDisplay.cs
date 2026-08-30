@@ -55,7 +55,31 @@ public static class SpellSymbolDisplay {
     public static bool OnlyCastableSymbolsAreDrawn => true;
 
     /// <summary>The line box the vertical centring halves, in original pixels.</summary>
+    /// <remarks>
+    /// <b>A HARD-CODED 10, not the glyph's own height.</b> <c>cspell_menu_animate_hilite</c> sets
+    /// <c>iHeight = 10</c> once and subtracts <c>iHeight &gt;&gt; 1</c> from every symbol's Y, so
+    /// every glyph is lifted by the SAME five pixels whatever its size — while the X offset really
+    /// is half the measured width. The two axes are centred differently and it looks like an
+    /// oversight in the original; reproducing it is the difference between the game's ring and a
+    /// tidier one.
+    ///
+    /// <para>SPELL.FNT's glyphs are pictures, so most are taller than ten pixels: centring
+    /// vertically on the glyph instead lifts every symbol too far, by half its own height less
+    /// five.</para>
+    /// </remarks>
     public const int LineBox = 10;
+
+    /// <summary>Canonical-space vertical scale — VGA x6 down.</summary>
+    /// <remarks>
+    /// Converting here rather than at the call site is the house rule, the same one
+    /// <see cref="Dialog.DialogButtonRow.CanonicalScaleY"/> states: it keeps the 320x200 space out
+    /// of the UI layer.
+    /// </remarks>
+    public const int CanonicalScaleY = 6;
+
+    /// <summary>Half the line box, in canonical pixels — what a renderer passes to
+    /// <see cref="GlyphOrigin"/>.</summary>
+    public const int HalfLineBoxCanonical = LineBox / 2 * CanonicalScaleY;
 
     /// <summary>
     /// Where a symbol's glyph is drawn, given its node position and the glyph's measured width.
