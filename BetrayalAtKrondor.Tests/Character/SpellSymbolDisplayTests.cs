@@ -61,7 +61,9 @@ public class SpellSymbolDisplayTests {
         // *** THE TWO AXES ARE CENTRED DIFFERENTLY AND THAT IS THE ORIGINAL. ***
         // cspell_menu_animate_hilite subtracts half the MEASURED width from X but a hard-coded
         // `iHeight = 10` >> 1 from Y, so a tall glyph and a short one are lifted the same five
-        // pixels. CastScreen used a -50%/-50% translate, which centres on the glyph's own box.
+        // pixels. CastScreen used a -50%/-50% translate, which centres on the glyph's own box —
+        // and SPELL.FNT's height is 9, so that lifted every symbol 27 canonical px where the
+        // original lifts 30.
         (int shortX, int shortY) = SpellSymbolDisplay.GlyphOrigin(100, 100, 8, LineBoxHalf);
         (int tallX, int tallY) = SpellSymbolDisplay.GlyphOrigin(100, 100, 40, LineBoxHalf);
 
@@ -78,6 +80,14 @@ public class SpellSymbolDisplayTests {
         // same house rule DialogButtonRow states.
         Assert.Equal(10, SpellSymbolDisplay.LineBox);
         Assert.Equal(30, SpellSymbolDisplay.HalfLineBoxCanonical);
+
+        // The shipped SPELL.FNT is 9 rows tall (header at KRONDOR.001, format 0xFD), so glyph-box
+        // centring would have given 54/2 = 27. Three canonical pixels, in the LOW direction.
+        const int shippedSymbolFontHeight = 9;
+        const int canonicalScaleY = SpellSymbolDisplay.CanonicalScaleY;
+        Assert.Equal(27, shippedSymbolFontHeight * canonicalScaleY / 2);
+        Assert.Equal(3, SpellSymbolDisplay.HalfLineBoxCanonical
+            - (shippedSymbolFontHeight * canonicalScaleY / 2));
     }
 
     private const int LineBoxHalf = SpellSymbolDisplay.LineBox / 2;

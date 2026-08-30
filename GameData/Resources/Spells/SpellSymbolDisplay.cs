@@ -63,9 +63,11 @@ public static class SpellSymbolDisplay {
     /// oversight in the original; reproducing it is the difference between the game's ring and a
     /// tidier one.
     ///
-    /// <para>SPELL.FNT's glyphs are pictures, so most are taller than ten pixels: centring
-    /// vertically on the glyph instead lifts every symbol too far, by half its own height less
-    /// five.</para>
+    /// <para><b>SPELL.FNT's own height is 9</b> — read from its header in the shipped archive,
+    /// format 0xFD, 96 glyphs from character 0. So centring vertically on the glyph would lift a
+    /// symbol by 4.5 rather than the fixed 5, leaving it half an original pixel low. Small, but the
+    /// fixed lift is not derivable from the font at all: change the font and the two rules diverge
+    /// by however much its height differs from ten.</para>
     /// </remarks>
     public const int LineBox = 10;
 
