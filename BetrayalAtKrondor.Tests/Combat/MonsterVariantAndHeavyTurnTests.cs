@@ -44,7 +44,8 @@ public class MonsterVariantAndHeavyTurnTests {
     [Fact]
     public void TheHeavyRoutineHitsHardestInTheFile() {
         Assert.Equal((0x2d, 0x4a), MonsterHeavyRangedTurn.Damage);
-        Assert.True(MonsterHeavyRangedTurn.Damage.Min > MonsterRangedTurn.HeavyDamage.Max);
+        Assert.True(MonsterHeavyRangedTurn.Damage.Min
+            > MonsterTurnRoutines.HeavyShotFor(0x29).Value.MaxDamage);
         Assert.Equal(4, MonsterHeavyRangedTurn.Knockback);
     }
 
@@ -52,7 +53,8 @@ public class MonsterVariantAndHeavyTurnTests {
     public void TwoRoutinesWithNearlyTheSameNameAreVeryDifferentAttacks() {
         // combataiact_ranged_attack vs combataiact_ranged_attack_TURN. 45-73 against 20-28, and
         // different range rules - so the names cannot be relied on to tell them apart.
-        Assert.NotEqual(MonsterHeavyRangedTurn.Damage, MonsterRangedTurn.HeavyDamage);
+        MonsterTurnRoutines.RangedTurn spit = MonsterTurnRoutines.HeavyShotFor(0x29).Value;
+        Assert.NotEqual(MonsterHeavyRangedTurn.Damage, (spit.MinDamage, spit.MaxDamage));
         Assert.True(MonsterHeavyRangedTurn.Attacks(hasLineOfSight: true, distance: 2));
     }
 }

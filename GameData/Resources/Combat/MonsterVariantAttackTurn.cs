@@ -56,7 +56,7 @@ public static class MonsterVariantAttackTurn {
     /// <c>cbstat_scale_base_stat_pct</c>.
     /// </summary>
     /// <remarks>
-    /// Unlike the flat damage in <see cref="MonsterRangedTurn"/>, these attacks scale with the
+    /// Unlike the flat damage in <see cref="MonsterTurnRoutines.ChooseRangedTurn"/>, these attacks scale with the
     /// creature, so the ranges above are the input to that scaling rather than the damage dealt.
     /// The scaling function itself is not ported here.
     /// </remarks>

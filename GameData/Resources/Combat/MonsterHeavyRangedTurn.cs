@@ -4,7 +4,7 @@ namespace GameData.Resources.Combat;
 /// <c>combataiact_ranged_attack</c> (canassa CBTAIACT.C:235) — seventh of the nine AI action
 /// routines, and the hardest-hitting one in the file.
 ///
-/// <para>Distinct from <see cref="MonsterRangedTurn"/>, which is
+/// <para>Distinct from <see cref="MonsterTurnRoutines.ChooseRangedTurn"/>, which is
 /// <c>combataiact_ranged_attack_TURN</c>: canassa gives two routines near-identical names for very
 /// different attacks.</para>
 /// </summary>
