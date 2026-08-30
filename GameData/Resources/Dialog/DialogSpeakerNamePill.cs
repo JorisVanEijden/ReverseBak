@@ -71,6 +71,45 @@ public static class DialogSpeakerNamePill {
     /// <summary>Keyword-table index a non-party speaker id names.</summary>
     public static int KeywordIndexOf(int speakerId) => speakerId + KeywordTableOffset;
 
+    /// <summary>Lowest speaker id resolved from the keyword table.</summary>
+    public const int FirstKeywordSpeakerId = MaxPartySpeakerId + 1;
+
+    /// <summary>
+    /// Highest speaker id the keyword table can answer for — <b>53, and the bound is real.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Established from the shipped KEYWORD.DAT 2026-08-30, and it is not a guess.</b> The file
+    /// carries 346 entries, and <c>askabout_name_or_keyword_lookup</c> reads word
+    /// <c>id + 0x124</c> of them — so the last id it can reach is <c>345 - 292 = 53</c>. That is
+    /// not an accident of sizing: entries 295-298 are EMPTY and the name block starts exactly at
+    /// 299, which is <c>FirstKeywordSpeakerId + KeywordTableOffset</c> — "Navon du Sandau" at 299
+    /// through "Moredhel" at 345. The table's name block and the id range are the same 47 slots.
+    ///
+    /// <para><b>So a speaker id above this reads PAST the relocated offset array</b>, into the
+    /// string bytes, and hands back a word that was never turned into a pointer. Our resolver looks
+    /// the index up in a dictionary and answers null, which is why nothing has gone wrong here — but
+    /// it is worth knowing that the original has no valid answer either, rather than assuming we are
+    /// missing one.</para>
+    /// </remarks>
+    public const int LastKeywordSpeakerId = 53;
+
+    /// <summary>
+    /// Whether this speaker id names anybody at all.
+    /// </summary>
+    /// <remarks>
+    /// The three arms of <c>askabout_name_or_keyword_lookup</c>: 0 answers null, 1..6 a party
+    /// member, 7..53 a keyword-table name. <b>Everything above 53 answers nothing</b> — including
+    /// 255, which the shipped DDX uses 221 times and which 19 of the 21 ChoiceMenu entries carry.
+    ///
+    /// <para>The name is thrown away again unless the entry sets <see cref="RequiredFlag"/>
+    /// (DIALOG.C:968), which is why an unresolvable id is harmless on most of those 221 and not on
+    /// the ChoiceMenu ones, where it is the "&lt;name&gt; asked about:" heading that goes missing.
+    /// Two of the twenty-one resolve, and both are party members.</para>
+    /// </remarks>
+    public static bool ResolvesToAName(int speakerId) =>
+        IsPartySpeaker(speakerId)
+        || (speakerId >= FirstKeywordSpeakerId && speakerId <= LastKeywordSpeakerId);
+
     /// <summary>Whether this entry captions its speaker.</summary>
     public static bool ShowsFor(int speakerId, DialogEntryFlags flags) =>
         speakerId > 0 && speakerId < MaxSpeakerId && (flags & RequiredFlag) != 0;

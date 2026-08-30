@@ -100,4 +100,38 @@ public class DialogSpeakerNamePillTests {
         Assert.InRange(DialogSpeakerNamePill.LabelTop,
             DialogSpeakerNamePill.Top, DialogSpeakerNamePill.Bottom);
     }
+    [Fact]
+    public void TheKeywordHalfRunsFromSevenToFiftyThree_AndTheNameBlockIsExactlyThatLong() {
+        // Established from the shipped KEYWORD.DAT: 346 entries, lookup reads word id+0x124, so the
+        // last reachable id is 345-292 = 53. Entries 295-298 are EMPTY and the names start at 299 =
+        // 7 + 292 — the id range and the table's name block are the same 47 slots, which is what
+        // makes this a bound rather than a coincidence.
+        Assert.Equal(7, DialogSpeakerNamePill.FirstKeywordSpeakerId);
+        Assert.Equal(299, DialogSpeakerNamePill.KeywordIndexOf(
+            DialogSpeakerNamePill.FirstKeywordSpeakerId));
+        Assert.Equal(345, DialogSpeakerNamePill.KeywordIndexOf(
+            DialogSpeakerNamePill.LastKeywordSpeakerId));
+    }
+
+    [Fact]
+    public void SpeakerTwoFiveFiveNamesNOBODY_WhichIsWhyMostChoiceMenusHaveNoHeading() {
+        // 255 is the literal shipped value, not our extractor rendering an absent field: the DDX
+        // reader takes a signed word, so 0xFFFF would have come through as -1. It appears 221 times
+        // and on 19 of the 21 ChoiceMenu entries. id+292 = 547 in a 346-entry table, so the original
+        // reads past its own relocated offset array and has no valid answer either.
+        Assert.False(DialogSpeakerNamePill.ResolvesToAName(255));
+        Assert.False(DialogSpeakerNamePill.ResolvesToAName(244));
+        Assert.False(DialogSpeakerNamePill.ResolvesToAName(0));
+
+        // The two that DO resolve on shipped ChoiceMenu entries are party members.
+        Assert.True(DialogSpeakerNamePill.ResolvesToAName(2));
+        Assert.True(DialogSpeakerNamePill.ResolvesToAName(3));
+        Assert.True(DialogSpeakerNamePill.IsPartySpeaker(2));
+
+        // And the keyword half's own ends.
+        Assert.True(DialogSpeakerNamePill.ResolvesToAName(7));
+        Assert.True(DialogSpeakerNamePill.ResolvesToAName(53));
+        Assert.False(DialogSpeakerNamePill.ResolvesToAName(54));
+    }
+
 }
