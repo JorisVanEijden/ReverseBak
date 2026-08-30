@@ -131,9 +131,15 @@ public static class MonsterTurnRoutines {
     /// </summary>
     /// <remarks>
     /// <b>This is a build difference, and we target the build that has it.</b> On the 1.02 CD
-    /// release the whole post-move decision is wrapped in a check on the creature's second flag: a
-    /// flagged creature walks and its turn ends there. The floppy build attacks regardless. Porting
-    /// the floppy behaviour would give those creatures a free action every turn.
+    /// release the whole post-move decision is wrapped in <c>if ((flags &amp; 2) == 0)</c>. The
+    /// floppy build attacks regardless, so porting the floppy behaviour would give these creatures
+    /// a free action every turn.
+    ///
+    /// <para><b>Flag 2 is CAF_DEAD</b> — so what the guard actually says is that a creature which
+    /// DIED DURING ITS OWN WALK does not then attack. Named here because "the creature's second
+    /// flag" was all this said until a duplicate model of this routine was merged away, and that
+    /// copy had identified it; the abstract wording reads like an unknown state flag rather than
+    /// the obvious rule it is. (A creature can die mid-walk by stepping onto a hazard.)</para>
     /// </remarks>
     public static bool ActsAfterMoving(bool secondFlagSet) => !secondFlagSet;
 

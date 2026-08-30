@@ -122,10 +122,10 @@ public static class CombatAi {
     /// <para><b>This enum is a LABEL, not a rule.</b> The rules — thresholds, roll bounds, damage
     /// bands, the line-of-fire gate — live in the routine types beside it
     /// (<see cref="MonsterTurnRoutines"/>, <see cref="MonsterChargeTurn"/>,
-    /// <see cref="MonsterVariantAttackTurn"/>, <see cref="MonsterHeavyRangedTurn"/>,
-    /// <see cref="MonsterRandomMoveAttack"/>), which modelled them correctly before this table
-    /// existed. An earlier version of this file re-derived those thresholds here and got three of
-    /// them backwards; the table's one job is saying WHICH routine a class runs.</para>
+    /// <see cref="MonsterVariantAttackTurn"/>, <see cref="MonsterHeavyRangedTurn"/>), which
+    /// modelled them correctly before this table existed. An earlier version of this file
+    /// re-derived those thresholds here and got three of them backwards; the table's one job is
+    /// saying WHICH routine a class runs.</para>
     /// </remarks>
     public enum SpeciesRoutine {
         /// <summary>
