@@ -3,47 +3,65 @@ namespace BetrayalAtKrondor.Tests.Combat;
 using GameData.Resources.Combat;
 using Xunit;
 
-/// <summary>The melee-or-missile routine's choice.</summary>
+/// <summary>
+/// Melee, cast or shoot — <c>combataiact_pick_melee_or_missl</c> (CBTAIACT.C:23).
+/// </summary>
+/// <remarks>
+/// <b>The last of the AI-routine duplicates.</b> MonsterActionChoice and
+/// MonsterTurnRoutines.CloseOrRanged both modelled this, with the same <c>roll &gt;= distance</c>
+/// test; only the latter is dispatched. Unlike the other three this needed a MERGE rather than a
+/// deletion — the duplicate carried the quarrel type, the melee delay range and a derived
+/// chance-in-ten helper that the survivor lacked. All three moved across first.
+/// </remarks>
 public class MonsterActionChoiceTests {
     [Fact]
-    public void AdjacentIsAlwaysMelee_NoRoll() {
-        for (var roll = 0; roll < MonsterActionChoice.ChoiceDie; roll++) {
-            Assert.Equal(MonsterActionChoice.Action.Melee, MonsterActionChoice.Choose(1, roll));
-            Assert.Equal(MonsterActionChoice.Action.Melee, MonsterActionChoice.Choose(0, roll));
-        }
+    public void AdjacentMeansMelee_WithNoRollAtAll() {
+        Assert.Equal(MonsterMove.Melee,
+            MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 1, castRoll: 0).Move);
+        Assert.Equal(MonsterMove.Melee,
+            MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 1, castRoll: 9).Move);
     }
 
     [Fact]
-    public void BeyondMeleeTheCLOSERTargetIsMoreLikelyToBeCastAt() {
-        // *** The counter-intuitive rule. *** RND(10) >= distance, so a near target is cast at often
-        // and a far one rarely - the opposite of "spells are the long-range option". Inverting the
-        // comparison would have monsters sniping spells across the arena and meleeing nothing.
-        Assert.Equal(8, MonsterActionChoice.CastChanceInTen(2));
-        Assert.Equal(5, MonsterActionChoice.CastChanceInTen(5));
-        Assert.Equal(1, MonsterActionChoice.CastChanceInTen(9));
+    public void SpellsAreTheCLOSERangeOption() {
+        // roll >= distance, so the CLOSER the target the likelier a spell. Inverting it has
+        // monsters sniping spells across the arena and meleeing nothing.
+        Assert.Equal(MonsterMove.Cast,
+            MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 2, castRoll: 2).Move);
+        Assert.Equal(MonsterMove.Shoot,
+            MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 9, castRoll: 2).Move);
     }
 
     [Fact]
     public void AtTenTilesOrMoreItCanNEVERCast() {
-        // A d10 rolls 0..9, so it cannot reach 10. Every roll shoots.
-        for (var roll = 0; roll < MonsterActionChoice.ChoiceDie; roll++) {
-            Assert.Equal(MonsterActionChoice.Action.Ranged, MonsterActionChoice.Choose(10, roll));
-            Assert.Equal(MonsterActionChoice.Action.Ranged, MonsterActionChoice.Choose(12, roll));
+        // A d10 roll cannot reach 10, so the comparison can never hold — an absolute range limit
+        // that falls out of the die rather than being tested for.
+        for (var roll = 0; roll < MonsterTurnRoutines.CloseRangeCastRollBound; roll++) {
+            Assert.Equal(MonsterMove.Shoot,
+                MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 10, castRoll: roll).Move);
         }
-        Assert.Equal(0, MonsterActionChoice.CastChanceInTen(10));
+        Assert.Equal(0, MonsterTurnRoutines.CastChanceInTen(10));
     }
 
     [Fact]
-    public void TheRollBoundaryFallsWhereTheOriginalPutsIt() {
-        // >= not >, so a roll equal to the distance casts.
-        Assert.Equal(MonsterActionChoice.Action.Cast, MonsterActionChoice.Choose(distance: 5, roll: 5));
-        Assert.Equal(MonsterActionChoice.Action.Ranged, MonsterActionChoice.Choose(distance: 5, roll: 4));
+    public void TheChanceInTenMatchesTheComparisonItIsDerivedFrom() {
+        // Eight in ten at two tiles, one in ten at nine — the numbers are the argument for which
+        // way round the comparison goes.
+        Assert.Equal(8, MonsterTurnRoutines.CastChanceInTen(2));
+        Assert.Equal(1, MonsterTurnRoutines.CastChanceInTen(9));
+        Assert.Equal(0, MonsterTurnRoutines.CastChanceInTen(1));   // inside melee reach
     }
 
     [Fact]
-    public void TheConstantsAreTheOriginals() {
-        Assert.Equal(4, MonsterActionChoice.CastTargetingType);
-        Assert.Equal(8, MonsterActionChoice.QuarrelType);
-        Assert.Equal((0x19, 0x31), MonsterActionChoice.MeleeDelayRange);
+    public void TheSpellItCastsIsTheDefaultKind() {
+        Assert.Equal(MonsterTurnRoutines.DefaultSpellKind,
+            MonsterTurnRoutines.CloseOrRanged(distanceToNearest: 2, castRoll: 9).SpellKind);
+    }
+
+    [Fact]
+    public void TheMeleeDelayIsARANGE_SoTwoSwingsDoNotLandTogether() {
+        Assert.Equal((0x19, 0x31), MonsterTurnRoutines.CloseOrRangedMeleeDelay);
+        Assert.True(MonsterTurnRoutines.CloseOrRangedMeleeDelay.Min
+            < MonsterTurnRoutines.CloseOrRangedMeleeDelay.Max);
     }
 }

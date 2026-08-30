@@ -27,7 +27,7 @@ public static class RangedAmmoAccuracy {
     ///
     /// <para>Note kinds <b>8 and 9 appear here but not in the inventory table</b>, which stops at 7.
     /// Kind 8 is what the AI passes for a creature's innate shot
-    /// (<see cref="MonsterActionChoice.QuarrelType"/>), so this mapping spans attacks that are never
+    /// (<see cref="MonsterTurnRoutines.CloseOrRangedQuarrelType"/>), so this mapping spans attacks that are never
     /// carried as items.</para>
     /// </remarks>
     private static readonly Dictionary<int, int> ByKind = new Dictionary<int, int> {

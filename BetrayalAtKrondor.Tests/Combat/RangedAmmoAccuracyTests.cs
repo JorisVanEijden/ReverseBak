@@ -39,8 +39,9 @@ public class RangedAmmoAccuracyTests {
 
     [Fact]
     public void TheAIsInnateShotKindHasARecord() {
-        // MonsterActionChoice fires kind 8, which is never carried as an item but does have accuracy.
-        Assert.True(RangedAmmoAccuracy.HasAccuracyRecord(MonsterActionChoice.QuarrelType));
+        // CloseOrRanged fires kind 8, which is never carried as an item but does have accuracy.
+        Assert.True(RangedAmmoAccuracy.HasAccuracyRecord(
+            MonsterTurnRoutines.CloseOrRangedQuarrelType));
     }
 
     [Fact]

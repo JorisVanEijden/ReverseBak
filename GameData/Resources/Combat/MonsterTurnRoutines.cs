@@ -90,6 +90,39 @@ public static class MonsterTurnRoutines {
     }
 
     /// <summary>
+    /// The chance in ten that <see cref="CloseOrRanged"/> casts rather than shoots, at a given
+    /// distance.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived from the same comparison, and worth stating because the numbers are the
+    /// argument.</b> A target two tiles away is cast at EIGHT times in ten; one nine tiles away
+    /// once in ten; and at ten tiles or more the monster can never cast at all, because a d10 roll
+    /// cannot reach 10. Spells are this creature's CLOSE-range option, which is the opposite of the
+    /// intuition — invert the comparison and it snipes spells across the arena and melees nothing.
+    ///
+    /// <para>Zero inside melee reach, where the routine has already decided to swing.</para>
+    /// </remarks>
+    public static int CastChanceInTen(int distanceToNearest) {
+        if (distanceToNearest <= MeleeReach) {
+            return 0;
+        }
+        int chance = CloseRangeCastRollBound - distanceToNearest;
+        return chance < 0 ? 0 : chance;
+    }
+
+    /// <summary>The quarrel type <see cref="CloseOrRanged"/> shoots with.</summary>
+    public const int CloseOrRangedQuarrelType = 8;
+
+    /// <summary>
+    /// Delay applied to this routine's melee swing — <c>RNDR(0x19, 0x31)</c>, i.e. 25..49.
+    /// </summary>
+    /// <remarks>
+    /// A range rather than a constant, so two creatures swinging on the same turn do not land
+    /// together.
+    /// </remarks>
+    public static readonly (int Min, int Max) CloseOrRangedMeleeDelay = (0x19, 0x31);
+
+    /// <summary>
     /// The routine that wanders first: the creature walks to a <b>randomly chosen reachable
     /// tile</b> — not toward anything — and only then decides what to do from where it landed.
     /// </summary>
