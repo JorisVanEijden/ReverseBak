@@ -73,7 +73,10 @@ public static class DialogButtonRow {
     /// <param name="panelHeight">The panel's height in ORIGINAL px.</param>
     /// <param name="buttonCount">How many buttons share the row.</param>
     /// <param name="widestLabelWidth">
-    /// The widest label's width in ORIGINAL px — <see cref="Font.FontMetrics.WidestOf"/>.
+    /// The widest label's width in ORIGINAL px. Measured by <c>getStringWidthInPixels</c>
+    /// (@0x15be5) — a plain sum of glyph advances with no letter spacing — which on our side is
+    /// <c>BakFontData.WidestRaw</c> in the Unity tree. See the remarks below on why the measurement
+    /// does not live here.
     /// </param>
     /// <param name="fontHeight">The game font's height in ORIGINAL px.</param>
     /// <remarks>
@@ -106,8 +109,16 @@ public static class DialogButtonRow {
     /// integer division, so it must be computed in the space the original computed it in.
     ///
     /// <para>The label width and font height are NOT converted, because they never left original
-    /// space: <see cref="Font.FontMetrics"/> measures the game's own bitmap font and the font
-    /// height is its character cell.</para>
+    /// space: the caller measures the game's own bitmap font and the font height is its character
+    /// cell.</para>
+    ///
+    /// <para><b>The measurement itself is deliberately NOT in this layer, and a duplicate was
+    /// deleted for it.</b> A <c>Font.FontMetrics</c> was written here against
+    /// <c>FontResource</c> before its Unity twin <c>BakFontData</c> was found — same routine, same
+    /// two IDA addresses, same remarks. The twin wins because it carries the FNT width tables as
+    /// data and so needs no loaded font: the dialog row is placed as it is built, before any font
+    /// resource has resolved and before UI Toolkit's own measurement returns anything but zero.
+    /// A GameData version would have to be handed a FontResource that does not exist yet.</para>
     /// </remarks>
     public static (int X, int Y, int Width, int Height) ButtonRectOnCanonicalPanel(int buttonIndex,
         int canonicalPanelWidth, int canonicalPanelHeight, int buttonCount, int widestLabelWidth,

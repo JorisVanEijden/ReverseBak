@@ -93,7 +93,7 @@ public class DialogButtonRowTests {
 
     [Fact]
     public void TheLabelWidthAndFontHeightAreNOTConvertedTwice() {
-        // They never left original space — FontMetrics measures the game's own bitmap font and the
+        // They never left original space — the caller measures the game's own bitmap font and the
         // font height is its character cell. Scaling them on the way in would double-count.
         (_, _, int w, int h) = DialogButtonRow.ButtonRectOnCanonicalPanel(0,
             300 * DialogButtonRow.CanonicalScaleX, 100 * DialogButtonRow.CanonicalScaleY,
