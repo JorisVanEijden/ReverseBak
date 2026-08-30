@@ -68,6 +68,23 @@ public class SpellCostModifiersTests {
     }
 
     [Fact]
+    public void TheSurchargeShiftsRatherThanDivides() {
+        // `c >> 1` rounds toward negative infinity where `c / 2` truncates toward zero, so the two
+        // part company on an ODD NEGATIVE cost and nowhere else. -41 is the smallest case that
+        // shows it; every test above uses an even number and so could not have caught this.
+        Assert.Equal(-21, SpellCostModifiers.Surcharge(-41));
+        Assert.Equal(62, SpellCostModifiers.Effective(-41, surcharged: true, targetIsWeak: false));
+    }
+
+    [Fact]
+    public void ANegatedCostIsNotWhatMakesASpellHeal() {
+        // The flag gates the to-hit roll, the wind-up animation and the caster's armour wear. What
+        // heals is a spell whose own magnitude word is negative — see NegatedCostMeansHealed.
+        Assert.False(SpellCostModifiers.NegatedCostMeansHealed);
+        Assert.True(SpellCostModifiers.IsNegated(-9));
+    }
+
+    [Fact]
     public void TheSpellTableRecordIsTwentyTwoBytes() {
         Assert.Equal(22, SpellCostModifiers.SpellRecordSize);
     }

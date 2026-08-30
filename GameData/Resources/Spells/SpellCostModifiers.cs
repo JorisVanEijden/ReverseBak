@@ -24,13 +24,18 @@ public static class SpellCostModifiers {
         targetingType == UntargetedTargetingType;
 
     /// <summary>
-    /// The surcharge a global modifier adds — <b>half of the original cost</b>.
+    /// The surcharge the storm modifier adds — <b>half of the original cost</b>.
     /// </summary>
     /// <remarks>
     /// Taken from the cost as it arrived, not from the running value, so it is exactly +50% and not
     /// compounded with anything applied afterwards.
+    ///
+    /// <para><b>An arithmetic shift, not a division.</b> The original is <c>c += c &gt;&gt; 1</c>,
+    /// which rounds toward negative infinity — so a heal cast at -41 becomes -62 and not the -61
+    /// that <c>c / 2</c> gives. The two agree on every even cost and on every positive one, which is
+    /// exactly why the difference survives casual testing; it shows up only on an odd-cost heal.</para>
     /// </remarks>
-    public static int Surcharge(int originalCost) => originalCost / 2;
+    public static int Surcharge(int originalCost) => originalCost >> 1;
 
     /// <summary>
     /// A negative cost is a <b>sign plus a magnitude</b>, not a negative quantity.
@@ -41,6 +46,19 @@ public static class SpellCostModifiers {
     /// value straight into the magnitude would invert every scaled effect it touches.
     /// </remarks>
     public static bool IsNegated(int cost) => cost < 0;
+
+    /// <summary>
+    /// <b>The negated flag does NOT decide whether the target is healed.</b>
+    /// </summary>
+    /// <remarks>
+    /// It is easy to read <see cref="IsNegated"/> as "this is a heal" and reach for it when the
+    /// delivered amount needs a sign. The original never does: the amount's sign comes from the
+    /// spell record's own magnitude word, and the flag gates three other things — the to-hit roll
+    /// (a negated cast never rolls), the caster's wind-up animation, and the armour wear billed to
+    /// the caster. A restoring spell is one whose data is negative, not one that was paid for
+    /// backwards.
+    /// </remarks>
+    public static bool NegatedCostMeansHealed => false;
 
     /// <summary>
     /// <b>A creature weak to a spell has the cost DOUBLED</b>, which is how it ends up taking about
@@ -54,6 +72,14 @@ public static class SpellCostModifiers {
     ///
     /// <para>Its counterpart, resistance, works the other way round: it gates the effect inside the
     /// magnitude function rather than scaling the cost here.</para>
+    ///
+    /// <para><b>It is consulted for ANY target, including a heal.</b> The check is on the
+    /// (creature, spell) pair and knows nothing about the sign, so a creature listed as vulnerable
+    /// to a spell also receives double from one aimed at it to help.</para>
+    ///
+    /// <para>The doubling is undone further down the routine — the same bitmap is tested a second
+    /// time and shifts the cost back right — so it is in force only while the magnitude and the
+    /// duration/tile arms are computed. Nothing after that point sees the doubled value.</para>
     /// </remarks>
     public static int ApplyWeakness(int cost) => cost * 2;
 
