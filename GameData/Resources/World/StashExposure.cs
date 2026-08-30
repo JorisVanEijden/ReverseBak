@@ -122,6 +122,63 @@ public static class StashExposure {
     /// <summary>The starting value of both weights.</summary>
     public const int WeightBase = 1;
 
+    /// <summary>One scenery entity as the sweep sees it: what it is, and where.</summary>
+    public readonly struct NearbyEntity {
+        public NearbyEntity(int shapeKind, int worldX, int worldY) {
+            ShapeKind = shapeKind;
+            WorldX = worldX;
+            WorldY = worldY;
+        }
+
+        /// <summary>The TBL shape record's <c>kind</c>, not the placement's type id.</summary>
+        public int ShapeKind { get; }
+
+        public int WorldX { get; }
+
+        public int WorldY { get; }
+    }
+
+    /// <summary>
+    /// Sweep the loaded scenery around a stash and accumulate both weights.
+    /// </summary>
+    /// <param name="stashX">The stash's world x.</param>
+    /// <param name="stashY">The stash's world y.</param>
+    /// <param name="entities">
+    /// Every loaded scenery entity — the original walks <b>all</b> zone entity lists, not a
+    /// neighbourhood, and lets the distance bands do the filtering.
+    /// </param>
+    /// <remarks>
+    /// <b>Both weights start at 1, not 0</b>, which is what keeps the cover division safe and is
+    /// also why a lone building doubles the risk rather than multiplying it by six.
+    ///
+    /// <para><b>An entity is cover OR traffic, never both.</b> The original's second arm is an
+    /// <c>else if</c>, so a kind in both lists could only ever count as cover — moot today because
+    /// the lists are disjoint, and reproduced anyway because a mod adding a kind to both would
+    /// otherwise diverge silently.</para>
+    ///
+    /// <para>Distance is <see cref="WorldDistance.Octagonal"/>, the same approximation the
+    /// original compares against these thresholds. A true hypotenuse would move every band.</para>
+    /// </remarks>
+    public static (int CoverWeight, int TrafficWeight) AccumulateWeights(
+        int stashX, int stashY, System.Collections.Generic.IEnumerable<NearbyEntity> entities) {
+        int cover = WeightBase;
+        int traffic = WeightBase;
+        if (entities == null) {
+            return (cover, traffic);
+        }
+
+        foreach (NearbyEntity entity in entities) {
+            long distance = WorldDistance.Octagonal(stashX - entity.WorldX, stashY - entity.WorldY);
+            int fromCover = CoverContribution(entity.ShapeKind, distance);
+            if (fromCover != 0) {
+                cover += fromCover;
+                continue;
+            }
+            traffic += TrafficContribution(entity.ShapeKind, distance);
+        }
+        return (cover, traffic);
+    }
+
     // ---------------------------------------------------------------- the score
 
     /// <summary>
