@@ -9,6 +9,13 @@ namespace GameData.Resources.Combat;
 /// <c>Color</c> field carrying the creature type. So "which creature does this spell summon" is not a
 /// field of its own — it shares the slot that means a colour for other spells.
 /// </remarks>
+/// <remarks>
+/// <b>AWAITING ITS FEATURE (TASK-112).</b> No spell conjures a creature yet.
+///
+/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
+/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
+/// to re-triage every run.</para>
+/// </remarks>
 public static class MonsterSummon {
     /// <summary>
     /// <b>A summon can simply fail, and the spell is spent anyway.</b>

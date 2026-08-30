@@ -11,6 +11,13 @@ namespace GameData.Resources.Combat;
 /// Once the picker opens the player must place the creature somewhere legal, which is worth knowing
 /// before wiring an Esc that the original does not have.</para>
 /// </remarks>
+/// <remarks>
+/// <b>AWAITING ITS FEATURE (TASK-112).</b> Nothing asks the player where to put a summon, because nothing summons.
+///
+/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
+/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
+/// to re-triage every run.</para>
+/// </remarks>
 public static class SummonPlacement {
     /// <summary>Whether a tile is on the grid at all.</summary>
     /// <remarks>The combat grid's own bounds — the loop tests them itself rather than trusting the cursor.</remarks>

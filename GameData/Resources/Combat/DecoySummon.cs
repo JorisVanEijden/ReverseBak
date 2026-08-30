@@ -12,6 +12,14 @@ using GameData.Resources.Spells;
 /// CASTER, is helpless by construction, and expires with its spell. Folding them into one "summon"
 /// would give the decoy a monster's body or the monster an expiry.
 /// </remarks>
+/// <remarks>
+/// <b>AWAITING ITS FEATURE (TASK-112).</b> Dannon's Delusions puts no actor on the grid yet — the spell resolves and the decoy is
+/// the part that is missing.
+///
+/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
+/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
+/// to re-triage every run.</para>
+/// </remarks>
 public static class DecoySummon {
     /// <summary>The spell the decoy's effect slot is stamped with.</summary>
     /// <remarks>

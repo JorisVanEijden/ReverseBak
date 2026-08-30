@@ -8,6 +8,14 @@ namespace GameData.Resources.Combat;
 /// <see cref="CombatCommandOutcome.PendingMode.InspectTarget"/>; this is what happens when the player
 /// then clicks. See <see cref="CombatCommandOutcome"/> for the arm-versus-resolve split.</para>
 /// </summary>
+/// <remarks>
+/// <b>AWAITING ITS FEATURE (TASK-241).</b> Blocked in turn on the target-info panel (combat_arena_draw_tgt_info_panel), which is
+/// unbuilt and explicitly not on TASK-102's list — so pressing Inspect has nothing to show.
+///
+/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
+/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
+/// to re-triage every run.</para>
+/// </remarks>
 public static class InspectAction {
     /// <summary>What the follow-up click did.</summary>
     public enum Result {

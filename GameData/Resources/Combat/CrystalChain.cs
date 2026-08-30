@@ -8,6 +8,14 @@ namespace GameData.Resources.Combat;
 /// continuing run beside it is destroyed. That is the puzzle: you are not pushing crystals to a
 /// place, you are pushing them until the chain comes apart.</para>
 /// </summary>
+/// <remarks>
+/// <b>AWAITING ITS FEATURE (TASK-100).</b> The crystal-push puzzle is not on the grid yet: the rules are ported and no encounter
+/// runs them.
+///
+/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
+/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
+/// to re-triage every run.</para>
+/// </remarks>
 public static class CrystalChain {
     /// <summary>The two element ids a crystal is recorded as.</summary>
     public const int FirstCrystalId = 7;
