@@ -133,10 +133,22 @@ public static class MonsterSpellcasting {
 
     /// <summary>What an action slot actually invokes.</summary>
     public enum SlotAction {
-        /// <summary>Slot 1 — a routine of its own, not a target-mode cast.</summary>
+        /// <summary>
+        /// Slot 1 — the ally heal, <see cref="MonsterHealTurn"/>. Not a target-mode cast.
+        /// </summary>
+        /// <remarks>
+        /// <b>Identified 2026-08-30 from the thunk table itself.</b> The eight far pointers at
+        /// <c>spellcastPattern_actionThunks</c> resolve to six one-line cast wrappers plus two
+        /// larger routines, and slot 1 is <c>monster_healAnAlly</c> @0x65bcd. This enum said
+        /// "a routine of its own" for both specials while the table named them all along.
+        /// </remarks>
         SpecialFirst,
 
-        /// <summary>Slot 8 — likewise, and the one every pattern keeps in reserve.</summary>
+        /// <summary>
+        /// Slot 8 — the cast at a WOUNDED ENEMY somebody else is already fighting
+        /// (<c>combat_ai_try_aoe_cast_spell_7</c>, spell 7 under 70% health). The one every
+        /// pattern keeps in reserve. Not modelled yet.
+        /// </summary>
         SpecialLast,
 
         /// <summary>A cast aimed by one of the six target-selection modes.</summary>
