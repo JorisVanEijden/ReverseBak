@@ -253,5 +253,87 @@ public static class ActorStatModifiers {
     /// is the modifier's KIND, not which attribute it touches. Reading it as a stat mask clears the
     /// wrong modifiers, and plausibly: both words are masks and they sit next to each other.
     /// </remarks>
+    // ------------------------------------------------------------------ inserting a modifier
+
+    /// <summary>
+    /// The flags word a SPELL status effect writes — <c>cspell_try_add_status_effect</c>
+    /// (CSPELL.C:1053).
+    /// </summary>
+    /// <remarks>
+    /// <b>Exactly <see cref="ModifierFlags.CombatOnly"/> and nothing else — and that one constant
+    /// decides three separate things.</b>
+    ///
+    /// <para><b>It only applies in combat</b>, which is what these effects are: the three call
+    /// sites are an accuracy debuff on all three accuracies (CSPELL.C:1391-1393, stats 5/6/7 at
+    /// -0x14 — Despair Thy Eyes) and a strength drain that moves half the damage to the attacker
+    /// (CSPELL.C:1242/1248). Outside combat the slot is skipped entirely, expiry included.</para>
+    ///
+    /// <para><b>It is permanent</b>, because <see cref="ModifierFlags.Expires"/> is absent and
+    /// <see cref="Apply"/> only consults <see cref="Slot.ExpiresAt"/> when that bit is set. The
+    /// routine does write an expiry — <c>game_time &lt;&lt; 1</c>, which is not a duration at all —
+    /// and nothing ever reads it. Treating that value as a deadline would give a lapse time that
+    /// drifts further away the longer the game has been running. Spell statuses come off through
+    /// the clear-by-mask path instead.</para>
+    ///
+    /// <para><b>It is the cheapest slot in the table</b>, since the cost is the flags word's low
+    /// byte and this one is zero — so a spell status is always the first thing evicted when all
+    /// eight are full. See <see cref="SlotToFill"/>.</para>
+    /// </remarks>
+    public const int SpellStatusFlags = 0x100;
+
+    /// <summary>
+    /// Whether a spell status effect is refused because something already covers that stat.
+    /// </summary>
+    /// <remarks>
+    /// <b>Another SPELL status on the same stat does NOT block it; anything else does.</b> The test
+    /// is <c>flags != 0 &amp;&amp; statMask matches &amp;&amp; flags != 0x100</c>, so two casts of
+    /// the same debuff STACK, while an item's modifier on that stat shuts the spell out entirely.
+    /// Reading it as an ordinary "already present" guard gets both halves backwards.
+    /// </remarks>
+    public static bool SpellStatusIsBlocked(IReadOnlyList<Slot> slots, int statMask) {
+        if (slots == null) {
+            return false;
+        }
+        foreach (Slot slot in slots) {
+            if (slot.Flags != 0 && slot.StatMask == statMask && slot.Flags != SpellStatusFlags) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Whether an ITEM's modifier is refused — <c>ITEMUSE.C:326</c>, effect category 0x12.
+    /// </summary>
+    /// <remarks>
+    /// <b>Stricter than the spell rule, and it tells the player.</b> ANY non-empty slot on the same
+    /// stat blocks it, with no exemption for spell statuses — and the refusal plays a dialog rather
+    /// than failing quietly, so a potion that does nothing says so.
+    /// </remarks>
+    public static bool ItemModifierIsBlocked(IReadOnlyList<Slot> slots, int statMask) {
+        if (slots == null) {
+            return false;
+        }
+        foreach (Slot slot in slots) {
+            if (slot.Flags != 0 && slot.StatMask == statMask) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Game-time units one point of an item's duration field is worth.</summary>
+    /// <remarks>0x708 = 1800. The item record carries the count; this is the unit.</remarks>
+    public const int ItemDurationUnit = 0x708;
+
+    /// <summary>When an item's modifier lapses.</summary>
+    /// <remarks>
+    /// <b>A real deadline, unlike the spell path's.</b> The item's flags come from its own record,
+    /// so whether <see cref="ModifierFlags.Expires"/> is set — and therefore whether this value is
+    /// ever read — is data, not a constant.
+    /// </remarks>
+    public static uint ItemExpiryAt(uint gameTime, int durationPoints) =>
+        gameTime + (uint)(durationPoints * ItemDurationUnit);
+
     public static bool ClearedBy(in Slot slot, int mask) => (slot.Flags & mask) != 0;
 }
