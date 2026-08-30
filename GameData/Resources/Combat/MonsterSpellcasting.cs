@@ -145,10 +145,31 @@ public static class MonsterSpellcasting {
         SpecialFirst,
 
         /// <summary>
-        /// Slot 8 — the cast at a WOUNDED ENEMY somebody else is already fighting
-        /// (<c>combat_ai_try_aoe_cast_spell_7</c>, spell 7 under 70% health). The one every
-        /// pattern keeps in reserve. Not modelled yet.
+        /// Slot 8 — <b>dead code in the shipped game. Do not implement it.</b>
         /// </summary>
+        /// <remarks>
+        /// <b>C OPERATOR PRECEDENCE KILLS THE WHOLE SLOT.</b> The routine
+        /// (<c>monster_healTargetedAlly_DEAD</c> @0x65d58, canassa
+        /// <c>combat_ai_try_aoe_cast_spell_7</c>) guards its body with what was meant to be
+        /// <c>!(victim-&gt;combatStatus &amp; 2)</c> and was written as
+        /// <c>!victim-&gt;combatStatus &amp; 2</c>. <c>!</c> binds tighter than <c>&amp;</c>, so the
+        /// mask is applied to the negation: a 0-or-1 value tested against bit 1 is always zero, the
+        /// branch is always taken, and every instruction to the end of the loop body is unreachable.
+        ///
+        /// <para>Confirmed twice at the byte level. In the disassembly at 0x65db1,
+        /// <c>neg ax / sbb ax,ax / inc ax</c> is Borland's logical NOT followed by
+        /// <c>test ax, 2</c> and an always-taken <c>jz</c>; and the byte-matched C reproduces the
+        /// precedence verbatim.</para>
+        ///
+        /// <para><b>The attempt is still spent, and that IS the behaviour to reproduce.</b> Every
+        /// pattern row contains slot 8 — it is second in pattern 1's row — so one of a caster's
+        /// eight attempts reliably does nothing, and its commit roll is consumed on the way. A port
+        /// that "fixed" the guard would give every monster caster an extra action per turn and a
+        /// free heal the shipped game never grants. Skipping the slot, as we do, is correct.</para>
+        ///
+        /// <para>What the unreachable body would have done, recorded so nobody re-derives it: cast
+        /// Gift of Sung on the victim at under 70% health, or under 80% for one specific actor.</para>
+        /// </remarks>
         SpecialLast,
 
         /// <summary>A cast aimed by one of the six target-selection modes.</summary>

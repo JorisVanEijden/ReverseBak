@@ -278,4 +278,19 @@ public class MonsterSpellcastingTests {
         // pool allows it. A port that rolled a power here would make monster casters erratic.
         Assert.Equal(15, MonsterSpellcasting.AiCastPower(maximumCost: 15, healthStaminaCombined: 99));
     }
+
+    [Fact]
+    public void SlotEightIsDeadInTheShippedGameAndTheAttemptIsStillSpent() {
+        // *** A GUARD AGAINST A WELL-MEANING FIX. *** Slot 8's routine is unreachable past its
+        // first test — `!victim->combatStatus & 2` where `!(victim->combatStatus & 2)` was meant,
+        // confirmed at 0x65db1 and in the byte-matched C. Every pattern row contains slot 8, so
+        // one of a caster's eight attempts reliably does nothing. Implementing the intended
+        // behaviour would hand every monster caster an extra action and a free heal per turn.
+        Assert.Equal(MonsterSpellcasting.SlotAction.SpecialLast, MonsterSpellcasting.ActionOf(8));
+        Assert.NotEqual(MonsterSpellcasting.SlotAction.TargetedCast, MonsterSpellcasting.ActionOf(8));
+
+        // And it is not merely unmapped: it has no target mode either, so there is no route by
+        // which a caller could treat it as an ordinary cast.
+        Assert.Equal(-1, MonsterSpellcasting.TargetModeOf(8));
+    }
 }
