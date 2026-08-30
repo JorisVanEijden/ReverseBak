@@ -121,4 +121,44 @@ public class SpellCastSoundTests {
         Assert.Equal(SpellCastSound.ForCast(SpellIds.Steelfire),
             SpellCastSound.ForCast(SpellIds.SkinOfTheDragon));
     }
+    [Fact]
+    public void AHEALMakesNoCastNoiseAndNoAnimation() {
+        // *** THE WHOLE KIND SWITCH SITS INSIDE `if (isNeg == 0)`. *** A negated cost skips the cue
+        // AND the wind-up or swing together. A port that plays the cue first and animates second
+        // gets a healer who swings at their own side.
+        Assert.Null(SpellCastSound.ForCombatCast(0, costWasNegated: true));
+        Assert.Null(SpellCastSound.ForCombatCast(1, costWasNegated: true));
+        Assert.NotNull(SpellCastSound.ForCombatCast(0, costWasNegated: false));
+    }
+
+    [Fact]
+    public void THEDEFAULTARMISMELEE_NotSilence() {
+        // Kinds 1 and 4 share the default arm, so an UNRECOGNISED kind swings. Only 5 and 6 are
+        // quiet, and they are quiet by having cases of their own — carved OUT of the default.
+        // Reading it as "0/2/3/7/8 ranged, 1/4 melee, rest silent" inverts every kind above 8.
+        foreach (int ranged in new[] { 0, 2, 3, 7, 8 }) {
+            Assert.Equal(SpellCastSound.RangedWindupCue,
+                SpellCastSound.ForCombatCast(ranged, costWasNegated: false));
+        }
+
+        foreach (int melee in new[] { 1, 4, 9, 42 }) {
+            Assert.Equal(SpellCastSound.MeleeSwingCue,
+                SpellCastSound.ForCombatCast(melee, costWasNegated: false));
+        }
+
+        Assert.Null(SpellCastSound.ForCombatCast(5, costWasNegated: false));
+        Assert.Null(SpellCastSound.ForCombatCast(6, costWasNegated: false));
+    }
+
+    [Fact]
+    public void TheCombatCuesAreADIFFERENTTableFromTheFieldOnes() {
+        // ForCast keys on the SPELL and is what the field caster plays; ForCombatCast keys on the
+        // KIND and is what a fight plays. Neither is a fallback for the other, and the same spell
+        // cast in the field and in combat does not make the same noise.
+        Assert.Equal(0x12, SpellCastSound.RangedWindupCue);
+        Assert.Equal(0x13, SpellCastSound.MeleeSwingCue);
+        Assert.Equal(0x3b, SpellCastSound.ResistedCue);
+        Assert.Equal(0x3f, SpellCastSound.PoolDeliveryCue);
+    }
+
 }

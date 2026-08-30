@@ -93,4 +93,64 @@ public static class SpellCastSound {
     /// <summary>Whether a spell has a per-target cue on top of its cast cue.</summary>
     public static int? PerTarget(int spellId) =>
         spellId == SpellIds.MadGodsRage ? MadGodsRagePerTargetSound : (int?)null;
+    // ------------------------------------------------------------- the COMBAT path's cues
+    //
+    // *** THESE ARE NOT ALTERNATIVES TO ForCast, THEY ARE A DIFFERENT PATH. *** ForCast keys on the
+    // SPELL and is what the field caster plays. Everything below keys on the spell KIND and is what
+    // cspell_resolve_cast plays inside a fight. A spell cast in the field and the same spell cast in
+    // combat do not make the same noise, and neither table is a fallback for the other.
+
+    /// <summary>The cue a ranged-kind cast makes as the caster winds up.</summary>
+    public const int RangedWindupCue = 0x12;
+
+    /// <summary>The cue a melee-kind cast makes as the caster swings.</summary>
+    public const int MeleeSwingCue = 0x13;
+
+    /// <summary>The cue that plays when the target RESISTS the spell.</summary>
+    /// <remarks>
+    /// Fires on the resistance bitmap, which is a different table from the weakness one tested two
+    /// lines above it, and fires whether or not the spell then does anything. So a resisted cast is
+    /// audible even when it changes nothing — which is the point of it.
+    /// </remarks>
+    public const int ResistedCue = 0x3b;
+
+    /// <summary>The cue the targeting-type-2 delivery makes — the pool move.</summary>
+    public const int PoolDeliveryCue = 0x3f;
+
+    /// <summary>Spell kinds that wind up like a bow rather than swinging.</summary>
+    private static readonly int[] RangedKinds = { 0, 2, 3, 7, 8 };
+
+    /// <summary>Spell kinds that make no cast noise at all.</summary>
+    /// <remarks>
+    /// Kind 5 lays a tile effect and kind 6 summons a creature. Both have their own case in the
+    /// switch and neither plays anything — they are carved OUT of the default arm, which is what
+    /// makes them silent rather than melee.
+    /// </remarks>
+    private static readonly int[] SilentKinds = { 5, 6 };
+
+    /// <summary>
+    /// The cue a cast makes in COMBAT, by spell kind — <c>cspell_resolve_cast</c> (CSPELL.C:1303).
+    /// </summary>
+    /// <param name="spellKind">The spell record's kind.</param>
+    /// <param name="costWasNegated">Whether the cost arrived negative, i.e. this is a heal.</param>
+    /// <returns>The sound id, or null for silence.</returns>
+    /// <remarks>
+    /// <b>A HEAL MAKES NO CAST NOISE AND PLAYS NO ANIMATION.</b> The whole switch sits inside
+    /// <c>if (isNeg == 0)</c>, so the negated-cost branch skips the cue AND the wind-up or swing.
+    /// A port that plays the cue first and animates second gets a healer who swings at their own
+    /// side.
+    ///
+    /// <para><b>The default arm is MELEE, not silence.</b> Kinds 1 and 4 share it with
+    /// <c>default</c>, so an unknown kind swings; only 5 and 6 are quiet, and they are quiet by
+    /// having cases of their own. Reading the switch as "0/2/3/7/8 ranged, 1/4 melee, rest silent"
+    /// inverts that for every kind above 8.</para>
+    /// </remarks>
+    public static int? ForCombatCast(int spellKind, bool costWasNegated) {
+        if (costWasNegated || System.Array.IndexOf(SilentKinds, spellKind) >= 0) {
+            return null;
+        }
+
+        return System.Array.IndexOf(RangedKinds, spellKind) >= 0 ? RangedWindupCue : MeleeSwingCue;
+    }
+
 }
