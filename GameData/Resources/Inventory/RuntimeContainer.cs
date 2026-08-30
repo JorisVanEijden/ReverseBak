@@ -129,6 +129,19 @@ public sealed class RuntimeContainer {
     /// </remarks>
     public SaveGameContainerShopData Shop;
 
+    /// <summary>
+    /// The <c>SUBREC_PARAMS</c> bytes, present only when
+    /// <see cref="SaveGameContainerDataType.Lock"/> is set.
+    /// </summary>
+    /// <remarks>
+    /// <b>Carried whole because the four bytes are a UNION, not a lock record.</b> The lock screen
+    /// reads them as difficulty and trap damage; the stash-exposure decay reads the same bytes as
+    /// proximity intensity and its two flags. Keeping the subrecord rather than the lock fields
+    /// means a second reading does not need a second copy — see
+    /// <see cref="SaveGameContainerLockData"/>.
+    /// </remarks>
+    public SaveGameContainerLockData Params;
+
     /// <summary>A working copy of a shop record, so spending from it cannot reach the snapshot.</summary>
     private static SaveGameContainerShopData Copy(SaveGameContainerShopData shop) =>
         shop == null
@@ -154,6 +167,7 @@ public sealed class RuntimeContainer {
             MinChapter = snap.Location.MinChapter,
             MaxChapter = snap.Location.MaxChapter,
             DataTypes = snap.DataTypes,
+            Params = snap.LockData,
             Timestamp = snap.Timestamp,
             DialogId = snap.DialogData?.DialogId,
         };
