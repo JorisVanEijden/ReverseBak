@@ -29,7 +29,16 @@ using System.Collections.Generic;
 /// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
 /// Grave (12) fires a positioned trap encounter and needs a Shovel in the party and a dig
 /// (@0x77df4); Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
-/// Pit (15) is the walk-into-it traversal and has no click at all. <b>Door (23), Building (10) and
+/// Pit (15) needs a Rope and a rope-swing sequence (<c>handle_Pit</c> @0x79c63, modelled in
+/// <c>PitRopeCrossing</c>).</para>
+///
+/// <para><b>Correction, 2026-08-30: Pit (15) IS clickable.</b> This paragraph said it "is the
+/// walk-into-it traversal and has no click at all", which would stop anyone giving it a row. It is
+/// BOTH — the <c>m_pit</c> polygon is walkable and falling in is delivered by the movement loop
+/// (that is <c>PitDescent</c>, already wired), while the pit OBJECT is <b>case 15 of the click
+/// jump table</b> at <c>HandleEnvironmentInteraction_impl</c> @0x766ad, dispatching to
+/// <c>handle_Pit</c> exactly as RockPile and the rest do. Two code paths on one entity type, which
+/// is what made the single-sentence summary wrong rather than merely incomplete.</para> <b>Door (23), Building (10) and
 /// the clickable traversal trio Tunnel (20) / TunnelExit (39) / Ladder (42) have since been
 /// added</b> — none is describe-or-loot, but each has a behavior of its own
 /// (<c>DoorMechanics</c>, <c>FixedObjectClick</c>, <c>TraversalClick</c>) and an intentionally
