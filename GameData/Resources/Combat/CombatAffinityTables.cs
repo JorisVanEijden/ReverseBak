@@ -40,6 +40,80 @@ public class CombatAffinityTables : IResource {
     /// </summary>
     public int[][] ClassGroupModifier { get; set; } = new int[0][];
 
+    /// <summary>
+    /// <c>g_aClassCombatGroup</c> (IDA <c>creatures_word_dseg_188E</c> @0x3B65E), indexed by the
+    /// combatant's creature class — the ROW selector for <see cref="ClassGroupModifier"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Almost every class is group 0.</b> The shipped table is zero everywhere except classes
+    /// <b>15, 18 and 21</b>, which are group 2 — and 15 is <b>Gorath</b>. So the one thing this
+    /// system visibly does is stop the moredhel taking the mismatch penalty on elven gear, which is
+    /// a better story than "a 2% table nobody notices".
+    ///
+    /// <para><b>Group 1 is unreachable.</b> No creature class selects it, so the middle row of
+    /// <see cref="ClassGroupModifier"/> is dead data in the shipped build. Worth knowing before
+    /// anyone tries to infer what the three groups "mean" from the modifier table alone.</para>
+    /// </remarks>
+    public int[] ClassCombatGroup { get; set; } = new int[0];
+
+    /// <summary>
+    /// The class-vs-item affinity for a combatant swinging or wearing a given item — the percentage
+    /// delta <c>CombatFormulas.MeleeHitChance</c> and <c>ArmorRating</c> take.
+    /// </summary>
+    /// <param name="creatureClass">The combatant's creature class.</param>
+    /// <param name="itemRace">
+    /// The item's <c>racialMod</c> field (+0x38), which our <c>ObjectInfo.Race</c> carries verbatim.
+    /// </param>
+    /// <remarks>
+    /// <b>The item's field is a RACE VALUE being used as a COLUMN INDEX, and the two do not have the
+    /// same range.</b> <c>ObjectInfo.Race</c> is 0..4 (None, Tsurani, Elf, Human, Dwarf) and the row
+    /// is four wide, so:
+    /// <list type="bullet">
+    ///   <item>Human (3) always lands on the last column, which is <b>-2 for every group</b> — the
+    ///     one value that is a penalty regardless of who is holding it. Seventeen shipped items are
+    ///     Human-race, including the Broadsword and both non-Tsurani crossbows.</item>
+    ///   <item>Dwarf (4) is <b>past the end of the row</b>. The original does not bound-check it:
+    ///     <c>racialMods[group * 4 + race]</c> reads on into the next row, or for group 2 past the
+    ///     table entirely and into the first word of <see cref="ClassCombatGroup"/>. Two shipped
+    ///     items do this — the Sword of Kinnur and one other.</item>
+    /// </list>
+    ///
+    /// <para>Reproduced rather than clamped. Clamping Dwarf to column 3 would turn a -1 into a -2
+    /// for most creatures and a 0 into a -2 for the moredhel, which is a real balance change to two
+    /// weapons; refusing the lookup would drop the modifier entirely. The out-of-range read is what
+    /// the game does, and it is deterministic.</para>
+    /// </remarks>
+    public int ModifierFor(int creatureClass, int itemRace) {
+        if (creatureClass < 0 || creatureClass >= ClassCombatGroup.Length) {
+            // The original indexes the class table unchecked too, and everything past its end reads
+            // zero for every class that exists — so "group 0" is the faithful answer, not a guard.
+            return FlatModifier(0, itemRace);
+        }
+        return FlatModifier(ClassCombatGroup[creatureClass], itemRace);
+    }
+
+    /// <summary>
+    /// <c>racialMods[group * ItemGroups + race]</c> over the table read as one flat run, which is
+    /// how the original addresses it (<c>bx = group &lt;&lt; 3; bx += race &lt;&lt; 1</c>).
+    /// </summary>
+    private int FlatModifier(int group, int race) {
+        int index = (group * ItemGroups) + race;
+        if (index < 0) {
+            return 0;
+        }
+
+        int row = index / ItemGroups;
+        int column = index % ItemGroups;
+        if (row < ClassGroupModifier.Length && column < ClassGroupModifier[row].Length) {
+            return ClassGroupModifier[row][column];
+        }
+
+        // Off the end of the modifier table altogether: the next words in the image are
+        // ClassCombatGroup, and the original reads them as if they were modifiers.
+        int past = index - (ClassGroupModifier.Length * ItemGroups);
+        return past >= 0 && past < ClassCombatGroup.Length ? ClassCombatGroup[past] : 0;
+    }
+
     /// <summary>Per-creature-class affinities, indexed by class id (0..63).</summary>
     public List<CreatureAffinity> Creatures { get; set; } = new List<CreatureAffinity>();
 

@@ -24,8 +24,34 @@ public static class CombatAffinityReader {
     /// <summary><c>racialMods?</c> / <c>g_aClassGroupModifier[3][4]</c>.</summary>
     public const int ClassGroupModifierAddress = 0x3B646;
 
+    /// <summary>
+    /// <c>g_aClassCombatGroup</c> (IDA <c>creatures_word_dseg_188E</c> @0x3B65E) — the class-indexed
+    /// ROW selector for <see cref="ClassGroupModifierAddress"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>It sits immediately after the modifier table</b>, which is not a coincidence worth relying
+    /// on but is a useful cross-check: 3 x 4 words is 0x18, and 0x3B646 + 0x18 is exactly 0x3B65E.
+    /// <c>getCreatureCombatGroup</c> (ovr177 @0x6B621) is the whole routine —
+    /// <c>return g_aClassCombatGroup[actor-&gt;combatData.creatureType]</c>.
+    /// </remarks>
+    public const int ClassCombatGroupAddress = 0x3B65E;
+
     /// <summary><c>creatureWeaknessFlags</c> / <c>g_aClassProficiencyMask[64]</c>.</summary>
     public const int WeaknessAddress = 0x3B6D4;
+
+    /// <summary>
+    /// Entries in the class-group table: <b>derived from where the next table starts</b>, not
+    /// asserted.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is 59, not 64, and the original indexes it unchecked.</b> Creature classes run 0..63
+    /// (<see cref="CombatAffinityTables.CreatureClassCount"/>), so five of them read past the end of
+    /// this table and into the first entries of the weakness table. Those entries are zero for every
+    /// class that exists, so the effect is "group 0" either way — but the count is derived here
+    /// rather than written as 64 so that the overlap is a fact about the layout instead of a silent
+    /// off-by-five in the reader.
+    /// </remarks>
+    public static int ClassCombatGroupCount => (WeaknessAddress - ClassCombatGroupAddress) / 2;
 
     /// <summary><c>creatureResistanceFlags</c> / <c>g_aClassWeaknessMask[64]</c>.</summary>
     public const int ResistanceAddress = 0x3B754;
@@ -80,6 +106,9 @@ public static class CombatAffinityReader {
             }
         }
         table.ClassGroupModifier = modifiers;
+
+        table.ClassCombatGroup = ReadInt16Array(exe, FileOffset(exe, ClassCombatGroupAddress),
+            ClassCombatGroupCount);
 
         table.StatCheckThresholds = ReadInt16Array(exe, FileOffset(exe, StatCheckThresholdAddress),
             StatCheckThresholdCount);
