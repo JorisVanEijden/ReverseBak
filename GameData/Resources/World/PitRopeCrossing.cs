@@ -114,4 +114,80 @@ public static class PitRopeCrossing {
         ropeCount > 0
         && AxisOf(rotationZ) != PitAxis.None
         && IsLinedUp(alongPit, pitAlongPit);
+
+    // ------------------------------------------------------------------ the swing itself
+
+    /// <summary>How far the party moves per frame of the traverse.</summary>
+    /// <remarks>
+    /// <b>The walk to the start point uses the same increment as the crossing.</b> It is one
+    /// stepped move, not a teleport to the near edge followed by an animation.
+    /// </remarks>
+    public const int StepUnits = 100;
+
+    /// <summary>Half-width of the band in which the rope sags, measured from the pit's centre.</summary>
+    public const int SagRadius = 600;
+
+    /// <summary>The height the rope hangs from, before the sag is subtracted.</summary>
+    public const int SagAnchorHeight = 0x1C2;
+
+    /// <summary>The constant inside the sag's square root — the anchor circle's radius squared.</summary>
+    public const int SagRadiusSquared = 0x4DEF9;
+
+    /// <summary>The swing sound, played at the exact centre of the crossing.</summary>
+    /// <remarks>
+    /// <b>At the centre, not on entering the sag band.</b> One cue per crossing; firing it on the
+    /// band boundary would play it twice, once on each side.
+    /// </remarks>
+    public const int SwingSoundId = 0x32;
+
+    /// <summary>Shown when the party has no rope to spare — dialog 0x114.</summary>
+    /// <remarks>
+    /// <b>This is the RAN-OUT message, not the no-rope refusal.</b> The gate in
+    /// <see cref="CanOffer"/> happens first and says nothing at all; this one belongs to the
+    /// consumption at the end of a crossing that was already offered.
+    /// </remarks>
+    public const int OutOfRopeDialog = 0x114;
+
+    /// <summary>
+    /// The eye height partway across — a circular sag on the rope.
+    /// </summary>
+    /// <param name="distanceFromCentre">Distance along the travel axis from the pit's centre.</param>
+    /// <remarks>
+    /// <c>z = 0x1C2 - isqrt(0x4DEF9 - d^2)</c> inside <see cref="SagRadius"/>, and flat outside it.
+    /// The integer square root is the original's, so the curve is stepped rather than smooth —
+    /// reproducing it with a float gives a subtly different dip at every frame of the crossing.
+    /// </remarks>
+    public static int SagHeightAt(int distanceFromCentre) {
+        int d = distanceFromCentre < 0 ? -distanceFromCentre : distanceFromCentre;
+        if (d >= SagRadius) {
+            return 0;
+        }
+        return SagAnchorHeight - IntegerSquareRoot(SagRadiusSquared - (d * d));
+    }
+
+    /// <summary>Whether the swing cue fires at this point of the crossing.</summary>
+    public static bool PlaysSwingSound(int distanceFromCentre) => distanceFromCentre == 0;
+
+    /// <summary>The original's integer square root — truncating, never rounding.</summary>
+    private static int IntegerSquareRoot(int value) {
+        if (value <= 0) {
+            return 0;
+        }
+        var root = 0;
+        var bit = 1 << 30;
+        while (bit > value) {
+            bit >>= 2;
+        }
+        int remainder = value;
+        while (bit != 0) {
+            if (remainder >= root + bit) {
+                remainder -= root + bit;
+                root = (root >> 1) + bit;
+            } else {
+                root >>= 1;
+            }
+            bit >>= 2;
+        }
+        return root;
+    }
 }
