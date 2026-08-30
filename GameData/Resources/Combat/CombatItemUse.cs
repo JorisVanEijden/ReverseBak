@@ -144,6 +144,49 @@ public static class CombatItemUse {
     /// </remarks>
     public const int InfinityPoolObjectId = 0x0d;
 
+    /// <summary>
+    /// <b>There is no "Use" button.</b> The dispatch runs on whatever the in-combat INVENTORY SCREEN
+    /// returns.
+    /// </summary>
+    /// <remarks>
+    /// <c>combat_arena_suspend_char_screen</c> (COMBAT.C:1849) is the only caller:
+    /// <code>
+    /// cmdId = cmbinv_inventory_screen_run(actor->actor_record, partySlot + 1, 0);
+    /// ...
+    /// combat_arena_resume_dispatch(cmdId, ...);
+    /// </code>
+    /// So the door is <c>CombatCommands.Command.CharacterScreen</c> — open a fighter's inventory
+    /// mid-fight, use something, and the screen hands back the object id it used. A port that adds a
+    /// Use command to the combat HUD builds a control the original does not have, and one that
+    /// treats <see cref="All"/> as menu actions never finds the caller.
+    /// </remarks>
+    public static bool EnteredFromTheInventoryScreen => true;
+
+    /// <summary>
+    /// <b>Holding SHIFT opens the character INFO screen instead</b>, which uses nothing.
+    /// </summary>
+    /// <remarks>
+    /// The branch is <c>menupage_state_0e7c() == 2 || key_is_down(0x2a) || key_is_down(0x36)</c> —
+    /// either shift key. That path calls <c>charscreen_info_loop</c> and never assigns
+    /// <c>cmdId</c>, which the dispatch is then called with regardless; in the reconstruction the
+    /// value is simply uninitialised. Nothing in the ten arms matches an arbitrary value often, so
+    /// it reads as harmless, but it is not a deliberate "no item" sentinel and should not be ported
+    /// as one — pass an id that matches nothing, on purpose.
+    /// </remarks>
+    public const int NoItemUsed = 0;
+
+    /// <summary>
+    /// <b>The fight's combatants are a SNAPSHOT, and the screen edits the real characters.</b>
+    /// </summary>
+    /// <remarks>
+    /// Before opening the screen the routine copies every party combatant out into
+    /// <c>g_gameState.characters</c> (nulling <c>inner</c>, the combat-only state), and afterwards
+    /// copies them back while <b>restoring each saved <c>inner</c> pointer</b>. So an item consumed
+    /// or a stat changed in the screen survives into the rest of the fight, and the combat state does
+    /// not. Skipping either half loses the consumption or resets the turn's flags.
+    /// </remarks>
+    public static bool PartyStateRoundTripsThroughTheScreen => true;
+
     /// <summary>The ten arms, in the routine's own order.</summary>
     public static readonly IReadOnlyList<Use> All = new[] {
         // Idol of Lassur: kills whatever it is pointed at, with no roll and no save.

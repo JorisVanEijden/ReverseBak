@@ -69,6 +69,26 @@ public class CombatItemUseTests {
     }
 
     [Fact]
+    public void TheDoorIsTheINVENTORYScreen_notAHUDButton() {
+        // *** The wiring fact worth having before anyone builds the entry point. ***
+        // combat_arena_suspend_char_screen is the ONLY caller, and it passes
+        // cmbinv_inventory_screen_run's return value straight in. So the command that opens this is
+        // CharacterScreen; there is no Use command in the combat menu at all.
+        Assert.True(CombatItemUse.EnteredFromTheInventoryScreen);
+        Assert.Equal(CombatCommands.Command.CharacterScreen,
+            CombatCommands.For(CombatCommands.CharacterScreenId));
+        Assert.Equal(CombatCommands.Command.None, CombatCommands.For(0x0d));
+    }
+
+    [Fact]
+    public void NoItemUsedMatchesNoArm() {
+        // The shift-key branch never assigns the command id in the reconstruction. Whatever we pass
+        // for "the screen closed without using anything" must match nothing — asserted rather than
+        // assumed, because 0 being unused is a property of the table.
+        Assert.Null(CombatItemUse.For(CombatItemUse.NoItemUsed));
+    }
+
+    [Fact]
     public void RORICSSealBackfiresThreeTimesInTen() {
         CombatItemUse.Use seal = CombatItemUse.For(0x0f).Value;
 
