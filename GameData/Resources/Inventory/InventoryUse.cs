@@ -16,7 +16,8 @@ using System;
 public sealed class ItemUseContext {
     public ItemUseContext(ActorStat[] stats, int partySlot,
         Func<int, int> readFlag, Action<int, int> writeFlag, Func<int, int> random,
-        ActorConditions conditions = null, ushort[] knownSpells = null) {
+        ActorConditions conditions = null, ushort[] knownSpells = null,
+        Character.ActorStatModifiers.Slot[] statModifiers = null, uint gameTime = 0) {
         Stats = stats;
         PartySlot = partySlot;
         ReadFlag = readFlag;
@@ -24,6 +25,8 @@ public sealed class ItemUseContext {
         Random = random;
         Conditions = conditions;
         KnownSpells = knownSpells;
+        StatModifiers = statModifiers;
+        GameTime = gameTime;
     }
 
     /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
@@ -34,6 +37,20 @@ public sealed class ItemUseContext {
 
     /// <summary>The character's live known-spell words, for the scroll that teaches one.</summary>
     public ushort[] KnownSpells { get; }
+
+    /// <summary>
+    /// The character's own eight timed modifier slots, for the potion category that fills one.
+    /// </summary>
+    /// <remarks>
+    /// <b>This character's slots, not the whole party's block.</b> The caller does the addressing —
+    /// the table is six characters wide and indexed by ROSTER position, which is not the same as a
+    /// combatant's place in the active party. Handing over just the eight keeps that mistake out of
+    /// here entirely.
+    /// </remarks>
+    public Character.ActorStatModifiers.Slot[] StatModifiers { get; }
+
+    /// <summary>Game time in two-second ticks, for stamping and expiring those slots.</summary>
+    public uint GameTime { get; }
 
     /// <summary>1-based character slot — the original's <c>charSlot</c>, which is the 0-based
     /// position in the party record set plus one.</summary>
@@ -261,6 +278,11 @@ public static class InventoryUse {
                     rec.EffectArgB, HealthOf(context), StaminaOf(context), inCombat: false);
                 outcome = ItemUseOutcome.Applied;
                 break;
+            case ObjectType.Potion:            // 18 — ITEMUSE.C:302-329
+                if (context?.StatModifiers == null) {
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                return DrinkPotion(container, sourceIndex, rec, context);
             case ObjectType.Book:              // 17 — ITEMUSE.C:265, itemuse_apply_stat_effects
                 if (context == null || !context.IsUsable) {
                     // No character to apply it to; say nothing rather than claim no effect.
@@ -541,6 +563,67 @@ public static class InventoryUse {
     /// driven by a modal answer, so it belongs to the screen rather than here; one invocation is one
     /// dose, and the player clicks again. Faithful per dose, one prompt short of faithful overall.</para>
     /// </remarks>
+    /// <summary>Shown when a potion is refused — <c>dialog_play_record(0x1b7760)</c>.</summary>
+    /// <remarks>
+    /// <b>An item's refusal SPEAKS, and a spell status' does not.</b> The two insertion paths
+    /// diverge here as well as on the dedupe test: a potion that does nothing says so, which is why
+    /// this returns a dialog rather than a silent <c>NoEffect</c>.
+    /// </remarks>
+    public const int PotionRefusedRecord = 0x1b7760;
+
+    /// <summary>
+    /// Drinking a stat potion — <c>ITEMUSE.C:302-329</c>, effect category 0x12.
+    /// </summary>
+    /// <remarks>
+    /// <b>THE FIELD NAMES MISLEAD AND THREE OF THE FOUR ARE READ FOR SOMETHING ELSE HERE.</b> The
+    /// record's words are named for what they hold in other categories:
+    /// <see cref="ObjectInfo.EffectArgA"/> is the modifier's FLAGS word,
+    /// <see cref="ObjectInfo.EffectArgB"/> is the STAT MASK,
+    /// <see cref="ObjectInfo.UseEffectAmount"/> (canassa's <c>wEffect_chance_pct</c>) is the VALUE
+    /// and not a percentage, and <see cref="ObjectInfo.EffectDurationHours"/> (its
+    /// <c>wEffect_stat_value</c>) is the DURATION and not a stat. Reading them by the names gives a
+    /// chance where the value belongs.
+    ///
+    /// <para><b>The dedupe is STRICTER than the spell path's.</b> ANY non-empty slot on that stat
+    /// refuses it — there is no exemption for spell statuses, so where two casts of a debuff stack,
+    /// a potion never stacks with anything. And it sweeps every slot for expiry first, the same as
+    /// the spell path, so a lapsed modifier does not block a fresh drink.</para>
+    ///
+    /// <para>All five shipped potions carry flags 0x0200: Expires SET and CombatOnly CLEAR. So an
+    /// item's buff really does lapse, and unlike a spell status it applies out of combat too — the
+    /// flags come from the item's own record, so that is data rather than a rule.</para>
+    /// </remarks>
+    private static ItemUseResult DrinkPotion(RuntimeContainer container, int sourceIndex,
+        ObjectInfo rec, ItemUseContext context) {
+        Character.ActorStatModifiers.Slot[] slots = context.StatModifiers;
+        Character.ActorStatModifiers.SweepExpired(slots, inCombat: false, context.GameTime);
+
+        int statMask = rec.EffectArgB;
+        if (Character.ActorStatModifiers.ItemModifierIsBlocked(slots, statMask)) {
+            return new ItemUseResult(ItemUseOutcome.NoEffect, PotionRefusedRecord, 0, false);
+        }
+
+        int slot = Character.ActorStatModifiers.SlotToFill(slots);
+        if (slot < 0) {
+            return new ItemUseResult(ItemUseOutcome.NoEffect, PotionRefusedRecord, 0, false);
+        }
+
+        slots[slot] = new Character.ActorStatModifiers.Slot(rec.EffectArgA, statMask,
+            (short)rec.UseEffectAmount, context.GameTime,
+            Character.ActorStatModifiers.ItemExpiryAt(context.GameTime, rec.EffectDurationHours));
+
+        RuntimeItem source = container.Items[sourceIndex];
+        bool removed = false;
+        if (source.Variable > 1) {
+            source.Variable--;
+        } else {
+            InventoryTransfer.RemoveAt(container, sourceIndex);
+            removed = true;
+        }
+        container.Dirty = true;
+        return new ItemUseResult(ItemUseOutcome.Handled, UsedRecord, source.ObjectId, removed);
+    }
+
     private static ItemUseResult ApplyRestorative(RuntimeContainer container, int sourceIndex,
         RuntimeItem source, ObjectInfo rec, ItemUseContext context) {
         int heal = rec.EffectArgA;
