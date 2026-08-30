@@ -282,6 +282,45 @@ public static class ActorStatModifiers {
     public const int SpellStatusFlags = 0x100;
 
     /// <summary>
+    /// <b>Inserting a spell status SWEEPS EVERY SLOT for expiry first</b> — all eight, whatever
+    /// stat they carry.
+    /// </summary>
+    /// <remarks>
+    /// <c>cspell_try_add_status_effect</c> walks the whole table calling <c>stat_apply_modifier</c>
+    /// on each slot before it decides anything (CSPELL.C:1071-1078). It throws the computed value
+    /// away — the call is there for the SIDE EFFECT: <c>stat_apply_modifier</c> zeroes a lapsed slot
+    /// in place (<c>*mod = 0</c>, STAT.C:36).
+    ///
+    /// <para><b>This is the opposite of the read path and the contrast matters.</b>
+    /// <see cref="Affects"/>'s remark is right that a READ only ever expires the slot it matched, so
+    /// a lapsed modifier on an unread stat lingers. Insertion is where the table actually gets
+    /// tidied — which is what stops dead slots accumulating until they start evicting live ones
+    /// through <see cref="SlotToFill"/>. A port that sweeps only the matching slot here reintroduces
+    /// exactly that.</para>
+    ///
+    /// <para>The combat-only gate still wraps it: a <see cref="ModifierFlags.CombatOnly"/> slot
+    /// outside combat is skipped whole, expiry included, so the sweep frees nothing out of combat.</para>
+    /// </remarks>
+    public static int SweepExpired(IList<Slot> slots, bool inCombat, uint gameTime) {
+        if (slots == null) {
+            return 0;
+        }
+
+        var freed = 0;
+        for (var i = 0; i < slots.Count; i++) {
+            if (slots[i].IsEmpty) {
+                continue;
+            }
+            Apply(slots[i], 0, inCombat, gameTime, out bool expired);
+            if (expired) {
+                slots[i] = default;
+                freed++;
+            }
+        }
+        return freed;
+    }
+
+    /// <summary>
     /// Whether a spell status effect is refused because something already covers that stat.
     /// </summary>
     /// <remarks>

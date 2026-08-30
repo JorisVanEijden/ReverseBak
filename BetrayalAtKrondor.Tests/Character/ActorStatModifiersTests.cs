@@ -158,4 +158,43 @@ public class ActorStatModifiersTests {
         Assert.Equal(5, ActorStatModifiers.CostOf((int)ActorStatModifiers.ModifierFlags.CombatOnly | 5));
         Assert.Equal(0xff, ActorStatModifiers.CostOf(0xffff));
     }
+    [Fact]
+    public void InsertionSweepsEVERYSlot_NotOnlyTheMatchingOne() {
+        // *** THE OPPOSITE OF THE READ PATH, AND THAT CONTRAST IS THE POINT. ***
+        // cspell_try_add_status_effect walks all eight slots calling stat_apply_modifier before it
+        // decides anything, throwing the value away and keeping the side effect: a lapsed slot is
+        // zeroed in place. A read only ever expires the slot it MATCHED, so without this sweep dead
+        // modifiers on unread stats pile up until they start evicting live ones.
+        var slots = new ActorStatModifiers.Slot[ActorStatModifiers.SlotsPerCharacter];
+        int expiring = (int)ActorStatModifiers.ModifierFlags.Expires;
+        // Two lapsed slots on DIFFERENT stats, and one live one.
+        slots[0] = new ActorStatModifiers.Slot(expiring, 1 << 5, -20, 0, 10);
+        slots[1] = new ActorStatModifiers.Slot(expiring, 1 << 6, -20, 0, 10);
+        slots[2] = new ActorStatModifiers.Slot(expiring, 1 << 7, -20, 0, 9999);
+
+        int freed = ActorStatModifiers.SweepExpired(slots, inCombat: true, gameTime: 100);
+
+        Assert.Equal(2, freed);
+        Assert.True(slots[0].IsEmpty);
+        Assert.True(slots[1].IsEmpty);
+        Assert.False(slots[2].IsEmpty);
+    }
+
+    [Fact]
+    public void TheSweepFreesNOTHINGOutOfCombat_BecauseTheGateWrapsTheExpiry() {
+        // stat_apply_modifier's combat-only test is the OUTER condition: a CombatOnly slot outside
+        // combat is skipped whole, expiry included. So a spell status cast in a fight does not lapse
+        // while the party walks around — it lapses the next time something reads it in combat.
+        var slots = new ActorStatModifiers.Slot[ActorStatModifiers.SlotsPerCharacter];
+        int combatOnlyExpiring = ActorStatModifiers.SpellStatusFlags
+            | (int)ActorStatModifiers.ModifierFlags.Expires;
+        slots[0] = new ActorStatModifiers.Slot(combatOnlyExpiring, 1 << 5, -20, 0, 10);
+
+        Assert.Equal(0, ActorStatModifiers.SweepExpired(slots, inCombat: false, gameTime: 100));
+        Assert.False(slots[0].IsEmpty);
+
+        Assert.Equal(1, ActorStatModifiers.SweepExpired(slots, inCombat: true, gameTime: 100));
+        Assert.True(slots[0].IsEmpty);
+    }
+
 }
