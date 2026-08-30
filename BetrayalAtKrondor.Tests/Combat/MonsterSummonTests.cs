@@ -21,13 +21,38 @@ public class MonsterSummonTests {
         Assert.False(MonsterSummon.KnowsSpells);
     }
 
+    // g_ai_flee_threshold_table as shipped, same fixture MonsterMoraleTests uses.
+    private static readonly int[] ShippedFleeThresholds = { 85, 55, 45, 35, 25, 20, 10, 5, 5, 0 };
+
     [Fact]
-    public void TheFleeThresholdIsZEROED_AndZeroIsNotTheNeverFleesSentinel() {
-        // *** The correction. *** Zeroing looks like "fearless" and is not: the never-flees value is
-        // 0xff, so zero is the OTHER end of the scale. What is certain is only that the template's
-        // value is discarded — what zero then means belongs to MonsterMorale.
-        Assert.Equal(0, MonsterSummon.FleeThreshold);
-        Assert.NotEqual(MonsterMorale.NeverFleesMorale, MonsterSummon.FleeThreshold);
+    public void ASummonNeverRouts_BecauseZeroMoraleIsTheOtherNeverFleeValue() {
+        // *** THE CORRECTION IS ITSELF CORRECTED. *** A previous pass "withdrew" the natural reading
+        // that a summon never routs, on the grounds that the sentinel is 0xff and zero must
+        // therefore be the far end of the scale. There are TWO never-flee values: Routs rejects 0xff
+        // up front and rejects zero after the roll, and MonsterStats.FleeThreshold documents the
+        // same rule from the data side.
+        Assert.Equal(0, MonsterSummon.Morale);
+        Assert.False(MonsterSummon.Routs);
+        Assert.False(MonsterMorale.Routs(staminaPercent: 1, morale: MonsterSummon.Morale,
+            rollPercent: 0, ShippedFleeThresholds, isUnderground: false),
+            "worst stamina, best possible roll, above ground — still does not run");
+    }
+
+    [Fact]
+    public void TheZeroMoraleSTICKS_BecauseTheStatRollsMoraleReadIsGuarded() {
+        // Why zeroing it is the mechanism rather than a side effect: the MONSTXX.DAT roll reads the
+        // creature's own morale only `if (morale != 0)`. Zeroing first is what discards the
+        // template's nerve. The AI profiles get no such guard — see below.
+        Assert.Equal(0, MonsterSummon.Morale);
+        Assert.False(MonsterSummon.PatternSurvivesTheStatRoll);
+    }
+
+    [Fact]
+    public void ASummonDoesNotActOnTheRoundItLands() {
+        // The routine ASSIGNS the flags word rather than OR-ing into it, so Ready is clear. Setting
+        // the summon bit on an otherwise ready combatant hands the caster a free extra action.
+        Assert.Equal(CombatantFlags.AiSummon, MonsterSummon.InitialFlags);
+        Assert.False(MonsterSummon.InitialFlags.HasFlag(CombatantFlags.Ready));
     }
 
     [Fact]
