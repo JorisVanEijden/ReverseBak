@@ -72,4 +72,56 @@ public class PitSwingTests {
         Assert.NotEqual(PitRopeCrossing.OfferDialog, PitRopeCrossing.OutOfRopeDialog);
         Assert.False(PitRopeCrossing.CanOffer(ropeCount: 0, PitRopeCrossing.RotationEast, 0, 0));
     }
+
+    [Fact]
+    public void OutsideTheBandTheSagAnswerIsASENTINEL_notAHeight() {
+        // *** The trap. *** SagHeightAt returns 0 outside the band; the original writes saved_z
+        // there — the walking eye. A caller taking the 0 literally drops the party to the floor for
+        // the approach and snaps them onto the rope at the boundary.
+        Assert.Equal(0, PitRopeCrossing.SagHeightAt(PitRopeCrossing.SagRadius));
+        Assert.False(PitRopeCrossing.IsSagging(PitRopeCrossing.SagRadius));
+        Assert.True(PitRopeCrossing.IsSagging(PitRopeCrossing.SagRadius - 1));
+        Assert.True(PitRopeCrossing.IsSagging(0));
+        Assert.True(PitRopeCrossing.IsSagging(-500), "the band is symmetric about the centre");
+    }
+
+    [Fact]
+    public void TheReturnValueCannotSeparateTheTwoCases_whichIsWhyTheDistanceIsWhatIsTested() {
+        // The curve genuinely passes through 0 partway out, so "SagHeightAt() == 0 means no sag" is
+        // wrong for a real point on the rope as well as being unclear.
+        var zeroInsideTheBand = false;
+        for (var d = 0; d < PitRopeCrossing.SagRadius; d++) {
+            if (PitRopeCrossing.SagHeightAt(d) == 0) {
+                zeroInsideTheBand = true;
+                break;
+            }
+        }
+        Assert.True(zeroInsideTheBand);
+    }
+
+    [Theory]
+    // Crossing along Y: 0 is +Y and 0x8000 is -Y.
+    [InlineData(true, -900, 900, 0x0000)]
+    [InlineData(true, 900, -900, 0x8000)]
+    // Crossing along X: +X is 0xC000 and -X is 0x4000 — the circle runs anticlockwise, so the
+    // intuitive 0x4000 for +X is the one that sends the swing the wrong way.
+    [InlineData(false, -900, 900, 0xC000)]
+    [InlineData(false, 900, -900, 0x4000)]
+    public void TheHeadingPointsFromTheStartTowardTheLanding(
+        bool crossingAxisIsY, int start, int landing, int expected) =>
+        Assert.Equal((ushort)expected, PitRopeCrossing.CrossingHeading(crossingAxisIsY, start, landing));
+
+    [Fact]
+    public void TheHeadingAgreesWithTheOFFSETThatWillBeStepped() {
+        // The one check that catches a sign flip: stepping along the returned heading has to move
+        // the crossing coordinate toward the landing, not away from it.
+        ushort north = PitRopeCrossing.CrossingHeading(crossingAxisIsY: true, -900, 900);
+        Assert.True(RoadTravel.AxisOffset(north, PitRopeCrossing.StepUnits).Dy > 0);
+
+        ushort east = PitRopeCrossing.CrossingHeading(crossingAxisIsY: false, -900, 900);
+        Assert.True(RoadTravel.AxisOffset(east, PitRopeCrossing.StepUnits).Dx > 0);
+
+        ushort west = PitRopeCrossing.CrossingHeading(crossingAxisIsY: false, 900, -900);
+        Assert.True(RoadTravel.AxisOffset(west, PitRopeCrossing.StepUnits).Dx < 0);
+    }
 }

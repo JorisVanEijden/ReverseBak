@@ -207,6 +207,45 @@ public static class PitRopeCrossing {
     /// <summary>Whether the swing cue fires at this point of the crossing.</summary>
     public static bool PlaysSwingSound(int distanceFromCentre) => distanceFromCentre == 0;
 
+    /// <summary>
+    /// Whether the rope sags at this point — i.e. whether <see cref="SagHeightAt"/>'s answer is a
+    /// height at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>Outside the band <see cref="SagHeightAt"/> returns 0, and 0 is a SENTINEL rather than a
+    /// height.</b> The original writes <c>z = saved_z</c> there — the walking eye — not zero, and a
+    /// caller that took the 0 literally would drop the party to the floor for the approach and then
+    /// snap them up onto the rope. The formula can also legitimately produce a height near 0 around
+    /// <c>d = 341</c>, so testing the return value cannot separate the two cases. Test the distance.
+    /// </remarks>
+    public static bool IsSagging(int distanceFromCentre) =>
+        (distanceFromCentre < 0 ? -distanceFromCentre : distanceFromCentre) < SagRadius;
+
+    /// <summary>
+    /// The heading the party faces to cross — from the start point toward the landing.
+    /// </summary>
+    /// <param name="crossingAxisIsY">
+    /// True when the swing travels along Y (the pit lies along X, <see cref="PitAxis.AlongX"/>).
+    /// </param>
+    /// <remarks>
+    /// <b>The party is turned to face the crossing before it starts</b>, and the original animates
+    /// that turn (<c>worldmove_animate_hdg_tgt</c>) rather than snapping it. The heading itself is
+    /// not a choice: it is the direction from <paramref name="startAcross"/> to
+    /// <paramref name="landingAcross"/>, which <see cref="LandingPosition"/> has already put on the
+    /// far side.
+    ///
+    /// <para>The angles follow <c>RoadTravel.AxisOffset</c>'s convention, where 0 is +Y and the
+    /// circle runs anticlockwise — so +X is 0xC000, not 0x4000. Getting that backwards sends the
+    /// swing away from the pit.</para>
+    /// </remarks>
+    public static ushort CrossingHeading(bool crossingAxisIsY, int startAcross, int landingAcross) {
+        bool positive = landingAcross > startAcross;
+        if (crossingAxisIsY) {
+            return positive ? (ushort)0x0000 : (ushort)0x8000;
+        }
+        return positive ? (ushort)0xC000 : (ushort)0x4000;
+    }
+
     /// <summary>The original's integer square root — truncating, never rounding.</summary>
     private static int IntegerSquareRoot(int value) {
         if (value <= 0) {
