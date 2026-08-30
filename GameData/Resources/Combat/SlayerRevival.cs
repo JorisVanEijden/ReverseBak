@@ -45,6 +45,25 @@ public static class SlayerRevival {
     /// <summary>Grid coordinate meaning the actor is not on the field.</summary>
     public const int OffGrid = -1;
 
+    /// <summary>No revival is pending on this combatant.</summary>
+    /// <remarks>
+    /// Distinct from a countdown of zero, which means "rises on the next sweep". Conflating them
+    /// would have every corpse on the field rising.
+    /// </remarks>
+    public const int NoCountdown = -1;
+
+    /// <summary>The countdown rolled when one of the eligible species falls.</summary>
+    /// <param name="rnd"><c>rnd(n)</c> returns a value in <c>[0, n)</c>.</param>
+    /// <remarks>
+    /// <see cref="MinimumCountdown"/>..<see cref="MaximumCountdown"/> inclusive at both ends.
+    /// </remarks>
+    public static int RollCountdown(System.Func<int, int> rnd) {
+        if (rnd == null) {
+            throw new System.ArgumentNullException(nameof(rnd));
+        }
+        return MinimumCountdown + rnd(MaximumCountdown - MinimumCountdown + 1);
+    }
+
     /// <summary>Terrain effect left on the tile a creature rises from.</summary>
     public const int RisenTileEffect = 9;
 

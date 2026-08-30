@@ -230,7 +230,13 @@ public sealed class CombatEncounter {
             throw new System.ArgumentNullException(nameof(combatant));
         }
 
-        combatant.Incapacitated = false;   // cspell_status_effect_clear_actor
+        // *** THE CHAIN GOES, NOT JUST THE DERIVED FLAG. *** This line used to clear only
+        // Incapacitated and cite cspell_status_effect_clear_actor without calling anything like it,
+        // which was harmless while no pool existed. Now that effects are real, leaving the chain
+        // attached to a corpse holds its pool slots for the rest of the fight — twenty are shared by
+        // everyone on the field — and Incapacitated would be recomputed back on by the next refresh.
+        Effects.ClearActor(combatant);
+        combatant.Incapacitated = false;
         combatant.Health = 0;
         combatant.Stamina = 0;
         combatant.Flags |= CombatantFlags.Dead;

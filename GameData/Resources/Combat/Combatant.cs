@@ -144,6 +144,21 @@ public sealed class Combatant {
     /// </summary>
     public int ActiveEffectSlot { get; set; } = -1;
 
+    /// <summary>
+    /// Ticks until this combatant gets back up, or <see cref="SlayerRevival.NoCountdown"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A FIELD OF ITS OWN, WHERE THE ORIGINAL OVERLOADS ONE.</b> The engine keeps this in
+    /// <c>dmgFloatFrames</c> — the same byte that counts down a floating damage number — which is
+    /// free on a corpse because nothing is showing a number over it. That is an implementation
+    /// economy, not a rule: porting the overload would tie the revival clock to a presentation
+    /// counter and break the first time something floats a number over a dead Black Slayer.
+    ///
+    /// <para>Only the two eligible species ever carry one — see
+    /// <see cref="SlayerRevival.IsCandidate"/>.</para>
+    /// </remarks>
+    public int RevivalCountdown { get; set; } = SlayerRevival.NoCountdown;
+
     /// <summary>True when this combatant is dead.</summary>
     public bool IsDead => (Flags & CombatantFlags.Dead) != 0;
 
