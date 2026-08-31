@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.World;
 
+using GameData.Resources.Data;
 using GameData.Resources.World;
 using Xunit;
 
@@ -8,17 +9,40 @@ using Xunit;
 /// </summary>
 public class FixedObjectClickTests {
     [Fact]
-    public void AHotspotObjectIsOnlyClickableFromThePartysOWNTile() {
+    public void ATRAPPEDObjectIsOnlyClickableFromThePartysOWNTile() {
         // The original returns before the sound and before any dialog, so clicking a town gate from
         // the next tile along produces NOTHING — no message, no click. Answering "you are too far
         // away" is more helpful than the original and changes what the silence teaches.
-        Assert.True(FixedObjectClick.IsWithinReach(hasHotspot: true, 4, 7, 4, 7));
-        Assert.False(FixedObjectClick.IsWithinReach(hasHotspot: true, 4, 7, 5, 7));
+        Assert.True(FixedObjectClick.IsWithinReach(firesTrapEncounter: true, 4, 7, 4, 7));
+        Assert.False(FixedObjectClick.IsWithinReach(firesTrapEncounter: true, 4, 7, 5, 7));
     }
 
     [Fact]
-    public void AnObjectWithNoHotspotHasNoReachRestriction() {
-        Assert.True(FixedObjectClick.IsWithinReach(hasHotspot: false, 4, 7, 99, 99));
+    public void AnObjectThatFiresNoTrapHasNoReachRestriction() {
+        Assert.True(FixedObjectClick.IsWithinReach(firesTrapEncounter: false, 4, 7, 99, 99));
+    }
+
+    /// <summary>
+    /// THE FENCE for the bug this parameter's old name caused. An object that CARRIES encounter
+    /// data but fires no trap is clickable from anywhere.
+    /// </summary>
+    /// <remarks>
+    /// The gate used to be handed "the encounter subrecord exists", which pinned 28 of the 96
+    /// encounter-bearing containers to the party's own tile. WCURSOR.C:285 tests the subrecord AND
+    /// <c>bHas_hotspot</c>, the byte inside it that IDA names <c>firesTrapEncounter</c> — and
+    /// <c>handle_Grave</c> @0x77d5b tests the same byte the same way. canassa's name is the
+    /// misleading half: it reads as "there is a hotspot" when it is a field within one.
+    /// </remarks>
+    [Fact]
+    public void AnEncounterRecordAloneDoesNOTRestrictReach() {
+        var firesNothing = new SaveGameContainerEncounterData(
+            globalDataKey1: 0, globalDataKey2: 0, gdsNumber: 3, gdsLetter: 1,
+            firesTrapEncounter: 0, x: 0, y: 0);
+
+        Assert.False(firesNothing.IsFiresTrapEncounterSet);
+        Assert.True(FixedObjectClick.IsWithinReach(
+            firesNothing.IsFiresTrapEncounterSet, 4, 7, 99, 99),
+            "a record with the flag clear must not pin the object to the party's tile");
     }
 
     [Fact]

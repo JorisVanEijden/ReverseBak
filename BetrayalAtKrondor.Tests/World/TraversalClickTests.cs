@@ -73,6 +73,6 @@ public class TraversalClickTests {
     public void ItHasNoReachGuardWhereTheBuildingDoes() {
         // Copying the building's tile test here would make distant ladders silently unclickable.
         Assert.True(TraversalClick.HasNoReachGuard);
-        Assert.False(FixedObjectClick.IsWithinReach(hasHotspot: true, 4, 7, 5, 7));
+        Assert.False(FixedObjectClick.IsWithinReach(firesTrapEncounter: true, 4, 7, 5, 7));
     }
 }

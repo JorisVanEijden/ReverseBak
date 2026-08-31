@@ -85,17 +85,27 @@ public static class FixedObjectClick {
     /// Whether the object is close enough to click at all.
     /// </summary>
     /// <remarks>
-    /// <b>A HOTSPOT-BEARING OBJECT IS ONLY CLICKABLE FROM THE PARTY'S OWN TILE, AND SILENTLY SO.</b>
-    /// The original returns before the sound and before any dialog, so clicking a town gate from the
-    /// next tile along produces nothing whatsoever — no message, no click. A port that answers
-    /// "you are too far away" is being more helpful than the original and changes what the player
-    /// learns from the silence.
+    /// <b>A TRAPPED OBJECT IS ONLY CLICKABLE FROM THE PARTY'S OWN TILE, AND SILENTLY SO.</b>
+    /// The original returns before the sound and before any dialog, so clicking one from the next
+    /// tile along produces nothing whatsoever — no message, no click. A port that answers "you are
+    /// too far away" is being more helpful than the original and changes what the player learns
+    /// from the silence.
     ///
-    /// <para>An object with no hotspot has no such restriction.</para>
+    /// <para><b>*** THE TEST IS THE FLAG, NOT THE PRESENCE OF THE RECORD. ***</b> This parameter
+    /// used to be <c>hasHotspot</c> and callers passed "the encounter subrecord exists", which
+    /// wrongly pinned 28 of the 96 encounter-bearing containers to the party's own tile. The
+    /// original is
+    /// <c>pSub8 != 0 &amp;&amp; pSub8-&gt;hotspot_action.bHas_hotspot != 0</c> (WCURSOR.C:285) — the
+    /// subrecord AND a non-zero byte inside it, which IDA names
+    /// <c>containerData_encounter.firesTrapEncounter</c> and <c>handle_Grave</c> @0x77d5b tests the
+    /// same way. canassa's <c>bHas_hotspot</c> is the misleading half: it reads as "there is a
+    /// hotspot" when it is a field within one.</para>
+    ///
+    /// <para>An object that fires no trap has no such restriction.</para>
     /// </remarks>
-    public static bool IsWithinReach(bool hasHotspot, int objectTileX, int objectTileY,
+    public static bool IsWithinReach(bool firesTrapEncounter, int objectTileX, int objectTileY,
         int partyTileX, int partyTileY) =>
-        !hasHotspot || (objectTileX == partyTileX && objectTileY == partyTileY);
+        !firesTrapEncounter || (objectTileX == partyTileX && objectTileY == partyTileY);
 
     /// <summary>
     /// Whether the entry gate lets the click through.
