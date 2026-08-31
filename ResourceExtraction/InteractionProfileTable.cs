@@ -27,8 +27,7 @@ using System.Collections.Generic;
 /// inputs.</para>
 ///
 /// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
-/// Grave (12) fires a positioned trap encounter and needs a Shovel in the party and a dig
-/// (@0x77df4); Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
+/// Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
 /// Pit (15) needs a Rope and a rope-swing sequence (<c>handle_Pit</c> @0x79c63, modelled in
 /// <c>PitRopeCrossing</c>).</para>
 ///
@@ -341,6 +340,25 @@ public static class InteractionProfileTable {
             ActionDialogId = 169,
             NotActionableDialogId = 169,
             OpensLoot = false,
+        }),
+        // byte 12 = grave (handle_Grave @0x77ca9). *** THE FOURTH EMPTY PROFILE. *** A grave is a
+        // dig, not a describe-or-loot: it needs a Shovel in the party, spends it, may spring a
+        // positioned trap encounter first, and only THEN opens the container (or reports a body or
+        // an empty coffin). None of that is expressible as a profile, so the row exists for the
+        // behavior name alone and GraveDigging carries the rules — the same arrangement Door,
+        // Building and the traversal trio have.
+        //
+        // ExamineDialogId stays 0 rather than 173: the secondary-click dialog is only one of the
+        // grave's two examine answers. A NON-DIGGABLE grave shows its own dialogId on a PRIMARY
+        // click (@0x77f1f) and 173 on a secondary, so a single field cannot say what it does.
+        [WorldEntityType.Grave] = ("grave", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
         }),
     };
 

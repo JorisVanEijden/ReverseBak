@@ -100,22 +100,46 @@ public class InteractionProfileTableTests {
     }
 
     /// <summary>
-    /// Grave, Catapult and RiftMachine fire trap encounters / GDS scenes and (for the grave)
-    /// require a Shovel and a dig. Mapping them onto the plain container mechanism would show their
-    /// dialogs while silently dropping the mechanic, which is worse than not responding — so their
-    /// absence is asserted, not assumed.
+    /// Catapult and RiftMachine are scripted props gated on encounter globals. Mapping them onto
+    /// the plain container mechanism would show their dialogs while silently dropping the mechanic,
+    /// which is worse than not responding — so their absence is asserted, not assumed.
     /// </summary>
     /// <remarks>
-    /// <b>Building has left this list.</b> It went the way Door did: not onto the container
-    /// mechanism, but onto a key of its own with an intentionally empty profile, so the mechanic
-    /// lives in <c>FixedObjectClick</c> instead of being faked with dialogs.
+    /// <b>Building and now GRAVE have left this list</b>, both the way Door did: not onto the
+    /// container mechanism, but onto a key of their own with an intentionally empty profile, so the
+    /// mechanic lives in real code (<c>FixedObjectClick</c>, <c>GraveDigging</c>) instead of being
+    /// faked with dialogs. Leaving this list is what "the mechanic got built" looks like here; the
+    /// entry below is the assertion that it did.
     /// </remarks>
     [Theory]
-    [InlineData(WorldEntityType.Grave)]
     [InlineData(WorldEntityType.Catapult)]
     [InlineData(WorldEntityType.RiftMachine)]
     public void ScriptedTypes_AreNotMapped(WorldEntityType type) =>
         Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+
+    /// <summary>
+    /// The grave gets its own key and an empty profile — the fourth of that shape.
+    /// </summary>
+    /// <remarks>
+    /// <b>A dig is not expressible as a profile.</b> It wants a Shovel in the party, spends it, may
+    /// spring a positioned trap encounter first, and only then opens the container or reports a body
+    /// or an empty coffin. The rules are <c>GraveDigging</c>; this row exists for the behavior name.
+    ///
+    /// <para><c>ExamineDialogId</c> stays 0 rather than 173 <b>because one field cannot say what a
+    /// non-diggable grave does</b>: a primary click shows the grave's OWN dialog (@0x77f1f) and only
+    /// a secondary reads the tombstone.</para>
+    /// </remarks>
+    [Fact]
+    public void Grave12_HasItsOwnKeyAndAnEmptyProfile() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.Grave, out string behavior, out InteractionProfile profile));
+        Assert.Equal("grave", behavior);
+        Assert.NotEqual("container", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+        Assert.False(profile.HasLock);
+        Assert.Equal(0, profile.ExamineDialogId);
+    }
 
     /// <summary>
     /// Building gets its own key and an empty profile — the same shape as the door.
