@@ -106,4 +106,62 @@ public static class ChestTrap {
     /// </remarks>
     public static int OpenPromptFor(int trapDamage) =>
         trapDamage != 0 ? OpenStillTrappedDialog : OpenExTrappedDialog;
+
+    /// <summary>
+    /// The detonation text, shown BEFORE the damage — ddx <b>192</b>.
+    /// </summary>
+    /// <remarks>
+    /// <i>"Something clicked… and suddenly the box detonated into flame and hurtling splinters."</i>
+    /// </remarks>
+    public const int DetonationDialog = 192;
+
+    /// <summary><c>sound_trapexpl</c> (57), played as the explosion starts.</summary>
+    /// <remarks>
+    /// <b>Its return is kept and tested before the unload</b>, so only a play that actually started
+    /// is released — the same rule <c>RiftMachineUse.UnloadsOnlyWhatItLoaded</c> records.
+    /// </remarks>
+    public const int ExplosionCue = 57;
+
+    /// <summary>
+    /// The pool change one sprung trap deals — <b>negative, and SHIFTED</b>.
+    /// </summary>
+    /// <param name="trapDamage">The lock record's <c>TrapDamage</c> byte.</param>
+    /// <remarks>
+    /// <b>*** THE SHIFT IS THE WHOLE TRAP. ***</b> The original is
+    /// <c>-(trapDamage &lt;&lt; 8)</c>: the byte is a whole-point value and the amount is
+    /// fixed-point with the low byte as its fraction. **Passing the byte raw deals 1/256th of the
+    /// damage** — a trapped chest that tickles, and nothing on screen says so. The same scale is
+    /// why a full heal elsewhere is <c>0x7fff</c> rather than 127.
+    /// </remarks>
+    public static long DamageDelta(int trapDamage) => -((long)trapDamage << 8);
+
+    /// <summary>
+    /// The third argument, and it is <b>not a <see cref="Character.StatChangeMode"/></b>.
+    /// </summary>
+    /// <remarks>
+    /// The call passes <c>100</c>, which that enum does not define — for the combined pool it is the
+    /// heal-target percent <c>ModifyHealthPool</c> takes. Worth stating because the same routine
+    /// passes a real <c>StatChangeMode</c> (3, skill use) for its disarm award a few lines earlier,
+    /// so the nearer call is the wrong one to copy.
+    /// </remarks>
+    public const int DamageHealTargetPercent = 100;
+
+    /// <summary>
+    /// <b>The damage hits the WHOLE PARTY</b>, not whoever opened the box.
+    /// </summary>
+    /// <remarks>
+    /// <c>ChangeAttributeValueForWholeParty</c>, and against
+    /// <see cref="ActorAttribute.HealthStaminaCombo"/> — the combined pool, not Health alone.
+    /// </remarks>
+    public static bool DamageHitsTheWholeParty => true;
+
+    /// <summary>
+    /// <b>A sprung trap is SPENT</b>: the record's <c>TrapDamage</c> is zeroed and written back.
+    /// </summary>
+    /// <remarks>
+    /// Which is what finally gives <see cref="OpenExTrappedDialog"/> something to describe. Until a
+    /// trap could spring, ddx 317 was reachable only for a chest authored with no trap at all — the
+    /// prompt split was ported ahead of the mechanic that makes it mean anything.
+    /// </remarks>
+    public static bool SpringingSpendsTheTrap => true;
 }
