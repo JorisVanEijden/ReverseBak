@@ -131,6 +131,39 @@ public static class ShootTargetPanel {
         return hovered >= 0 ? hovered : selectedKind;
     }
 
+    /// <summary>What the panel puts on the parchment, positioned in original px.</summary>
+    /// <remarks>
+    /// Shared shape with <see cref="MeleeStatsPanel.Lines"/> so one view draws either — the panels
+    /// differ in content, not in how they are rendered.
+    /// </remarks>
+    public static System.Collections.Generic.IReadOnlyList<HudPanelLine> Lines(
+        ShootTargetPanelContent content) {
+        var lines = new System.Collections.Generic.List<HudPanelLine> {
+            new HudPanelLine(Prompt, CentreX, PromptY, HudPanelAlign.Centre),
+        };
+        if (content == null) {
+            return lines;
+        }
+        for (var line = 0; line < content.NameLines.Count; line++) {
+            lines.Add(new HudPanelLine(
+                content.NameLines[line], CentreX, NameLineTop(line), HudPanelAlign.Centre));
+        }
+
+        int statsTop = StatsTop(content.NameLines.Count);
+        if (!content.HasTarget) {
+            lines.Add(new HudPanelLine(
+                content.QuarrelsRemaining + " " + QuarrelsRemainingLabel, NoTargetX, statsTop));
+            return lines;
+        }
+
+        lines.Add(new HudPanelLine(AccuracyLabel, LabelX, statsTop));
+        lines.Add(new HudPanelLine(content.Accuracy + PercentSign, ValueX, statsTop));
+        int damageTop = DamageTop(content.NameLines.Count);
+        lines.Add(new HudPanelLine(DamageLabel, LabelX, damageTop));
+        lines.Add(new HudPanelLine(content.Damage.ToString(), ValueX, damageTop));
+        return lines;
+    }
+
     /// <summary>The panel with a target under the cursor: accuracy and damage.</summary>
     public static ShootTargetPanelContent ForTarget(
         IReadOnlyList<string> nameLines, int rawHitChance, int damage) =>
