@@ -20,6 +20,31 @@ public static class MusicPlayback {
     /// <summary>Silence: stop what is playing and start nothing.</summary>
     public const int NoTrack = -1;
 
+    /// <summary>
+    /// The first MUSIC id. Anything at or above this is a track; below it is a sound effect.
+    /// </summary>
+    /// <remarks>
+    /// <b>One id space, split by a threshold — not two.</b> <c>audio_play</c> (AUDIO.C) is the
+    /// single entry point every caller uses, and its whole dispatch is
+    /// <c>if (sound_id &gt;= 0x3e9) { audio_music_play(sound_id); return; }</c> before falling
+    /// through to <c>audio_start_by_id</c>. So a TTM script's <c>PlaySound</c>, a combat item's cue
+    /// and a spell's cue all go to the same routine and are sorted by value alone.
+    ///
+    /// <para><b>You do not LOAD a song.</b> <c>audio_sfx_register</c> and <c>audio_sfx_stop</c> both
+    /// refuse ids at or above this, so the SFX archive holds only the range below it. That is why 19
+    /// of the 42 shipped TTM scripts play an id nothing in the file loads — every chapter cutscene
+    /// plays its track without a load, because loading one would be a no-op.</para>
+    ///
+    /// <para><b>And the two halves are gated differently:</b> the effect branch returns early when
+    /// the engine's sound-effects preference is off, while music has already returned by then. A
+    /// port that routes both through one "is audio enabled" check silences music with the SFX
+    /// setting.</para>
+    /// </remarks>
+    public const int FirstMusicId = 0x3e9;
+
+    /// <summary>Whether an id from the shared space names a music track rather than an effect.</summary>
+    public static bool IsMusic(int soundId) => soundId >= FirstMusicId;
+
     /// <summary>Fade rate passed to the fade-out before a switch.</summary>
     public const int FadeRate = 0x32;
 
