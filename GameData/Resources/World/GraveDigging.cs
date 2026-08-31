@@ -20,7 +20,18 @@ namespace GameData.Resources.World;
 /// </remarks>
 public static class GraveDigging {
     /// <summary>The tool the party must be carrying, and which is spent.</summary>
-    public const int ShovelObjectId = 0x1e;
+    /// <remarks>
+    /// <b>*** 83, NOT 30. ***</b> This read <c>0x1e</c> until 2026-08-31, which is the <b>Light
+    /// Crossbow</b> — a grave built on it would have refused to dig for want of a bow. The push at
+    /// <c>handle_Grave</c> +0x14B assembles as <c>6A 53</c>, so the immediate is <c>0x53</c> = 83,
+    /// and object 83 in the shipped OBJINFO.DAT is named "Shovel". IDA renders it through an enum
+    /// member also called <c>Shovel</c>, which is why the disassembly reads correctly either way and
+    /// the wrong number could sit here unnoticed.
+    ///
+    /// <para>Counted across the party with <see cref="Inventory.InventoryQuery.AnyHolds"/>, which
+    /// already exists — the grave does not need a query of its own.</para>
+    /// </remarks>
+    public const int ShovelObjectId = 0x53;
 
     /// <summary>Shown when the grave has no dialog of its own, and when a trap spawn comes back empty.</summary>
     public const int NothingHereDialog = 154;
