@@ -67,8 +67,16 @@ public class RangedExchangeTests {
     }
 
     [Fact]
-    public void WhatTheShooterWearsChangesTheirAccuracy() {
-        // The check is Crossbow + an armour-derived term, not Crossbow alone.
-        Assert.Equal(37, RangedExchange.EffectiveSkill(crossbowSkill: 40, armourModifier: -3));
+    public void THEWEAPONChangesTheShootersAccuracy_notWhatTheyAreWEARING() {
+        // *** CORRECTED 2026-08-31. *** This asserted `armourModifier: -3` — a negative,
+        // armour-derived PENALTY — from the helper's name, combataiturn_armor_eff_stat. The body
+        // has no armour in it: cbstat_find_intact_equip_cat(actor, 2) is the CROSSBOW, and the
+        // return is that bow's accuracy scaled by its condition. It is a bonus, and it applies to
+        // every shooter holding one.
+        //
+        // The arithmetic the old test pinned is unchanged — it is still a sum — which is why the
+        // wrong reading survived: nothing about `40 + x` says what x is.
+        Assert.Equal(40 + 27, RangedExchange.EffectiveSkill(
+            crossbowSkill: 40, weaponTerm: RangedExchange.WeaponTerm(bowAccuracy: 30, conditionPercent: 90)));
     }
 }

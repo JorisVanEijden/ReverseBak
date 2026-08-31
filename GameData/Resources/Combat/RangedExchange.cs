@@ -103,13 +103,39 @@ public static class RangedExchange {
     public static int SkillAwards(bool hit) => hit ? 2 : 1;
 
     /// <summary>
-    /// The stat the hit check reads: Crossbow plus an armour-derived modifier.
+    /// The stat the hit check reads: the shooter's Crossbow skill plus their WEAPON's term.
     /// </summary>
     /// <remarks>
-    /// <c>stat_actor_get(attacker, 5, 0) + combataiturn_armor_eff_stat(attacker)</c> — so what the
-    /// shooter is WEARING changes their accuracy, not just their skill. The armour term is computed
-    /// by a helper this model does not port; it is passed in.
+    /// <c>stat_actor_get(attacker, 5, 0) + combataiturn_armor_eff_stat(attacker)</c>.
+    ///
+    /// <para><b>THE HELPER'S NAME IS WRONG AND THERE IS NO ARMOUR IN IT.</b> Both the reconstructed
+    /// source and our own earlier note read <c>armor_eff_stat</c> as an armour-derived penalty on
+    /// the shooter. The body is <c>cbstat_find_intact_equip_cat(actor, <b>2</b>)</c> — category 2 is
+    /// <see cref="ObjectType.Crossbow"/> — and it returns that bow's accuracy scaled by its
+    /// condition. It is the ranged twin of the melee formula's
+    /// <c>weaponAccuracy * condition / 100</c>, and it is a BONUS.</para>
+    ///
+    /// <para>So the term applies to every shooter holding a crossbow rather than to armoured ones,
+    /// and omitting it makes every shot LESS accurate than the original — not more.</para>
     /// </remarks>
-    public static int EffectiveSkill(int crossbowSkill, int armourModifier) =>
-        crossbowSkill + armourModifier;
+    public static int EffectiveSkill(int crossbowSkill, int weaponTerm) =>
+        crossbowSkill + weaponTerm;
+
+    /// <summary>
+    /// The equipped crossbow's contribution: its accuracy, scaled by its condition.
+    /// </summary>
+    /// <param name="bowAccuracy">
+    /// The weapon's <c>nDefense_or_range_close</c> — our
+    /// <c>ObjectInfo.SwingAccuracy_ArmorMod_BowAccuracy</c>, whose name already records that this
+    /// one file slot means swing accuracy, armour rating or BOW ACCURACY depending on the item.
+    /// </param>
+    /// <param name="conditionPercent">The weapon's condition, 0..100.</param>
+    /// <remarks>
+    /// <b>Zero when nothing is equipped</b>, and specifically when nothing INTACT is: the lookup is
+    /// <c>find_intact_equip_cat</c>, so a broken crossbow contributes nothing rather than its
+    /// accuracy at a low condition. Integer division, so a poor enough condition rounds the whole
+    /// bonus away.
+    /// </remarks>
+    public static int WeaponTerm(int bowAccuracy, int conditionPercent) =>
+        bowAccuracy * conditionPercent / 100;
 }
