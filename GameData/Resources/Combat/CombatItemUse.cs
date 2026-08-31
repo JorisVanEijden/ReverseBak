@@ -240,4 +240,54 @@ public static class CombatItemUse {
     /// safe to open on a misclick.
     /// </remarks>
     public static bool CancellingTheTargetPickCostsNothing => true;
+
+    /// <summary>
+    /// Which items the SCREEN hands to this dispatch at all — the two places
+    /// <c>itemuse_dispatch_on_target</c> sets <c>combat_result</c>.
+    /// </summary>
+    /// <param name="objectType">The item's <c>ObjectType</c> (the original's category).</param>
+    /// <param name="objectId">The item's object id.</param>
+    /// <param name="equipped">The item's equipped bit (<c>item-&gt;flags &amp; 0x40</c>).</param>
+    /// <param name="intact">Its condition is non-zero.</param>
+    /// <remarks>
+    /// <b>Two paths, and only one of them is the combat-item category.</b>
+    /// <see cref="ObjectType.CombatItem"/> (22) qualifies unconditionally in a fight; a
+    /// <see cref="ObjectType.Staff"/> qualifies only when it is <b>equipped and unbroken</b> and its
+    /// id is <b>2 or 4</b>. Any other staff falls through silently — which is why the arm list holds
+    /// exactly those two staves and no others.
+    ///
+    /// <para><b>THE REFUSALS ARE NOT HERE, DELIBERATELY.</b> The Lightning Staff underground and the
+    /// Idol of Lassur in chapter 8 are refused in BOTH the screen and this dispatch — belt and
+    /// braces in the original — and <see cref="Works"/> already carries them. Repeating them here
+    /// would put one rule in two places and let them drift; the caller runs both, as the game does.
+    /// </para>
+    ///
+    /// <para>Returns <c>null</c> for "the screen handled it and the arena is not involved", which is
+    /// also the signal that the SCREEN consumed the item — see
+    /// <see cref="TheScreenConsumesOnlyWhatItKeeps"/>.</para>
+    /// </remarks>
+    public static int? CommandIdFrom(ObjectType objectType, int objectId, bool inCombat,
+        bool equipped, bool intact) {
+        if (!inCombat) {
+            return null;
+        }
+        if (objectType == ObjectType.CombatItem) {
+            return objectId;
+        }
+        if (objectType != ObjectType.Staff || !equipped || !intact) {
+            return null;
+        }
+        return objectId == 0x02 || objectId == 0x04 ? objectId : (int?)null;
+    }
+
+    /// <summary>
+    /// <b>An item bound for this dispatch is NOT consumed by the screen.</b>
+    /// </summary>
+    /// <remarks>
+    /// The screen's consume/degrade block is guarded by <c>combat_result &lt; 0</c>, precisely
+    /// because this dispatch's shared tail runs <c>itemtbl_inv_consume_one_by_kind</c>. So the
+    /// natural reading — "the screen used it, so mark it used" — <b>eats two of the item</b> for
+    /// exactly the ten arms this class exists for.
+    /// </remarks>
+    public static bool TheScreenConsumesOnlyWhatItKeeps => true;
 }
