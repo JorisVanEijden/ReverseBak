@@ -18,13 +18,13 @@ using System.Collections.Generic;
 /// really is a loop-exit request, which is how the two got confused.</para>
 /// </remarks>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-264).</b> Nothing in the port reads the byte yet — the world loop
-/// does not end, the map screen does not stop, hotspots keep firing and the condition sweep keeps
-/// running. The rules are here; the consumers are not.
+/// <b>PARTLY CONSUMED (TASK-264).</b> The world loop now ends on it — <c>InGameScreen.Update</c>
+/// runs <c>post_dispatch</c> and leaves for the main menu, and <c>HotspotService</c> gates its
+/// activate pass behind <see cref="HotspotsStillFire"/>, so a downed party springs nothing while
+/// still falling into a pit it walks onto.
 ///
-/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
-/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
-/// to re-triage every run.</para>
+/// <para>Still unread: <see cref="ConditionEventsSweep"/> (the dialog layer's condition/skill sweep
+/// has no guard) and the map screen's own copy of the same exit.</para>
 /// </remarks>
 public static class PartyDownState {
     /// <summary>The party is up. Everything runs normally.</summary>
