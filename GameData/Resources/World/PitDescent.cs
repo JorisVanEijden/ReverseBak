@@ -57,8 +57,13 @@ public static class PitDescent {
     /// named would ask the world loop for a plain reload and leave the party un-flagged.
     ///
     /// <para><b>And it really is the party-death byte, used for exactly what it is for.</b> The
-    /// stat code raises the same field to 1 when it NOTICES every active member has Near-death set;
-    /// the arena writes 2 when it has just killed the last of them. The fall has itself put the
+    /// stat code raises the same field to 1 when it NOTICES every active member has Near-death set,
+    /// which is the route an ORDINARY party wipe takes — including one in the arena, because
+    /// <c>combat_arena_actor_die</c> applies Near-death and the sweep does the rest. (The arena's own
+    /// literal 2 is <c>combat_actor_kill_remaining_enc</c>, reached only from COMBAT.C case 16 behind
+    /// <c>key_is_down(0x1d)</c> and a confirmation — a give-up command, not a killing blow. This
+    /// comment used to call it "the arena kills the last of them", which named the rarer path.)
+    /// The fall has itself put the
     /// whole party at full Near-death, so it writes <b>2</b> — asserting the state directly rather
     /// than waiting to be noticed. The 1/2 split matters downstream: 1 makes the map screen play
     /// dialog 0x145, and the pit skips that because it has already played

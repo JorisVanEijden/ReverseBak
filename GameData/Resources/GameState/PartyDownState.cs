@@ -42,8 +42,14 @@ public static class PartyDownState {
     /// <b>Asserted</b> — something put the party down and has already said its piece.
     /// </summary>
     /// <remarks>
-    /// The pit fall (<c>WORLDCRS.C:82</c>) and the arena's last kill (<c>CACTOR.C:2099</c>) both
-    /// write this rather than 1, and both have already shown a dialog of their own.
+    /// The pit fall (<c>WORLDCRS.C:82</c>) writes this rather than 1, having already shown its
+    /// landing dialog.
+    ///
+    /// <para><b>The arena's <c>CACTOR.C:2099</c> is NOT an ordinary defeat.</b> It sits in
+    /// <c>combat_actor_kill_remaining_enc</c>, reached only from COMBAT.C case 16 behind
+    /// <c>key_is_down(0x1d)</c> and a confirmation dialog — a give-up command. A party wiped by
+    /// damage goes through <see cref="Recompute"/> and yields <see cref="Noticed"/> instead, because
+    /// <c>combat_arena_actor_die</c> applies Near-death and the sweep re-derives from that.</para>
     /// </remarks>
     public const int Asserted = 2;
 
