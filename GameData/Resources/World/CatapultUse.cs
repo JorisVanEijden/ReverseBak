@@ -90,7 +90,24 @@ public static class CatapultUse {
     /// <remarks>
     /// The dispose sits on the shared tail that all three primary outcomes reach: no global key, key
     /// present but unset, and the full firing. Only the secondary-click examine returns without it.
-    /// So the object is one-shot from the first primary click, whatever that click achieved.
+    ///
+    /// <para><b>*** BUT IT DOES NOT MAKE THE CATAPULT ONE-SHOT, and this remark used to say it
+    /// did. ***</b> <c>disposeContainer</c> @0x5ae59 clears <c>containerType</c> only when
+    /// <c>dataTypes &amp; 0x80</c> — <see cref="Data.SaveGameContainerDataType.SelfSpawn"/> — and the
+    /// container is empty. Measured across SAVE02's 2738 container records, that flag is set on the
+    /// 90 <c>Free</c> ground-bag pool slots and <b>nowhere else</b>: 0 of 511 <c>FixedWorldItem</c>,
+    /// which is what a catapult is. So the call here is flush-to-TEMP plus <c>dos_freemem</c>, and
+    /// <c>dos_freemem</c> has no analogue in a managed port.
+    ///
+    /// <para>What actually gates a repeat is <see cref="Fires"/>'s global. A port that builds a
+    /// container-removal seam to make this "one-shot" is reproducing a memory free.</para></para>
     /// </remarks>
     public static bool PrimaryClickAlwaysDisposesTheContainer => true;
+
+    /// <summary>The sound the arm makes, played after the sequence — <c>push 0x2d</c> at +0x18C.</summary>
+    /// <remarks>
+    /// Loaded and unloaded around the animation rather than living in a resident bank, which is one
+    /// of the per-context bank loads TASK-144 records.
+    /// </remarks>
+    public const int FireSoundId = 45;
 }

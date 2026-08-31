@@ -112,10 +112,28 @@ public class InteractionProfileTableTests {
     /// entry below is the assertion that it did.
     /// </remarks>
     [Theory]
-    [InlineData(WorldEntityType.Catapult)]
     [InlineData(WorldEntityType.RiftMachine)]
     public void ScriptedTypes_AreNotMapped(WorldEntityType type) =>
         Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+
+    /// <summary>
+    /// The catapult gets its own key and an empty profile — the fifth of that shape, and the second
+    /// to leave the list above in one day.
+    /// </summary>
+    /// <remarks>
+    /// A scripted prop is not describe-or-loot: gated on an encounter global, it steps its mesh
+    /// through a four-frame sequence and then plays its sound. <c>CatapultUse</c> carries that.
+    /// </remarks>
+    [Fact]
+    public void Catapult36_HasItsOwnKeyAndAnEmptyProfile() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.Catapult, out string behavior, out InteractionProfile profile));
+        Assert.Equal("catapult", behavior);
+        Assert.NotEqual("container", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+        Assert.False(profile.HasLock);
+    }
 
     /// <summary>
     /// The grave gets its own key and an empty profile — the fourth of that shape.

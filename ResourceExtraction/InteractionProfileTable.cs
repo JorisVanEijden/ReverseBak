@@ -26,8 +26,8 @@ using System.Collections.Generic;
 /// dialog whatever is or is not at the location, which is the original's behaviour for all
 /// inputs.</para>
 ///
-/// <para><b>Deliberately absent</b>, because they are not this shape and would need real code:
-/// Catapult (36) and RiftMachine (9) are scripted props gated on encounter globals;
+/// <para><b>Deliberately absent</b>, because it is not this shape and would need real code:
+/// RiftMachine (9) is a scripted prop gated on an encounter global;
 /// Pit (15) needs a Rope and a rope-swing sequence (<c>handle_Pit</c> @0x79c63, modelled in
 /// <c>PitRopeCrossing</c>).</para>
 ///
@@ -351,6 +351,19 @@ public static class InteractionProfileTable {
         // ExamineDialogId stays 0 rather than 173: the secondary-click dialog is only one of the
         // grave's two examine answers. A NON-DIGGABLE grave shows its own dialogId on a PRIMARY
         // click (@0x77f1f) and 173 on a secondary, so a single field cannot say what it does.
+        // byte 36 = catapult (handle_Catapult @0x770aa). *** THE FIFTH EMPTY PROFILE. *** One
+        // entity ships with this type. It is a scripted prop: gated on an encounter global, it steps
+        // its mesh through a four-frame sequence and then plays its sound. No loot, no container
+        // type, no lock — CatapultUse carries the rules.
+        [WorldEntityType.Catapult] = ("catapult", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
         [WorldEntityType.Grave] = ("grave", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
