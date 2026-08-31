@@ -42,6 +42,13 @@ public class ShootTargetPanelTests {
         // First name line always sits one step under the prompt, whichever count it is.
         Assert.Equal(ShootTargetPanel.PromptY + ShootTargetPanel.LineStep,
             ShootTargetPanel.NameLineTop(0));
+        // The gap is measured from the LAST name line, not from a line the name did not have -- an
+        // off-by-one here shifts both stat rows for every quarrel and the relative checks above
+        // stay green through it.
+        Assert.Equal(ShootTargetPanel.NameLineTop(0) + ShootTargetPanel.StatsGap,
+            ShootTargetPanel.StatsTop(1));
+        Assert.Equal(ShootTargetPanel.NameLineTop(1) + ShootTargetPanel.StatsGap,
+            ShootTargetPanel.StatsTop(2));
     }
 
     [Fact]
