@@ -103,6 +103,14 @@ public static class PaletteMapping {
             "OPTIONS0" => "OPTIONS.PAL",
             "OPTIONS1" => "OPTIONS.PAL",
             "OPTIONS2" => "OPTIONS.PAL",
+            // The combat HUD's parchment (parch.bmx), blitted at 0x49,0x81 under the melee stats
+            // panel, the shoot menu's target panel and the actor stats panel. There is no PARCH.PAL
+            // in the archive — combat_arena_init loads the image with resblit_load_asset_table and
+            // no palette — so it draws under whatever is installed, and the HUD strip it sits in is
+            // the FRAME chrome's. Same reasoning as COMPASS/HEADS above; without an entry the
+            // same-name fallback asks for a PARCH.PAL that does not exist and the panel silently
+            // resolves to a null sprite.
+            "PARCH" => "OPTIONS.PAL",
             // Mouse cursors have no dedicated palette — the original blits them with the
             // active screen palette. Use the UI palette (same as BICONS/DIALOG/FRAME); the
             // arrow/hourglass/label glyphs use standard indices that read correctly under it.

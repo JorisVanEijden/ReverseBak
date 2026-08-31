@@ -60,6 +60,16 @@ public class PaletteMappingTests {
     }
 
     [Fact]
+    public void TheCombatHudParchmentFallsBackToTheUiPalette() {
+        // parch.bmx is loaded by combat_arena_init with no palette of its own and there is no
+        // PARCH.PAL in the archive, so the same-name fallback resolves to nothing and every panel
+        // drawn on it -- the melee stats, the shoot menu's target readout, the actor stats -- comes
+        // back as a null sprite and simply does not draw. Same family as COMPASS/HEADS/MAPICONS.
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("PARCH.BMX"));
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("PARCH.BMX", 0));
+    }
+
+    [Fact]
     public void NonBiconsSubImage_FallsBackToFileMapping() {
         // A sub-image index on a non-overridden file resolves by filename as before.
         Assert.Equal("CONTENTS.PAL", PaletteMapping.GetPaletteFor("CONTENTS.SCX", 0));
