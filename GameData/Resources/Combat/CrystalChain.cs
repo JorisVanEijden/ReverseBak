@@ -9,7 +9,7 @@ namespace GameData.Resources.Combat;
 /// place, you are pushing them until the chain comes apart.</para>
 /// </summary>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-100).</b> The crystal-push puzzle is not on the grid yet: the rules are ported and no encounter
+/// <b>AWAITING ITS FEATURE (TASK-270).</b> The crystal-push puzzle is not on the grid yet: the rules are ported and no encounter
 /// runs them.
 ///
 /// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
