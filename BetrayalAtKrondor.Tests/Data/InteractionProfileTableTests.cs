@@ -100,21 +100,48 @@ public class InteractionProfileTableTests {
     }
 
     /// <summary>
-    /// Catapult and RiftMachine are scripted props gated on encounter globals. Mapping them onto
-    /// the plain container mechanism would show their dialogs while silently dropping the mechanic,
-    /// which is worse than not responding — so their absence is asserted, not assumed.
+    /// <b>THE "NOT MAPPED" LIST IS EMPTY, AND THAT IS THE RESULT.</b> It once held Building, Grave,
+    /// Catapult and RiftMachine — every one of them "would need real code". Every one of them now
+    /// has real code and a key of its own, so this asserts the list is closed rather than naming a
+    /// member of it.
     /// </summary>
     /// <remarks>
-    /// <b>Building and now GRAVE have left this list</b>, both the way Door did: not onto the
-    /// container mechanism, but onto a key of their own with an intentionally empty profile, so the
-    /// mechanic lives in real code (<c>FixedObjectClick</c>, <c>GraveDigging</c>) instead of being
-    /// faked with dialogs. Leaving this list is what "the mechanic got built" looks like here; the
-    /// entry below is the assertion that it did.
+    /// Deliberately not deleted with the last entry. The list existing is what stopped anyone
+    /// mapping a scripted prop onto the plain container mechanism as a shortcut — "shows the dialogs
+    /// while dropping the mechanic" — and a new type arriving unhandled should re-open it rather
+    /// than quietly inherit "container".
+    ///
+    /// <para>The only types with no row are now <c>Ground</c>, <c>Road</c> and <c>Water</c>, which
+    /// are terrain rather than objects.</para>
     /// </remarks>
-    [Theory]
-    [InlineData(WorldEntityType.RiftMachine)]
-    public void ScriptedTypes_AreNotMapped(WorldEntityType type) =>
-        Assert.False(InteractionProfileTable.TryGet(type, out _, out _));
+    [Fact]
+    public void EveryOBJECTTypeIsMapped_TheScriptedPropsIncluded() {
+        foreach (WorldEntityType type in new[] {
+                     WorldEntityType.Building, WorldEntityType.Grave,
+                     WorldEntityType.Catapult, WorldEntityType.RiftMachine }) {
+            Assert.True(InteractionProfileTable.TryGet(type, out string behavior, out _),
+                $"{type} was on the 'needs real code' list and should now have a behavior key");
+            Assert.NotEqual("container", behavior);
+        }
+    }
+
+    /// <summary>
+    /// The rift machine gets its own key and an empty profile — the sixth of that shape, and the
+    /// last of the three this table once called deliberately absent.
+    /// </summary>
+    /// <remarks>
+    /// Gated on an encounter global, it plays a sound and scrambles the WHOLE SCENE for ten frames.
+    /// The object itself never animates, so there is nothing a profile could describe.
+    /// </remarks>
+    [Fact]
+    public void RiftMachine9_HasItsOwnKeyAndAnEmptyProfile() {
+        Assert.True(InteractionProfileTable.TryGet(
+            WorldEntityType.RiftMachine, out string behavior, out InteractionProfile profile));
+        Assert.Equal("rift", behavior);
+        Assert.Empty(profile.ActionableContainerTypes);
+        Assert.False(profile.OpensLoot);
+        Assert.False(profile.HasLock);
+    }
 
     /// <summary>
     /// The catapult gets its own key and an empty profile — the fifth of that shape, and the second

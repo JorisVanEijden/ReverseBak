@@ -60,13 +60,36 @@ public static class RiftMachineUse {
     /// Frames drawn with the effect flag <b>set</b>.
     /// </summary>
     /// <remarks>
-    /// The handler raises a global render flag (<c>bool_dseg_2094</c>), redraws ten times, clears it,
-    /// and redraws twice more. So the effect is a property of the WORLD for its duration rather than
-    /// of the object — the opposite of the catapult, which steps its own item's sprite frame and
-    /// touches nothing global. Two objects, two mechanisms; a shared "play the effect" helper fits
-    /// neither.
+    /// The handler raises a global render flag (<c>g_bRiftMachineRunning</c>), redraws ten times,
+    /// clears it, and redraws twice more. So the effect is a property of the WORLD for its duration
+    /// rather than of the object — the opposite of the catapult, which steps its own item's frame
+    /// and touches nothing global. Two objects, two mechanisms; a shared "play the effect" helper
+    /// fits neither.
+    ///
+    /// <para><b>What the flag DOES, established 2026-08-31:</b>
+    /// <c>worlditem_render_scrambled_while_rift_runs</c> @0x79a70 wraps every world item's draw.
+    /// While the flag is set it points the item's render record at two RANDOM bytes —
+    /// <see cref="ScrambleSlot0Range"/> and <see cref="ScrambleSlot1Range"/> — draws it, and puts
+    /// the original back. Each mesh part reads the byte its <c>RuntimeFlagsIndex</c> names and
+    /// reduces it modulo its own frame count, so the whole scene flickers through nearby frames.
+    /// The machine itself never animates, which is why <c>gate2</c> carries no polygon region.</para>
     /// </remarks>
     public const int EffectFrames = 10;
+
+    /// <summary>The scramble value written to render slot 0 — <c>rand() &amp; 3</c>, so 0..3.</summary>
+    /// <remarks>
+    /// Exclusive upper bound. The byte is reduced modulo each part's own frame count at draw time,
+    /// so this caps which frames a scrambled object can reach: an eight-frame door flickers only
+    /// through its first four.
+    /// </remarks>
+    public const int ScrambleSlot0Range = 4;
+
+    /// <summary>The scramble value written to render slot 1 — <c>rand() % 5</c>, so 0..4.</summary>
+    public const int ScrambleSlot1Range = 5;
+
+    /// <summary>The sound the machine makes — <c>push 0x2e</c> at <c>handle_RiftMachine</c> +0x102.
+    /// </summary>
+    public const int RunSoundId = 46;
 
     /// <summary>Frames drawn after the flag is cleared, to put the world back.</summary>
     /// <remarks>

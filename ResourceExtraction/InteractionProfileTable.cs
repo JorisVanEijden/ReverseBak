@@ -26,8 +26,9 @@ using System.Collections.Generic;
 /// dialog whatever is or is not at the location, which is the original's behaviour for all
 /// inputs.</para>
 ///
-/// <para><b>Deliberately absent</b>, because it is not this shape and would need real code:
-/// RiftMachine (9) is a scripted prop gated on an encounter global;
+/// <para><b>Nothing is deliberately absent any more.</b> Grave (12), Catapult (36) and
+/// RiftMachine (9) were the three this paragraph listed as needing real code; all three now have
+/// real code and a key of their own. What remains here:
 /// Pit (15) needs a Rope and a rope-swing sequence (<c>handle_Pit</c> @0x79c63, modelled in
 /// <c>PitRopeCrossing</c>).</para>
 ///
@@ -356,6 +357,19 @@ public static class InteractionProfileTable {
         // its mesh through a four-frame sequence and then plays its sound. No loot, no container
         // type, no lock — CatapultUse carries the rules.
         [WorldEntityType.Catapult] = ("catapult", new InteractionProfile {
+            Range = null,
+            ActionableContainerTypes = None,
+            ExamineDialogId = 0,
+            ActionDialogId = 0,
+            NotActionableDialogId = NotImportant,
+            OpensLoot = false,
+            HasLock = false,
+        }),
+        // byte 9 = rift machine (handle_RiftMachine @0x782c0). *** THE SIXTH EMPTY PROFILE, and the
+        // last of the three this table called "deliberately absent". *** One entity ships with it.
+        // Gated on an encounter global, it plays a sound and SCRAMBLES THE WHOLE SCENE for ten
+        // frames -- the object itself never animates. RiftMachineUse carries the rules.
+        [WorldEntityType.RiftMachine] = ("rift", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
             ExamineDialogId = 0,
