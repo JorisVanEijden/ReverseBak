@@ -24,6 +24,75 @@ public static class QuarrelInventory {
     /// </remarks>
     public static readonly int[] ObjectIdByKind = { 0x24, 0x25, 0x26, 0x2a, 0x27, 0x28, 0x29, 0x2b };
 
+
+    /// <summary>
+    /// The creature that shoots without carrying anything — <b>creature 0x1a</b>.
+    /// </summary>
+    /// <remarks>
+    /// <c>combataiturn_sel_consum_qrl</c>'s first line: <c>if (creatureType == 0x1a) return 9;</c>.
+    /// It returns before the count is read and before anything is consumed, and <b>9 is outside the
+    /// 0..7 kind range</b> — so this creature's ammunition is innate rather than carried. A port that
+    /// runs it through the ordinary path finds an empty pack and refuses every shot.
+    /// </remarks>
+    public const int InnateAmmoCreature = 0x1a;
+
+    /// <summary>The kind that creature is given. Deliberately out of range.</summary>
+    public const int InnateAmmoKind = 9;
+
+    /// <summary>No kind could be used.</summary>
+    public const int NoKind = -1;
+
+    /// <summary>
+    /// Which kind a shot will actually use — <c>combataiturn_sel_consum_qrl</c>'s selection half.
+    /// </summary>
+    /// <param name="creatureType">The shooter's creature type.</param>
+    /// <param name="requestedKind">The chosen kind, or <see cref="AllKinds"/> to let it pick.</param>
+    /// <param name="countOfKind">How many of a kind the shooter carries.</param>
+    /// <returns>The kind to fire, or <see cref="NoKind"/> when there is nothing to fire.</returns>
+    /// <remarks>
+    /// <b>An unspecified kind scans 7 DOWN TO 0 and takes the first it finds</b> — the
+    /// HIGHEST-numbered kind carried, not the lowest. The kinds run cheapest-first, so scanning
+    /// upward would have the AI spend its best ammunition last instead of first.
+    ///
+    /// <para><b>A requested kind is NOT re-scanned.</b> If the player picked a kind and has none of
+    /// it, the answer is <see cref="NoKind"/> — the routine does not fall back to another. Only
+    /// <see cref="AllKinds"/> searches.</para>
+    /// </remarks>
+    public static int SelectKind(int creatureType, int requestedKind, Func<int, int> countOfKind) {
+        if (creatureType == InnateAmmoCreature) {
+            return InnateAmmoKind;
+        }
+        if (countOfKind == null) {
+            return NoKind;
+        }
+
+        int picked = requestedKind;
+        if (requestedKind == AllKinds) {
+            for (int kind = ObjectIdByKind.Length - 1; kind >= 0; kind--) {
+                if (countOfKind(kind) != 0) {
+                    picked = kind;
+                    break;
+                }
+            }
+        }
+
+        if (picked < 0 || picked >= ObjectIdByKind.Length) {
+            return NoKind;
+        }
+        return countOfKind(picked) != 0 ? picked : NoKind;
+    }
+
+    /// <summary>
+    /// Whether firing this kind takes one out of the pack.
+    /// </summary>
+    /// <remarks>
+    /// <b>The innate-ammunition creature spends nothing</b>: its early return happens before the
+    /// item-id lookup, and the consume is guarded on <c>item_id != -1</c>. Everything else spends
+    /// one of <see cref="ObjectIdByKind"/>.
+    /// </remarks>
+    public static bool Spends(int selectedKind) =>
+        selectedKind >= 0 && selectedKind < ObjectIdByKind.Length;
+
     /// <summary>Ask for every kind at once — the original's <c>kind == -1</c>.</summary>
     public const int AllKinds = -1;
 
