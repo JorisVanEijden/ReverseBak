@@ -263,4 +263,17 @@ public sealed class CombatGrid {
     /// </summary>
     public static int ChebyshevDistance(int x1, int y1, int x2, int y2) =>
         Math.Max(Math.Abs(x1 - x2), Math.Abs(y1 - y2));
+
+    /// <summary>
+    /// Whether two tiles share an edge — <c>combatgrid_actors_ortho_adj</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A DIAGONAL NEIGHBOUR IS NOT ADJACENT for melee</b>, even though it is one
+    /// <see cref="ChebyshevDistance"/> away and the grid is otherwise 8-directional. That gate is
+    /// what makes the swing refuse a diagonal target and what makes the thrust walk one step before
+    /// striking one (<c>combat_actor_melee_approach</c> adds 1 to the distance for a pure diagonal).
+    /// It also gates the two adjacent-enemy item arms.
+    /// </remarks>
+    public static bool OrthogonallyAdjacent(int x1, int y1, int x2, int y2) =>
+        Math.Abs(x1 - x2) + Math.Abs(y1 - y2) == 1;
 }
