@@ -47,6 +47,58 @@ public static class CombatActionDispatch {
     }
 
     /// <summary>
+    /// The weapon's accuracy field this attack rolls against.
+    /// </summary>
+    /// <param name="swingAccuracy"><c>nDefense_or_range_close</c> —
+    /// <c>ObjectInfo.SwingAccuracy_ArmorMod_BowAccuracy</c>.</param>
+    /// <param name="thrustAccuracy"><c>nAttack_or_range_long</c> — <c>ObjectInfo.ThrustAccuracy</c>.</param>
+    /// <remarks>
+    /// <b>The fields pair EXACTLY as their names say, and a note here used to claim otherwise.</b>
+    /// The swing (<c>combat_arena_melee_attack</c>, COMBAT.C:463) rolls
+    /// <c>nDefense_or_range_close</c> and does <c>nSwing_damage</c>; the thrust
+    /// (<c>combat_arena_resolve_melee_swing</c>, COMBAT.C:596) rolls <c>nAttack_or_range_long</c>
+    /// and does <c>nThrust_damage</c>. Nothing is crossed.
+    ///
+    /// <para><b>The reason a crossed reading was believable is that CANASSA'S TWO FUNCTION NAMES ARE
+    /// SWAPPED.</b> <c>resolve_melee_swing</c> is the THRUST — it is the left-click arm, it
+    /// approaches first, and it reads the thrust fields. <c>melee_attack</c>, whose name says
+    /// nothing, is the SWING. Take the to-hit from one body and the damage from the other and you
+    /// get a hybrid attack that does not exist, which is what our port did until 2026-08-31.</para>
+    ///
+    /// <para>The shipped HUD panel corroborates it independently:
+    /// <c>combat_arena_hud_melee_panel</c> prints the thrust column from <c>nThrust_damage</c> and
+    /// <c>nAttack_or_range_long</c>, and the swing column from <c>nSwing_damage</c> and
+    /// <c>nDefense_or_range_close</c>.</para>
+    /// </remarks>
+    public static int AccuracyOf(MeleeAttack attack, int swingAccuracy, int thrustAccuracy) =>
+        attack == MeleeAttack.Thrust ? thrustAccuracy : swingAccuracy;
+
+    /// <summary>
+    /// The weapon's damage base this attack adds.
+    /// </summary>
+    /// <remarks>
+    /// <c>cbstat_compute_attack_damage(weapon, attacker, defender, attack_type)</c> reads
+    /// <c>nThrust_damage</c> for <c>attack_type == 1</c> and <c>nSwing_damage</c> for 0; the thrust
+    /// arm passes 1 and the swing arm passes 0. See <see cref="AccuracyOf"/> for why that is easy to
+    /// pair up wrongly.
+    /// </remarks>
+    public static int DamageBaseOf(MeleeAttack attack, int swingBase, int thrustBase) =>
+        attack == MeleeAttack.Thrust ? thrustBase : swingBase;
+
+    /// <summary>
+    /// How hard this attack wears the attacker's weapon.
+    /// </summary>
+    /// <remarks>
+    /// <c>cbstat_damage_equipped_items(attacker, 1, 0x100)</c> in the swing against <c>0x80</c> in
+    /// the thrust — <b>the heavier attack is twice as hard on the weapon</b>, which is the other
+    /// half of the trade the stamina gate makes.
+    /// </remarks>
+    public static int WearSeverityOf(MeleeAttack attack) =>
+        attack == MeleeAttack.Thrust
+            ? CombatFormulas.WeaponWearOnThrust
+            : CombatFormulas.WeaponWearOnSwing;
+
+    /// <summary>
     /// <b>A thrust closes the distance; a swing does not.</b>
     /// </summary>
     /// <remarks>
