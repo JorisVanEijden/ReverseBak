@@ -4,76 +4,98 @@ using GameData.Resources.Combat;
 using Xunit;
 
 /// <summary>
-/// Where a combatant stands for a grid cell.
+/// The arena's cell-to-world mapping and its inverse.
 /// </summary>
 /// <remarks>
-/// The trap these pin down: the arena has TWO cell-to-world formulas that differ by half a cell in
-/// one axis, and the wrong one is right there in <see cref="CombatGroundCheck"/> already being used
-/// for the ground sweep.
+/// The inverse is what a click on empty arena ground needs: every pick the arena has today is an
+/// object pick (combatant, corpse, entity), so a click that hits none of them does nothing, and both
+/// summon placement and player combat movement are blocked on that. See TASK-112.
 /// </remarks>
 public class CombatArenaPlacementTests {
-    private const int CellSize = 300; // the shipped StartData.CombatGridCellSize
+    private const int Cell = 300;   // StartData.CombatGridCellSize as shipped
 
     [Fact]
-    public void SidewaysAgreesWithTheGroundSweep() {
-        for (var column = 0; column < CombatGrid.Width; column++) {
-            (int placeAcross, _) = CombatArenaPlacement.CellOffset(column, 0, CellSize);
-            (int sweepAcross, _) = CombatGroundCheck.SampleOffset(column, 0, CellSize);
-            Assert.Equal(sweepAcross, placeAcross);
-        }
-    }
-
-    [Fact]
-    public void ForwardDiffersFromTheGroundSweepByHalfACell() {
-        // *** The failure this catches. *** Reusing SampleOffset to place a combatant puts every
-        // actor half a cell too near the party — uniform enough to read as "the arena looks a bit
-        // small" instead of as a wrong formula.
+    public void EveryCellsOwnCentreMapsBackToIt() {
+        // *** THE ROUND TRIP IS THE SPECIFICATION. *** If these two ever disagree, a summon lands on
+        // a different tile from the one the player clicked, and it does so silently.
         for (var row = 0; row < CombatGrid.Height; row++) {
-            (_, int placeAway) = CombatArenaPlacement.CellOffset(0, row, CellSize);
-            (_, int sweepAway) = CombatGroundCheck.SampleOffset(0, row, CellSize);
-            Assert.Equal(CombatArenaPlacement.ForwardDifferenceFromGroundSweep(CellSize),
-                placeAway - sweepAway);
+            for (var column = 0; column < CombatGrid.Width; column++) {
+                (int across, int away) = CombatArenaPlacement.CellOffset(column, row, Cell);
+                Assert.Equal((column, row), CombatArenaPlacement.CellAt(across, away, Cell));
+            }
         }
     }
 
     [Fact]
-    public void TheNearestRowStillSitsTheWholeForwardOffsetAway() {
-        (_, int away) = CombatArenaPlacement.CellOffset(0, CombatArenaPlacement.NearRow, CellSize);
-        Assert.Equal(CombatGroundCheck.ForwardOffset + (CellSize / 2), away);
+    public void APointAnywhereInsideACellResolvesToThatCell() {
+        // Not just the centre: the corners of the cell's own footprint, one unit inside each edge.
+        (int across, int away) = CombatArenaPlacement.CellOffset(3, 5, Cell);
+        int half = Cell / 2;
+
+        Assert.Equal((3, 5), CombatArenaPlacement.CellAt(across - half + 1, away - half + 1, Cell));
+        Assert.Equal((3, 5), CombatArenaPlacement.CellAt(across + half - 1, away + half - 1, Cell));
     }
 
     [Fact]
-    public void RowsIncreaseAWAYFromTheParty() {
-        // A port that read row 0 as the far edge would stand the party behind the monsters.
-        (_, int near) = CombatArenaPlacement.CellOffset(0, 0, CellSize);
-        (_, int far) = CombatArenaPlacement.CellOffset(0, CombatGrid.Height - 1, CellSize);
-        Assert.True(far > near);
+    public void TheBoundaryBELONGSToTheFartherCell_soNoPointFallsInTwo() {
+        // Exactly on the seam between two columns. Flooring puts it in the higher one; the point one
+        // unit before it must be in the lower. A gap or an overlap here is a pick that lands on the
+        // wrong tile near every edge.
+        (int across, int away) = CombatArenaPlacement.CellOffset(3, 5, Cell);
+        int seam = across + (Cell / 2);
+
+        Assert.Equal((4, 5), CombatArenaPlacement.CellAt(seam, away, Cell));
+        Assert.Equal((3, 5), CombatArenaPlacement.CellAt(seam - 1, away, Cell));
     }
 
     [Fact]
-    public void TheFootprintIsCentredOnTheLineOfSight() {
-        (int left, _) = CombatArenaPlacement.CellOffset(0, 0, CellSize);
-        (int right, _) = CombatArenaPlacement.CellOffset(CombatGrid.Width - 1, 0, CellSize);
-        Assert.Equal(0, left + right); // symmetric about the party's forward axis
+    public void ItFLOORSRatherThanTruncating_whichOnlyShowsOnTheLeftHalf() {
+        // *** THE ARENA IS CENTRED ON THE PARTY, SO HALF OF IT IS NEGATIVE ACROSS. *** C# integer
+        // division truncates toward zero, which would fold the cell either side of the centre line
+        // onto the same column. Columns 3 and 4 straddle it with the shipped width of 8.
+        (int leftAcross, int away) = CombatArenaPlacement.CellOffset(3, 0, Cell);
+        (int rightAcross, _) = CombatArenaPlacement.CellOffset(4, 0, Cell);
+
+        Assert.True(leftAcross < 0, "column 3 sits left of the party's line");
+        Assert.True(rightAcross > 0, "and column 4 right of it");
+        Assert.Equal((3, 0), CombatArenaPlacement.CellAt(leftAcross, away, Cell));
+        Assert.Equal((4, 0), CombatArenaPlacement.CellAt(rightAcross, away, Cell));
     }
 
     [Fact]
-    public void ADifferentCellSizeMovesTheFootprintAndItsOccupantsTogether() {
-        const int wider = CellSize * 2;
-        (int placeAcross, _) = CombatArenaPlacement.CellOffset(0, 0, wider);
-        (int sweepAcross, _) = CombatGroundCheck.SampleOffset(0, 0, wider);
-        Assert.Equal(sweepAcross, placeAcross);
+    public void APointOutsideTheGridIsNULLRatherThanClamped() {
+        // A miss must read as a miss. Clamping would make a click past the arena's edge place a
+        // summon on the edge tile, which is a different and worse behaviour than doing nothing.
+        (int across, int away) = CombatArenaPlacement.CellOffset(0, 0, Cell);
+
+        Assert.Null(CombatArenaPlacement.CellAt(across - Cell, away, Cell));
+        Assert.Null(CombatArenaPlacement.CellAt(across, away - Cell, Cell));
+
+        (int farAcross, int farAway) =
+            CombatArenaPlacement.CellOffset(CombatGrid.Width - 1, CombatGrid.Height - 1, Cell);
+        Assert.Null(CombatArenaPlacement.CellAt(farAcross + Cell, farAway, Cell));
+        Assert.Null(CombatArenaPlacement.CellAt(farAcross, farAway + Cell, Cell));
     }
 
-    [Theory]
-    [InlineData(0, 0, false, true)]
-    [InlineData(0, CombatGrid.Height - 1, false, true)]
-    [InlineData(0, CombatGrid.UndergroundPlayableRows, true, false)]
-    [InlineData(0, CombatGrid.UndergroundPlayableRows - 1, true, true)]
-    [InlineData(-1, 0, false, false)]
-    public void UndergroundFightsUseFewerRowsThanTheGridHas(
-        int column, int row, bool underground, bool playable) {
-        // The grid keeps its full height underground; the bound belongs to the FIGHT.
-        Assert.Equal(playable, CombatArenaPlacement.IsPlayable(column, row, underground));
+    [Fact]
+    public void ACellSizeOfZeroIsRefusedRatherThanDividingByIt() {
+        // HotspotService already guards `cellSize <= 0` before placing actors, because StartData
+        // may not have loaded. The inverse is reached from input handling, where the same is true.
+        Assert.Null(CombatArenaPlacement.CellAt(0, 0, 0));
+        Assert.Null(CombatArenaPlacement.CellAt(0, 0, -1));
+    }
+
+    [Fact]
+    public void BoundsAreTheGRIDsNotTheFIGHTs() {
+        // CellAt answers only "is this on the board". An underground fight plays on fewer rows, and
+        // that is IsPlayable's question — keeping them apart means a pick does not silently depend
+        // on which kind of fight it is.
+        (int across, int away) =
+            CombatArenaPlacement.CellOffset(0, CombatGrid.UndergroundPlayableRows, Cell);
+
+        Assert.Equal((0, CombatGrid.UndergroundPlayableRows),
+            CombatArenaPlacement.CellAt(across, away, Cell));
+        Assert.False(CombatArenaPlacement.IsPlayable(0, CombatGrid.UndergroundPlayableRows, underground: true));
+        Assert.True(CombatArenaPlacement.IsPlayable(0, CombatGrid.UndergroundPlayableRows, underground: false));
     }
 }

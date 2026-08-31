@@ -35,6 +35,53 @@ public static class CombatArenaPlacement {
         (row * cellSize) + (cellSize / 2) + CombatGroundCheck.ForwardOffset);
 
     /// <summary>
+    /// Which cell an offset falls in — the inverse of <see cref="CellOffset"/>.
+    /// </summary>
+    /// <param name="across">Toward the party's right, <b>after</b> the heading has been undone.</param>
+    /// <param name="away">In front of the party, likewise.</param>
+    /// <param name="cellSize">The arena's cell size — <c>StartData.CombatGridCellSize</c>.</param>
+    /// <returns>
+    /// The cell, or null when the offset lands outside the grid. Bounds only — a caller that also
+    /// cares whether the cell is reachable or free asks <see cref="IsPlayable"/> and the grid.
+    /// </returns>
+    /// <remarks>
+    /// <b>This is what turns a click into a tile, and the arena has no other way to do it.</b> The
+    /// pick side of the fight is all object picks — combatant, corpse, entity — so a click on empty
+    /// ground currently resolves to nothing, which is why summon placement and player movement are
+    /// both unbuilt.
+    ///
+    /// <para><b>It floors, it does not round, and the half-cell is why.</b> <see cref="CellOffset"/>
+    /// puts a combatant at the cell's CENTRE, so the cell spanning that centre starts half a cell
+    /// before it. Rounding the centre-relative value instead would put the boundary through the
+    /// middle of each cell and shift every pick half a cell toward the party. The inverse is over
+    /// the cell's ORIGIN, and the half-cell that appears in the forward mapping must not appear
+    /// here.</para>
+    ///
+    /// <para>Floor rather than truncate: an offset in front of the party is positive, but the
+    /// leftmost column is NEGATIVE across (the arena is centred on the party's line of sight, which
+    /// is what <c>HalfWidthOf</c> does), and C# integer division truncates toward zero. Truncating
+    /// would map the cell either side of the centre line onto the same column — and because the
+    /// grid's own bounds check then rejects the column that fell off the end, the symptom is a
+    /// click NEAR THE ARENA'S EDGE silently resolving to nothing rather than an obviously wrong
+    /// tile.</para>
+    /// </remarks>
+    public static (int Column, int Row)? CellAt(int across, int away, int cellSize) {
+        if (cellSize <= 0) {
+            return null;
+        }
+
+        int column = FloorDiv(across + CombatGroundCheck.HalfWidthOf(cellSize), cellSize);
+        int row = FloorDiv(away - CombatGroundCheck.ForwardOffset, cellSize);
+        return CombatGrid.InBounds(column, row) ? (column, row) : null;
+    }
+
+    /// <summary>Integer division that floors, including for negative numerators.</summary>
+    private static int FloorDiv(int value, int divisor) {
+        int q = value / divisor;
+        return value % divisor != 0 && (value < 0) != (divisor < 0) ? q - 1 : q;
+    }
+
+    /// <summary>
     /// How far the forward term differs from the ground sweep's, in world units.
     /// </summary>
     /// <remarks>
