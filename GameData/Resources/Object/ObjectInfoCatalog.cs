@@ -4,8 +4,11 @@ using GameData.Resources.Content;
 
 /// <summary>A numeric-id view over a merged item catalog, preserving the legacy
 /// <see cref="ObjectInfoSet.GetById"/> surface for existing consumers (spec §5.1 "both views").
-/// Archive originals resolve by their numeric id via the canonical <c>base:objinfo:&lt;id&gt;</c>
-/// key; mod-added items have no numeric slot and are addressed by their string key on
+/// Anything keyed <c>base:objinfo:&lt;id&gt;</c> resolves by that numeric id — which since
+/// TASK-259 includes MOD-ADDED items, because the mod source keys an added item by its own
+/// <c>Number</c> and so gives it a real numeric slot. That is deliberate: every gameplay caller
+/// addresses items by object id, so an item without one would be unreachable. Content keyed
+/// outside the base namespace has no numeric slot and is addressed by string key on
 /// <see cref="Merged"/>.</summary>
 public sealed class ObjectInfoCatalog {
     private readonly MergedCatalog<ObjectInfo> _merged;
