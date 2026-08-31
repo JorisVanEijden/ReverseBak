@@ -23,8 +23,11 @@ using System.Collections.Generic;
 /// activate pass behind <see cref="HotspotsStillFire"/>, so a downed party springs nothing while
 /// still falling into a pit it walks onto.
 ///
-/// <para>Still unread: <see cref="ConditionEventsSweep"/> (the dialog layer's condition/skill sweep
-/// has no guard) and the map screen's own copy of the same exit.</para>
+/// <para>Two rules here have no reader and <b>no reachable trigger</b> (TASK-264 closed on this):
+/// <see cref="ConditionEventsSweep"/> guards a condition/skill notice sweep this port has never
+/// built, and the map screen's copy of the exit cannot fire because the navigator hides the world
+/// screen while the map is up and nothing can set the byte from there. Both become real work the
+/// day their surface exists; neither is a missing guard today.</para>
 /// </remarks>
 public static class PartyDownState {
     /// <summary>The party is up. Everything runs normally.</summary>
