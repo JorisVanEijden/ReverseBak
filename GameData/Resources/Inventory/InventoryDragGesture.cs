@@ -73,19 +73,39 @@ public static class InventoryDragGesture {
     public static bool GhostIsTheIconAtNaturalSizeCentredOnTheCursor => true;
 
     /// <summary>
-    /// The selection highlight is a <b>colour that animates</b>, not a border of some width.
+    /// The selected cell's highlight: a filled rectangle, <b>outlined one pixel wide</b>.
     /// </summary>
     /// <remarks>
-    /// <c>g_graphics_context.bGfx_outline_color</c> is a PEN — the sprite blitter draws a
-    /// one-pixel outline in it — and the screen cycles it with a phase counter:
-    /// <c>(m &gt; 3) ? ('q' - m) : (m + 'k')</c>, i.e. pens 0x6b..0x71 up and back down.
+    /// <c>UI_DrawInventory</c>'s <c>highlight_slot</c> arm sets <c>fill_color = 0x8f</c> and
+    /// <c>outline_color = 0x8b</c> and calls <c>draw_rect_filled</c> over the cell's own rect. The
+    /// outline is a PEN, so its width is the blitter's one pixel — never a number the screen picks.
     ///
-    /// <para>So our <c>OutlineWidth = 8f</c> is answering a question the original does not ask. One
-    /// VGA pixel is 5 canonical across and 6 down; 8 is neither, and a static width cannot show the
-    /// pulse that tells the player which slot is live.</para>
+    /// <para><b>One VGA pixel is 5 canonical across and 6 down</b>, so even this has no single
+    /// correct width: the border is thicker top-and-bottom than left-and-right, which is what the
+    /// anisotropy means. Our <c>OutlineWidth = 8f</c> is neither.</para>
+    ///
+    /// <para><b>CORRECTION to an earlier reading of mine.</b> I first recorded this outline as a pen
+    /// that CYCLES, from <c>(m &gt; 3) ? ('q' - m) : (m + 'k')</c>. Those lines are real but belong
+    /// to <c>invui_portr_panel_fill_pulsing</c> and <c>invui_portrait_panel_draw</c> — the PORTRAIT
+    /// panel, which does pulse while a drag hovers it. The item cell's own highlight does not: 0x8b
+    /// is a constant. Two highlights, two rules, and the pen-cycling lines are nowhere near the
+    /// cell-drawing loop.</para>
     /// </remarks>
     public const int OutlineWidthVga = 1;
 
-    /// <summary>The pens the highlight cycles through, in order out and back.</summary>
-    public static readonly int[] OutlinePulsePens = { 0x6b, 0x6c, 0x6d, 0x6e, 0x6d, 0x6c, 0x6b };
+    /// <summary>INVENTOR.PAL pen for the selected cell's outline. Fixed.</summary>
+    public const int SelectedCellOutlinePen = 0x8b;
+
+    /// <summary>INVENTOR.PAL pen the selected cell is filled with.</summary>
+    public const int SelectedCellFillPen = 0x8f;
+
+    /// <summary>
+    /// The pens the PORTRAIT highlight cycles through while a drag hovers it — a different element
+    /// from the item cell, and the one that actually animates.
+    /// </summary>
+    /// <remarks>
+    /// <c>phase % 6</c> indexes <c>(m &gt; 3) ? ('q' - m) : (m + 'k')</c>: 0x6b, 0x6c, 0x6d, 0x6e
+    /// then back down through 0x6d, 0x6c. Six steps, out and back, so the pulse has no seam.
+    /// </remarks>
+    public static readonly int[] PortraitPulsePens = { 0x6b, 0x6c, 0x6d, 0x6e, 0x6d, 0x6c };
 }

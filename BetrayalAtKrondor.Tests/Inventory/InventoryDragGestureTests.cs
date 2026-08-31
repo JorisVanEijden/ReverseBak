@@ -61,29 +61,35 @@ public class InventoryDragGestureTests {
     }
 
     [Fact]
-    public void TheOutlineIsAPENThatCYCLES_notAWidth() {
-        // bGfx_outline_color is a pen and the screen phases it. A static width answers a question
-        // the original does not ask, and cannot show the pulse that says which slot is live.
+    public void TheCellOutlineIsONEPixel_andThereforeNotOneWidth() {
+        // The outline is a PEN, so its width is the blitter's single pixel. And one VGA pixel is 5
+        // canonical across but 6 down, so the border is genuinely thicker top-and-bottom — there is
+        // no single number, which is why an 8f could not have been right whatever value it took.
         Assert.Equal(1, InventoryDragGesture.OutlineWidthVga);
-        Assert.Equal(7, InventoryDragGesture.OutlinePulsePens.Length);
-        Assert.Equal(InventoryDragGesture.OutlinePulsePens[0],
-            InventoryDragGesture.OutlinePulsePens[^1]);
+        Assert.NotEqual(5 * InventoryDragGesture.OutlineWidthVga,
+            6 * InventoryDragGesture.OutlineWidthVga);
+    }
 
-        // Out and back: it rises to a peak and returns, so the pulse has no seam.
-        var peak = 0;
-        for (var i = 1; i < InventoryDragGesture.OutlinePulsePens.Length; i++) {
-            if (InventoryDragGesture.OutlinePulsePens[i] > InventoryDragGesture.OutlinePulsePens[peak]) {
-                peak = i;
-            }
-        }
-        for (var i = 1; i <= peak; i++) {
-            Assert.True(InventoryDragGesture.OutlinePulsePens[i]
-                > InventoryDragGesture.OutlinePulsePens[i - 1]);
-        }
-        for (int i = peak + 1; i < InventoryDragGesture.OutlinePulsePens.Length; i++) {
-            Assert.True(InventoryDragGesture.OutlinePulsePens[i]
-                < InventoryDragGesture.OutlinePulsePens[i - 1]);
-        }
+    [Fact]
+    public void THECELLDoesNotPulse_butTHEPORTRAITDoes() {
+        // *** A correction to my own first reading, pinned so it cannot come back. *** The cycling
+        // pens are real but belong to invui_portr_panel_fill_pulsing / invui_portrait_panel_draw.
+        // The item cell's highlight uses a CONSTANT outline pen over a constant fill.
+        Assert.Equal(0x8b, InventoryDragGesture.SelectedCellOutlinePen);
+        Assert.Equal(0x8f, InventoryDragGesture.SelectedCellFillPen);
+        Assert.DoesNotContain(InventoryDragGesture.SelectedCellOutlinePen,
+            InventoryDragGesture.PortraitPulsePens);
+    }
+
+    [Fact]
+    public void ThePortraitPulseRunsOutAndBackWithNoSeam() {
+        // phase % 6 over (m > 3) ? ('q' - m) : (m + 'k'): 0x6b..0x6e then back down.
+        int[] pens = InventoryDragGesture.PortraitPulsePens;
+        Assert.Equal(6, pens.Length);
+        Assert.Equal(0x6b, pens[0]);
+        Assert.Equal(0x6e, pens[3]);
+        // Wrapping from the last back to the first is a single step, like every other.
+        Assert.Equal(1, System.Math.Abs(pens[^1] - pens[0]));
     }
 
     [Fact]
