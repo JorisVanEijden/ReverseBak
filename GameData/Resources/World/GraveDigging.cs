@@ -11,12 +11,9 @@ namespace GameData.Resources.World;
 /// entity finds nothing to read.
 /// </remarks>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-136).</b> Nothing dispatches a grave hotspot yet — the handler is
-/// one of the three that task names, and the container-at-a-location lookup it needs has no caller.
-///
-/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
-/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
-/// to re-triage every run.</para>
+/// <b>CONSUMED since 2026-08-31.</b> <c>GraveInteractionHandler</c> runs these rules on a real
+/// click, and <c>InteractionProfileTable</c> carries the <c>("grave", empty profile)</c> row that
+/// names the behaviour. The trap arm goes through <c>HotspotService.FireTrapEncounterAt</c>.
 /// </remarks>
 public static class GraveDigging {
     /// <summary>The tool the party must be carrying, and which is spent.</summary>
