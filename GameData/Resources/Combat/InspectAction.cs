@@ -9,8 +9,18 @@ namespace GameData.Resources.Combat;
 /// then clicks. See <see cref="CombatCommandOutcome"/> for the arm-versus-resolve split.</para>
 /// </summary>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-241).</b> Blocked in turn on the target-info panel (combat_arena_draw_tgt_info_panel), which is
-/// unbuilt and explicitly not on TASK-102's list — so pressing Inspect has nothing to show.
+/// <b>AWAITING ITS FEATURE (TASK-241).</b> Blocked on the combat stats panel
+/// (<c>combat_actor_draw_stats_panel</c>) and on switching the arena's displayed actor
+/// (<c>combat_arena_switch_active_actor</c>). Neither exists, so a successful inspect would spend
+/// the turn and show nothing.
+///
+/// <para><b>It is NOT blocked on <c>combat_arena_draw_tgt_info_panel</c>, which this remark used to
+/// name.</b> That panel draws "Choose a target", the quarrel name and an accuracy number, and
+/// COMBAT.C:2543 raises it only when <c>menu == g_shoot_menu</c> — it belongs to shooting. Inspect's
+/// own arm (case 3) draws nothing at all: it clears the actor's Ready bit and switches the active
+/// actor, after which the HUD's ordinary default branch draws the stats panel for whoever is now
+/// current. The enemy's numbers appear because the enemy became the current actor, not because
+/// inspection has a panel of its own.</para>
 ///
 /// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
 /// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
