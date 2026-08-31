@@ -10,12 +10,9 @@ namespace GameData.Resources.World;
 /// with a parameter.
 /// </remarks>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-136).</b> Nothing dispatches a rift-machine hotspot yet, and the
-/// container-at-a-location lookup it shares with the grave and the catapult has no caller.
-///
-/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
-/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
-/// to re-triage every run.</para>
+/// <b>CONSUMED since 2026-08-31.</b> <c>RiftMachineInteractionHandler</c> runs these rules on a real
+/// click, and <c>InteractionProfileTable</c> carries the <c>("rift", empty profile)</c> row that
+/// names the behaviour.
 /// </remarks>
 public static class RiftMachineUse {
     /// <summary>Shown for a SECONDARY click.</summary>
