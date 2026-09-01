@@ -56,6 +56,12 @@ public static class SaveGameOffsets {
     public const int PositionZ = 29;   // Int32
     public const int Rotation = 33;    // Int16 (currentZRotation)
 
+    // canassa lInsetCameraPosZ. The OVERHEAD MAP's camera height — the player's map zoom — not a
+    // second copy of PositionZ at 29. MAP.C:474 drops the world camera to it at pitch -90;
+    // ZONE.C:105 reseeds it from the zone default only on a zone change. Authored 2026-09-01;
+    // before that the zoom reset on every load.
+    public const int MapCameraZ = 55;  // Int32
+
     /// <summary>
     /// The world step speed as it stood when the game last compared it — <c>nLastSeenStepSpeed</c>.
     /// </summary>

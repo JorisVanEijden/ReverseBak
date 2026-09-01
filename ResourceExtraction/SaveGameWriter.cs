@@ -97,6 +97,9 @@ public static class SaveGameWriter {
         PatchI32(SaveGameOffsets.PositionY, fields.PositionY);
         PatchI32(SaveGameOffsets.PositionZ, fields.PositionZ);
         PatchI16(SaveGameOffsets.Rotation, fields.Rotation);
+        if (fields.MapCameraZ.HasValue) {
+            PatchI32(SaveGameOffsets.MapCameraZ, fields.MapCameraZ.Value);
+        }
 
         // *** THE CHANGE-DETECTOR BASELINE, AND IT IS ONLY WRITTEN WHEN THE CALLER HAS ONE. ***
         // The body is cloned, so leaving these alone already round-trips whatever was there. They
