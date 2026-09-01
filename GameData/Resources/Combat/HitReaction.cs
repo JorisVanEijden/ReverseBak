@@ -22,6 +22,21 @@ namespace GameData.Resources.Combat;
 /// rule, not the animation.</para>
 /// </remarks>
 public static class HitReaction {
+    /// <summary>
+    /// The remap an ordinary blow flinches through — <c>hitDir = 1</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read off the call, not chosen.</b> <c>resolveSwingAttack</c> @0x5fc69 calls
+    /// <c>applyDamageToActor</c> twice: once to bill the ATTACKER for swinging
+    /// (<c>hitDir = 0, shieldFlag = 1</c>) and once to damage the TARGET
+    /// (<c>hitDir = 1, applyArmor = 1</c>). Only the second flinches, so a blow is rung <b>1</b> of
+    /// the zone's fade ramp — the second-lightest step, 82 entries in <c>Z01.RMP</c>.
+    ///
+    /// <para>Spells pass their own values through explicit <c>markActorHit</c> calls and are
+    /// deliberately not covered by this constant.</para>
+    /// </remarks>
+    public const int BlowRemap = 1;
+
     /// <summary>How many ticks the recoil lasts — <c>hitReactionTimer = 2</c>.</summary>
     public const int Ticks = 2;
 

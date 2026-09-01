@@ -105,6 +105,24 @@ public sealed class Combatant {
     /// <summary>State flags.</summary>
     public CombatantFlags Flags { get; set; } = CombatantFlags.Ready;
 
+    /// <summary>Redraws left in this combatant's hit reaction — <c>hitReactionTimer</c>.</summary>
+    /// <remarks>
+    /// Set with <see cref="CombatantFlags.Knockback"/> by <see cref="HitReaction.Begin"/> and counted
+    /// down by <see cref="HitReaction.Tick"/> once per combat-view redraw, which is what the original
+    /// does and is not a unit of time — see that class for why "two frames" and "a fixed duration"
+    /// are both the wrong port.
+    /// </remarks>
+    public int HitReactionTimer { get; set; }
+
+    /// <summary>Which remap table the recoil redraws this combatant through — <c>hitReactionDir</c>.</summary>
+    /// <remarks>
+    /// <b>Not a direction, despite the original's parameter name.</b> It selects a 256-byte remap
+    /// table, <c>(value &lt;&lt; 8) + 0xA66</c> into the zone's RMP — so the flash is the creature
+    /// briefly redrawn one rung further along its zone's own fade ramp. An ordinary blow passes
+    /// <see cref="HitReaction.BlowRemap"/>; a self-billed cost passes 0 and does not flinch at all.
+    /// </remarks>
+    public int HitReactionRemap { get; set; }
+
     /// <summary>Which frame of the walk cycle this combatant is currently showing, 0..2.</summary>
     /// <remarks>
     /// <b>It lives on the COMBATANT because the sprite does not survive.</b> Every combat redraw
