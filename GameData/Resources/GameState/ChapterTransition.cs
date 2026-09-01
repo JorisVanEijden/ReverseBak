@@ -75,18 +75,35 @@ public static class ChapterTransition {
 
     /// <summary>Lowest global variable the transition clears.</summary>
     /// <remarks>
-    /// <c>ClearGlobalVars(400..5200)</c> runs after the file apply and before the per-chapter arm,
+    /// <c>ClearGlobalVars_400_5200</c> @0x74d9b runs after the file apply and before the per-chapter arm,
     /// so a chapter's own setup can write into the range it just cleared. The story flags outside
     /// this window are deliberately untouched — chapter progress has to survive.
     /// </remarks>
     public const int ClearedGlobalsFirst = 400;
 
-    /// <summary>Highest global variable the transition clears.</summary>
-    public const int ClearedGlobalsLast = 5200;
+    /// <summary>
+    /// One past the highest global the transition clears — <b>5200 itself is NOT cleared.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Corrected 2026-09-01 from the binary.</b> This was <c>ClearedGlobalsLast</c> and the
+    /// predicate compared <c>&lt;=</c>, so 5200 counted as wiped. <c>ClearGlobalVars_400_5200</c>
+    /// @0x74d9b is <c>for (i = 0; i &lt; 4800; i++) SetGlobalValue(400 + i, 0)</c> — 400 through
+    /// 5199, and 5200 is the FIRST key of the next window rather than the last of this one.
+    ///
+    /// <para>That next window is separately managed and has clears of its own —
+    /// <c>ClearGlobal5200_5209</c> @0x74e50, <c>ClearGlobal5210_5219</c> @0x74ebf,
+    /// <c>ClearGlobal5200_5219</c> @0x72f16. Wiping 5200 with this range would reach into a band the
+    /// chapter transition deliberately leaves alone.</para>
+    ///
+    /// <para>The name says <c>End</c> and is exclusive so the off-by-one cannot come back: a reader
+    /// writing <c>&lt;=</c> against a name that says "one past" is making a visible mistake, where
+    /// against "Last" they were agreeing with it.</para>
+    /// </remarks>
+    public const int ClearedGlobalsEnd = 5200;
 
-    /// <summary>Whether a global is wiped by the transition.</summary>
+    /// <summary>Whether a global is wiped by the transition. Half-open: <c>[First, End)</c>.</summary>
     public static bool IsCleared(int globalKey) =>
-        globalKey >= ClearedGlobalsFirst && globalKey <= ClearedGlobalsLast;
+        globalKey >= ClearedGlobalsFirst && globalKey < ClearedGlobalsEnd;
 
     /// <summary>
     /// Which setup arm a chapter runs — <b>read from the jump table, not from the order the arms

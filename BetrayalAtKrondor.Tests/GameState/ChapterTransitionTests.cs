@@ -63,7 +63,13 @@ public class ChapterTransitionTests {
     public void OnlyGlobalsInTheClearedWindowAreWiped() {
         Assert.False(ChapterTransition.IsCleared(399));
         Assert.True(ChapterTransition.IsCleared(400));
-        Assert.True(ChapterTransition.IsCleared(5200));
+        // *** 5200 IS NOT CLEARED, AND THIS TEST ASSERTED THAT IT WAS. ***
+        // ClearGlobalVars_400_5200 @0x74d9b is `for (i = 0; i < 4800; i++) SetGlobalValue(400+i, 0)`
+        // — 400 through 5199. 5200 is the first key of the NEXT window, which has clears of its own
+        // (ClearGlobal5200_5209, ClearGlobal5210_5219), so wiping it here reaches into a band the
+        // chapter transition deliberately leaves alone.
+        Assert.True(ChapterTransition.IsCleared(5199));
+        Assert.False(ChapterTransition.IsCleared(5200));
         Assert.False(ChapterTransition.IsCleared(5201));
         // The event-field and high-bitmap regions are far outside it; chapter progress must survive.
         Assert.False(ChapterTransition.IsCleared(30007));
