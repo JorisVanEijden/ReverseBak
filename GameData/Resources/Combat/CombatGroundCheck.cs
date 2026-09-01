@@ -70,6 +70,14 @@ public static class CombatGroundCheck {
     /// <para>(Not to be confused with the ROAD-travel gate, <c>worldmove_prox_query_at_cell</c>,
     /// which accepts 1 and 2 only. There are three different "can you be here" sets in the world
     /// code and they differ by one or two kinds each.)</para>
+    ///
+    /// <para><b>Confirmed against the binary 2026-09-01.</b> <c>worldItem_isOpenGroundAt</c>
+    /// @0x2d9aa is this predicate: it collides a position against the world-item list and switches
+    /// on the hit item's type-descriptor kind byte, accepting exactly these five. Two details of it
+    /// are worth having here — <b>an empty position FAILS</b> (the scan must find something, which
+    /// is what keeps an arena off a void), and the switch reads the byte from the
+    /// <b>type descriptor</b> reached through <c>worldItemIndexToPtr</c>, not from the item
+    /// instance.</para>
     /// </remarks>
     public static IReadOnlyList<int> OpenGroundKinds { get; } = new[] {
         (int)World.WorldEntityType.Ground,   // 0
