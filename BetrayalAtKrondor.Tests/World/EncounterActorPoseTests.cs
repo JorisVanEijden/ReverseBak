@@ -22,6 +22,42 @@ public class EncounterActorPoseTests {
         return frames;
     }
 
+    /// <summary>
+    /// <b>The walking column is the BASE of a three-frame group, and the gait indexes within it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>WalkingColumns</c> is { 0, 3, 6, 9, 12, 9, 6, 3 } — a stride of exactly
+    /// <see cref="EncounterActorPose.WalkFrames"/>. `DirectionalSprite` draws
+    /// <c>SpriteColumn(...) + frame</c> on that assumption, so if the stride and the frame count
+    /// ever disagree the gait would index a NEIGHBOURING FACING'S art rather than the next frame of
+    /// its own — a bug that looks like the creature flickering between directions as it walks.
+    ///
+    /// <para>Checked as a property of the table rather than by listing it, so an added facing or a
+    /// re-derived column set has to satisfy it too.</para>
+    /// </remarks>
+    [Fact]
+    public void EachWalkingFacingOwnsExactlyWalkFramesColumns() {
+        var bases = new System.Collections.Generic.List<int>();
+        for (var octant = 0; octant < EncounterActorPose.Octants; octant++) {
+            bases.Add(EncounterActorPose.SpriteColumn(
+                EncounterActorPose.WalkingKind, octant, out _));
+        }
+
+        foreach (int start in new System.Collections.Generic.HashSet<int>(bases)) {
+            foreach (int frame in new[] { 0, EncounterActorPose.WalkFrames - 1 }) {
+                int drawn = start + frame;
+                bool collides = false;
+                foreach (int other in bases) {
+                    if (other != start && drawn >= other && drawn < other + EncounterActorPose.WalkFrames) {
+                        collides = true;
+                    }
+                }
+                Assert.False(collides,
+                    $"column {start} frame {frame} lands inside another facing's group");
+            }
+        }
+    }
+
     [Fact]
     public void TheWalkCycleIsAPingPongNotALoop() {
         // 0,1,2,1,0,1,2,1... — the middle frame is passed through twice per cycle. A three-frame
