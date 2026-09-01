@@ -26,14 +26,34 @@ public static class HitReaction {
     public const int Ticks = 2;
 
     /// <summary>
-    /// <b>A tick here is a RENDERED FRAME, not a combat turn.</b>
+    /// <b>A tick here is a REDRAW OF THE COMBAT VIEW — and that is not a unit of time.</b>
     /// </summary>
     /// <remarks>
     /// The only caller of <c>tickHitReactionTimers</c> is <c>RenderWorldView</c> @0x220f1, so the
-    /// recoil is two frames of the view and is over long before the actor's next turn. A port that
-    /// ticked it on the turn boundary would leave every struck actor flinching for a whole round.
+    /// recoil is over in two redraws rather than at any turn boundary. A port that ticked it on the
+    /// turn boundary would leave every struck actor flinching for a whole round.
+    ///
+    /// <para><b>But "two frames" is the wrong thing to port, and both obvious readings are wrong.</b>
+    /// <c>RenderWorldView</c> is not driven by a timer: its 37 call sites are the animation and
+    /// effect loops — <c>Combat_AnimateProjectileToTarget</c>, <c>Spell_RunVfxUntilDone</c>,
+    /// <c>playCreatureAnimationToCompletion</c>, <c>combat_arena_turn_loop</c>,
+    /// <c>combatTargetingLoop</c>. So the two redraws that follow a hit are the next two STEPS OF
+    /// WHATEVER ANIMATION IS PLAYING: the arrow's flight, the melee cine, the spell's vfx. The
+    /// flinch is synchronised to the blow that caused it, and its wall-clock length is whatever
+    /// that animation's pacing happens to be.</para>
+    ///
+    /// <para>Which rules out the two ports that suggest themselves. <b>Two Unity frames</b> is
+    /// ~33 ms and invisible — and note the animation clock's ~59.17 Hz
+    /// (<see cref="Animation.GameTick.TicksPerSecond"/>) makes that look defensible, which is the
+    /// trap: this timer does not run off that clock. <b>A fixed duration in seconds</b> is visible
+    /// but detaches the flinch from the attack animation, so a slow spell and a quick arrow would
+    /// recoil for the same length.</para>
+    ///
+    /// <para><b>The faithful port is to advance this from the attack animation's own step</b>, so
+    /// the recoil ends two steps after the hit whatever that animation costs. Recorded here rather
+    /// than decided, because it is a rendering decision and the renderer does not exist yet.</para>
     /// </remarks>
-    public static bool TicksPerRenderedFrame => true;
+    public static bool TicksPerCombatViewRedraw => true;
 
     /// <summary>Put an actor into the recoil state, facing <paramref name="direction"/>.</summary>
     /// <remarks>
