@@ -55,11 +55,22 @@ public static class HitReaction {
     /// </remarks>
     public static bool TicksPerCombatViewRedraw => true;
 
-    /// <summary>Put an actor into the recoil state, facing <paramref name="direction"/>.</summary>
+    /// <summary>Put an actor into the recoil state, tinted by <paramref name="remapIndex"/>.</summary>
     /// <remarks>
-    /// <c>markActorHit</c> sets all three together: the flag, the timer and the direction. The
-    /// direction is the only reason the state carries data at all — it is which way the sprite is
-    /// thrown, so it comes from the blow rather than from the actor's facing.
+    /// <c>markActorHit</c> sets all three together: the flag, the timer and this value.
+    ///
+    /// <para><b>*** IT IS A COLOUR-REMAP SELECTOR, NOT A DIRECTION — corrected 2026-09-01, the same
+    /// day this was first written. ***</b> The parameter is called <c>dir</c> in the disassembly and
+    /// this remark originally read "which way the sprite is thrown". Tracing the render side settles
+    /// it: <c>renderCombatGridScene</c> @0x5dff5 tests the 0x40 bit and copies
+    /// <c>combatData.hitReactionDir</c> into the global <c>spriteHitDir</c>, and
+    /// <c>vfx_drawSpriteWithHaloAndHitTint</c> turns that into a palette index —
+    /// <c>(spriteHitDir &lt;&lt; 8) + 0xA66</c> — for redrawing the sprite.
+    ///
+    /// <para>So <b>a struck actor is RE-TINTED for two ticks and does not move.</b> A port that
+    /// offset the sprite would be inventing the effect, and the parameter's name invites exactly
+    /// that. The value comes from the blow rather than from the actor's facing either way.</para>
+    /// </para>
     ///
     /// <para><c>applyDamageToActor</c> inlines this same trio on a damaging hit rather than
     /// calling it, so a port must not treat the explicit callers as the whole list. Those callers
@@ -67,9 +78,9 @@ public static class HitReaction {
     /// <c>Spell_TouchSlayActor</c>, <c>Cast_Drain_Strength</c>, <c>Spell_PlayStormSequence</c> —
     /// plus <c>combat_actor_play_short_cine</c>.</para>
     /// </remarks>
-    public static (CombatantFlags Flags, int Timer, int Direction) Begin(
-        CombatantFlags flags, int direction) =>
-        (flags | CombatantFlags.Knockback, Ticks, direction);
+    public static (CombatantFlags Flags, int Timer, int RemapIndex) Begin(
+        CombatantFlags flags, int remapIndex) =>
+        (flags | CombatantFlags.Knockback, Ticks, remapIndex);
 
     /// <summary>
     /// One tick of the sweep: count down, and clear the flag when the count reaches zero.

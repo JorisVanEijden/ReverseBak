@@ -9,8 +9,8 @@ using Xunit;
 public class HitReactionTests {
     [Fact]
     public void BeginSetsTheKNOCKBACKBitAndNothingElse() {
-        (CombatantFlags flags, int timer, int direction) =
-            HitReaction.Begin(CombatantFlags.Ready | CombatantFlags.Poisoned, direction: 3);
+        (CombatantFlags flags, int timer, int remapIndex) =
+            HitReaction.Begin(CombatantFlags.Ready | CombatantFlags.Poisoned, remapIndex: 3);
 
         Assert.True(flags.HasFlag(CombatantFlags.Knockback));
         // *** THE BIT IS 0x40, NOT 0x64. *** IDA's comments on both functions say 0x64; the
@@ -21,7 +21,9 @@ public class HitReactionTests {
         Assert.False(flags.HasFlag(CombatantFlags.DefendCommand),
             "0x64 would have set this — it is one of the two bits the wrong constant adds");
         Assert.Equal(HitReaction.Ticks, timer);
-        Assert.Equal(3, direction);
+        // A palette-remap selector, not a facing: renderCombatGridScene copies it into spriteHitDir
+        // and vfx_drawSpriteWithHaloAndHitTint uses it as (value << 8) + 0xA66.
+        Assert.Equal(3, remapIndex);
     }
 
     [Fact]
