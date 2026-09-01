@@ -151,6 +151,22 @@ public static class EncounterActorPose {
     /// Advance the walk cycle one tick.
     /// </summary>
     /// <remarks>
+    /// <b>AWAITING ITS FEATURE (TASK-103), together with <see cref="PackState"/>,
+    /// <see cref="UnpackState"/>, <see cref="WalkFrames"/> and <see cref="AdvancingBit"/> — the
+    /// whole gait-and-state half of this type has no production caller.</b> It is invisible to
+    /// <c>scripts/audit-unconsumed-models.py</c>, which works at TYPE level: <see cref="Octant"/>,
+    /// <see cref="SpriteColumn"/> and <see cref="IsDrawn"/> are consumed by
+    /// <c>DirectionalSprite</c>, so the type passes while its gait sits idle. Found on 2026-09-01
+    /// by reading the file, which is exactly the fallback that script's own comment prescribes for
+    /// the member-level blind spot. Roaming actors therefore face the camera correctly and do not
+    /// animate.
+    ///
+    /// <para><b>NOT the same rule as the combat creature's gait — do not fold them together.</b>
+    /// <see cref="Combat.CreatureAnimationStep"/> is <c>advanceCreatureAnimationFrame</c> (ovr167),
+    /// which bounces at the top and RESTARTS at the bottom, carries an authored frame range, and
+    /// re-rolls a random delay every frame. This is <c>rgnenc_render_object</c>: a fixed three
+    /// frames bouncing at both ends for ever. Both are right for their own renderer.</para>
+    ///
     /// <b>It is a ping-pong, not a loop</b>: the frames run 0, 1, 2, 1, 0, 1, 2 … so the middle
     /// frame is passed through twice per cycle and the gait reverses at each end. Playing it as a
     /// three-frame loop (0, 1, 2, 0) snaps the leg back instead of swinging it, which is the classic

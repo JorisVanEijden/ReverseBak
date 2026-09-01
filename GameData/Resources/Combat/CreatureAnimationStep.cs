@@ -11,6 +11,18 @@ namespace GameData.Resources.Combat;
 ///
 /// <para><b>AWAITING ITS FEATURE (TASK-103).</b> Nothing steps a combatant's animation yet.</para>
 ///
+/// <para><b>NOT the same animation as <see cref="World.EncounterActorPose"/>'s gait, and the two
+/// must not be folded together.</b> That one is <c>rgnenc_render_object</c> (RGNENC.C) — the
+/// ROAMING WORLD actor's billboard, a fixed three-frame cycle that ping-pongs at BOTH ends for ever.
+/// This one is the COMBAT creature's <c>creatueBitmapAnim</c>, whose range is authored per
+/// animation and which bounces at the top and then RESTARTS rather than bouncing at the bottom.
+/// Same idea, different subsystems, different rules.</para>
+///
+/// <para><b>They do agree on one thing, and the agreement is worth something:</b> this function
+/// mirrors above facing 4, and <c>EncounterActorPose.SpriteColumn</c> mirrors at
+/// <c>octant &gt;= 5</c>. Two independent RE passes over two different renderers landing on the same
+/// split is real corroboration that the sheets hold five columns.</para>
+///
 /// <para>Traced whole on 2026-09-01. The function's own IDA comment had said the reverse path and
 /// the exact <c>isComplete</c> condition were never read (only the first ~75 of 161 instructions),
 /// and both turned out to carry rules a port would not have guessed.</para>
