@@ -30,6 +30,40 @@ public static class MonsterSummon {
     /// <summary>Shown when there is no room on the roster.</summary>
     public const int NoRoomDialog = 145;
 
+    /// <summary>
+    /// <b>A fight tracks SEVEN actors, and that is the only thing a summon can be refused for.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>combat_actor_slot_append</c> @0x5c502 — the function behind the misleading old name
+    /// <c>combat_actor_party_add</c> — opens with <c>cmp actornr, 7 / jge return_0</c>. The party is
+    /// built into that same array wholesale by <c>combat_actors_build_from_party</c> and a summon
+    /// takes the next free slot, so the room a summon needs is what the PARTY has left: a full
+    /// six-member party leaves one, and a party of three leaves four.
+    ///
+    /// <para><b>The routine's other refusal is dead code in the shipped binary, and reading it as
+    /// live would have added a check that can never fire.</b> Three probes follow the cap, and IDA's
+    /// own comment on the function describes them as refusing "if any of the three bitmap-array
+    /// probes comes back null, so a creature whose art failed to load does not occupy a slot". The
+    /// bytes say otherwise: all three are <c>b8</c> — <c>mov ax, imm16</c> — loading the constant
+    /// addresses 0x503e, 0x5054 and 0x506a and testing THOSE against zero, against the <c>8b 36</c>
+    /// memory load the real count check uses two lines above. The address of an array is never null,
+    /// so the branch is never taken. It is the classic C slip of writing <c>if (arr == NULL)</c>
+    /// where <c>arr</c> is an array rather than a pointer, and Borland 3.1 emitted it without
+    /// folding. They also index slots 0, 1 and 2 by fixed offset rather than by the slot being
+    /// filled, so they were looking at the wrong entries as well.</para>
+    ///
+    /// <para>So: count, and nothing else. A creature whose art fails to load still takes a slot in
+    /// the original, whatever the guard was meant to do.</para>
+    /// </remarks>
+    public const int FightActorCapacity = 7;
+
+    /// <summary>Whether a fight already holding <paramref name="actorsInFight"/> can take one more.</summary>
+    /// <remarks>
+    /// Strictly less than: the check is <c>jge</c> on the count BEFORE the append, so seven actors
+    /// refuse and six accept.
+    /// </remarks>
+    public static bool HasRoom(int actorsInFight) => actorsInFight < FightActorCapacity;
+
     /// <summary>The cue a summon plays — the same creation sound the lighting spells use.</summary>
     public const int Sound = 0x3a;
 
