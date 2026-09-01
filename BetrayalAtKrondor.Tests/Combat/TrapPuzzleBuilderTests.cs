@@ -266,10 +266,27 @@ public class TrapPuzzleBuilderTests {
     }
 
     [Fact]
-    public void ATileWithNoRunSweepsNothing() {
+    public void ACrystalWithNoRunStillSweepsItsOwnTile() {
+        // *** THIS USED TO ASSERT AN EMPTY SWEEP, AND THAT WAS OUR SHORTCUT, NOT THE GAME'S. ***
+        // grid_findRunAxis @0x2ec96 never answers "no axis": when no neighbour matches it falls back
+        // to (0,1), vertical — or (1,0) if the cell is flanked left and right by trap elements. So a
+        // lone crystal standing on its own crystal ground sweeps that one tile. Nothing downstream
+        // can tell the fallback from a real answer, which is exactly why returning (0,0) diverged.
         TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5)));
 
-        Assert.Empty(puzzle.TraceCrystalLine(2, 5));
+        Assert.Equal(new[] { (2, 5) }, puzzle.TraceCrystalLine(2, 5));
+    }
+
+    [Fact]
+    public void TheAxisFallbackGoesHorizontalWhenTheCellIsFlankedByElements() {
+        // The other half of the fallback. Neither neighbour sits on crystal ground, so the direction
+        // scan finds nothing and the flanking test decides — (1,0) rather than (0,1).
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5), (9, 1, 5), (9, 3, 5)));
+        puzzle.Grid.SetTerrain(3, 5, CombatTerrain.Open);
+        puzzle.Grid.SetTerrain(1, 5, CombatTerrain.Open);
+
+        // Horizontal: the run walks along y = 5 and finds only the crystal's own tile there.
+        Assert.Equal(new[] { (2, 5) }, puzzle.TraceCrystalLine(2, 5));
     }
 
     [Fact]

@@ -163,9 +163,6 @@ public sealed class TrapPuzzle {
     public IReadOnlyList<(int X, int Y)> TraceCrystalLine(int x, int y) {
         var run = new List<(int X, int Y)>();
         (int dx, int dy) = FindLineDirection(x, y);
-        if (dx == 0 && dy == 0) {
-            return run;
-        }
 
         while (CombatGrid.InBounds(x, y) && Grid.TerrainAt(x - dx, y - dy) == CombatTerrain.Crystal) {
             x -= dx;
@@ -184,14 +181,27 @@ public sealed class TrapPuzzle {
     }
 
     /// <summary>
-    /// Which way the crystal run lies, as a neighbour offset, or (0,0) when there is no run.
+    /// Which way the crystal run lies, as a neighbour offset. <b>Never (0,0).</b>
     /// </summary>
     /// <remarks>
     /// Two cases, and they differ in what they will accept as the next tile. From a crystal that is
     /// still standing, the run continues through a crystal tile that is <b>not</b> holding another
     /// crystal. From anywhere else it continues through one that is empty or holds a crystal, and
     /// only if the run also carries on behind you — or something is standing where you are. The
-    /// neighbours are tried in the original's order, which starts at the top-left and reads down.
+    /// neighbours are tried in the original's order, which starts at the top-left and reads down,
+    /// and the FIRST match wins — so the answer is order-dependent, not "the best" axis.
+    ///
+    /// <para><b>THE ORIGINAL NEVER ANSWERS "NO AXIS", AND THIS USED TO.</b>
+    /// <c>grid_findRunAxis</c> @0x2ec96 falls back to <b>(0,1)</b> — vertical — unless BOTH
+    /// horizontal neighbours hold a trap element, in which case (1,0). Its return value is not a
+    /// found flag and a caller cannot tell a real answer from the default. Returning (0,0) here made
+    /// a lone crystal sweep nothing where the original sweeps its own tile, and a test was pinning
+    /// that shortcut.</para>
+    ///
+    /// <para><b>The element is hardcoded to <see cref="CombatTerrain.Crystal"/> and the original
+    /// takes it as an argument.</b> Its other two callers pass element 4, the firing state — the
+    /// restore pass and the outline renderer both trace a run of 4s. We do not model that state, so
+    /// nothing needs the parameter yet; whoever ports the visual sweep will.</para>
     /// </remarks>
     private (int Dx, int Dy) FindLineDirection(int x, int y) {
         TrapGridElement here = ElementAt(x, y);
@@ -221,7 +231,10 @@ public sealed class TrapPuzzle {
                 }
             }
         }
-        return (0, 0);
+
+        // The fallback, straight from grid_findRunAxis: vertical, unless the cell is flanked
+        // left and right by trap elements.
+        return ElementAt(x + 1, y) != null && ElementAt(x - 1, y) != null ? (1, 0) : (0, 1);
     }
 
     private static bool IsCrystalElement(int elementId) => elementId == 7 || elementId == 8;
