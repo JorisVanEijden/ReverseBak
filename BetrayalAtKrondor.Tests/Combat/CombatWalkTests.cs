@@ -195,4 +195,54 @@ public class CombatWalkTests {
         Assert.Throws<System.ArgumentNullException>(
             () => CombatWalk.Walk(new CombatGrid(), null, 2, 5, 5));
     }
+
+    // ---- shoving ---------------------------------------------------------------------------
+
+    [Fact]
+    public void WalkingIntoADiamondShovesItAndTakesItsTile() {
+        // *** NOTHING PUSHED A DIAMOND UNTIL THIS EXISTED, SO NO TRAP PUZZLE COULD BE SOLVED. ***
+        // TryPush had no production caller at all; CombatWalk reported BlockedByPushable and broke.
+        // The push belongs here because that is where the original keeps it —
+        // moveCombatActorTowardTarget @0x64bc1 calls PushTrapElement itself, one level above the
+        // step primitive.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(new[] { (9, 4, 5) });
+        var actor = new Combatant { X = 3, Y = 5, Speed = 1 };
+
+        CombatWalk.WalkResult result =
+            CombatWalk.Walk(puzzle.Grid, actor, 4, 5, actor.Speed, puzzle: puzzle);
+
+        Assert.NotNull(result.Shove);
+        Assert.Equal(PushResult.Moved, result.Shove.Value.Result);
+        Assert.Equal((4, 5), (actor.X, actor.Y));
+        Assert.Equal(CombatTerrain.Pushable, puzzle.Grid.TerrainAt(5, 5));
+    }
+
+    [Fact]
+    public void AShoveThatCannotMoveLeavesTheActorWhereItWas() {
+        // The original backs the actor out and shows "the path is blocked". We never advance it in
+        // the first place, which reaches the same end state with one fewer way to get it wrong.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(new[] { (9, 4, 5), (9, 5, 5) });
+        var actor = new Combatant { X = 3, Y = 5, Speed = 1 };
+
+        CombatWalk.WalkResult result =
+            CombatWalk.Walk(puzzle.Grid, actor, 4, 5, actor.Speed, puzzle: puzzle);
+
+        Assert.Equal(PushResult.Blocked, result.Shove.Value.Result);
+        Assert.Equal((3, 5), (actor.X, actor.Y));
+    }
+
+    [Fact]
+    public void AProbeNeverShoves() {
+        // A dry run that moved objects would rearrange the puzzle for whoever asked "could I get
+        // there".
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(new[] { (9, 4, 5) });
+        var actor = new Combatant { X = 3, Y = 5, Speed = 1 };
+
+        CombatWalk.WalkResult result =
+            CombatWalk.Walk(puzzle.Grid, actor, 4, 5, actor.Speed, probe: true, puzzle: puzzle);
+
+        Assert.Null(result.Shove);
+        Assert.Equal(CombatTerrain.Pushable, puzzle.Grid.TerrainAt(4, 5));
+        Assert.Equal((3, 5), (actor.X, actor.Y));
+    }
 }

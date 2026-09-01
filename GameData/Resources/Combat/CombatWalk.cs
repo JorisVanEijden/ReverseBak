@@ -65,15 +65,42 @@ public static class CombatWalk {
     }
 
     /// <summary>How a walk ended.</summary>
+    /// <summary>An element the walk shoved out of its way.</summary>
+    public readonly struct Shove {
+        internal Shove(PushResult result, int fromX, int fromY, int toX, int toY) {
+            Result = result;
+            FromX = fromX;
+            FromY = fromY;
+            ToX = toX;
+            ToY = toY;
+        }
+
+        /// <summary>What the shove did. <see cref="PushResult.CrystalFired"/> needs a caller.</summary>
+        public PushResult Result { get; }
+
+        /// <summary>The tile the element was on — where the actor now stands, if it moved.</summary>
+        public int FromX { get; }
+
+        /// <inheritdoc cref="FromX"/>
+        public int FromY { get; }
+
+        /// <summary>The tile it went to. Meaningless for a shove that did not move it.</summary>
+        public int ToX { get; }
+
+        /// <inheritdoc cref="ToX"/>
+        public int ToY { get; }
+    }
+
     public readonly struct WalkResult {
         internal WalkResult(int x, int y, int speedRemaining, bool arrived, bool pathClear,
-            IReadOnlyList<Hazard> hazards) {
+            IReadOnlyList<Hazard> hazards, Shove? shove = null) {
             X = x;
             Y = y;
             SpeedRemaining = speedRemaining;
             Arrived = arrived;
             PathClear = pathClear;
             Hazards = hazards;
+            Shove = shove;
         }
 
         /// <summary>Where the actor ended up — its start position again after a probe.</summary>
@@ -95,6 +122,11 @@ public static class CombatWalk {
 
         /// <summary>Hazards that fired, in the order they did. Always empty for a probe.</summary>
         public IReadOnlyList<Hazard> Hazards { get; }
+
+        /// <summary>
+        /// The element this walk shoved, or null. At most one: a shove ends the move.
+        /// </summary>
+        public Shove? Shove { get; }
     }
 
     /// <summary>Walking onto crystal ground costs a flat 100, whatever else is true of the actor.</summary>
@@ -163,6 +195,7 @@ public static class CombatWalk {
 
         int steps = speed;
         var pathClear = true;
+        Shove? shove = null;
 
         while (steps != 0) {
             StepResult step = CombatMovement.Step(
@@ -170,6 +203,7 @@ public static class CombatWalk {
             pathClear = step.Succeeded;
 
             if (step.Status == StepStatus.BlockedByPushable) {
+                shove = Shoves(actor, step, puzzle, probe);
                 break;
             }
 
@@ -203,7 +237,62 @@ public static class CombatWalk {
         }
 
         return new WalkResult(actor.X, actor.Y, speedRemaining > 0 ? speedRemaining : 0,
-            actor.X == destX && actor.Y == destY, pathClear, hazards);
+            actor.X == destX && actor.Y == destY, pathClear, hazards, shove);
+    }
+
+    /// <summary>
+    /// Shove the element the step ran into, and step onto the tile it leaves.
+    /// </summary>
+    /// <remarks>
+    /// <b>The push lives HERE, one level above the step primitive, because that is where the
+    /// original keeps it.</b> <c>moveCombatActorTowardTarget</c> @0x64bc1 tests the blocked cell for
+    /// <c>grid_element_trap_diamond</c> and calls <c>PushTrapElement</c> itself;
+    /// <c>CombatMovement.Step</c>'s counterpart never sees a shove. This method is what
+    /// <see cref="CombatWalk"/>'s old remark called stopping short of the original's loop.
+    ///
+    /// <para>Three things the original does that are easy to miss, all kept:</para>
+    /// <list type="number">
+    /// <item><b>It only shoves when the actor started adjacent to its destination</b> —
+    /// <c>combat_walkTargetAdjacent</c>, already computed as <c>adjacentToTarget</c> by the caller
+    /// and folded into <see cref="CombatMovement.Step"/>'s decision to report a pushable at all.</item>
+    /// <item><b>The actor's position is advanced optimistically and reverted when the push
+    /// fails</b>, with <c>UI_ShowPathIsBlocked</c> shown. We never advance it early, so the revert
+    /// is simply not stepping — same end state, one fewer way to get it wrong.</item>
+    /// <item><b>A successful shove ENDS the move</b> (<c>return 1</c>), it does not spend one step
+    /// and walk on. The caller breaks out of the loop either way.</item>
+    /// </list>
+    ///
+    /// <para><b>A probe never shoves.</b> A dry run that moved objects would rearrange the puzzle
+    /// for whoever asked "could I get there". The original takes an earlier exit for the same case.
+    /// <i>Unverified:</i> it answers 1 there, i.e. reachable, where we leave <c>PathClear</c> false
+    /// — the flag it tests is not identified, so this is left as it was rather than changed on a
+    /// guess.</para>
+    ///
+    /// <para><b>The cannon check the original runs afterwards is deliberately not modelled.</b> It
+    /// aims at the tile the DIAMOND landed on, not the actor's, and it gets there by standing a
+    /// phantom actor on it — so the spell it fires lands on a throwaway and damages nobody
+    /// (<c>cannon_fireAtCellViaPhantomActor?</c> @0x2fbac). Routing it through the hazard path would
+    /// shoot the WALKER for a cannon aimed at an object. Whether the firing has effects beyond the
+    /// damage is an open question on <c>Cast_Spell</c> and is recorded there.</para>
+    /// </remarks>
+    private static Shove? Shoves(Combatant actor, StepResult step, TrapPuzzle puzzle,
+        bool probe) {
+        if (probe || puzzle == null) {
+            return null;
+        }
+
+        int dx = step.X - actor.X;
+        int dy = step.Y - actor.Y;
+        PushResult result = puzzle.TryPush(step.X, step.Y, dx, dy);
+        // Occupancy is the caller's, exactly as it is for an ordinary step — CombatRuntime puts the
+        // combatant back and re-applies through MoveTo. TryPush has already cleared the ELEMENT's
+        // tile, which is the puzzle's to own.
+        if (result == PushResult.Moved || result == PushResult.CrystalFired) {
+            actor.X = step.X;
+            actor.Y = step.Y;
+        }
+
+        return new Shove(result, step.X, step.Y, step.X + dx, step.Y + dy);
     }
 
     private static void FireTerrainHazard(CombatGrid grid, Combatant actor, List<Hazard> hazards,
