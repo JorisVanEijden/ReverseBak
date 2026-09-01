@@ -14,9 +14,18 @@ namespace GameData.Resources.GameState;
 /// load. That is why no shipped dialog writes global 30007 and why two prior censuses of write
 /// effects correctly found nothing: the write is an <c>fread</c> through a pointer.</para>
 ///
-/// <para><b>AWAITING ITS FEATURE (TASK-145).</b> Only chapter 1 is wired; nothing transitions yet.
-/// <c>GameSession.ChapterTransitionPending</c> already round-trips through the save and no code acts
-/// on it, which is the seam this belongs behind.</para>
+/// <para><b>PARTLY CONSUMED, and the split matters.</b> <see cref="NextChapterStart"/> and
+/// <see cref="GoldAfter"/> are called by <c>GameSession.ApplyChapterStart</c> — they were written
+/// out inline there, untested, and this work re-derived them from the disassembly instead of finding
+/// them, which is exactly the duplication a name search misses when the logic lives in a method
+/// rather than a type. Moving them here removed the second copy and gave the first its tests.
+///
+/// <para>The rest — <see cref="ArmFor"/>, <see cref="IsCleared"/>,
+/// <see cref="RecordsFinishingGold"/> — is <b>AWAITING ITS FEATURE (TASK-145)</b>: only chapter 1 is
+/// wired and nothing transitions yet. <c>GameSession.ChapterTransitionPending</c> already
+/// round-trips through the save with no code acting on it, which is the seam they belong behind.
+/// Note the type now reads as "consumed" to <c>scripts/audit-unconsumed-models.py</c>, which works
+/// at type level — this paragraph is the member-level truth it cannot see.</para></para>
 /// </remarks>
 public static class ChapterTransition {
     /// <summary>
