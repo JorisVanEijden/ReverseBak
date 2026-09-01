@@ -41,9 +41,17 @@ public static class ArenaLayout {
             throw new ArgumentNullException(nameof(isOpenAt));
         }
 
+        // *** THIS ONLY EVER ADDS BLOCKING. *** A cell the grid already walls off is left exactly as
+        // it is — the two far corners, and underground the back rows, are laid down by the grid's
+        // own construction (the original's Load_grid) and this must not widen the arena by painting
+        // open ground over them. Leaving them also preserves the DISTINCTION between a wall and a
+        // pushable, which rewriting every cell to Open-or-OutOfBounds would flatten.
         var free = 0;
         for (var x = 0; x < CombatGrid.Width; x++) {
             for (var y = 0; y < CombatGrid.Height; y++) {
+                if (grid.IsBlocked(x, y)) {
+                    continue;
+                }
                 bool open = isOpenAt(x, y);
                 grid.SetTerrain(x, y, open ? CombatTerrain.Open : CombatTerrain.OutOfBounds);
                 if (open) {

@@ -11,16 +11,31 @@ public class ArenaLayoutTests {
     private static bool AlwaysReaches(int fromX, int fromY, int toX, int toY) => true;
 
     [Fact]
-    public void TheBuildWritesEveryCell() {
+    public void TheBuildWritesEveryUNBLOCKEDCell() {
         // *** EVERY ARENA CELL USED TO BE OPEN REGARDLESS OF WHAT THE PARTY STOOD IN. *** Nothing
         // wrote to the grid outside CombatGrid's constructor, so a fight in a wood had no trees.
         var grid = new CombatGrid();
 
         int open = ArenaLayout.Build(grid, (x, y) => x != 3);
 
-        Assert.Equal((CombatGrid.Width - 1) * CombatGrid.Height, open);
         Assert.Equal(CombatTerrain.OutOfBounds, grid.TerrainAt(3, 5));
         Assert.Equal(CombatTerrain.Open, grid.TerrainAt(2, 5));
+        // The two far corners were already walled and stay that way — the count excludes them.
+        Assert.Equal(((CombatGrid.Width - 1) * CombatGrid.Height) - 2, open);
+    }
+
+    [Fact]
+    public void ItNeverWIDENSTheArena() {
+        // *** ONLY EVER ADDS BLOCKING. *** The corners are laid down by the grid's construction
+        // (the original's Load_grid) and painting open ground over them would make the arena bigger
+        // than the game's. Found by a play-verify: with the first version every fight came back
+        // 104 cells open, corners included.
+        var grid = new CombatGrid();
+
+        ArenaLayout.Build(grid, (x, y) => true);
+
+        Assert.Equal(CombatTerrain.OutOfBounds, grid.TerrainAt(0, 0));
+        Assert.Equal(CombatTerrain.OutOfBounds, grid.TerrainAt(CombatGrid.Width - 1, 0));
     }
 
     [Fact]
@@ -42,15 +57,15 @@ public class ArenaLayoutTests {
         // cell that cannot see a corner of the grid still stays. Demanding a fully connected region
         // would wall off cells the game keeps.
         var grid = new CombatGrid();
-        var openCells = 0;
-        ArenaLayout.Build(new CombatGrid(), (x, y) => { openCells++; return true; });
 
-        bool Reaches(int fromX, int fromY, int toX, int toY) =>
-            (toY * CombatGrid.Width) + toX < (openCells / 2) + 2;
+        // Reaches only the left five of eight columns — about 62% of the grid, a clear majority and
+        // nowhere near fully connected.
+        bool Reaches(int fromX, int fromY, int toX, int toY) => toX < 5;
 
         ArenaLayout.Build(grid, (x, y) => true, Reaches);
 
         Assert.Equal(CombatTerrain.Open, grid.TerrainAt(4, 5));
+        Assert.Equal(CombatTerrain.Open, grid.TerrainAt(7, 5));
     }
 
     [Fact]
@@ -61,7 +76,7 @@ public class ArenaLayoutTests {
 
         int open = ArenaLayout.Build(grid, (x, y) => true);
 
-        Assert.Equal(CombatGrid.Width * CombatGrid.Height, open);
-        Assert.Equal(CombatTerrain.Open, grid.TerrainAt(0, 0));
+        Assert.Equal((CombatGrid.Width * CombatGrid.Height) - 2, open);
+        Assert.Equal(CombatTerrain.Open, grid.TerrainAt(4, 5));
     }
 }
