@@ -182,6 +182,20 @@ public static class CrystalChain {
     ///
     /// <para>The scan includes the centre cell, but the crystal there has already become a wreck by
     /// then and no longer matches the kind, so it cannot pick itself twice.</para>
+    ///
+    /// <para><b>AND THE SHIPPED GAME NEVER REACHES IT.</b> Established 2026-09-01 by reading the
+    /// binary, not canassa. <c>crystalChain_wreckOneNeighbour</c> @0x2f0e2 has exactly one caller,
+    /// inside <c>crystalChain_collapseRun</c>'s <c>dx == 0 &amp;&amp; dy == 0</c> arm — and
+    /// <c>grid_findRunAxis</c> @0x2ec96 cannot return (0,0). Its two accept paths take the deltas
+    /// from a scan that skips the (0,0) offset and its two fallbacks write (1,0) or (0,1); those
+    /// four write pairs are the only writes through its out-pointers in the whole function, and the
+    /// caller only ever negates the result.
+    ///
+    /// <para>So this rule is correct and unreachable. It stays written down — a mod or a data change
+    /// could reach it, and deleting a documented rule to chase a coverage number loses knowledge —
+    /// but <b>do not treat its absence in play as a bug, and do not spend effort making a port
+    /// reproduce it faithfully.</b> TASK-270's earlier trace lists it as step 4 of the push, which
+    /// is where the expectation would otherwise come from.</para></para>
     /// </remarks>
     public static int NeighboursTakenWhenBoxedIn => 1;
 }
