@@ -239,6 +239,23 @@ public sealed class TrapPuzzle {
 
     private static bool IsCrystalElement(int elementId) => elementId == 7 || elementId == 8;
 
+    /// <summary>
+    /// The noise a fired crystal makes — <c>sound_arrowexp</c>, <c>0x1d</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The whole consequence of shoving a diamond into a crystal is a sound, a particle burst
+    /// and a run that lights up.</b> <c>combatGrid_playTileFx</c> @0x2e9e3 stands a synthetic actor
+    /// on the tile purely so the effect machinery has something to act on, plays this, and bursts
+    /// 25 particles in colour 111. It also calls <c>ApplySpellToActor(phantom, Flamecast, cost 0)</c>
+    /// — <b>on the phantom</b>, which is freed with the stack frame, so reading that as "the crystal
+    /// damages what it hits" would invent a rule. The 100 damage tied to crystals is a different
+    /// path: an actor <i>walking onto</i> crystal ground.
+    ///
+    /// <para>The run flip either side of it (<c>crystalRun_markFiring</c> /
+    /// <c>_clearFiring</c>) is what <see cref="TraceCrystalLine"/> returns the run for.</para>
+    /// </remarks>
+    public const int FiredSoundId = 0x1d;
+
     /// <summary>The element standing on a tile, or null.</summary>
     public TrapGridElement ElementAt(int x, int y) {
         foreach (TrapGridElement e in Elements) {
