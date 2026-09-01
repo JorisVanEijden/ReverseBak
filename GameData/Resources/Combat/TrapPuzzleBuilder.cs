@@ -134,12 +134,22 @@ public sealed class TrapPuzzle {
     /// The run of crystal tiles a firing crystal sweeps, in the order the effect travels.
     /// </summary>
     /// <remarks>
-    /// <para>The original does this as two passes over the same walk: <c>spread_tile_fx_line</c>
-    /// rewrites the run's terrain from crystal (3) to lit (4), plays a short cine, then
-    /// <c>line_effect_propagate</c> walks it again rewriting 4 back to 3. <b>The terrain flip nets to
-    /// nothing</b> — it is a visual sweep along the run, and nothing reads the grid in between. So the
-    /// useful thing to port is the run itself, which is what this returns; how it is animated is the
-    /// caller's business.</para>
+    /// <para>The original does this as two passes over the same walk: <c>crystalRun_markFiring</c>
+    /// @0x2ee5a rewrites the run's terrain from crystal (3) to firing (4), plays a short cine, then
+    /// <c>crystalRun_clearFiring</c> @0x2ef2c walks it again rewriting 4 back to 3. <b>The flip nets
+    /// to nothing for any RULE</b> — nothing that decides anything reads 4 — so the useful thing to
+    /// port is the run itself, which is what this returns.
+    ///
+    /// <para><b>But something does read it, and this used to say nothing did.</b>
+    /// <c>grid_drawTileFeatureEdge</c> @0x30f4e is the only reader of element 4 in the binary, and
+    /// it outlines the run: it probes the cells before and after along the run's axis and emits an
+    /// edge exactly where a 4 meets a non-4. The flip IS the visual. A port that treats it as a
+    /// no-op has dropped the thing it exists for, which is a different mistake from animating it
+    /// differently.</para>
+    ///
+    /// <para><b>And the lit stretch is not the whole run.</b> Both passes back up to the run's end,
+    /// then advance to the first cell holding a trap ELEMENT, and only stamp from there — so the
+    /// light covers the run from its first object onward, not end to end.</para></para>
     ///
     /// <para><b>The sweep does no damage.</b> The only other thing the push does is
     /// <c>apply_tile_status_fx</c>, which builds a throwaway actor purely to play a sound and a
