@@ -20,6 +20,26 @@ using System.Collections.Generic;
 /// strip rather than an empty panel.</para>
 /// </remarks>
 public static class ActorStatsPanel {
+    /// <summary>The acting character's portrait, drawn beside the panel.</summary>
+    /// <remarks>
+    /// <b>The same routine draws the head and the text</b>, from
+    /// <c>g_pHeadsBmxAssetTable[actor-&gt;charSlot - 1]</c> — so the face in the HUD is whoever is
+    /// acting, not a fixed party slot. <b>COMBAT.DAT and SHOOT.DAT carry no portrait elements at
+    /// all</b> (only the hidden character-screen zone, id 22, sits in this region), so the travel
+    /// HUD's three portraits are not drawn during a fight and this is the only head on screen.
+    ///
+    /// <para>It is blitted to page 2 and nothing overdraws it — the parchment starts at
+    /// <see cref="ShootTargetPanel.PanelX"/>, well to the right — so it stays up through the shoot,
+    /// melee and assessment panels even though only this routine draws it.</para>
+    /// </remarks>
+    public const string PortraitImage = "HEADS.BMX";
+
+    /// <inheritdoc cref="PortraitImage"/>
+    public const int PortraitX = 0x0e;
+
+    /// <inheritdoc cref="PortraitImage"/>
+    public const int PortraitY = 0x8f;
+
     /// <summary>Left edge of the stat labels.</summary>
     public const int LabelX = 0x4e;
 
