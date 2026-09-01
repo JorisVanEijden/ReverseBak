@@ -32,10 +32,26 @@ public static class HitReaction {
     /// (<c>hitDir = 1, applyArmor = 1</c>). Only the second flinches, so a blow is rung <b>1</b> of
     /// the zone's fade ramp — the second-lightest step, 82 entries in <c>Z01.RMP</c>.
     ///
-    /// <para>Spells pass their own values through explicit <c>markActorHit</c> calls and are
-    /// deliberately not covered by this constant.</para>
+    /// <para><b>Most spell effects use 1 as well</b>, swept 2026-09-01:
+    /// <c>Spell_PlayHitPaletteFlash</c> @0x66d33, <c>Spell_TouchSlayActor</c> @0x677d2 and
+    /// <c>Cast_Drain_Strength</c> @0x6841d all pass 1. The two that differ are
+    /// <see cref="StormRemap"/> and <see cref="HealRemap"/>. <c>combat_actor_play_short_cine</c>
+    /// @0x5d8f6 and the two <c>vfx_drawRingPulseHalf</c> passes are UNSWEPT — six of eight
+    /// call sites are read, and the claim is about those six.</para>
     /// </remarks>
     public const int BlowRemap = 1;
+
+    /// <summary>The remap a storm effect flashes through — <c>markActorHit(actor, 3)</c>.</summary>
+    /// <remarks><c>Spell_PlayStormSequence</c> @0x6741b, before its lightning loop.</remarks>
+    public const int StormRemap = 3;
+
+    /// <summary>The remap a HEAL flashes through — <c>markActorHit(target, 4)</c>.</summary>
+    /// <remarks>
+    /// <b>Proof that the index is per-effect rather than "struck".</b> <c>Spell_HealTarget</c>
+    /// @0x682f3 passes 4, deeper into the fade ramp than a blow's 1 — so the same mechanism marks a
+    /// mending as well as a wounding, and a port that hard-coded one value would tint them alike.
+    /// </remarks>
+    public const int HealRemap = 4;
 
     /// <summary>How many ticks the recoil lasts — <c>hitReactionTimer = 2</c>.</summary>
     public const int Ticks = 2;
