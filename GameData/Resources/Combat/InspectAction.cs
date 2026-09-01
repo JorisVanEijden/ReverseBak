@@ -9,18 +9,23 @@ namespace GameData.Resources.Combat;
 /// then clicks. See <see cref="CombatCommandOutcome"/> for the arm-versus-resolve split.</para>
 /// </summary>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-241).</b> Blocked on the combat stats panel
-/// (<c>combat_actor_draw_stats_panel</c>) and on switching the arena's displayed actor
-/// (<c>combat_arena_switch_active_actor</c>). Neither exists, so a successful inspect would spend
-/// the turn and show nothing.
+/// <b>WHAT INSPECT SHOWS IS <see cref="CombatAssessment"/>, AND THIS REMARK HAD IT WRONG TWICE.</b>
+/// It first named the shoot menu's target panel, then — corrected on 2026-08-30 — claimed the arm
+/// "switches the active actor, after which the HUD's default branch draws the stats panel for
+/// whoever is now current". <b>Neither is what happens.</b>
 ///
-/// <para><b>It is NOT blocked on <c>combat_arena_draw_tgt_info_panel</c>, which this remark used to
-/// name.</b> That panel draws "Choose a target", the quarrel name and an accuracy number, and
-/// COMBAT.C:2543 raises it only when <c>menu == g_shoot_menu</c> — it belongs to shooting. Inspect's
-/// own arm (case 3) draws nothing at all: it clears the actor's Ready bit and switches the active
-/// actor, after which the HUD's ordinary default branch draws the stats panel for whoever is now
-/// current. The enemy's numbers appear because the enemy became the current actor, not because
-/// inspection has a panel of its own.</para>
+/// <para><c>combat_arena_switch_active_actor</c> (COMBAT.C:1476) <b>never assigns
+/// <c>g_current_actor</c></b>. Its whole body is: unload the spell subsystem and its tables to free
+/// heap, call <c>combatenc_anim_actor_stat_rolls(target)</c>, reload them, and wait for the button
+/// to be released. The name describes nothing the routine does — reading it as a switch is what
+/// produced the wrong note, twice.</para>
+///
+/// <para>What the player actually sees is an <b>assessment</b>: up to eight of the target's stats,
+/// each revealed only if the INSPECTOR passes a d100 roll against their own Assessment skill, drawn
+/// over the world view in two columns of three, bracketed by dialog records
+/// <see cref="CombatAssessment.OpeningDialog"/> and <see cref="CombatAssessment.ClosingDialog"/>.
+/// So Inspect is the Assessment skill's one use in combat, and the reason it can show nothing
+/// useful is a bad roll rather than a missing panel.</para>
 ///
 /// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
 /// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
