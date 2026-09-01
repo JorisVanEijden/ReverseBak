@@ -329,4 +329,48 @@ public class TrapPuzzleBuilderTests {
         // Nothing on the result says "damage"; the caller animates the run and plays the burst.
         Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 4));
     }
+
+    // ---- the crystal ground between linked crystals -----------------------------------------
+
+    [Fact]
+    public void TwoAlignedCrystalsGetTheGroundBetweenThem() {
+        // *** TRAPS.DAT STORES THE CRYSTALS AND NOT THE GROUND BETWEEN THEM. *** Load_traps.dat
+        // paints it (crystalChain_paintLinksFromIndex @0x2f707 -> crystalChain_linkCells @0x2ea83)
+        // and this builder did not, so every crystal was ISOLATED BY CONSTRUCTION — and crystal
+        // ground is what TileCarriesRun, RunContinues, IsolationDestroys and TraceCrystalLine all
+        // read. Four correct rules, all answering wrongly.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5), (7, 5, 5)));
+
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 5));
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(4, 5));
+        Assert.True(CrystalChain.RunContinues(puzzle, 2, 5, 7), "the run reaches its neighbour");
+    }
+
+    [Fact]
+    public void ADiagonalPairIsLinkedToo() {
+        // crystalTrapsAligned accepts same row, same column, OR a perfect diagonal.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((8, 1, 1), (8, 4, 4)));
+
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(2, 2));
+        Assert.Equal(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 3));
+    }
+
+    [Fact]
+    public void CrystalsOfDIFFERENTKindsAreNotLinked() {
+        // The same-id test is not redundant with the crystal test: a red and a green crystal are
+        // both crystals and are NOT a pair. Reading it as "both are crystals" would join every
+        // crystal on the board to every other.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5), (8, 5, 5)));
+
+        Assert.NotEqual(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 5));
+    }
+
+    [Fact]
+    public void AnUnalignedPairIsNotLinked() {
+        // Neither row, column nor diagonal — 3 across and 1 down.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements((7, 2, 5), (7, 5, 6)));
+
+        Assert.NotEqual(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(3, 5));
+        Assert.NotEqual(CombatTerrain.Crystal, puzzle.Grid.TerrainAt(4, 6));
+    }
 }

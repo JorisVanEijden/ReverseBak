@@ -313,7 +313,70 @@ public static class TrapPuzzleBuilder {
                 PlaceNegative(puzzle, -type, x, y, partySize);
             }
         }
+
+        LinkCrystals(puzzle);
         return puzzle;
+    }
+
+    /// <summary>
+    /// Lay the crystal ground that joins every aligned pair of crystals.
+    /// </summary>
+    /// <remarks>
+    /// <b>TRAPS.DAT stores the crystals and NOT the ground between them.</b>
+    /// <c>Load_traps.dat</c> calls <c>crystalChain_paintLinksFromIndex</c> @0x2f707, which walks
+    /// every pair and hands the aligned ones to <c>crystalChain_linkCells</c> @0x2ea83 to paint.
+    /// This pass was missing entirely, so <b>every crystal was isolated by construction</b> — and
+    /// crystal ground is what <see cref="CrystalChain.TileCarriesRun"/>,
+    /// <see cref="CrystalChain.RunContinues"/>, <see cref="CrystalChain.IsolationDestroys"/> and
+    /// <see cref="TraceCrystalLine"/> all read. Four correct rules, all answering wrongly.
+    ///
+    /// <para><b>The endpoints are not painted here</b>, and that is the original's shape rather than
+    /// an optimisation: its walk advances before it paints, so the ends keep whatever
+    /// <see cref="PlacePositive"/> gave them. Painting them again would be harmless today and wrong
+    /// the moment the two differ.</para>
+    ///
+    /// <para><b>The run overwrites what it crosses.</b> The original applies the crystal element to
+    /// every cell on the line unconditionally, so a diamond parked between two aligned crystals has
+    /// its terrain replaced. Kept, because a port that skipped occupied cells would leave a hole in
+    /// a run the game paints solid.</para>
+    /// </remarks>
+    private static void LinkCrystals(TrapPuzzle puzzle) {
+        for (var a = 0; a < puzzle.Elements.Count; a++) {
+            for (var b = a + 1; b < puzzle.Elements.Count; b++) {
+                // The original does not restrict b > a and paints each run twice; the paint is
+                // idempotent, so half the pairs give the same grid.
+                if (Aligned(puzzle.Elements[a], puzzle.Elements[b])) {
+                    PaintRunBetween(puzzle, puzzle.Elements[a], puzzle.Elements[b]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether two elements are a linked pair — <c>crystalTrapsAligned</c> @0x2f5ec.
+    /// </summary>
+    /// <remarks>
+    /// Three conditions, all required: the <b>same</b> element id, <b>both</b> crystals, and a
+    /// straight or perfectly diagonal offset. The same-id test is not redundant with the crystal
+    /// test — a red crystal and a green one are both crystals and are <b>not</b> linked.
+    /// </remarks>
+    private static bool Aligned(TrapGridElement a, TrapGridElement b) =>
+        a.ElementId == b.ElementId
+        && CrystalChain.IsCrystalElement(a.ElementId)
+        && CrystalChain.IsCrystalElement(b.ElementId)
+        && (a.X == b.X || a.Y == b.Y
+            || System.Math.Abs(a.X - b.X) == System.Math.Abs(a.Y - b.Y));
+
+    private static void PaintRunBetween(TrapPuzzle puzzle, TrapGridElement from, TrapGridElement to) {
+        int dx = System.Math.Sign(to.X - from.X);
+        int dy = System.Math.Sign(to.Y - from.Y);
+        if (dx == 0 && dy == 0) {
+            return;   // two elements on one cell: the original's walk would never terminate
+        }
+
+        for (int x = from.X + dx, y = from.Y + dy; x != to.X || y != to.Y; x += dx, y += dy) {
+            puzzle.Grid.SetTerrain(x, y, CombatTerrain.Crystal);
+        }
     }
 
     // A positive id is an element that stands on the grid. Anything that is not a crystal or a
