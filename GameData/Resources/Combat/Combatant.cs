@@ -53,7 +53,15 @@ public enum CombatantFlags {
     /// bearer's own turn.</summary>
     Poisoned = 0x20,
 
-    /// <summary>Knocked back — <c>CAF_KNOCKBACK</c>. Here for the bit; nothing reads it yet.</summary>
+    /// <summary>
+    /// Knocked back — <c>CAF_KNOCKBACK</c>, which is also the <b>hit-reaction</b> state.
+    /// </summary>
+    /// <remarks>
+    /// No longer "here for the bit": <c>markActorHit</c> @0x6157d sets it together with a 2-tick
+    /// timer and a direction, and <c>tickHitReactionTimers</c> @0x61598 clears it when the timer
+    /// runs out. See <see cref="HitReaction"/> for the rule and for why IDA's comments naming this
+    /// bit <c>0x64</c> are wrong.
+    /// </remarks>
     Knockback = 0x40,
 
     /// <summary>Summoned by the AI — <c>CAF_AI_SUMMON</c>. Here for the bit; nothing reads it yet.</summary>
