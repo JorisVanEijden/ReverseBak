@@ -114,6 +114,13 @@ public static class CrystalChain {
     /// <b>All eight neighbours count, diagonals included.</b> A crystal held only by a corner is
     /// still held — treating the run as orthogonal would destroy chains the original keeps, and
     /// diagonal links are how the shipped puzzles snake across the grid.
+    ///
+    /// <para>Confirmed against the binary 2026-09-01: <c>crystalChain_hasNeighbour</c> @0x2f063 is
+    /// this predicate. <b>It asks the four orthogonals first</b> (delegated to
+    /// <c>crystalChain_hasOrthogonalNeighbour</c> @0x2f2a3) <b>and then the four diagonals</b>,
+    /// where this sweeps all eight uniformly. The probe has no side effects and both return on the
+    /// first hit, so the answer is identical and the order is not worth matching — noted only so
+    /// nobody reads the difference as a bug and "fixes" it.</para>
     /// </remarks>
     public static bool RunContinues(TrapPuzzle puzzle, int x, int y, int kind) {
         for (var dx = -1; dx <= 1; dx++) {
