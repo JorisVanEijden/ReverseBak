@@ -105,6 +105,24 @@ public sealed class Combatant {
     /// <summary>State flags.</summary>
     public CombatantFlags Flags { get; set; } = CombatantFlags.Ready;
 
+    /// <summary>Which frame of the walk cycle this combatant is currently showing, 0..2.</summary>
+    /// <remarks>
+    /// <b>It lives on the COMBATANT because the sprite does not survive.</b> Every combat redraw
+    /// destroys the arena's GameObjects and builds them again, so a gait kept on the renderer
+    /// restarts at frame 0 on every step — measured as a visible snap back at the end of each
+    /// slide. The original puts it in the same place for the same reason: <c>creatueBitmapAnim</c>
+    /// is a field of <c>p7times17bytes[actorIndex]</c>, a per-ACTOR array that outlives any drawing.
+    ///
+    /// <para>Two fields, not one: the cycle is a ping-pong (0, 1, 2, 1, 0 …), so frame 1 is
+    /// ambiguous about where it is going and the direction has to be carried with it. See
+    /// <see cref="World.EncounterActorPose.Advance"/>.</para>
+    /// </remarks>
+    public int GaitFrame { get; set; }
+
+    /// <summary>Whether the walk cycle is currently running up rather than back down.</summary>
+    /// <inheritdoc cref="GaitFrame"/>
+    public bool GaitAdvancing { get; set; } = true;
+
     /// <summary>Whoever this combatant is currently fighting.</summary>
     public Combatant Target { get; set; }
 
