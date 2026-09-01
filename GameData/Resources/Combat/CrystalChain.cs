@@ -12,6 +12,31 @@ namespace GameData.Resources.Combat;
 /// <b>AWAITING ITS FEATURE (TASK-270).</b> The crystal-push puzzle is not on the grid yet: the rules are ported and no encounter
 /// runs them.
 ///
+/// <para><b>THE RULES ARE HERE; THE PROCEDURE THAT APPLIES THEM IS NOT.</b> Traced 2026-09-01 so
+/// TASK-270 does not have to re-derive it. Stepping on a crystal runs
+/// <c>crystalChain_collapseUntilIsolated</c> @0x2f259:</para>
+/// <code>
+/// elem = element at (x, y)
+/// play the tile fx — sound and burst only, no spell
+/// while (RunContinues(x, y, elem.kind))          // crystalChain_hasNeighbour @0x2f063
+///     collapseRun(x, y)                          // crystalChain_collapseRun  @0x2f142
+/// </code>
+/// <para>and one <c>collapseRun</c> is:</para>
+/// <code>
+/// axis = FindLineDirection(x, y)                 // grid_findRunAxis @0x2ec96
+/// if an element sits one step along the axis, REVERSE it   // walk away from the occupied side
+/// walk from (x,y) along the axis, setting each cell's element to 0, until a cell holds an
+///     element or the walk leaves the grid          // *** this ERASES the crystal GROUND ***
+/// if (IsolationDestroys(origin))  wreck(origin)
+/// if (IsolationDestroys(end))     wreck(end)       // BOTH ends, independently
+/// </code>
+///
+/// <para><b>The ground erasure is the part this class has no expression for.</b>
+/// <see cref="IsolationDestroys"/> and <see cref="NeighboursTakenWhenBoxedIn"/> both describe what
+/// happens to ELEMENTS; the walk also un-paints the crystal terrain along the run, which is a change
+/// to the tile rather than to anything standing on it. <c>TrapPuzzle.TryPush</c> clears only the one
+/// tile a pushed element left.</para>
+///
 /// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
 /// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
 /// to re-triage every run.</para>
