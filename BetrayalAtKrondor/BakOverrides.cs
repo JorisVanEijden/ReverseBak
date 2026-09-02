@@ -492,18 +492,129 @@ public class BakOverrides : CSharpOverrideHelper {
     /// </summary>
     private void DefineFunctionIda(ushort idaSegment, ushort offset, Func<int, Action> overrideFunc,
         bool failOnExisting = true, string? name = null) {
-        uint idaLinear = MemoryUtils.ToPhysicalAddress(idaSegment, offset);
-        uint runtimeLinear = idaLinear - OverlayAddressTranslator.RelocationDelta;
-        ushort runtimeSegment = (ushort)(runtimeLinear >> 4);
-        ushort runtimeOffset = (ushort)(runtimeLinear & 0xF);
-        DefineFunction(runtimeSegment, runtimeOffset, overrideFunc, failOnExisting, name);
+        DefineFunction(RuntimeSegment(idaSegment), offset, overrideFunc, failOnExisting, name);
+    }
+
+    /// <summary>
+    /// Relocate an IDA segment to the segment the program actually runs in, keeping the offset.
+    /// <para><see cref="SegmentedAddress" /> is a record struct, so overrides are looked up by
+    /// (Segment, Offset) equality and NOT by linear address. Normalising to
+    /// <c>segment = linear >> 4, offset = linear &amp; 0xF</c> therefore yields a key that no CALL can
+    /// ever match, even though it denotes the same physical byte — which is why this must relocate
+    /// the segment base and leave the offset alone.</para>
+    /// </summary>
+    private static ushort RuntimeSegment(ushort idaSegment) =>
+        (ushort)((MemoryUtils.ToPhysicalAddress(idaSegment, 0) - OverlayAddressTranslator.RelocationDelta) >> 4);
+
+    /// <summary>
+    /// DoOnTopOfInstruction wrapper that converts IDA seg:offset to runtime seg:offset,
+    /// the same relocation the <see cref="DefineFunctionIda" /> path applies. Use this to
+    /// observe or adjust state at an instruction while leaving the original code running;
+    /// DefineFunctionIda replaces a function outright.
+    /// </summary>
+    private void DoOnTopOfInstructionIda(ushort idaSegment, ushort offset, Action action) {
+        DoOnTopOfInstruction(RuntimeSegment(idaSegment), offset, action);
     }
 
     private void DefineFunctions() {
-        DefineFunctionIda(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
+        // DISABLED 2026-09-02. This override never actually ran until DefineFunctionIda's address
+        // bug was fixed today (it registered a segment:offset pair no CALL could match — see
+        // RuntimeSegment). With it live for the first time, the game boots to a black screen and
+        // never reaches the main menu, so the C# body is NOT a faithful replacement for the asm it
+        // masks: it reads resource.cfg and drive.cfg and does nothing else. Re-enable only after
+        // diffing it against LoadConfig @0x384B0.
+        // DefineFunctionIda(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
+        DefineChapterSpike();
+    }
+
+    /// <summary>
+    /// Opt-in harness for capturing a chapter's cutscenes without playing to them: set
+    /// <c>BAK_SPIKE_CHAPTER=N</c> and "New Game" plays chapter N's scenes instead of chapter 1's.
+    /// Off unless the variable is set, so a normal run is untouched.
+    ///
+    /// <para><c>_main</c> @seg020:0x0E65 starts a new game with a literal
+    /// <c>playChapterAnimationsAndBook(chapter: 1, part: 1, scene: 1)</c> (<c>push 10001h; push 1</c>),
+    /// which plays CHAPTER1.ADS, then the C11.BOK book, then C11.ADS. The callee builds the scene
+    /// name from the digits of <c>"C00."</c> — <c>buffer[1] += chapterNr; buffer[2] += partNr</c> —
+    /// so chapter 2 part 1 loads C21.ADS with nothing else changed.</para>
+    /// </summary>
+    /// <summary>IDA's seg020 (base 0x20830), the resident segment holding _main and the chapter
+    /// scene players. Offsets passed alongside it are IDA offsets within that segment.</summary>
+    private const ushort Seg020 = 0x2083;
+
+    private void DefineChapterSpike() {
+        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_SPIKE_CHAPTER"), out int chapter) || chapter is < 1 or > 9) {
+            return;
+        }
+        _loggerService.Information("Chapter spike: armed for chapter {Chapter}", chapter);
+
+        // PlayIntro @seg020:0x038C runs the Sierra logo and the animated intro before the menu is
+        // ever shown, and skipping it by keyboard is timing-dependent (tried; unreliable). Stub it
+        // to a far return — `push cs; call near ptr PlayIntro` at seg020:0x0E4A returns far.
+        DefineFunctionIda(Seg020, 0x038C, SkipIntro, true, nameof(SkipIntro));
+
+        // showMainMenu BLOCKS waiting for input, so a hook on `mov si, ax` at seg020:0x0E5E (which
+        // is what _main does with the result) never runs — the menu never returns on its own.
+        // Replace the menu itself instead: _main calls it at seg020:0x0E58 as `9A 2A 00 6F 39`, a
+        // far call to 0x396F:0x002A. Returning mainMenu_newGame (2, from the `cmp si, 2` at
+        // seg020:0x0E60) takes the new-game branch with no keyboard timing involved.
+        // Once only: _main loops back to the menu when the chapter ends, and it should answer for
+        // itself after that rather than restarting the chapter forever.
+        DefineFunctionIda(0x396F, 0x002A, ChooseNewGameOnce, true, nameof(ChooseNewGameOnce));
+
+        // playChapterAnimationsAndBook @seg020:0x05AA — past `push bp; mov bp, sp`, so the far-call
+        // frame is addressable. IDA lists chapterNrP at frame offset 0x20, but those offsets are
+        // relative to the bottom of the local area, not to BP: __saved_registers sits at 0x1A and
+        // IS bp+0, so the arguments start at bp+6. Reading bp+0x20 returned garbage (19292).
+        DoOnTopOfInstructionIda(Seg020, 0x05AA, () => {
+            uint chapterArg = MemoryUtils.ToPhysicalAddress(State.SS, (ushort)(State.BP + 6));
+            if (UInt16[chapterArg] == chapter) {
+                return;
+            }
+            _loggerService.Information("Chapter spike: playChapterAnimationsAndBook chapter {Was} -> {Now}",
+                UInt16[chapterArg], chapter);
+            UInt16[chapterArg] = (ushort)chapter;
+        });
+
+        // playChapterBook @seg020:0x04F1 sits between the title animation and the story scene and
+        // blocks on page turns. Replace it with a far return (the `push cs; call near ptr` at
+        // seg020:0x066C returns far, and the caller does its own `add sp, 4`) so the capture reaches
+        // C<chapter>1.ADS unattended. Returns 0 = the book was not aborted.
+        DefineFunctionIda(Seg020, 0x04F1, SkipChapterBook, true, nameof(SkipChapterBook));
+    }
+
+    private bool _menuForced;
+
+    private Action ChooseNewGameOnce(int _) {
+        if (_menuForced) {
+            // Hand the menu back to the player: re-running the original is not possible from here,
+            // so answer 6 ("show the menu again"), the value _main itself starts with.
+            State.AX = 6;
+
+            return FarRet();
+        }
+        _menuForced = true;
+        _loggerService.Information("Chapter spike: answering showMainMenu with newGame(2)");
+        State.AX = 2;
+
+        return FarRet();
+    }
+
+    private Action SkipIntro(int _) {
+        _loggerService.Information("Chapter spike: skipping PlayIntro");
+
+        return FarRet();
+    }
+
+    private Action SkipChapterBook(int _) {
+        _loggerService.Information("Chapter spike: skipping playChapterBook");
+        State.AX = 0;
+
+        return FarRet();
     }
 
     private Action LoadConfig(int _) {
+        _loggerService.Information("LoadConfig override entered");
         string resourceConfigFilePath = _gameEngine.DataPath + "/resource.cfg";
         if (File.Exists(resourceConfigFilePath)) {
             LoadResourceConfig(resourceConfigFilePath);
