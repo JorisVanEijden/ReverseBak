@@ -34,5 +34,14 @@ public static class SpellProjectileSound {
 
     /// <summary>Whether a cast flies a projectile at all.</summary>
     /// <param name="hasTargetActor">Whether the cast has a destination actor.</param>
-    public static bool Flies(bool hasTargetActor) => hasTargetActor;
+    /// <param name="animationEffectType">The spell record's <c>AnimationEffectType</c>.</param>
+    /// <remarks>
+    /// <b>Both conditions, and the second is the one that is easy to miss.</b> These cues live
+    /// inside <c>Spell_ApplyHitWithProjectile</c>, which <c>Spell_RunAnimationEffect</c> reaches on
+    /// one arm of a 20-case switch — see <see cref="CombatEffectSprite.ProjectileAnimationType"/>.
+    /// A spell with no destination actor flies nothing; so does a spell whose animation is a
+    /// palette fade rather than a missile, and there are far more of the latter.
+    /// </remarks>
+    public static bool Flies(bool hasTargetActor, int animationEffectType) =>
+        hasTargetActor && CombatEffectSprite.FliesProjectile(animationEffectType);
 }

@@ -21,8 +21,29 @@ public static class CombatEffectSprite {
     /// <summary>Bane of Black Slayers' own sprite — COMBAT.TBL <c>jack</c>.</summary>
     public const int BaneOfBlackSlayers = 3;
 
-    /// <summary>Every other spell — COMBAT.TBL <c>spell5</c>.</summary>
+    /// <summary>The remaining projectile spell — COMBAT.TBL <c>spell5</c>.</summary>
+    /// <remarks>
+    /// <b>"Every other spell" was wrong, and the number of users is ONE.</b> The projectile routine
+    /// is only reached for spells whose <c>AnimationEffectType</c> is
+    /// <see cref="ProjectileAnimationType"/>, and the shipped table has exactly three of those —
+    /// Flamecast, Bane of Black Slayers and <b>The Fetters of Rime</b>. The first two have bespoke
+    /// sprites, so this default belongs to Fetters of Rime alone.
+    /// </remarks>
     public const int GenericSpell = 50;
+
+    /// <summary>The <c>AnimationEffectType</c> whose arm flies a projectile at all.</summary>
+    /// <remarks>
+    /// <b>Most spells fly nothing.</b> <c>Spell_RunAnimationEffect</c> @0x6782f switches on
+    /// <c>spellData.animationEffectType</c> across 20 cases and only case 3 calls
+    /// <c>Spell_ApplyHitWithProjectile</c> — case 0 fades the palette, case 2 flashes it on the
+    /// target, and so on. Arming a projectile for every targeted cast gives a whistling missile to
+    /// Candle Glow.
+    /// </remarks>
+    public const int ProjectileAnimationType = 3;
+
+    /// <summary>Whether a spell flies a projectile.</summary>
+    public static bool FliesProjectile(int animationEffectType) =>
+        animationEffectType == ProjectileAnimationType;
 
     private const int FlamecastSpellId = 4;
     private const int BaneOfBlackSlayersSpellId = 9;

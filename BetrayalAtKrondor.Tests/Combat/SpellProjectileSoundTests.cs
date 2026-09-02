@@ -10,8 +10,9 @@ public class SpellProjectileSoundTests {
     /// <summary>Only a cast with a destination actor flies anything.</summary>
     [Fact]
     public void AGroundAimedCastFliesNothing() {
-        Assert.False(SpellProjectileSound.Flies(hasTargetActor: false));
-        Assert.True(SpellProjectileSound.Flies(hasTargetActor: true));
+        int flying = CombatEffectSprite.ProjectileAnimationType;
+        Assert.False(SpellProjectileSound.Flies(hasTargetActor: false, flying));
+        Assert.True(SpellProjectileSound.Flies(hasTargetActor: true, flying));
     }
 
     /// <summary>The launch and the impact are different sounds.</summary>
