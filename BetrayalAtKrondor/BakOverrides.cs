@@ -1,9 +1,9 @@
 namespace BetrayalAtKrondor;
 
+using Microsoft.Extensions.Logging;
 using BetrayalAtKrondor.Mcp;
 using BetrayalAtKrondor.Overrides.Libraries;
 using GameData;
-using Serilog.Events;
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.Memory.ReaderWriter;
@@ -36,7 +36,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private const int ExtraSoundDriverSegment = 0x8300;
 
     public BakOverrides(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine,
-        ILoggerService loggerService, Configuration configuration, OverlayAddressTranslator translator) : base(functionsInformation,
+        ILogger loggerService, Configuration configuration, OverlayAddressTranslator translator) : base(functionsInformation,
         machine, loggerService, configuration) {
         _translator = translator;
         _globalSettings = new GlobalSettings(machine.Memory);
@@ -50,7 +50,7 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void LogDialogBuildCall() {
-        _loggerService.Information("dialog_Build?Show? called: dialogIdOrOffset: {Arg0}, arg_4: {Arg4}", Stack.Peek32(4), Stack.Peek16(8));
+        _loggerService.LogInformation("dialog_Build?Show? called: dialogIdOrOffset: {Arg0}, arg_4: {Arg4}", Stack.Peek32(4), Stack.Peek16(8));
     }
 
     private void DefineBreakpoints() {
@@ -79,7 +79,7 @@ public class BakOverrides : CSharpOverrideHelper {
         // PauseAt("16C5:16FC", "word_dseg_2DE != 0");
 
         // DoOnTopOfInstruction("16C5:16FC", () => {
-        //     _loggerService.Information("word_dseg_2DE = 0x{Value:X4}", State.BX);
+        //     _loggerService.LogInformation("word_dseg_2DE = 0x{Value:X4}", State.BX);
         //     _pauseHandler.RequestPause();
         // });
         //
@@ -89,49 +89,49 @@ public class BakOverrides : CSharpOverrideHelper {
 
         // DoOnTopOfInstruction("327D:0000", () => {
         //     _args.Get(out ushort stream, out uint nrOfBytes, out uint pBuffer);
-        //     _loggerService.Information("[{Caller}] sub_seg045_0(stream: {Stream}, nrOfBytes: {NrOfBytes}, pBuffer: {PBuffer:X8})", CallerAddress(), stream, nrOfBytes, pBuffer);
+        //     _loggerService.LogInformation("[{Caller}] sub_seg045_0(stream: {Stream}, nrOfBytes: {NrOfBytes}, pBuffer: {PBuffer:X8})", CallerAddress(), stream, nrOfBytes, pBuffer);
         // });
         // DoOnTopOfInstruction("3239:000C", () => {
         //     _args.Get(out ushort stream, out byte arg2);
-        //     _loggerService.Information("[{Caller}] resourceLoadSound(stream: {Stream}, arg2: {Arg2})", CallerAddress(), stream, arg2);
+        //     _loggerService.LogInformation("[{Caller}] resourceLoadSound(stream: {Stream}, arg2: {Arg2})", CallerAddress(), stream, arg2);
         // });
         // DoOnTopOfInstruction("3556:000F", () => {
         //     _args.Get(out ushort stream, out ushort soundId);
-        //     _loggerService.Information("[{Caller}] resourceLoadSx(stream: {Stream}, soundId: {SoundId})", CallerAddress(), stream, soundId);
+        //     _loggerService.LogInformation("[{Caller}] resourceLoadSx(stream: {Stream}, soundId: {SoundId})", CallerAddress(), stream, soundId);
         //     // _pauseHandler.RequestPause("step from here");
         // });
 
         // DoOnTopOfInstruction("1834:7320", () => {
         //     _args.Get(out ushort index, out ushort offset, out ushort segment, out ushort size);
-        //     _loggerService.Information("[{Caller}] resourceLoadCurrentFile(index: {Index}, pBuffer: {Segment:X4}:{Offset:X4}, size: {Size} (0x{SizeHex:X4}))", CallerAddress(), index, segment, offset, size, size);
+        //     _loggerService.LogInformation("[{Caller}] resourceLoadCurrentFile(index: {Index}, pBuffer: {Segment:X4}:{Offset:X4}, size: {Size} (0x{SizeHex:X4}))", CallerAddress(), index, segment, offset, size, size);
         // });
 
         // DoOnTopOfInstruction("158B:0121", () => {
         //     _args.Get(out uint size, out ushort flag);
-        //     _loggerService.Information("[{Caller}] audio_allocate_memory(flag: {Flag}, size: {Size} (0x{SizeHex:X8}))", CallerAddress(), flag, size, size);
+        //     _loggerService.LogInformation("[{Caller}] audio_allocate_memory(flag: {Flag}, size: {Size} (0x{SizeHex:X8}))", CallerAddress(), flag, size, size);
         // });
         // DoOnTopOfInstruction("158B:01AF", () => {
-        //     _loggerService.Information("[{Caller}] allocated audio memory at: {Segment:X4}:{Offset:X4}", CallerAddress(), State.DX, State.AX);
+        //     _loggerService.LogInformation("[{Caller}] allocated audio memory at: {Segment:X4}:{Offset:X4}", CallerAddress(), State.DX, State.AX);
         // });
 
         // DoOnTopOfInstruction("1834:649F", () => {
         //     string dump = Stack.PeekWindow(6);
-        //     _loggerService.Information("[{Caller}] {Dump}", CallerAddress(), dump);
+        //     _loggerService.LogInformation("[{Caller}] {Dump}", CallerAddress(), dump);
         //     // _pauseHandler.RequestPause("check 39DD:5FA9");
         // });
 
         // DoOnTopOfInstruction("327D:0208", () => {
         //     _args.Get(out ushort index, out byte soundFormat);
-        //     _loggerService.Information("[{Caller}] sub_seg045_208(index: {Index}, soundFormat: {Arg2:X2})", CallerAddress(), index, soundFormat);
+        //     _loggerService.LogInformation("[{Caller}] sub_seg045_208(index: {Index}, soundFormat: {Arg2:X2})", CallerAddress(), index, soundFormat);
         //     if (soundFormat != 0x0) {
-        //         _loggerService.Warning("soundFormat = {SoundFormat:X2}", soundFormat);
+        //         _loggerService.LogWarning("soundFormat = {SoundFormat:X2}", soundFormat);
         //     }
         //     // _pauseHandler.RequestPause("step from here");
         // });
 
         // DoOnTopOfInstruction("1834:7441", () => {
         //     _args.Get(out ushort index, out uint size, out ushort compressedMaybe);
-        //     _loggerService.Information("[{Caller}] resourceReadFileData(index: {Index}, size: {Size} (0x{SizeHex:X8})), compressedMaybe: {CompressedMaybe})", CallerAddress(), index, size, size, compressedMaybe);
+        //     _loggerService.LogInformation("[{Caller}] resourceReadFileData(index: {Index}, size: {Size} (0x{SizeHex:X8})), compressedMaybe: {CompressedMaybe})", CallerAddress(), index, size, size, compressedMaybe);
         // });
 
         // DoOnMemoryWrite(0x39DD, 0x3698, () => _pauseHandler.RequestPause("word_dseg_3698 was written to"));
@@ -144,25 +144,25 @@ public class BakOverrides : CSharpOverrideHelper {
         //
         // DoOnTopOfInstruction("32E5:000B", () => {
         //     _args.Get(out string path, out string tag, out ushort arg4);
-        //     _loggerService.Information("[{Caller}] LoadSoundCodeOverlay(path: {Path}, tag: {Tag}, arg4: {Arg4})", CallerAddress(), path,
+        //     _loggerService.LogInformation("[{Caller}] LoadSoundCodeOverlay(path: {Path}, tag: {Tag}, arg4: {Arg4})", CallerAddress(), path,
         //         tag, arg4);
         // });
         //
         // DoOnTopOfInstruction("8300:0000", () => {
         //     if (State.AX != 1) {
-        //         _loggerService.Information("[{Caller}] Extra AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.AX);
+        //         _loggerService.LogInformation("[{Caller}] Extra AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.AX);
         //     }
         // });
         // DoOnTopOfInstruction("8000:0000", () => {
         //     if (State.BP != 3) {
-        //         _loggerService.Information("[{Caller}] AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.BP);
+        //         _loggerService.LogInformation("[{Caller}] AudioDriver Dispatcher function {FunctionId:X2}", CallerAddress(), State.BP);
         //     }
         // });
     }
 
     private Action LogBx(string message) {
         return () => {
-            _loggerService.Information("{Message} = 0x{Value:X4}", message, State.BX);
+            _loggerService.LogInformation("{Message} = 0x{Value:X4}", message, State.BX);
         };
     }
 
@@ -191,23 +191,23 @@ public class BakOverrides : CSharpOverrideHelper {
         var reader = new BinaryReader(new MemoryStream(bytes));
         ushort type = reader.ReadUInt16();
         if (type == 0x0FF0) {
-            _loggerService.Information("FrameCommand: [{Type:X4}] (End of frame)", type);
+            _loggerService.LogInformation("FrameCommand: [{Type:X4}] (End of frame)", type);
 
             return;
         }
         var command = ResourceExtraction.Extractors.Animation.TtmExtractor.GetFrameCommand(type, reader);
-        _loggerService.Information("FrameCommand: [{Type:X4}] {Command}", type, command);
+        _loggerService.LogInformation("FrameCommand: [{Type:X4}] {Command}", type, command);
     }
 
     private void LogAt(string address, string message) {
         DoOnTopOfInstruction(address, () => {
-            _loggerService.Information("{Message}", message);
+            _loggerService.LogInformation("{Message}", message);
         });
     }
 
     private void LogColorCycle() {
         _args.Get(out ushort start, out ushort length, out ushort color, out ushort blendAmount);
-        _loggerService.Information(
+        _loggerService.LogInformation(
             "[{Segment:X4}:{Offset:X4}] ColorCycle(start: {Length:X4}, end: {Start:X4}, color: {Color:X4}, blendAmount: {BlendAmount:X4})",
             State.CS, State.IP, length, start, color, blendAmount);
     }
@@ -220,14 +220,14 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private void LogAllocateMemory() {
         _args.Get(out uint sizeInBytes, out uint boolClear);
-        _loggerService.Information("AllocateMemory({BoolClear}, {SizeInBytes})", boolClear, sizeInBytes);
+        _loggerService.LogInformation("AllocateMemory({BoolClear}, {SizeInBytes})", boolClear, sizeInBytes);
     }
 
     private void AddDWordMemoryMonitor(string address, string name) {
         (ushort segment, ushort offset) = ToSegmentOffset(address);
         DoOnMemoryWrite(segment, (ushort)(offset + 3), () => {
             _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
-            _loggerService.Information(
+            _loggerService.LogInformation(
                 "[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: {ValueSegment:X4}:{ValueOffset:X4}",
                 idaSegment, State.IP, name, segment, offset, Memory.UInt16[segment, (ushort)(offset + 2)], Memory.UInt16[segment, offset]);
         });
@@ -238,7 +238,7 @@ public class BakOverrides : CSharpOverrideHelper {
 
         return () => {
             var stringAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
-            _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value}", segment, offset,
+            _loggerService.LogInformation("{Segment:X4}:{Offset:X4} = {Value}", segment, offset,
                 Memory.GetZeroTerminatedString(stringAddress, 100));
         };
     }
@@ -255,7 +255,7 @@ public class BakOverrides : CSharpOverrideHelper {
                     idaSegment = State.CS;
                 }
                 int writtenValue = lowByte | Memory.CurrentlyWritingByte << 8;
-                _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
+                _loggerService.LogInformation("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
                     idaSegment, State.IP, name, segment, offset, writtenValue);
                 _wordLowByteWrites.Remove(physicalAddress);
             }
@@ -269,7 +269,7 @@ public class BakOverrides : CSharpOverrideHelper {
                 idaSegment = State.CS;
             }
             int writtenValue = Memory.CurrentlyWritingByte;
-            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X2}",
+            _loggerService.LogInformation("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X2}",
                 idaSegment, State.IP, name, segment, offset, writtenValue);
         });
     }
@@ -282,7 +282,7 @@ public class BakOverrides : CSharpOverrideHelper {
             }
             uint physicalAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
             int readValue = Memory.Ram.Read(physicalAddress) | Memory.Ram.Read(physicalAddress + 1) << 8;
-            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory read at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
+            _loggerService.LogInformation("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory read at {Segment:X4}:{Offset:X4}: 0x{Value:X4}",
                 idaSegment, State.IP, name, segment, offset, readValue);
         });
     }
@@ -291,37 +291,37 @@ public class BakOverrides : CSharpOverrideHelper {
         (ushort segment, ushort offset) = ToSegmentOffset(address);
         DoOnMemoryWrite(segment, offset, () => {
             _ovrSegmentMapping.TryGetValue(State.CS, out ushort idaSegment);
-            _loggerService.Information("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X2}",
+            _loggerService.LogInformation("[{IdaSegment:X4}:{IdaOffset:X4}] {Name} Memory write at {Segment:X4}:{Offset:X4}: 0x{Value:X2}",
                 idaSegment, State.IP, name, segment, offset, Memory.UInt8[segment, offset]);
         });
     }
 
     private Action LogAx(string message) {
         return () => {
-            _loggerService.Information("{Message} = 0x{Value:X4}", message, State.AX);
+            _loggerService.LogInformation("{Message} = 0x{Value:X4}", message, State.AX);
         };
     }
 
     private Action LogDs(string message) {
         return () => {
-            _loggerService.Information("{Message} = 0x{Value:X4}", message, State.DS);
+            _loggerService.LogInformation("{Message} = 0x{Value:X4}", message, State.DS);
         };
     }
 
     private Action LogMemoryAtAxDx(string? message = null) {
         return () => {
             if (message != null) {
-                _loggerService.Information("{Message}:", message);
+                _loggerService.LogInformation("{Message}:", message);
             }
             var address = MemoryUtils.ToPhysicalAddress(State.AX, State.DX);
             for (int i = -2; i < 20; i += 2) {
-                _loggerService.Information("{Segment:X4}:{Offset:X4} = {Value:X4}", State.AX, State.DX + i, Memory.UInt16[address + i]);
+                _loggerService.LogInformation("{Segment:X4}:{Offset:X4} = {Value:X4}", State.AX, State.DX + i, Memory.UInt16[address + i]);
             }
         };
     }
 
     private void LogEax() {
-        _loggerService.Information("EAX: {Eax:X4}", State.EAX);
+        _loggerService.LogInformation("EAX: {Eax:X4}", State.EAX);
     }
 
     private void RecordOvrChange() {
@@ -334,7 +334,7 @@ public class BakOverrides : CSharpOverrideHelper {
         if (StubSegments.IdaStubToIdaCode.TryGetValue(idaStubSegment, out ushort idaSegment)) {
             _ovrSegmentMapping[runtimeSegment] = idaSegment;
             _translator.RecordMapping(runtimeSegment, idaSegment);
-            _loggerService.Debug("OVR Mapping real segment {SourceSegment:X4} to ida segment {DestinationSegment:X4}", runtimeSegment,
+            _loggerService.LogDebug("OVR Mapping real segment {SourceSegment:X4} to ida segment {DestinationSegment:X4}", runtimeSegment,
                 idaSegment);
         }
 
@@ -345,15 +345,15 @@ public class BakOverrides : CSharpOverrideHelper {
     }
 
     private void Logsub_ovr185_0() {
-        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_0));
+        _loggerService.LogInformation("{MethodName} called", nameof(Logsub_ovr185_0));
     }
 
     private void Logsub_ovr185_33F() {
-        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_33F));
+        _loggerService.LogInformation("{MethodName} called", nameof(Logsub_ovr185_33F));
     }
 
     private void Logsub_ovr185_53F() {
-        _loggerService.Information("{MethodName} called", nameof(Logsub_ovr185_53F));
+        _loggerService.LogInformation("{MethodName} called", nameof(Logsub_ovr185_53F));
     }
 
     private void LogLoadTzzxxyy_WLD() {
@@ -362,17 +362,17 @@ public class BakOverrides : CSharpOverrideHelper {
         var yCoordinate = Stack.Peek16(10);
         var arg6 = Stack.Peek16(12);
 
-        _loggerService.Information(
+        _loggerService.LogInformation(
             "{MethodName} called. zoneNumber: {ZoneNumber}, xCoordinate: {XCoordinate}, yCoordinate: {YCoordinate}, arg_6: {Arg6}",
             nameof(LogLoadTzzxxyy_WLD), zoneNumber, xCoordinate, yCoordinate, arg6);
     }
 
     private void LogGetGlobalValue() {
-        _loggerService.Information("GetGlobalValue(key: {Arg0})", Stack.Peek16(4));
+        _loggerService.LogInformation("GetGlobalValue(key: {Arg0})", Stack.Peek16(4));
     }
 
     private void LogSetGlobalValue() {
-        _loggerService.Information("SetGlobalValue(key: {Arg0}, value: {Arg2:X4})", Stack.Peek16(4), Stack.Peek16(6));
+        _loggerService.LogInformation("SetGlobalValue(key: {Arg0}, value: {Arg2:X4})", Stack.Peek16(4), Stack.Peek16(6));
     }
 
     private void LogGetValueFromActor() {
@@ -408,7 +408,7 @@ public class BakOverrides : CSharpOverrideHelper {
         var attributeValue4 = Memory.UInt8[attributeAddress + 3];
         var attributeValue5 = Memory.UInt8[attributeAddress + 4];
 
-        _loggerService.Debug(
+        _loggerService.LogDebug(
             "{MethodName}: actor: {Name}, arg_2: {Arg2:X4}, arg_4: {Arg4:X4}, {Attribute}: {AttributeValue} ({Value1} {Value2} {Value3} {Value4} {Value5})",
             nameof(LogGetValueFromActor), name, arg2, arg4, attribute, attributeValue, attributeValue1, attributeValue2, attributeValue3,
             attributeValue4, attributeValue5);
@@ -436,11 +436,11 @@ public class BakOverrides : CSharpOverrideHelper {
         ushort segment = Stack.Peek16(6);
         uint physicalAddress = MemoryUtils.ToPhysicalAddress(segment, offset);
         var dialogEntry = new DialogEntry(Memory, physicalAddress);
-        _loggerService.Debug("{MethodName} called: dialogEntry {DialogEntry}", nameof(Sub_4B54C), dialogEntry);
+        _loggerService.LogDebug("{MethodName} called: dialogEntry {DialogEntry}", nameof(Sub_4B54C), dialogEntry);
     }
 
     private void LogField1KeyWordCall() {
-        _loggerService.Information("getKeyWordTableOffsetForDialogField1 called: value: {Arg0}", Stack.Peek16(4));
+        _loggerService.LogInformation("getKeyWordTableOffsetForDialogField1 called: value: {Arg0}", Stack.Peek16(4));
     }
 
     /// <summary>
@@ -546,7 +546,7 @@ public class BakOverrides : CSharpOverrideHelper {
         if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_SPIKE_CHAPTER"), out int chapter) || chapter is < 1 or > 9) {
             return;
         }
-        _loggerService.Information("Chapter spike: armed for chapter {Chapter}", chapter);
+        _loggerService.LogInformation("Chapter spike: armed for chapter {Chapter}", chapter);
 
         // PlayIntro @seg020:0x038C runs the Sierra logo and the animated intro before the menu is
         // ever shown, and skipping it by keyboard is timing-dependent (tried; unreliable). Stub it
@@ -571,7 +571,7 @@ public class BakOverrides : CSharpOverrideHelper {
             if (UInt16[chapterArg] == chapter) {
                 return;
             }
-            _loggerService.Information("Chapter spike: playChapterAnimationsAndBook chapter {Was} -> {Now}",
+            _loggerService.LogInformation("Chapter spike: playChapterAnimationsAndBook chapter {Was} -> {Now}",
                 UInt16[chapterArg], chapter);
             UInt16[chapterArg] = (ushort)chapter;
         });
@@ -594,27 +594,27 @@ public class BakOverrides : CSharpOverrideHelper {
             return FarRet();
         }
         _menuForced = true;
-        _loggerService.Information("Chapter spike: answering showMainMenu with newGame(2)");
+        _loggerService.LogInformation("Chapter spike: answering showMainMenu with newGame(2)");
         State.AX = 2;
 
         return FarRet();
     }
 
     private Action SkipIntro(int _) {
-        _loggerService.Information("Chapter spike: skipping PlayIntro");
+        _loggerService.LogInformation("Chapter spike: skipping PlayIntro");
 
         return FarRet();
     }
 
     private Action SkipChapterBook(int _) {
-        _loggerService.Information("Chapter spike: skipping playChapterBook");
+        _loggerService.LogInformation("Chapter spike: skipping playChapterBook");
         State.AX = 0;
 
         return FarRet();
     }
 
     private Action LoadConfig(int _) {
-        _loggerService.Information("LoadConfig override entered");
+        _loggerService.LogInformation("LoadConfig override entered");
         string resourceConfigFilePath = _gameEngine.DataPath + "/resource.cfg";
         if (File.Exists(resourceConfigFilePath)) {
             LoadResourceConfig(resourceConfigFilePath);

@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor;
 
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 using BetrayalAtKrondor.Mcp;
@@ -18,7 +19,7 @@ public class BakOverrideSupplier : IOverrideSupplier, IMcpToolSupplier {
     // Created during GenerateFunctionInformations, registered in DI via GetMcpServices
     private OverlayAddressTranslator? _translator;
 
-    public IDictionary<SegmentedAddress, FunctionInformation> GenerateFunctionInformations(ILoggerService loggerService, Configuration configuration, ushort programStartAddress, Machine machine) {
+    public IDictionary<SegmentedAddress, FunctionInformation> GenerateFunctionInformations(ILogger loggerService, Configuration configuration, ushort programStartAddress, Machine machine) {
         Dictionary<SegmentedAddress, FunctionInformation> functionsInformation = new();
 
         _translator = new OverlayAddressTranslator();

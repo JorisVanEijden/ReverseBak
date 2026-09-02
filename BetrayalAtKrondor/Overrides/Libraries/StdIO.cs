@@ -1,7 +1,7 @@
 namespace BetrayalAtKrondor.Overrides.Libraries;
 
+using Microsoft.Extensions.Logging;
 using BetrayalAtKrondor.Overrides.Libraries.Structures;
-using Serilog.Events;
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.ReverseEngineer;
@@ -21,7 +21,7 @@ public class StdIO : CSharpOverrideHelper {
     private readonly CFunctions _cFunctions;
     private string CurrentDir { get; set; }
 
-    public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILoggerService loggerService, Configuration configuration)
+    public StdIO(Dictionary<SegmentedAddress, FunctionInformation> functionsInformation, Machine machine, ILogger loggerService, Configuration configuration)
         : base(functionsInformation, machine, loggerService, configuration) {
         _args = new ArgumentFetcher(machine.Stack, machine.CpuState, machine.Memory);
         string configurationExe = configuration.Exe ?? throw new InvalidOperationException("Missing configuration exe");
@@ -78,8 +78,8 @@ public class StdIO : CSharpOverrideHelper {
         string resultString = string1 + string2;
         Memory.SetZeroTerminatedString(destinationAddress, resultString, int.MaxValue);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:strcat(s1: '{String1}', s2: '{String2}') => {DestinationSegment:X4}:{Result:X4} ['{ResultString}']",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:strcat(s1: '{String1}', s2: '{String2}') => {DestinationSegment:X4}:{Result:X4} ['{ResultString}']",
                 nameof(StdIO), string1, string2, DS, string1Pointer, resultString);
         }
         ES = DS;
@@ -91,8 +91,8 @@ public class StdIO : CSharpOverrideHelper {
     private Action StrCmp(int arg) {
         _args.Get(out string s1, out string s2);
         int result = string.Compare(s1, s2, StringComparison.Ordinal);
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:strcmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:strcmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
                 nameof(StdIO), s1, s2, result);
         }
         ES = DS;
@@ -112,8 +112,8 @@ public class StdIO : CSharpOverrideHelper {
         uint destinationAddress = MemoryUtils.ToPhysicalAddress(DS, destination);
         Memory.SetZeroTerminatedString(destinationAddress, sourceString, int.MaxValue);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:strcpy(dest: {DestinationSegment:X4}:{Destination:X4}, src: {SourceSegment:X4}:{Source:X4}) => 0x{Result:X4} ['{SourceString}']",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:strcpy(dest: {DestinationSegment:X4}:{Destination:X4}, src: {SourceSegment:X4}:{Source:X4}) => 0x{Result:X4} ['{SourceString}']",
                 nameof(StdIO), DS, destination, DS, source, destination, sourceString);
         }
         SetResult(destination);
@@ -124,8 +124,8 @@ public class StdIO : CSharpOverrideHelper {
     private Action StriCmp(int _) {
         _args.Get(out string s1, out string s2);
         int result = string.Compare(s1, s2, StringComparison.OrdinalIgnoreCase);
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:stricmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:stricmp(s1: {String1}, s2: '{String2}') => 0x{Result:X4}",
                 nameof(StdIO), s1, s2, result);
         }
         ES = DS;
@@ -139,8 +139,8 @@ public class StdIO : CSharpOverrideHelper {
         string formatted = _cFunctions._sprintf(format);
         int result = formatted.Length;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:sprintf(str: {BufferPointer:X4}, format: '{Format}', ...) => 0x{Result:X4} ['{Formatted}']",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:sprintf(str: {BufferPointer:X4}, format: '{Format}', ...) => 0x{Result:X4} ['{Formatted}']",
                 nameof(StdIO), bufferPointer, format, result, formatted);
         }
 
@@ -158,8 +158,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileHandle < 1 || fileHandle > _openStreams.Count) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
@@ -174,8 +174,8 @@ public class StdIO : CSharpOverrideHelper {
             stream.Write(buffer);
         } catch (Exception e) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(e, "{Library}:write(fd: {FileDescriptor}, buf: 0x{BufferPointer:X4}, len: {Count}) => 0x{Result:X4}",
                     nameof(StdIO), fileHandle, bufferPointer, count, result);
             }
             SetResult(result);
@@ -198,8 +198,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileHandle < 1 || fileHandle > _openStreams.Count) {
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
@@ -215,8 +215,8 @@ public class StdIO : CSharpOverrideHelper {
             result = count;
         } catch (Exception e) {
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(e, "{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
@@ -224,8 +224,8 @@ public class StdIO : CSharpOverrideHelper {
             return FarRet();
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:writeFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
                 nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, _openFiles[fileHandle], result);
         }
 
@@ -243,8 +243,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileHandle < 1 || fileHandle > _openStreams.Count) {
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
@@ -260,8 +260,8 @@ public class StdIO : CSharpOverrideHelper {
             Memory.LoadData(bufferAddress, buffer);
         } catch (Exception e) {
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(e, "{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, result);
             }
             SetResult(result);
@@ -269,8 +269,8 @@ public class StdIO : CSharpOverrideHelper {
             return FarRet();
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:readFile(buf: {BufferSegment:X4}:{BufferOffset:X4}, len: {Count}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
                 nameof(StdIO), bufferSegment, bufferOffset, count, fileHandle, _openFiles[fileHandle], result);
         }
 
@@ -289,8 +289,8 @@ public class StdIO : CSharpOverrideHelper {
         string currentHostDirectory = Path.Combine(_mountPoint, CurrentDir);
         EnumerationOptions searchOptions = GetSearchOptions(searchAttributes);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:findfirst() Searching for '{Pattern}' in '{Directory}' with options '{@SearchOptions}'",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:findfirst() Searching for '{Pattern}' in '{Directory}' with options '{@SearchOptions}'",
                 nameof(StdIO), searchPath, currentHostDirectory, searchOptions);
         }
 
@@ -301,14 +301,14 @@ public class StdIO : CSharpOverrideHelper {
             ffblk.ResultId = (ushort)(_fileSearchLists.Count - 1);
             ffblk.FileName = Path.GetFileName(firstFile);
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-                _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4} [filename: {FileName}]",
+            if (_loggerService.IsEnabled(LogLevel.Debug)) {
+                _loggerService.LogDebug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4} [filename: {FileName}]",
                     nameof(StdIO), searchPath, ffblkPointer, searchAttributes, result, firstFile);
             }
         } else {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-                _loggerService.Debug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Debug)) {
+                _loggerService.LogDebug("{Library}:findfirst(path: {FilePath}, ffblk: 0x{FFBlkPointer:X4}, attrib: {Attrib}) => 0x{Result:X4}",
                     nameof(StdIO), searchPath, ffblkPointer, searchAttributes, result);
             }
         }
@@ -352,14 +352,14 @@ public class StdIO : CSharpOverrideHelper {
         if (matchingPaths.MoveNext() && matchingPaths.Current is string currentFile) {
             ffblk.FileName = Path.GetFileName(currentFile);
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-                _loggerService.Debug("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4} [filename: {FileName}]",
+            if (_loggerService.IsEnabled(LogLevel.Debug)) {
+                _loggerService.LogDebug("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4} [filename: {FileName}]",
                     nameof(StdIO), ffblkPointer, result, currentFile);
             }
         } else {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Information)) {
-                _loggerService.Information("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Information)) {
+                _loggerService.LogInformation("{Library}:findnext(ffblk: 0x{FFBlkPointer:X4}) => 0x{Result:X4}",
                     nameof(StdIO), ffblkPointer, result);
             }
         }
@@ -376,8 +376,8 @@ public class StdIO : CSharpOverrideHelper {
         CurrentDir = dosPath;
 
         result = 0;
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:chdir(path: {FilePath}) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:chdir(path: {FilePath}) => 0x{Result:X4}",
                 nameof(StdIO), dosPath, result);
         }
 
@@ -395,14 +395,14 @@ public class StdIO : CSharpOverrideHelper {
         try {
             Directory.CreateDirectory(hostPath);
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-                _loggerService.Debug("{Library}:mkdir(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
+            if (_loggerService.IsEnabled(LogLevel.Debug)) {
+                _loggerService.LogDebug("{Library}:mkdir(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
                     nameof(StdIO), hostPath, result, hostPath);
             }
         } catch (Exception ex) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(ex, "{Library}:mkdir(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(ex, "{Library}:mkdir(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
                     nameof(StdIO), hostPath, result, hostPath);
             }
         }
@@ -421,14 +421,14 @@ public class StdIO : CSharpOverrideHelper {
         try {
             File.Delete(hostPath);
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-                _loggerService.Debug("{Library}:unlink(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
+            if (_loggerService.IsEnabled(LogLevel.Debug)) {
+                _loggerService.LogDebug("{Library}:unlink(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
                     nameof(StdIO), dosPath, result, hostPath);
             }
         } catch (Exception ex) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(ex, "{Library}:unlink(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(ex, "{Library}:unlink(path: {FilePath}) => 0x{Result:X4} [{FullPath}]",
                     nameof(StdIO), hostPath, result, hostPath);
             }
         }
@@ -455,8 +455,8 @@ public class StdIO : CSharpOverrideHelper {
         short result;
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:close(fd: {FileDescriptor}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:close(fd: {FileDescriptor}) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
@@ -469,8 +469,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.RemoveAt(fileDescriptor);
         result = 0;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:close(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:close(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         _openFiles.Remove(fileDescriptor);
@@ -485,8 +485,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, result);
             }
             SetResult(result);
@@ -501,7 +501,7 @@ public class StdIO : CSharpOverrideHelper {
         stream.Write(buffer, 0, buffer.Length);
         result = count;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
+        if (_loggerService.IsEnabled(LogLevel.Trace)) {
             // Log byte, word and int data writes
             string dataWritten = string.Empty;
             if (count == 1) {
@@ -522,7 +522,7 @@ public class StdIO : CSharpOverrideHelper {
                     dataWritten = $" ({Encoding.ASCII.GetString(buffer)})";
                 }
             }
-            _loggerService.Verbose("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}{DataWritten}",
+            _loggerService.LogTrace("{Library}:fwrite(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}{DataWritten}",
                 nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, _openFiles[fileDescriptor], result, dataWritten);
         }
         SetResult(result);
@@ -536,8 +536,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning("{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning("{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
             }
             SetResult(result);
@@ -550,14 +550,14 @@ public class StdIO : CSharpOverrideHelper {
             result = (short)s.ReadByte();
         } catch (EndOfStreamException e) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error(e, "{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4} ({Exception})",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError(e, "{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4} ({Exception})",
                     nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result, e);
             }
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Trace)) {
+            _loggerService.LogTrace("{Library}:fgetc(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
 
@@ -572,8 +572,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:fread(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:fread(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, result);
             }
             SetResult(result);
@@ -588,7 +588,7 @@ public class StdIO : CSharpOverrideHelper {
         Memory.LoadData(address, buffer, bytesRead);
         result = bytesRead / elementSize;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
+        if (_loggerService.IsEnabled(LogLevel.Trace)) {
             // Log byte, word and int data reads
             string dataRead = string.Empty;
             if (count == 1) {
@@ -609,7 +609,7 @@ public class StdIO : CSharpOverrideHelper {
                     dataRead = $" ({Encoding.ASCII.GetString(buffer)})";
                 }
             }
-            _loggerService.Verbose("{Library}:fread(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}{DataRead}",
+            _loggerService.LogTrace("{Library}:fread(bufferOffset: 0x{BufferOffset:X4}, elementSize: 0x{ElementSize:X4}, count: 0x{Count:X4}, fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}{DataRead}",
                 nameof(StdIO), bufferOffset, elementSize, count, fileDescriptor, _openFiles[fileDescriptor], result, dataRead);
         }
         SetResult(result);
@@ -623,8 +623,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:ftell(fd: {FileDescriptor}) => 0x{Result:X8}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:ftell(fd: {FileDescriptor}) => 0x{Result:X8}",
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
@@ -635,8 +635,8 @@ public class StdIO : CSharpOverrideHelper {
         Stream stream = _openStreams[fileDescriptor];
         result = (int)stream.Position;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-            _loggerService.Verbose("{Library}:ftell(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
+        if (_loggerService.IsEnabled(LogLevel.Trace)) {
+            _loggerService.LogTrace("{Library}:ftell(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X8}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         SetResult(result);
@@ -650,8 +650,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = Constants.EOF;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:fclose(fd: {FileDescriptor}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:fclose(fd: {FileDescriptor}) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, result);
             }
             SetResult(result);
@@ -664,8 +664,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.RemoveAt(fileDescriptor);
         result = 0;
 
-        if (_loggerService.IsEnabled(LogEventLevel.Debug)) {
-            _loggerService.Debug("{Library}:fclose(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Debug)) {
+            _loggerService.LogDebug("{Library}:fclose(fd: {FileDescriptor} [{FileName}]) => 0x{Result:X4}",
                 nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], result);
         }
         _openFiles.Remove(fileDescriptor);
@@ -681,8 +681,8 @@ public class StdIO : CSharpOverrideHelper {
         string path = Path.Combine(_mountPoint, dosPath);
         if (!File.Exists(path)) {
             result = 0;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
                     nameof(StdIO), dosPath, mode, result);
             }
             SetResult(result);
@@ -695,8 +695,8 @@ public class StdIO : CSharpOverrideHelper {
         _openStreams.Add(stream);
         result = (short)(_openStreams.Count - 1);
 
-        if (_loggerService.IsEnabled(LogEventLevel.Information)) {
-            _loggerService.Information("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
+        if (_loggerService.IsEnabled(LogLevel.Information)) {
+            _loggerService.LogInformation("{Library}:fopen(filename: '{FileName}', mode: '{Mode}') => 0x{Result:X4}",
                 nameof(StdIO), dosPath, mode, result);
         }
         _openFiles.Add(result, dosPath);
@@ -717,8 +717,8 @@ public class StdIO : CSharpOverrideHelper {
             result = (short)(_openStreams.Count - 1);
         } catch (Exception ex) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning(ex, "{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning(ex, "{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
                     nameof(StdIO), dosPath, flags, mode, result, hostPath, fileStreamOptions);
             }
             SetResult(result);
@@ -726,8 +726,8 @@ public class StdIO : CSharpOverrideHelper {
             return FarRet();
         }
 
-        if (_loggerService.IsEnabled(LogEventLevel.Information)) {
-            _loggerService.Information("{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
+        if (_loggerService.IsEnabled(LogLevel.Information)) {
+            _loggerService.LogInformation("{Library}:open(filename: '{FileName}', flags: {Flags:X4},  mode: {Mode:X4}) => 0x{Result:X4} [{HostPath}, {@FileStreamOptions}]",
                 nameof(StdIO), dosPath, flags, mode, result, hostPath, fileStreamOptions);
         }
         _openFiles.Add(result, dosPath);
@@ -814,8 +814,8 @@ public class StdIO : CSharpOverrideHelper {
 
         if (fileDescriptor < 1 || fileDescriptor > _openStreams.Count) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Error)) {
-                _loggerService.Error("{Library}:fseek(fd: {FileDescriptor}, offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Error)) {
+                _loggerService.LogError("{Library}:fseek(fd: {FileDescriptor}, offset: {Offset}, whence: {Origin}) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, offset, origin, result);
             }
             SetResult(result);
@@ -829,8 +829,8 @@ public class StdIO : CSharpOverrideHelper {
             result = 0;
         } catch (IOException ioException) {
             result = -1;
-            if (_loggerService.IsEnabled(LogEventLevel.Warning)) {
-                _loggerService.Warning(ioException, "{Library}:fseek(fd: {FileDescriptor}, offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
+            if (_loggerService.IsEnabled(LogLevel.Warning)) {
+                _loggerService.LogWarning(ioException, "{Library}:fseek(fd: {FileDescriptor}, offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
                     nameof(StdIO), fileDescriptor, offset, origin, result);
             }
             SetResult(result);
@@ -838,8 +838,8 @@ public class StdIO : CSharpOverrideHelper {
             return FarRet();
         }
 
-        // if (_loggerService.IsEnabled(LogEventLevel.Verbose)) {
-        _loggerService.Debug("{Library}:fseek(fd: {FileDescriptor} [{FileName}], offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
+        // if (_loggerService.IsEnabled(LogLevel.Trace)) {
+        _loggerService.LogDebug("{Library}:fseek(fd: {FileDescriptor} [{FileName}], offset: {Offset:X4}, whence: {Origin}) => 0x{Result:X4}",
             nameof(StdIO), fileDescriptor, _openFiles[fileDescriptor], offset, origin, result);
         // }
         SetResult(result);
