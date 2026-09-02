@@ -123,6 +123,15 @@ public sealed class Combatant {
     /// </remarks>
     public int HitReactionRemap { get; set; }
 
+    /// <summary>Whether this combatant has a swing to play at the next redraw.</summary>
+    /// <remarks>
+    /// <b>Set when the blow resolves, played when the arena is next drawn.</b> The model resolves an
+    /// attack in one call and the renderer catches up on the following redraw, so the flag is what
+    /// carries the event across that gap — the same shape <see cref="DeathShown"/> uses for the
+    /// collapse.
+    /// </remarks>
+    public bool SwingPending { get; set; }
+
     /// <summary>Ticks counted toward this combatant's next idle frame — <c>tickCounter</c>.</summary>
     /// <remarks>
     /// Driven by <see cref="CreatureAnimationStep.Advances"/>, which is a MODULO rather than a
