@@ -57,9 +57,17 @@ public static class SpellCastSound {
         //    Grief_TargetIsSusceptible(target) answers true, which the port models as
         //    SpellPerSpellHandlers.GriefAffects. This table is unconditional, so a consumer that
         //    wants fidelity has to ask that question itself.
-        // 2. These come from Cast_Spell, which is the COMBAT resolver, but ForCast is read only by
-        //    FieldSpellCaster — CombatRuntime.ResolveCast uses ForCombatCast instead. Whether a
-        //    combat cast of one of these should also sound is unresolved; see TASK-144.
+        // 2. *** THESE FOUR ARE ON THE WRONG PATH, AND IT IS NOT A JUDGEMENT CALL. *** Swept every
+        //    caller of Cast_Spell: combat_arena_resume_dispatch, combat_arena_resolve_menu_action,
+        //    castCombatSpell and five monster_* casters. ALL of them are combat; no field-casting
+        //    routine reaches it. So this switch's cues play in COMBAT and only in combat — while
+        //    ForCast is read only by FieldSpellCaster, and CombatRuntime.ResolveCast uses
+        //    ForCombatCast instead. The four entries below therefore fire on the field, where the
+        //    original is silent, and not in a fight, where it is not.
+        //
+        //    NOT fixed here because the table mixes provenances: the entries ABOVE come from
+        //    dedicated Cast_* routines, which may legitimately serve both paths, so splitting it
+        //    wants each entry checked rather than a bulk move. Filed as TASK-292.
         { SpellIds.DespairThyEyes, FieldSpells.CreationSound },        // case 3
         { SpellIds.GriefOfAThousandNights, 77 },                       // case 13, sound_sparkly
         { SpellIds.UnfortunateFlux, 77 },                              // case 20, sound_sparkly
