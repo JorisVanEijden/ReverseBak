@@ -107,12 +107,12 @@ public class EffectSpriteBitmapTests {
         }
     }
 
-    /// <summary>Bane of Black Slayers' projectile is a MODEL, and the port draws nothing for it.</summary>
+    /// <summary>Bane of Black Slayers' projectile is a MODEL rather than a billboard.</summary>
     /// <remarks>
-    /// Pinned rather than left implicit, because the port degrades silently here: the sprite builder
-    /// finds no sprite face and returns null, so casting that one spell flies nothing while every
-    /// other spell flies something. If a future extractor change gives entry 3 a sprite face this
-    /// test fails, which is the right moment to notice the gap has closed.
+    /// Pinned because the two are drawn by different code: the arena falls back to a vertex-coloured
+    /// mesh when an effect entry has no sprite face (TASK-289). If a future extractor change gave
+    /// entry 3 a sprite face this test would fail, which is the right moment to notice that the
+    /// fallback is no longer the path being taken.
     /// </remarks>
     [Fact]
     public void BaneOfBlackSlayersHasNoSpriteFace() {
