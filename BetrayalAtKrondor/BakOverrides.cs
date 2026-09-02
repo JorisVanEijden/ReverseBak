@@ -543,6 +543,9 @@ public class BakOverrides : CSharpOverrideHelper {
     /// scene players. Offsets passed alongside it are IDA offsets within that segment.</summary>
     private const ushort Seg020 = 0x2083;
 
+    /// <summary>IDA linear address -> the emulator's physical address (resident segments).</summary>
+    private static uint IdaLinear(uint idaLinear) => idaLinear - OverlayAddressTranslator.RelocationDelta;
+
     private void DefineChapterSpike() {
         if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_SPIKE_CHAPTER"), out int chapter) || chapter is < 1 or > 9) {
             return;
@@ -600,7 +603,49 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private bool _menuForced;
 
+    // saveDirectoryName @dseg:0x3F04E, directoryNumber @0x3F063, saveGameNumber @0x3F061 --
+    // StartGameOrLoadSave(3) formats them as "GAMES\\%s.G%02d\\SAVE%02d.GAM" (seg020:0x0095).
+    private const uint SaveDirectoryNameIda = 0x3F04E;
+    private const uint DirectoryNumberIda = 0x3F063;
+    private const uint SaveGameNumberIda = 0x3F061;
+
+    /// <summary>
+    /// Point the save-load globals at one of the saves shipped in OriginalGame/GAMES, so
+    /// StartGameOrLoadSave(3) restores it. Normally the load DIALOG fills these in; this skips the
+    /// dialog entirely. Format is BAK_SPIKE_LOADSAVE=&lt;dirName&gt;:&lt;dirNumber&gt;:&lt;saveNumber&gt;,
+    /// e.g. "dir:1:0" for GAMES/dir.G01/SAVE00.GAM.
+    /// </summary>
+    private bool PointAtSaveGame(string spec) {
+        string[] parts = spec.Split(':');
+        if (parts.Length != 3 || !ushort.TryParse(parts[1], out ushort dirNumber) || !ushort.TryParse(parts[2], out ushort saveNumber)) {
+            _loggerService.LogWarning("Chapter spike: BAK_SPIKE_LOADSAVE must be <dirName>:<dirNumber>:<saveNumber>, got {Spec}", spec);
+
+            return false;
+        }
+        uint nameAddr = IdaLinear(SaveDirectoryNameIda);
+        for (int i = 0; i < parts[0].Length; i++) {
+            UInt8[(uint)(nameAddr + i)] = (byte)parts[0][i];
+        }
+        UInt8[(uint)(nameAddr + parts[0].Length)] = 0;
+        UInt16[IdaLinear(DirectoryNumberIda)] = dirNumber;
+        UInt16[IdaLinear(SaveGameNumberIda)] = saveNumber;
+        _loggerService.LogInformation("Chapter spike: restoring GAMES/{Dir}.G{DirNum:D2}/SAVE{SaveNum:D2}.GAM",
+            parts[0], dirNumber, saveNumber);
+
+        return true;
+    }
+
     private Action ChooseNewGameOnce(int _) {
+        if (!_menuForced) {
+            string loadSpec = Environment.GetEnvironmentVariable("BAK_SPIKE_LOADSAVE");
+            if (!IsNullOrEmpty(loadSpec) && PointAtSaveGame(loadSpec)) {
+                _menuForced = true;
+                // mainMenu_loadGame -- _main passes this straight to StartGameOrLoadSave (seg020:0x0EC9).
+                State.AX = 3;
+
+                return FarRet();
+            }
+        }
         if (_menuForced) {
             // Hand the menu back to the player: re-running the original is not possible from here,
             // so answer 6 ("show the menu again"), the value _main itself starts with.
