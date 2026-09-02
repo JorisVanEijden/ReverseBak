@@ -17,8 +17,8 @@ public class SparklyCueTests {
 
     [Fact]
     public void BothSparklySpellsAreMapped() {
-        Assert.Equal(Sparkly, SpellCastSound.ForCast(SpellIds.GriefOfAThousandNights));
-        Assert.Equal(Sparkly, SpellCastSound.ForCast(SpellIds.UnfortunateFlux));
+        Assert.Equal(Sparkly, SpellCastSound.ForCombatSpell(SpellIds.GriefOfAThousandNights));
+        Assert.Equal(Sparkly, SpellCastSound.ForCombatSpell(SpellIds.UnfortunateFlux));
     }
 
     /// <summary>Neither is recorded as silent, which would be the opposite claim.</summary>

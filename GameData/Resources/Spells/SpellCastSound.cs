@@ -22,23 +22,16 @@ using System.Collections.Generic;
 /// unmapped spell look deliberately silent, and a port would then never come back to it.</para>
 /// </remarks>
 public static class SpellCastSound {
-    /// <summary>Spells whose cast cue is confirmed from their own routine.</summary>
-    private static readonly Dictionary<int, int> Sounds = new Dictionary<int, int> {
-        { SpellIds.Flamecast, 1 },          // sound_arrow
-        { SpellIds.BlackNimbus, 1 },        // sound_arrow
-        { SpellIds.CandleGlow, FieldSpells.CreationSound },
-        { SpellIds.Stardusk, FieldSpells.CreationSound },
-        { SpellIds.Steelfire, FieldSpells.CreationSound },
-        { SpellIds.StrengthDrain, 63 },     // sound_heal
-        { SpellIds.MadGodsRage, 78 },       // sound_quake
-        { SpellIds.WindsOfEortis, 79 },     // sound_wind
-        { SpellIds.Nightfingers, FieldSpells.GeneralSound },
-        { SpellIds.Invitation, FieldSpells.GeneralSound },
-
-        // The nine field spells, from Cast_field_spell's dispatch (ovr179 @0x6ca30 — a linear scan
-        // of a nine-entry table, so this IS the complete field set). Their numbers live on
-        // FieldSpells, not SpellIds: the two classes both name spells by number and neither is a
-        // superset, which is worth knowing before adding a constant to either.
+    /// <summary>
+    /// Cues for spells cast <b>on the field</b> — reached only by <c>Cast_field_spell</c> @0x6ca30.
+    /// </summary>
+    /// <remarks>
+    /// <b>The split is from a caller sweep, not from the spells' natures.</b> Every routine behind
+    /// these entries has exactly one caller and it is the field dispatcher; their <c>j_</c> thunks
+    /// have none at all. See <see cref="CombatSounds"/> for the other half and why the two were
+    /// separated.
+    /// </remarks>
+    private static readonly Dictionary<int, int> FieldSounds = new Dictionary<int, int> {
         { FieldSpells.DragonsBreath, FieldSpells.CreationSound },
         { FieldSpells.ScentOfSarig, FieldSpells.ScentSound },
         { FieldSpells.EyesOfIshap, FieldSpells.ScentSound },
@@ -46,28 +39,41 @@ public static class SpellCastSound {
         { FieldSpells.NacreCicatrix, 13 },
         { FieldSpells.Union, FieldSpells.GeneralSound },
         { FieldSpells.AndTheLightShallLie, FieldSpells.GeneralSound },
+        { SpellIds.CandleGlow, FieldSpells.CreationSound },
+        { SpellIds.Stardusk, FieldSpells.CreationSound },
+    };
 
-        // Spells with NO dedicated routine, cast through Cast_Spell's switch (ovr173 @0x687a5).
-        // That switch is driven by the spell number biased by three — IDA's switch info reports
-        // lowcase 3 against the `mov bx,[bp+SpellNumber]` at 0x68798, so its case labels are true
-        // spell numbers and not post-subtraction indices.
-        //
-        // *** TWO CAVEATS ON THESE THREE, ADDED 2026-09-02 WITH THE FLUX ENTRY. ***
-        // 1. Grief's cue is CONDITIONAL in the original — case 13 plays it only when
-        //    Grief_TargetIsSusceptible(target) answers true, which the port models as
-        //    SpellPerSpellHandlers.GriefAffects. This table is unconditional, so a consumer that
-        //    wants fidelity has to ask that question itself.
-        // 2. *** THESE FOUR ARE ON THE WRONG PATH, AND IT IS NOT A JUDGEMENT CALL. *** Swept every
-        //    caller of Cast_Spell: combat_arena_resume_dispatch, combat_arena_resolve_menu_action,
-        //    castCombatSpell and five monster_* casters. ALL of them are combat; no field-casting
-        //    routine reaches it. So this switch's cues play in COMBAT and only in combat — while
-        //    ForCast is read only by FieldSpellCaster, and CombatRuntime.ResolveCast uses
-        //    ForCombatCast instead. The four entries below therefore fire on the field, where the
-        //    original is silent, and not in a fight, where it is not.
-        //
-        //    NOT fixed here because the table mixes provenances: the entries ABOVE come from
-        //    dedicated Cast_* routines, which may legitimately serve both paths, so splitting it
-        //    wants each entry checked rather than a bulk move. Filed as TASK-292.
+    /// <summary>
+    /// Cues for spells cast <b>in combat</b> — reached only by <c>Cast_Spell</c> @0x6850c.
+    /// </summary>
+    /// <remarks>
+    /// <b>These were all on the field path until 2026-09-02, so they sounded where the original is
+    /// silent and were silent where it is not.</b> The sweep that separated them: every caller of
+    /// <c>Cast_Spell</c> is a combat routine — <c>combat_arena_resume_dispatch</c>,
+    /// <c>combat_arena_resolve_menu_action</c>, <c>castCombatSpell</c> and five <c>monster_*</c>
+    /// casters — and no field routine reaches it, while <c>Cast_field_spell</c> reaches none of
+    /// these. Neither set is a judgement call about what a spell "is".
+    ///
+    /// <para>The first seven are dedicated routines <c>Cast_Spell</c> calls; the last four are
+    /// pushed inline by its own switch, whose case labels are true spell numbers (IDA reports
+    /// lowcase 3 against the <c>mov bx,[bp+SpellNumber]</c> at 0x68798).</para>
+    ///
+    /// <para><b>Flamecast is deliberately absent.</b> <c>Cast_Flamecast</c> @0x2fb80 has one caller
+    /// and it is <c>cannon_rayStopsAtCell</c> — the cannon ray, not a cast. Its cue (1,
+    /// <c>sound_arrow</c>) was in the old table and looked right only by coincidence: a player's
+    /// Flamecast does play cue 1, but through <c>Spell_ApplyHitWithProjectile</c>, which is already
+    /// ported as <see cref="Combat.SpellProjectileSound.LaunchCue"/>. Keeping the entry would double
+    /// the sound and misattribute it.</para>
+    /// </remarks>
+    private static readonly Dictionary<int, int> CombatSounds = new Dictionary<int, int> {
+        { SpellIds.BlackNimbus, 1 },        // sound_arrow
+        { SpellIds.Steelfire, FieldSpells.CreationSound },
+        { SpellIds.StrengthDrain, 63 },     // sound_heal
+        { SpellIds.MadGodsRage, 78 },       // sound_quake
+        { SpellIds.WindsOfEortis, 79 },     // sound_wind
+        { SpellIds.Nightfingers, FieldSpells.GeneralSound },
+        { SpellIds.Invitation, FieldSpells.GeneralSound },
+
         { SpellIds.DespairThyEyes, FieldSpells.CreationSound },        // case 3
         { SpellIds.GriefOfAThousandNights, 77 },                       // case 13, sound_sparkly
         { SpellIds.UnfortunateFlux, 77 },                              // case 20, sound_sparkly
@@ -82,9 +88,25 @@ public static class SpellCastSound {
     /// </remarks>
     private static readonly HashSet<int> Silent = new HashSet<int> { SpellIds.EvilSeek };
 
-    /// <summary>The cue for casting a spell, or null when there is none or none is known.</summary>
+    /// <summary>The cue for casting a spell <b>on the field</b>, or null when there is none.</summary>
     public static int? ForCast(int spellId) =>
-        Sounds.TryGetValue(spellId, out int sound) ? sound : (int?)null;
+        FieldSounds.TryGetValue(spellId, out int sound) ? sound : (int?)null;
+
+    /// <summary>The cue for casting a spell <b>in combat</b>, or null when there is none.</summary>
+    /// <param name="spellId">The spell being cast.</param>
+    /// <param name="targetIsSusceptible">
+    /// Whether the target is one Grief of 1000 Nights works on —
+    /// <c>SpellPerSpellHandlers.GriefAffects</c>. <b>Only Grief consults it</b>, and it is a
+    /// parameter rather than a table column because it is the one cue in either set whose case is
+    /// guarded: <c>Cast_Spell</c>'s case 13 plays it behind
+    /// <c>Grief_TargetIsSusceptible(target)</c>. Pass true for every other spell.
+    /// </param>
+    public static int? ForCombatSpell(int spellId, bool targetIsSusceptible = true) {
+        if (spellId == SpellIds.GriefOfAThousandNights && !targetIsSusceptible) {
+            return null;
+        }
+        return CombatSounds.TryGetValue(spellId, out int sound) ? sound : (int?)null;
+    }
 
     /// <summary>Whether this spell's cast audio has been established either way.</summary>
     /// <remarks>
@@ -92,7 +114,8 @@ public static class SpellCastSound {
     /// is a different thing from "it makes no sound" and is worth being able to ask.
     /// </remarks>
     public static bool IsEstablished(int spellId) =>
-        Sounds.ContainsKey(spellId) || Silent.Contains(spellId);
+        FieldSounds.ContainsKey(spellId) || CombatSounds.ContainsKey(spellId)
+        || Silent.Contains(spellId);
 
     /// <summary>Whether this spell is known to cast without a sound.</summary>
     public static bool IsSilent(int spellId) => Silent.Contains(spellId);

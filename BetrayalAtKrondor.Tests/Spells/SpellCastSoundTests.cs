@@ -14,9 +14,9 @@ public class SpellCastSoundTests {
         // game does not have.
         Assert.Equal(58, SpellCastSound.ForCast(SpellIds.CandleGlow));
         Assert.Equal(58, SpellCastSound.ForCast(SpellIds.Stardusk));
-        Assert.Equal(58, SpellCastSound.ForCast(SpellIds.Steelfire));
-        Assert.Equal(81, SpellCastSound.ForCast(SpellIds.Nightfingers));
-        Assert.Equal(81, SpellCastSound.ForCast(SpellIds.Invitation));
+        Assert.Equal(58, SpellCastSound.ForCombatSpell(SpellIds.Steelfire));
+        Assert.Equal(81, SpellCastSound.ForCombatSpell(SpellIds.Nightfingers));
+        Assert.Equal(81, SpellCastSound.ForCombatSpell(SpellIds.Invitation));
     }
 
     [Fact]
@@ -41,17 +41,20 @@ public class SpellCastSoundTests {
 
     [Fact]
     public void ASpellWithACueIsEstablishedButNotSilent() {
-        Assert.True(SpellCastSound.IsEstablished(SpellIds.Flamecast));
-        Assert.False(SpellCastSound.IsSilent(SpellIds.Flamecast));
+        // Was Flamecast, which is no longer in either cast table -- Cast_Flamecast's only caller is
+        // cannon_rayStopsAtCell, so its cue belongs to the cannon ray (TASK-292). Black Nimbus is
+        // the same shape of case and is a real combat cast.
+        Assert.True(SpellCastSound.IsEstablished(SpellIds.BlackNimbus));
+        Assert.False(SpellCastSound.IsSilent(SpellIds.BlackNimbus));
     }
 
     [Fact]
     public void MADGODSRAGEPlaysASecondCuePerTarget() {
         // Two sounds at two moments. A port that gives a spell one cue plays the quake and drops the
         // rest, so a rage that hits five enemies sounds like one that hits nobody.
-        Assert.Equal(78, SpellCastSound.ForCast(SpellIds.MadGodsRage));
+        Assert.Equal(78, SpellCastSound.ForCombatSpell(SpellIds.MadGodsRage));
         Assert.Equal(29, SpellCastSound.PerTarget(SpellIds.MadGodsRage));
-        Assert.NotEqual(SpellCastSound.ForCast(SpellIds.MadGodsRage),
+        Assert.NotEqual(SpellCastSound.ForCombatSpell(SpellIds.MadGodsRage),
             SpellCastSound.PerTarget(SpellIds.MadGodsRage));
     }
 
@@ -63,8 +66,12 @@ public class SpellCastSoundTests {
 
     [Fact]
     public void TheTwoArrowSpellsShareTheArrowCue() {
-        Assert.Equal(1, SpellCastSound.ForCast(SpellIds.Flamecast));
-        Assert.Equal(1, SpellCastSound.ForCast(SpellIds.BlackNimbus));
+        // *** ONLY ONE OF THE TWO IS A CAST CUE. *** Black Nimbus plays cue 1 from Cast_Spell's
+        // switch; Flamecast's routine is the CANNON RAY's and is in neither cast table, while a
+        // player's Flamecast reaches cue 1 through the projectile path instead. TASK-292.
+        Assert.Equal(1, SpellCastSound.ForCombatSpell(SpellIds.BlackNimbus));
+        Assert.Null(SpellCastSound.ForCast(SpellIds.Flamecast));
+        Assert.Null(SpellCastSound.ForCombatSpell(SpellIds.Flamecast));
     }
 
     [Fact]
@@ -109,17 +116,17 @@ public class SpellCastSoundTests {
         // Recovered from Cast_Spell's switch rather than from a Cast_* function. These three were
         // GUESSES in docs/Sound that the per-spell pass could not confirm — "grief of 1000 nights",
         // "despair thy eyes", "skin of the dragon" — and the switch's case values confirm all three.
-        Assert.Equal(77, SpellCastSound.ForCast(SpellIds.GriefOfAThousandNights));
-        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCast(SpellIds.DespairThyEyes));
-        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCast(SpellIds.SkinOfTheDragon));
+        Assert.Equal(77, SpellCastSound.ForCombatSpell(SpellIds.GriefOfAThousandNights));
+        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCombatSpell(SpellIds.DespairThyEyes));
+        Assert.Equal(FieldSpells.CreationSound, SpellCastSound.ForCombatSpell(SpellIds.SkinOfTheDragon));
     }
 
     [Fact]
     public void ASpellCanShareACueAcrossBothDispatchPaths() {
         // Skin of the Dragon comes from the switch and Steelfire from its own routine, and they play
         // the same cue — so "which dispatcher casts it" is independent of "what it sounds like".
-        Assert.Equal(SpellCastSound.ForCast(SpellIds.Steelfire),
-            SpellCastSound.ForCast(SpellIds.SkinOfTheDragon));
+        Assert.Equal(SpellCastSound.ForCombatSpell(SpellIds.Steelfire),
+            SpellCastSound.ForCombatSpell(SpellIds.SkinOfTheDragon));
     }
     [Fact]
     public void AHEALMakesNoCastNoiseAndNoAnimation() {
