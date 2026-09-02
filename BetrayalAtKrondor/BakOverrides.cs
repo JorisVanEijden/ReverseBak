@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using BetrayalAtKrondor.Mcp;
 using BetrayalAtKrondor.Overrides.Libraries;
 using GameData;
+using SkiaSharp;
 using Spice86.Core.CLI;
 using Spice86.Core.Emulator.Function;
 using Spice86.Core.Emulator.Memory.ReaderWriter;
@@ -576,6 +577,20 @@ public class BakOverrides : CSharpOverrideHelper {
             UInt16[chapterArg] = (ushort)chapter;
         });
 
+
+        // Frame capture for the chapter's STORY scene (C<chapter>1.ADS), not the title card.
+        // playChapterAnimationsAndBook runs two animation loops: the first plays CHAPTER<n>.ADS, the
+        // second -- after the book -- plays C<n>1.ADS. seg020:0x06FA is the second loop's
+        // `call j_animationStateMachine` (IDA's own label there is loc_seg020_6FA), reached only
+        // AFTER that frame's SwapDisplayBuffer and blit have run, so the captured buffer is a
+        // finished frame. Set BAK_SPIKE_FRAMEDIR to dump every one of them.
+        string frameDir = Environment.GetEnvironmentVariable("BAK_SPIKE_FRAMEDIR");
+        if (!IsNullOrEmpty(frameDir)) {
+            Directory.CreateDirectory(frameDir);
+            _frameDir = frameDir;
+            DoOnTopOfInstructionIda(Seg020, 0x06FA, CaptureStorySceneFrame);
+        }
+
         // playChapterBook @seg020:0x04F1 sits between the title animation and the story scene and
         // blocks on page turns. Replace it with a far return (the `push cs; call near ptr` at
         // seg020:0x066C returns far, and the caller does its own `add sp, 4`) so the capture reaches
@@ -598,6 +613,39 @@ public class BakOverrides : CSharpOverrideHelper {
         State.AX = 2;
 
         return FarRet();
+    }
+
+    private string _frameDir;
+    private int _storySceneFrame;
+
+    /// <summary>
+    /// Writes the emulator's current frame to <c>_frameDir</c> as a PNG, numbered in playback order.
+    /// Same encode the MCP screenshot tool uses (BGRA8888 straight out of the VGA renderer), so the
+    /// output is comparable with it -- but taken from a known point in the animation loop rather
+    /// than whenever an external tool happens to ask, which is what makes "the Nth frame" meaningful.
+    /// </summary>
+    private void CaptureStorySceneFrame() {
+        _storySceneFrame++;
+        int width = Machine.VgaRenderer.Width;
+        int height = Machine.VgaRenderer.Height;
+        uint[] buffer = new uint[width * height];
+        Machine.VgaRenderer.CopyLastFrame(buffer);
+
+        byte[] bytes = new byte[buffer.Length * 4];
+        Buffer.BlockCopy(buffer, 0, bytes, 0, bytes.Length);
+
+        SKImageInfo imageInfo = new(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        using SKBitmap bitmap = new(imageInfo);
+        System.Runtime.InteropServices.Marshal.Copy(bytes, 0, bitmap.GetPixels(), bytes.Length);
+        using SKImage image = SKImage.FromBitmap(bitmap);
+        using SKData png = image.Encode(SKEncodedImageFormat.Png, 100);
+        if (png == null) {
+            return;
+        }
+        File.WriteAllBytes(Path.Combine(_frameDir, $"frame_{_storySceneFrame:D4}.png"), png.ToArray());
+        if (_storySceneFrame % 25 == 0) {
+            _loggerService.LogInformation("Chapter spike: captured story frame {Frame}", _storySceneFrame);
+        }
     }
 
     private Action SkipIntro(int _) {
