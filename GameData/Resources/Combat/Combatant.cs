@@ -123,6 +123,14 @@ public sealed class Combatant {
     /// </remarks>
     public int HitReactionRemap { get; set; }
 
+    /// <summary>Whether this combatant's death collapse has already been shown.</summary>
+    /// <remarks>
+    /// <b>On the combatant because the sprite does not survive.</b> A corpse is rebuilt on every
+    /// combat redraw, so a flag on the GameObject would replay the collapse each time — the body
+    /// would keep falling over. Same reasoning as <see cref="GaitFrame"/>.
+    /// </remarks>
+    public bool DeathShown { get; set; }
+
     /// <summary>Which frame of the walk cycle this combatant is currently showing, 0..2.</summary>
     /// <remarks>
     /// <b>It lives on the COMBATANT because the sprite does not survive.</b> Every combat redraw
