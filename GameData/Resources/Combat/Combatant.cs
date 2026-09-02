@@ -123,6 +123,21 @@ public sealed class Combatant {
     /// </remarks>
     public int HitReactionRemap { get; set; }
 
+    /// <summary>Ticks counted toward this combatant's next idle frame — <c>tickCounter</c>.</summary>
+    /// <remarks>
+    /// Driven by <see cref="CreatureAnimationStep.Advances"/>, which is a MODULO rather than a
+    /// countdown and resets to 1 rather than 0 — see that method for why the two differ.
+    /// </remarks>
+    public int AnimTick { get; set; }
+
+    /// <summary>Ticks between this combatant's idle frames — re-rolled after every advance.</summary>
+    /// <remarks>
+    /// <b>Slot 0 re-rolls to 8..15 every time it advances</b>, so the idle is deliberately
+    /// irregular; a fixed delay produces a metronome the original never has. The initial value the
+    /// original passes is 7, which is the only time it is not a roll.
+    /// </remarks>
+    public int AnimDelay { get; set; } = 7;
+
     /// <summary>Whether this combatant's death collapse has already been shown.</summary>
     /// <remarks>
     /// <b>On the combatant because the sprite does not survive.</b> A corpse is rebuilt on every
