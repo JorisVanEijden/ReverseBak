@@ -61,4 +61,47 @@ public static class RangedShotSound {
     /// striking the ground, not the target.
     /// </remarks>
     public static bool PlaysOnAMissToo => true;
+
+    /// <summary><c>sound_staff2</c> (66) — the impact, on every shot that CONNECTS.</summary>
+    /// <remarks>
+    /// A third cue, and it is the one a port is most likely to miss: <see cref="Cue"/>'s two are
+    /// both about the shot LEAVING, and this is about it arriving. In the original it sits after
+    /// <c>calculateRangedDamage</c>, inside the branch the to-hit roll guards
+    /// (<c>var_6 != 0</c>), so it plays on a hit and only on a hit — the mirror of
+    /// <see cref="PlaysOnAMissToo"/>.
+    ///
+    /// <para><b>The name is misleading and the id is not.</b> <c>staff2</c> reads as a melee staff
+    /// sound; the routine pushing it is the ranged one, and id 66 is what a landing bolt plays.
+    /// Named here after the event rather than after the resource.</para>
+    /// </remarks>
+    public const int ImpactCue = 66;
+
+    /// <summary>The quarrel kind that is a magic bolt.</summary>
+    /// <remarks>
+    /// Kind 3 does more than damage: the original applies <b>Flamecast</b> to the target
+    /// (<c>ApplySpellToActor(target, SpellNumber 4, cost 0)</c>) and tints the particles before
+    /// playing <see cref="MagicBoltCue"/>. <b>The port plays the cue and does NOT apply the
+    /// spell</b> — that half wants the spell-effect dispatcher, so the sound is faithful and the
+    /// effect is a known gap rather than a silent one.
+    /// </remarks>
+    public const int MagicBoltKind = 3;
+
+    /// <summary><c>sound_arrowexp</c> (29) — the magic bolt's burst, after its effect lands.</summary>
+    public const int MagicBoltCue = 29;
+
+    /// <summary>
+    /// The cues a shot that CONNECTS plays, in order — <see cref="ImpactCue"/> always, then
+    /// <see cref="MagicBoltCue"/> for a magic bolt.
+    /// </summary>
+    /// <remarks>
+    /// Two rather than one because the magic bolt plays BOTH: the impact cue is pushed before the
+    /// kind is examined, and the burst after the spell is applied. Returning a single "best" cue
+    /// would drop one of the two sounds the original makes.
+    /// </remarks>
+    public static System.Collections.Generic.IEnumerable<int> HitCues(int quarrelKind) {
+        yield return ImpactCue;
+        if (quarrelKind == MagicBoltKind) {
+            yield return MagicBoltCue;
+        }
+    }
 }
