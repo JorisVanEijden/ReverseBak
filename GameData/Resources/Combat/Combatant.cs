@@ -132,6 +132,22 @@ public sealed class Combatant {
     /// </remarks>
     public bool SwingPending { get; set; }
 
+    /// <summary>The <see cref="CombatEffectSprite"/> id flying from this combatant to
+    /// <see cref="FlightToSlot"/> on the next redraw, or 0 for none.</summary>
+    /// <remarks>
+    /// Carries a shot or a cast across the resolve-then-redraw gap exactly as
+    /// <see cref="SwingPending"/> carries a melee swing: the attack resolves in one call and the
+    /// arena catches up when it is next drawn.
+    /// </remarks>
+    public int FlightEffectId { get; set; }
+
+    /// <summary>Roster slot of the combatant the pending flight is aimed at.</summary>
+    public int FlightToSlot { get; set; }
+
+    /// <summary>Whether <see cref="FlightToSlot"/> names a party member — the slot number alone is
+    /// ambiguous, since a party slot and an enemy index share the same range.</summary>
+    public bool FlightToParty { get; set; }
+
     /// <summary>Ticks counted toward this combatant's next idle frame — <c>tickCounter</c>.</summary>
     /// <remarks>
     /// Driven by <see cref="CreatureAnimationStep.Advances"/>, which is a MODULO rather than a
