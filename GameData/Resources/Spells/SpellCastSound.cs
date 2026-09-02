@@ -51,8 +51,18 @@ public static class SpellCastSound {
         // That switch is driven by the spell number biased by three — IDA's switch info reports
         // lowcase 3 against the `mov bx,[bp+SpellNumber]` at 0x68798, so its case labels are true
         // spell numbers and not post-subtraction indices.
+        //
+        // *** TWO CAVEATS ON THESE THREE, ADDED 2026-09-02 WITH THE FLUX ENTRY. ***
+        // 1. Grief's cue is CONDITIONAL in the original — case 13 plays it only when
+        //    Grief_TargetIsSusceptible(target) answers true, which the port models as
+        //    SpellPerSpellHandlers.GriefAffects. This table is unconditional, so a consumer that
+        //    wants fidelity has to ask that question itself.
+        // 2. These come from Cast_Spell, which is the COMBAT resolver, but ForCast is read only by
+        //    FieldSpellCaster — CombatRuntime.ResolveCast uses ForCombatCast instead. Whether a
+        //    combat cast of one of these should also sound is unresolved; see TASK-144.
         { SpellIds.DespairThyEyes, FieldSpells.CreationSound },        // case 3
         { SpellIds.GriefOfAThousandNights, 77 },                       // case 13, sound_sparkly
+        { SpellIds.UnfortunateFlux, 77 },                              // case 20, sound_sparkly
         { SpellIds.SkinOfTheDragon, FieldSpells.CreationSound },       // case 23
     };
 
