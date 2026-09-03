@@ -313,4 +313,21 @@ public static class CipherPuzzleLayout {
     /// <summary>Dialog played once it has been drawn.</summary>
     /// <remarks>Before the legibility test, so both parties hear it.</remarks>
     public const int AfterDrawDialog = 0x0c;
+
+    /// <summary>
+    /// How long the alien-to-readable dissolve takes, in seconds.
+    /// </summary>
+    /// <remarks>
+    /// <b>The original has no answer to this and neither can we.</b>
+    /// <c>dissolve_transition_lfsr</c> (DISSOLV.C) walks all 320x200 pixels in LFSR order copying
+    /// page 2 to the front page one <c>putpixel</c> at a time, with no frame sync and no delay — so
+    /// the effect's duration is whatever 64,000 far-vtable pixel writes cost on the machine it runs
+    /// on. There is no tick count, palette-write count or step budget to port, the way
+    /// <see cref="Animation.FadeRamp"/> has one.
+    ///
+    /// <para>So this is a chosen duration, not a recovered one: long enough to read as a transform
+    /// rather than a swap, short enough not to hold the screen. Any change is a taste call and
+    /// needs no re-derivation from the binary.</para>
+    /// </remarks>
+    public const float DissolveSeconds = 0.6f;
 }
