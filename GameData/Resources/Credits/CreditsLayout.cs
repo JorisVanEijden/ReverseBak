@@ -84,6 +84,46 @@ public class CreditsLayout {
     /// <summary>Radius of a single leader dot — half a VGA px horizontally.</summary>
     public LayoutLength LeaderDotRadius { get; set; } = LayoutLength.Px(2.5f);
 
-    /// <summary>Clearance between the text and the nearest leader dot. VGA 2.</summary>
+    /// <summary>
+    /// Local x of the first leader dot, given where the leader element starts inside its row.
+    ///
+    /// <para>Dot phase is GLOBAL: the original steps absolute screen x on a 4-VGA-px grid
+    /// (<c>scrollCredits</c> @0x40888-0x408B3), so every row's dots land on the same multiples and
+    /// read as vertical columns down the credits. Phasing from each row's own leader element
+    /// instead — whose position moves with the role text width — makes the columns drift apart,
+    /// which is what "the leaders look wrong" was reporting.</para>
+    ///
+    /// <para>Returns the first grid point at or after <paramref name="bandStart" />, expressed in
+    /// the leader's local space. That is equivalent to the original's snap-down-then-clip without
+    /// emitting dots it would only clip away.</para>
+    /// </summary>
+    /// <param name="originInRow">The leader element's offset inside its row.</param>
+    /// <param name="bandStart">Where the dot band starts, in the leader's local space.</param>
+    /// <param name="pitch">Dot spacing (<see cref="LeaderDotPitch" />).</param>
+    public static float FirstDotOffset(float originInRow, float bandStart, float pitch) {
+        if (pitch <= 0f) {
+            return bandStart;
+        }
+        float absolute = originInRow + bandStart;
+        float firstAbsolute = (float)(System.Math.Ceiling(absolute / pitch) * pitch);
+
+        return firstAbsolute - originInRow;
+    }
+
+    /// <summary>Clearance between the ROLE text and the first leader dot. VGA 2.</summary>
+    /// <remarks>
+    /// The original's dot band starts at <c>rowX + roleWidth + 24</c> (scrollCredits @0x40876),
+    /// and the role itself is drawn at <c>rowX + 22</c> (@0x40797), so the clearance past the
+    /// role's end is <c>24 - 22 = 2</c> VGA px. The 24 is not a gap — it absorbs the role's own
+    /// x-offset, which is easy to misread as a large clearance.
+    /// </remarks>
     public LayoutLength LeaderGap { get; set; } = LayoutLength.Px(10f);
+
+    /// <summary>Clearance between the last leader dot and the NAME text. VGA 4.</summary>
+    /// <remarks>
+    /// Deliberately NOT the same as <see cref="LeaderGap"/>: the original ends the band at
+    /// <c>nameLeft - 4</c> (@0x4085E) while starting it 2 px past the role, so the two sides are
+    /// genuinely asymmetric. Both used to be 10 here.
+    /// </remarks>
+    public LayoutLength LeaderGapName { get; set; } = LayoutLength.Px(20f);
 }

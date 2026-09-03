@@ -112,3 +112,60 @@ public class CreditsLayoutTests {
         Assert.Equal(LayoutFit.Contain, credits.Frame.Fit);
     }
 }
+
+/// <summary>
+/// Leader-dot phase. The property that matters is that rows ALIGN WITH EACH OTHER: the original
+/// steps absolute screen x on a fixed grid (scrollCredits @0x40888-0x408B3), so dots form vertical
+/// columns down the credits however long each role string is. Phasing from each row's own leader
+/// element instead let the columns drift, which is what "the leaders look wrong" was reporting.
+/// </summary>
+public class LeaderDotPhaseTests {
+    private const float Pitch = 20f;   // CreditsLayout.LeaderDotPitch, VGA 4
+
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(7f)]
+    [InlineData(133f)]
+    [InlineData(1234.5f)]
+    public void TheFirstDotLandsOnTheGlobalGrid(float originInRow) {
+        float local = CreditsLayout.FirstDotOffset(originInRow, bandStart: 10f, pitch: Pitch);
+        float absolute = originInRow + local;
+
+        Assert.Equal(0f, absolute % Pitch, 3);
+    }
+
+    [Fact]
+    public void RowsWithDifferentRoleWidthsStillShareOneColumn() {
+        // Two rows whose leaders start at unrelated offsets -- the real case, since the leader sits
+        // after a role label whose width varies per line.
+        float a = 41f + CreditsLayout.FirstDotOffset(41f, 10f, Pitch);
+        float b = 118f + CreditsLayout.FirstDotOffset(118f, 10f, Pitch);
+
+        Assert.Equal(0f, (a - b) % Pitch, 3);
+    }
+
+    [Fact]
+    public void TheFirstDotIsNotBeforeTheBand() {
+        // The original snaps DOWN and clips; taking the first grid point at or after the start is
+        // the same picture without emitting dots that would only be clipped away.
+        float local = CreditsLayout.FirstDotOffset(originInRow: 33f, bandStart: 10f, pitch: Pitch);
+
+        Assert.True(local >= 10f, $"first dot at {local} would sit inside the role clearance");
+        Assert.True(local < 10f + Pitch, $"first dot at {local} skipped a whole grid step");
+    }
+
+    [Fact]
+    public void ANonPositivePitchDoesNotHangOrDivideByZero() {
+        Assert.Equal(10f, CreditsLayout.FirstDotOffset(50f, 10f, 0f));
+    }
+
+    [Fact]
+    public void TheTwoClearancesAreAsymmetric_AsTheOriginalHasThem() {
+        var layout = new CreditsLayout();
+
+        // Role side: band starts at rowX + roleWidth + 24 while the role is drawn at rowX + 22,
+        // so the clearance past the role's end is 2 VGA px. Name side: nameLeft - 4.
+        Assert.Equal(10f, layout.LeaderGap.Value);        // VGA 2
+        Assert.Equal(20f, layout.LeaderGapName.Value);    // VGA 4
+    }
+}
