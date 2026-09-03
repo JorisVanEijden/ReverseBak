@@ -314,6 +314,31 @@ public static class CipherPuzzleLayout {
     /// <remarks>Before the legibility test, so both parties hear it.</remarks>
     public const int AfterDrawDialog = 0x0c;
 
+    /// <summary>Dialog played on leaving a puzzle UNSOLVED.</summary>
+    public const int UnsolvedDialog = 0x0d;
+
+    /// <summary>Dialog played after the lock gives way.</summary>
+    /// <remarks>
+    /// <b>After the bolt animation, not on the solving click</b> — CIPHER.C:205 sits past the two
+    /// sprite blits and the 200-tick hold, so the line lands on an open chest rather than over the
+    /// lock still closing.
+    /// </remarks>
+    public const int SolvedDialog = 0x0e;
+
+    /// <summary>
+    /// The two refusals a gated puzzle gives, recorded and NOT ported.
+    /// </summary>
+    /// <remarks>
+    /// <b>CIPHER.C:165 and :174 play 0xcd and 0xce when <c>menupage_state_0e7c() != 1</c></b> — a
+    /// wheel click and a solve attempt respectively, each refused with its own line. What that gate
+    /// reads is not established, and a guess would either silence the screen or refuse input that
+    /// should work. Named here so the ids are not rediscovered, and left unwired until the gate is.
+    /// </remarks>
+    public const int RefusedTurnDialog = 0xcd;
+
+    /// <inheritdoc cref="RefusedTurnDialog"/>
+    public const int RefusedSolveDialog = 0xce;
+
     /// <summary>
     /// How long the alien-to-readable dissolve takes, in seconds.
     /// </summary>
