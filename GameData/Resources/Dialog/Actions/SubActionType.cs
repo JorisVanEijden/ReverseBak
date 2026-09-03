@@ -45,10 +45,47 @@ public enum SubActionType {
     /// </remarks>
     CountArmorState = 2,   // NOT a count — see the remark. Name frozen by JSON serialisation.
 
-    /// <summary>Remove a combat encounter by id (Field2). Used to peacefully resolve a fight.</summary>
+    /// <summary>
+    /// RE-ARMS an encounter — clears its fought/done/scouted flags so it can happen again.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a cancel, despite the name, and the opposite of <see cref="CancelCombatEncounter2" />
+    /// rather than its sibling.</b> The body finds the zone hotspot matching the id and clears the
+    /// trigger's done, scout-tried and scouted flags, then calls
+    /// <c>hotspotevt_enc_fought_clear(id)</c> — which writes <c>ENCOUNTER_FOUGHT(id) = <b>0</b></c>
+    /// (HOTSPOT.C:1093) — and reloads the encounter's enemy party. Every one of those is a RESET.
+    ///
+    /// <para>Implementing this from the old remark ("remove a combat encounter... peacefully resolve
+    /// a fight") would make a dialog that talks a fight down re-arm it instead. Corrected 2026-09-03
+    /// by reading both bodies; the flag directions are unambiguous, one writes 1 and the other 0.</para>
+    ///
+    /// <para><b>Not implemented.</b> The flag half is a global write, but the per-hotspot done and
+    /// scouted clears need the zone's hotspot entries, and a flag-only version would half-arm the
+    /// encounter — worse than leaving it loud. Shipped ids: 151, 152, 375.</para>
+    ///
+    /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
+    /// </remarks>
     CancelCombatEncounter = 3,
 
-    /// <summary>Sibling of CancelCombatEncounter via a different sub-routine path.</summary>
+    /// <summary>
+    /// RESOLVES an encounter — marks it already fought, so it does not happen.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the one that peacefully resolves a fight</b>, which the old remark attributed to
+    /// <see cref="CancelCombatEncounter" /> while calling this a sibling of it "via a different
+    /// sub-routine path". They are not siblings: this one calls
+    /// <c>hotspotevt_enc_fought_set(id)</c> — <c>ENCOUNTER_FOUGHT(id) = <b>1</b></c>
+    /// (HOTSPOT.C:1084) — and the other writes 0.
+    ///
+    /// <para><b>Field2 = 0 means EVERY loaded encounter record</b>, not "no id": the original loops
+    /// the zone's records and filters on the id only when it is non-zero. Two of the five shipped
+    /// instances pass 0. The other three are ids 343 and 645.</para>
+    ///
+    /// <para>Implemented for a specific id (the flag is what stops the fight happening); the id-0
+    /// case and the original's kind-3 object-state reset are not. See TASK-304.</para>
+    ///
+    /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
+    /// </remarks>
     CancelCombatEncounter2 = 4,
 
     /// <summary>Copy container from (zone=0,X=20) to (zone=1,X=2,Y=3) and dispose source.</summary>
