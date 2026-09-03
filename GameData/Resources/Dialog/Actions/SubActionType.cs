@@ -97,7 +97,22 @@ public enum SubActionType {
     /// <summary>Add Field2 to global_30015.</summary>
     IncrementGlobal30015 = 7,
 
-    /// <summary>Two-roll gambling/check. Field2/4 are dice sides; Field6 is reward percentage.</summary>
+    /// <summary>
+    /// A two-roll wager against an NPC, settled into that NPC's own running ledger.
+    /// </summary>
+    /// <remarks>
+    /// Rolls <c>RND(Field2)</c> and <c>RND(Field4)</c>. On a win the party gains
+    /// <c>quotedPrice * Field6 / 100</c> and the same amount comes OFF the ledger (floored at zero);
+    /// on a loss the party pays the quoted price and it goes ON, capped by a guard at 0xea60.
+    ///
+    /// <para><b>The ledger is per-NPC and persistent</b>, which is the fact that makes this and
+    /// <see cref="CapReward" /> intelligible — see that member for what is established about it.</para>
+    ///
+    /// <para><b>One decompilation oddity, recorded rather than ported:</b> the win/loss chain ends
+    /// with the SAME comparison twice (<c>else if (a &lt; b)</c> after <c>else if (a &lt; b)</c>), so
+    /// the third arm is unreachable as written. Establish what a DRAW does from the disassembly
+    /// before implementing, rather than copying a branch that cannot run.</para>
+    /// </remarks>
     GambleRoll = 8,
 
     /// <summary>For each active party member, set all equipped Swords to blessed3 with full charge.</summary>
@@ -114,11 +129,19 @@ public enum SubActionType {
     /// lowers"). The body is <c>if (Field2 &gt; X) X = Field2;</c> — a MAX that only ever RAISES
     /// (EVTCOND.C case 11).
     ///
-    /// <para>And it is not the reward money. <c>X</c> here is the same counter
-    /// <see cref="GambleRoll" /> moves: a win SUBTRACTS the payout from it and a loss ADDS the
-    /// stake, clamped below 0xea60. That reads as a running stake or debt rather than a reward, so
-    /// the member's name is a guess and the direction was wrong on top of it. Establish what the
-    /// counter is before implementing either subtype.</para>
+    /// <para><b>And it is not the reward money — it is a PER-NPC LEDGER, established 2026-09-03 by
+    /// reading its other users.</b> The town scene zeroes it, loads it from the conversing actor's
+    /// own persisted event-state subrecord, plays the dialog, writes it back clamped to 0xfa, and
+    /// zeroes it again (TOWNSCN.C:467-508). So it is a byte of per-character state that survives the
+    /// conversation, not a global. A dialog CONDITION reads it as <c>&gt; 0</c> (GSTATE.C:110), and
+    /// <see cref="GambleRoll" /> moves it: losing a wager puts the stake ON, winning takes the payout
+    /// OFF.</para>
+    ///
+    /// <para><b>Most consistent reading — flagged as interpretation, not fact:</b> a running debt or
+    /// tab with that character. It grows when the party loses to them, shrinks when the party wins,
+    /// can be floored by this subtype, and their dialog can branch on whether any is outstanding.
+    /// canassa calls it a "popup retry counter", which fits none of that; this project does not take
+    /// its names.</para>
     ///
     /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
     /// </remarks>
