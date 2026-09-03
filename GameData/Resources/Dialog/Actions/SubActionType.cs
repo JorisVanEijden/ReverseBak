@@ -140,8 +140,10 @@ public enum SubActionType {
     /// <c>quotedPrice * Field6 / 100</c> and the same amount comes OFF the ledger (floored at zero);
     /// on a loss the party pays the quoted price and it goes ON, capped by a guard at 0xea60.
     ///
-    /// <para><b>The ledger is per-NPC and persistent</b>, which is the fact that makes this and
-    /// <see cref="CapReward" /> intelligible — see that member for what is established about it.</para>
+    /// <para><b>The counter is the establishment's own fund</b>, byte 7 of its
+    /// <c>SUBREC_EVENT_STATE</c> — the same one a barding performance is paid out of. See
+    /// <see cref="CapReward" /> for how that was established, and for the two wrong names it had
+    /// before.</para>
     ///
     /// <para><b>One decompilation oddity, recorded rather than ported:</b> the win/loss chain ends
     /// with the SAME comparison twice (<c>else if (a &lt; b)</c> after <c>else if (a &lt; b)</c>), so
@@ -189,19 +191,26 @@ public enum SubActionType {
     /// lowers"). The body is <c>if (Field2 &gt; X) X = Field2;</c> — a MAX that only ever RAISES
     /// (EVTCOND.C case 11).
     ///
-    /// <para><b>And it is not the reward money — it is a PER-NPC LEDGER, established 2026-09-03 by
-    /// reading its other users.</b> The town scene zeroes it, loads it from the conversing actor's
-    /// own persisted event-state subrecord, plays the dialog, writes it back clamped to 0xfa, and
-    /// zeroes it again (TOWNSCN.C:467-508). So it is a byte of per-character state that survives the
-    /// conversation, not a global. A dialog CONDITION reads it as <c>&gt; 0</c> (GSTATE.C:110), and
-    /// <see cref="GambleRoll" /> moves it: losing a wager puts the stake ON, winning takes the payout
-    /// OFF.</para>
+    /// <para><b>And it is not the reward money — it is the ESTABLISHMENT'S FUND</b>, byte 7 of the
+    /// speaking actor's <c>SUBREC_EVENT_STATE</c> block. The town scene loads it from that actor,
+    /// plays the dialog, writes it back clamped to 0xfa and zeroes its working copy
+    /// (TOWNSCN.C:467-508), so it is per-establishment state that survives the conversation.</para>
     ///
-    /// <para><b>Most consistent reading — flagged as interpretation, not fact:</b> a running debt or
-    /// tab with that character. It grows when the party loses to them, shrinks when the party wins,
-    /// can be floored by this subtype, and their dialog can branch on whether any is outstanding.
-    /// canassa calls it a "popup retry counter", which fits none of that; this project does not take
-    /// its names.</para>
+    /// <para><b>*** IT IS THE BARDING FUND, AND THIS PORT ALREADY NAMED IT CORRECTLY. ***</b> An
+    /// earlier note here called it "a running debt or tab with that character", flagged as
+    /// interpretation — it was wrong, and the sign was backwards. TOWNSCN.C:260-293 reads the same
+    /// byte as the money a tavern owes for a performance: it pays out <c>counter * 10</c> gold,
+    /// gated on the party's best Barding (stat 0xb) against byte 6, halved for a decent showing and
+    /// quartered for a poor one, then zeroes it. Byte 6 is the difficulty. Those are exactly
+    /// <c>SaveGameContainerShopData.BardingDifficulty</c> and <c>BardingReward</c>, which
+    /// <c>Scene.Barding</c> and <c>LocationScreen.RunBardingAsync</c> have read and spent all
+    /// along. canassa's <c>bPopup_retry_counter</c> and <c>b_pad06</c> are the wrong names, and
+    /// "ledger" was a third wrong one invented to replace them.</para>
+    ///
+    /// <para>So the coherent reading is a POT the house holds for the party: barding earns it,
+    /// <see cref="GambleRoll" /> moves it either way, and this subtype puts a floor under it. A
+    /// dialog CONDITION reads it as <c>&gt; 0</c> (GSTATE.C:110) — "is there anything waiting for
+    /// you here".</para>
     ///
     /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
     /// </remarks>
