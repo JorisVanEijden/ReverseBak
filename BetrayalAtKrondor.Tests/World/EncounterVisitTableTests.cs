@@ -164,28 +164,39 @@ public class EncounterVisitTableTests {
     }
 
     [Fact]
-    public void TheBlockSitsWhereWeSayItDoesInTheSHIPPEDFiles() {
+    public void TheBlockSitsWhereWeSayItDoesInTheSHIPPED_TEMPLATE() {
         // *** The test that matters, and the one a round-trip cannot replace. *** Load/Save are
         // symmetric, so they agree with each other even when the offset is wrong — which it was:
         // 0xb3b is where the block lands in a SAVE##.GAM FILE (past the 100-byte header), not in
         // the body, and using it as a body offset read 100 bytes into the wrong field.
         //
-        // A free table is 120 bytes of 0xff (three coordinate arrays) followed by cleared flags, so
-        // the shipped files can be asked directly. TEMP.GAM is the bare body; STARTUP.GAM is the
-        // same body behind a save header.
-        byte[]? temp = ReadGameFile("TEMP.GAM");
+        // *** ONLY STARTUP.GAM. *** This used to assert the same free table in TEMP.GAM, which was
+        // wrong in kind: TEMP.GAM is the LIVE STATE of the game in progress — the engine rewrites it
+        // in place as you play — so asserting it holds a never-visited table is really asserting
+        // that nobody has played. It failed exactly that way on 2026-09-03 after an emulator session
+        // walked into an encounter, and the failure named TEMP.GAM while looking unrelated to
+        // whatever was being changed. STARTUP.GAM is the new-game TEMPLATE and genuinely is a
+        // shipped constant, so every claim below is made against it.
+        //
+        // A free table is 120 bytes of 0xff (three coordinate arrays) followed by cleared flags.
         byte[]? startup = ReadGameFile("STARTUP.GAM");
-        if (temp == null || startup == null) {
+        if (startup == null) {
             return; // skip-if-absent, like the other game-data tests
         }
 
-        Assert.Equal(startup.Length - temp.Length, EncounterVisitTable.FileOffset - EncounterVisitTable.BodyOffset);
-        AssertFreeTableAt(temp, EncounterVisitTable.BodyOffset, "TEMP.GAM (body)");
+        // The file offset, and then the body offset against the same file's body. Slicing at
+        // FileOffset - BodyOffset means a wrong DIFFERENCE misplaces the slice and the second
+        // assertion fails — so both constants and their relationship are still covered, without
+        // reading a file whose contents are allowed to change.
         AssertFreeTableAt(startup, EncounterVisitTable.FileOffset, "STARTUP.GAM (file)");
+
+        int headerSize = EncounterVisitTable.FileOffset - EncounterVisitTable.BodyOffset;
+        byte[] body = startup[headerSize..];
+        AssertFreeTableAt(body, EncounterVisitTable.BodyOffset, "STARTUP.GAM (body)");
 
         // And a new game really does start with every slot free.
         var table = new EncounterVisitTable();
-        table.Load(temp);
+        table.Load(body);
         Assert.Equal(0, table.UsedSlots);
     }
 
