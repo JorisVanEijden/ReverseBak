@@ -547,10 +547,26 @@ public class BakOverrides : CSharpOverrideHelper {
     private static uint IdaLinear(uint idaLinear) => idaLinear - OverlayAddressTranslator.RelocationDelta;
 
     private void DefineChapterSpike() {
-        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_SPIKE_CHAPTER"), out int chapter) || chapter is < 1 or > 9) {
+        // *** EITHER VARIABLE ARMS THE HARNESS, AND THAT IS THE FIX FOR A REAL TRAP. ***
+        // This used to return unless BAK_SPIKE_CHAPTER was set, which silently disarmed
+        // BAK_SPIKE_LOADSAVE too — every override below, the intro skip and the menu answer
+        // included. So `BAK_SPIKE_LOADSAVE=probe:1:0` on its own did NOTHING: the game played its
+        // full title sequence, never reached the main menu, and never loaded. It looks exactly like
+        // a broken save-load path, and cost two sessions before the gate was read.
+        //
+        // The chapter spike still needs its own number; the load spike does not need a chapter.
+        bool haveChapter =
+            int.TryParse(Environment.GetEnvironmentVariable("BAK_SPIKE_CHAPTER"), out int chapter)
+            && chapter is >= 1 and <= 9;
+        bool haveLoad = !IsNullOrEmpty(Environment.GetEnvironmentVariable("BAK_SPIKE_LOADSAVE"));
+        if (!haveChapter && !haveLoad) {
             return;
         }
-        _loggerService.LogInformation("Chapter spike: armed for chapter {Chapter}", chapter);
+
+        _loggerService.LogInformation(
+            "Chapter spike: armed (chapter {Chapter}, load spec {Load})",
+            haveChapter ? chapter.ToString() : "none",
+            Environment.GetEnvironmentVariable("BAK_SPIKE_LOADSAVE") ?? "none");
 
         // PlayIntro @seg020:0x038C runs the Sierra logo and the animated intro before the menu is
         // ever shown, and skipping it by keyboard is timing-dependent (tried; unreliable). Stub it
