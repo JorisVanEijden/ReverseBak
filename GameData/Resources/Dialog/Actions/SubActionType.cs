@@ -15,8 +15,35 @@ public enum SubActionType {
     /// <summary>Add global_30015 to party gold.</summary>
     RewardPartyMoney = 1,
 
-    /// <summary>Count good/damaged armor in party via sub_ovr128_0.</summary>
-    CountArmorState = 2,
+    /// <summary>
+    /// REPAIRS every damaged piece of party armour — condition back to 100, wear flag cleared.
+    /// </summary>
+    /// <remarks>
+    /// <b>It does not count, despite what this member was called until 2026-09-03.</b> The routine
+    /// takes a <c>do_repair</c> flag and has two callers: the dialog CONDITION side passes 0 and
+    /// counts, which is the behaviour the old name and remark described; this sub-action passes
+    /// <b>1</b>, which walks every party member's items and, for each of category 4 with
+    /// <c>condition &lt; 100</c>, sets the condition to 100 and clears flag 0x20 (EVTCOND.C:21-53,
+    /// case 2 at :193).
+    ///
+    /// <para>Armour is right — category 4 is armour on both sides of the port (equipped category-4
+    /// items carry the damage-type resistances in CBSTAT.C:297, and our own
+    /// <c>ObjectType.Armor = 4</c>). Only the verb was wrong, and it is the half that matters:
+    /// implementing this from the old name gives a counter, and the armour the player just paid to
+    /// have mended stays broken.</para>
+    ///
+    /// <para>The gold is NOT charged here — the count path multiplies the per-item cost into
+    /// <c>lEvtArgGoldCost</c> and <see cref="PayPartyMoney" /> (subtype 0) deducts it, so a repair
+    /// service is authored as separate sub-actions.</para>
+    ///
+    /// <para><b>The member keeps its inaccurate name on purpose.</b> This enum serialises BY NAME
+    /// into the committed <c>generated/DDX/*.json</c>, so the name is a data-format contract:
+    /// renaming it to <c>RepairPartyArmour</c> made every DDX file fail to deserialise
+    /// (<c>PhillipConversationReachesHisTopicsTests</c> caught it immediately). Correcting a name
+    /// here means regenerating derived data, which is a bigger change than the naming is worth —
+    /// so the correction lives in this remark, where anyone reading the member sees it.</para>
+    /// </remarks>
+    CountArmorState = 2,   // NOT a count — see the remark. Name frozen by JSON serialisation.
 
     /// <summary>Remove a combat encounter by id (Field2). Used to peacefully resolve a fight.</summary>
     CancelCombatEncounter = 3,
