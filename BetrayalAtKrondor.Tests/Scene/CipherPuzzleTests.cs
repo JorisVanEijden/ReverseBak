@@ -122,4 +122,19 @@ public class CipherPuzzleTests {
 
         Assert.NotNull(p.Description);
     }
+
+    [Fact]
+    public void TheRiddleKeepsTheNewlinesTheAuthorWroteIntoIt() {
+        // *** THE SCREEN SPLITS ON THESE. *** PuzzleScreen draws the riddle line-for-line and never
+        // re-wraps, because all 143 shipped riddles are pre-wrapped by the author — the widest line
+        // measures 263 VGA px against its own 1375-canonical box, so the original's wrap never
+        // fires. If Parse ever normalised the newlines away, the riddle would come out as one long
+        // line running off the chest plate, and nothing else would notice.
+        CipherPuzzle puzzle = CipherPuzzle.Parse(
+            "CANDLE\n#\nRHEDLS\nSTNBET\n#\nHe gets short when he gets old.\nHe goes out then it gets cold.");
+
+        Assert.Equal(2, puzzle.Description.Split('\n').Length);
+        Assert.StartsWith("He gets short", puzzle.Description);
+        Assert.EndsWith("it gets cold.", puzzle.Description);
+    }
 }

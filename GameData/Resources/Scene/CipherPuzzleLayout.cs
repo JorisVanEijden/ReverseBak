@@ -124,6 +124,38 @@ public static class CipherPuzzleLayout {
             columnX + columnWidth - 2, columnY + columnHeight - 2);
 
     /// <summary>
+    /// The pens the raised box behind each dial letter is drawn in, resolved through PUZZLE.PAL.
+    /// </summary>
+    /// <remarks>
+    /// <b>This box is the screen's only affordance.</b> PUZZLE.SCX is a bare blue plate — the tiles
+    /// are NOT in the art — so a letter without its box reads as printed on the chest lid rather
+    /// than as something that turns, and <see cref="NextRow"/>'s whole premise ("the player never
+    /// types, they rotate") stops being visible.
+    ///
+    /// <para>Drawn as a filled rect in <see cref="BevelFillPen"/> outlined in
+    /// <see cref="BevelOutlinePen"/>, with three of the four edges then overpainted to give it
+    /// relief. Named by EDGE and not by "highlight"/"shadow": which way the light falls is a
+    /// property of PUZZLE.PAL rather than of the geometry, and a guess baked into a name outlives
+    /// the guess.</para>
+    ///
+    /// <para><b>Only live columns get one.</b> A space in the target word is a dead column, and the
+    /// original skips its box along with its letter rather than drawing an empty tile.</para>
+    /// </remarks>
+    public const int BevelFillPen = 119;
+
+    /// <summary>The box's outline, drawn with the fill before any edge is overpainted.</summary>
+    public const int BevelOutlinePen = 22;
+
+    /// <summary>The left edge, overpainted from one pixel below the top corner.</summary>
+    public const int BevelLeftPen = 65;
+
+    /// <summary>The right edge.</summary>
+    public const int BevelRightPen = 177;
+
+    /// <summary>The bottom edge.</summary>
+    public const int BevelBottomPen = 209;
+
+    /// <summary>
     /// The row a column shows after it is clicked.
     /// </summary>
     /// <remarks>
