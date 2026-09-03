@@ -88,17 +88,33 @@ public enum SubActionType {
     CapReward = 11,
 
     /// <summary>
-    /// Writes 1 to a single global. <b>What that global MEANS is not established.</b>
+    /// Asks the world loop to run the hotspot pass at the party's tile on its next iteration,
+    /// without the party having moved.
     /// </summary>
     /// <remarks>
-    /// The most common subtype — 10 of the 39 shipped instances — and the one whose purpose is least
-    /// known. The body is a bare <c>&lt;global&gt; = 1</c>. This member's name calls it a tutorial
-    /// flag and canassa reads the same write as a hotspot-activate request; **neither is evidence**,
-    /// they are two independent guesses at an unnamed variable, and this project does not take
-    /// canassa's names.
+    /// <b>Settled 2026-09-03 by reading the global's READERS, not its name.</b> It is written <c>= 1</c>
+    /// here and read in exactly two places — the world loop (WORLDLP.C:185) and the map loop
+    /// (MAP.C:208) — which do the same thing:
+    /// <code>
+    /// if (nothing_moved &amp;&amp; flag != 0) {
+    ///     hotspotevt_activate_at_player();   // run the hotspot pass where the party stands
+    ///     flag = 0;                          // one-shot: consumed by whichever loop is running
+    ///     moved = 1;                         // then finish the iteration as if the party HAD moved
+    /// }
+    /// </code>
     ///
-    /// <para>Find the READERS of that global before implementing this. Ten instances make it the
-    /// subtype most worth getting right and the one most likely to be built wrong from its name.</para>
+    /// <para>So it is not a tutorial flag, which is what this member is named and what its remark
+    /// claimed until the readers were checked. It is a dialog saying <i>"re-evaluate the tile I am
+    /// standing on now"</i> — which is what a dialog that has just set a flag or filled a container
+    /// needs, so the trigger under the party's feet fires immediately instead of after a step.</para>
+    ///
+    /// <para>The <c>moved = 1</c> matters as much as the activation: the rest of that iteration —
+    /// pending events, the time advance, the redraw — then runs as a normal world step. Both loops
+    /// also clear the flag on ENTRY (WORLDLP.C:86, MAP.C:115), so a request never survives into a
+    /// new loop.</para>
+    ///
+    /// <para><b>Not implemented</b>: reaching the hotspot pass needs a collaborator
+    /// <c>DialogExecutor</c> does not have — the same seam subtypes 3 and 4 need. See TASK-304.</para>
     ///
     /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
     /// </remarks>
