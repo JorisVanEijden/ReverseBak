@@ -69,10 +69,39 @@ public enum SubActionType {
     /// <summary>Copy containers from (zone=0,X=20) and (zone=0,X=30) to (zone=15,X=60,Y=3) and (zone=15,X=64,Y=3).</summary>
     RelocateContainers = 10,
 
-    /// <summary>global_reward_money = min(global_reward_money, Field2). Only lowers.</summary>
+    /// <summary>
+    /// Raises a running stake/debt counter to at least <c>Field2</c> — <c>X = max(X, Field2)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The old remark had this exactly backwards</b> ("min(global_reward_money, Field2), only
+    /// lowers"). The body is <c>if (Field2 &gt; X) X = Field2;</c> — a MAX that only ever RAISES
+    /// (EVTCOND.C case 11).
+    ///
+    /// <para>And it is not the reward money. <c>X</c> here is the same counter
+    /// <see cref="GambleRoll" /> moves: a win SUBTRACTS the payout from it and a loss ADDS the
+    /// stake, clamped below 0xea60. That reads as a running stake or debt rather than a reward, so
+    /// the member's name is a guess and the direction was wrong on top of it. Establish what the
+    /// counter is before implementing either subtype.</para>
+    ///
+    /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
+    /// </remarks>
     CapReward = 11,
 
-    /// <summary>Set word_dseg_1A28 = 1. Most common subtype (10× in data).</summary>
+    /// <summary>
+    /// Writes 1 to a single global. <b>What that global MEANS is not established.</b>
+    /// </summary>
+    /// <remarks>
+    /// The most common subtype — 10 of the 39 shipped instances — and the one whose purpose is least
+    /// known. The body is a bare <c>&lt;global&gt; = 1</c>. This member's name calls it a tutorial
+    /// flag and canassa reads the same write as a hotspot-activate request; **neither is evidence**,
+    /// they are two independent guesses at an unnamed variable, and this project does not take
+    /// canassa's names.
+    ///
+    /// <para>Find the READERS of that global before implementing this. Ten instances make it the
+    /// subtype most worth getting right and the one most likely to be built wrong from its name.</para>
+    ///
+    /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
+    /// </remarks>
     SetTutorialFlag = 12,
 
     /// <summary>Zero all expiry-timer entries of type Light with key Torch, then tick the timer system.</summary>
