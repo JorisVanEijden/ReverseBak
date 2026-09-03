@@ -189,6 +189,21 @@ public static class CipherPuzzleLayout {
     /// <summary>The pen the readable body of the riddle is drawn in.</summary>
     public const int TextBodyPen = 16;
 
+    /// <summary>
+    /// The blank pixel row between riddle lines.
+    /// </summary>
+    /// <remarks>
+    /// <c>textwrap_draw_aligned</c> (TEXTWRAP.C:95) advances by <c>line_height + line_spacing</c>,
+    /// and the dialog renderer passes 1 — so consecutive lines step by the font's height PLUS one,
+    /// never by the height alone.
+    ///
+    /// <para>The same routine's vertical alignment is a flag pair rather than a position: 0x10
+    /// centres the block in the box (<c>voff = max_height - advance * lines</c>, halved), 0x20
+    /// bottom-aligns it, neither tops it. The riddle is centred — which is what puts it two thirds
+    /// of the way down the chest plate rather than one third.</para>
+    /// </remarks>
+    public const int RiddleLineSpacing = 1;
+
     // ---- the wheel's roll -----------------------------------------------------------------------
 
     /// <summary>
