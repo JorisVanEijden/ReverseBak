@@ -42,6 +42,33 @@ public static class FadeRamp {
     /// <summary>VGA's full palette intensity, 63.</summary>
     public const int MaxIntensity = 0x3F;
 
+    /// <summary>
+    /// Palette writes in the WORLD's screen fade — <c>palette_fade_out</c> (PALETTE.C:83).
+    /// </summary>
+    /// <remarks>
+    /// <b>A different mechanism from the speed table above, and worth keeping apart.</b> The
+    /// cutscene ramp counts in <see cref="CounterPerIntensity" /> units and picks its step from
+    /// <see cref="StepTable" />; the world fade steps the INTENSITY itself:
+    /// <code>
+    /// if (step == -1) step = 2;                                  // every shipped caller passes -1
+    /// for (intensity = 0x3f; 0 &lt; intensity; intensity -= step)   // 63, 61, ... 1  -> 32 writes
+    ///     palette_set_scaled(off, seg, 0, intensity);
+    /// palette_set_scaled(off, seg, 0, 0);                        // + the final black -> 33
+    /// </code>
+    ///
+    /// <para><b>The count is recoverable; the DURATION is not.</b> The loop's
+    /// <c>wait_each_step</c> is 0 at every shipped call site, so no frame is presented per step and
+    /// the pace is whatever the DAC writes cost on the hardware — and
+    /// <c>palette_set_scaled</c> is assembly, so it is not in the reconstructed C to read. Feed this
+    /// to <c>CutsceneTiming.FadeDurationSeconds</c>, whose factor is the project's one tuned knob for
+    /// exactly this gap, rather than inventing a second timing.</para>
+    /// </remarks>
+    public const int WorldFadePaletteWrites = (MaxIntensity / WorldFadeStep) + 1;
+
+    /// <summary>The world fade's intensity step — the default <c>palette_fade_out</c> substitutes
+    /// for the -1 every shipped caller passes.</summary>
+    public const int WorldFadeStep = 2;
+
     /// <summary>The step for a speed.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The speed is outside the table.</exception>
     public static int StepFor(int speed) =>
