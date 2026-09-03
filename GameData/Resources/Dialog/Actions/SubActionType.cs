@@ -88,10 +88,45 @@ public enum SubActionType {
     /// </remarks>
     CancelCombatEncounter2 = 4,
 
-    /// <summary>Copy container from (zone=0,X=20) to (zone=1,X=2,Y=3) and dispose source.</summary>
+    /// <summary>
+    /// Copies the container at (0, 20, 0) over the one at (1, 2, 3). Nothing is moved or disposed.
+    /// </summary>
+    /// <remarks>
+    /// <b>*** 5 AND 6 ARE THE SAME BODY, AND 5 FALLS THROUGH INTO 6. ***</b> EVTCOND.C case 5 has
+    /// no <c>break</c>, so it runs the copy and then runs case 6's identical copy immediately
+    /// after. Both members' old summaries described a difference — "dispose source" against "the
+    /// source is not disposed" — that does not exist in either body. A second identical copy
+    /// changes nothing, so porting this as one copy is faithful in outcome.
+    ///
+    /// <para><b>Nothing is disposed by either.</b> <c>itemuse_actor_spawn_clone_inv</c>
+    /// (ITEMUSE.C:555) writes the destination's list from the source's and calls
+    /// <c>actorspawn_destroy_and_persist</c> — which flushes the record and frees the in-memory
+    /// actor. The source keeps every item; the "destroy" is an allocation going away, not a
+    /// container being emptied. Implementing "move" from the member name would strip a shop's
+    /// stockroom.</para>
+    ///
+    /// <para><b>The first argument is the ZONE.</b> <c>actorspawn_objfixed</c> names it
+    /// <c>kind</c> and matches it against the OBJFIXED record's <c>kind</c> header field, which
+    /// reads as an object category — but every caller passes a zone id, plainly so in
+    /// <c>itemuse_ground_pile_open_inv</c>, which passes <c>g_gameState.nZoneId</c>.</para>
+    ///
+    /// <para>The <see cref="ItemFlags.Equipped"/> bit is cleared on every item copied
+    /// (<c>flags &amp;= 0xffbf</c>): something being worn where it came from must not read as worn
+    /// in a chest.</para>
+    ///
+    /// <para><b>NEITHER IS USED BY THE SHIPPED GAME — zero instances across every DDX — and their
+    /// destination does not exist.</b> No container sits at (1, 2, 3) in the save or in
+    /// OBJFIXED.DAT in ANY of the nine chapters, checked. So the original's
+    /// <c>itemuse_actor_spawn_clone_inv</c> would dereference a null actor here; the missing
+    /// <c>break</c> never mattered because the path is never taken. Ported anyway, since a mod can
+    /// author one and the copy is shared with <see cref="RelocateContainers" /> — but it is the one
+    /// sub-action with no shipped behaviour to be faithful to.</para>
+    ///
+    /// <para>Names frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
+    /// </remarks>
     MoveContainer = 5,
 
-    /// <summary>Same as MoveContainer but the source is not disposed.</summary>
+    /// <summary>Identical to <see cref="MoveContainer" /> — see its remark.</summary>
     MoveContainerKeepSource = 6,
 
     /// <summary>Add Field2 to global_30015.</summary>
@@ -133,7 +168,17 @@ public enum SubActionType {
     /// </remarks>
     BlessAllPartySwords = 9,
 
-    /// <summary>Copy containers from (zone=0,X=20) and (zone=0,X=30) to (zone=15,X=60,Y=3) and (zone=15,X=64,Y=3).</summary>
+    /// <summary>
+    /// Copies (0, 20, 1) to (15, 60, 3) and (0, 30, 1) to (15, 64, 3).
+    /// </summary>
+    /// <remarks>
+    /// Two of <see cref="MoveContainer" />'s copies, with the same rules: the sources keep their
+    /// items and <see cref="ItemFlags.Equipped"/> is cleared on each copy.
+    ///
+    /// <para><b>Its sources are at y = 1, not y = 0</b> — a different pair of containers from
+    /// <see cref="MoveContainer" />'s (0, 20, <b>0</b>), which is easy to lose when the summary
+    /// gives only the x.</para>
+    /// </remarks>
     RelocateContainers = 10,
 
     /// <summary>
@@ -211,7 +256,12 @@ public enum SubActionType {
     /// </remarks>
     ExtinguishTorches = 13,
 
-    /// <summary>Clear items in container at (zone=3, X=1308000, Y=1002400).</summary>
+    /// <summary>Clears the container at (zone 3, 1308000, 1002400).</summary>
+    /// <remarks>
+    /// <c>itemCount = 0</c> then <c>actorspawn_destroy_and_persist</c>: the items go, the record is
+    /// written back and the container stays where it is. Checked against the body — this summary
+    /// was right.
+    /// </remarks>
     EmptyTrapCacheContainer = 14,
 
     /// <summary>
