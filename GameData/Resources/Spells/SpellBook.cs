@@ -73,6 +73,35 @@ public static class SpellBook {
         }
     }
 
+    /// <summary>
+    /// Gives both books the union of what either one holds.
+    /// </summary>
+    /// <returns>How many spells each of them gained; zero when they already matched.</returns>
+    /// <remarks>
+    /// <b>Both sides end up with the same book — it is a merge, not a copy.</b> EVTCOND.C case 16
+    /// ORs the two masks word by word and writes the result back to BOTH, so neither magician is
+    /// the source and neither loses anything they already knew.
+    ///
+    /// <para>The original hardcodes which two characters (Owyn and Pug); that is the caller's to
+    /// know. What belongs here is that a book is <see cref="Words"/> words wide and that merging
+    /// them is a bitwise OR, so nothing outside this type has to open-code the layout.</para>
+    /// </remarks>
+    public static int Share(ushort[] a, ushort[] b) {
+        if (a == null || b == null) {
+            return 0;
+        }
+
+        int before = Count(a) + Count(b);
+        int words = Math.Min(Math.Min(a.Length, b.Length), Words);
+        for (var i = 0; i < words; i++) {
+            var union = (ushort)(a[i] | b[i]);
+            a[i] = union;
+            b[i] = union;
+        }
+
+        return Count(a) + Count(b) - before;
+    }
+
     /// <summary>How many spells are known.</summary>
     public static int Count(ushort[] words) {
         if (words == null) {

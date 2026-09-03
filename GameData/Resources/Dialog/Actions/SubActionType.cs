@@ -214,9 +214,39 @@ public enum SubActionType {
     /// <summary>Clear items in container at (zone=3, X=1308000, Y=1002400).</summary>
     EmptyTrapCacheContainer = 14,
 
-    /// <summary>ChangeAttributeValue(primary speaker, attribute=global_30015, +512).</summary>
+    /// <summary>
+    /// Raises one of the primary speaker's stats — the stat named by global 30015 — by two points.
+    /// </summary>
+    /// <remarks>
+    /// <b>512 is 2.0, not 512.</b> <c>stat_combatant_modify(&amp;characters[nEvtArgActor0],
+    /// lEvtArgValue, 0x200, 0)</c>: the delta is in 256ths, added to the slot's own fractional
+    /// accumulator, and only the whole part carries into <c>base</c> (STAT.C:185). So this is two
+    /// points of skill, awarded through the same machinery every other skill gain uses.
+    ///
+    /// <para><b>NOT IMPLEMENTED, and it is the one subtype that genuinely needs a system built.</b>
+    /// The routine is more than an add: it applies the SKILL_SELECTED training multiplier
+    /// (<c>delta += delta * trainRate / 0x34</c>), carries the fraction, clamps to the per-stat
+    /// min/max tables, raises <c>max</c> to meet a base that passed it, and raises the
+    /// SKILL_IMPROVED event plus the party-dirty flag on an increase. Two other places in this port
+    /// already stand in for it with <c>Base = min(Base + 1, Max)</c> and say so; a third would be
+    /// the wrong way to close this. It belongs with TASK-120.</para>
+    ///
+    /// <para>Mode 0 here means no proportional scaling — modes 1, 2 and 3 scale the delta by the
+    /// current base, the headroom, and a per-stat ratio table respectively.</para>
+    /// </remarks>
     BoostPrimarySpeakerAttribute512 = 15,
 
-    /// <summary>OR Owyn's and Pug's knownSpells1..3 together; both end up with the union.</summary>
+    /// <summary>
+    /// OR Owyn's and Pug's knownSpells1..3 together; both end up with the union.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one summary in this enum that survived being checked against its body.</b> EVTCOND.C
+    /// case 16 is exactly this, and the member name says what it does.
+    ///
+    /// <para>Two things worth keeping anyway: it addresses <c>characters[CHR_OWYN]</c> and
+    /// <c>characters[CHR_PUG]</c> in the CHARACTER table, so it reaches whichever of them is not
+    /// travelling; and it writes the union back to BOTH, so neither is the source and neither
+    /// loses a spell.</para>
+    /// </remarks>
     SyncOwynPugSpells = 16,
 }
