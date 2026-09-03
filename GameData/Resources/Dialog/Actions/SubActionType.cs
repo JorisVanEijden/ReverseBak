@@ -59,9 +59,28 @@ public enum SubActionType {
     /// a fight") would make a dialog that talks a fight down re-arm it instead. Corrected 2026-09-03
     /// by reading both bodies; the flag directions are unambiguous, one writes 1 and the other 0.</para>
     ///
-    /// <para><b>Not implemented.</b> The flag half is a global write, but the per-hotspot done and
-    /// scouted clears need the zone's hotspot entries, and a flag-only version would half-arm the
-    /// encounter — worse than leaving it loud. Shipped ids: 151, 152, 375.</para>
+    /// <para><b>*** THE "NEEDS THE ZONE'S HOTSPOT ENTRIES" BLOCKER IS WRONG — read the asm
+    /// 2026-09-03. ***</b> <c>sub_ovr188_BCD</c> @0x75d3d (reached through
+    /// <c>sub_stub188_61</c>) clears the transient blocks with <c>UnsetGlobal_5200_5209</c> and
+    /// <c>UnsetGlobal_5210_5219</c>, both of which take NO ARGUMENT and wipe their whole ten-key
+    /// range. There is no per-hotspot lookup anywhere in it. It then clears the encounter's own
+    /// fought flag (<c>UnsetGlobal_5220_6220(id)</c>) and calls
+    /// <c>combatenc_rearm_roster_actors(id)</c>.</para>
+    ///
+    /// <para><b>What it actually needs is the ROSTER RE-ARM</b>, and that routine is already
+    /// CONFIRMED in the IDA database @0x64977: for every live slot of the encounter's seven-entry
+    /// roster it FULL-HEALS the actor (Health.Current &lt;- Health.Maximum) and sets its
+    /// <c>CombatantState.combatStatus</c> back to 1. So a re-armed encounter is fought against
+    /// monsters at full health that are no longer dead.</para>
+    ///
+    /// <para><b>Not implemented, and deliberately not half-implemented.</b> The port has
+    /// <c>GameSession.RosterOf</c>, <c>RosterStatsOf</c> (mutable) and the 5200/5210/5220 key rules
+    /// — so the flag clears and the heal are both reachable today. The one missing seam is writing
+    /// a combat record's status: <c>SaveGameCombatData.CombatStatus</c> is get-only and goes through
+    /// the staged-edit path (<c>StageCombatantEdits</c> /
+    /// <c>CollectDirtyCombatantEdits</c>). Shipping the rest without it re-arms an encounter whose
+    /// monsters are still marked dead, which is the half-armed state this remark has always warned
+    /// about. Shipped ids: 151, 152, 375.</para>
     ///
     /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
     /// </remarks>
