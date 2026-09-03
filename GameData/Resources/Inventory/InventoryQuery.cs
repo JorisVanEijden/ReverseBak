@@ -94,7 +94,31 @@ public static class InventoryQuery {
     /// with whoever builds the repair service.</para>
     /// </remarks>
     public static int CountNeedingRepair(IEnumerable<RuntimeContainer> packs,
-        Object.ObjectInfoSet objects) {
+        Object.ObjectInfoSet objects) =>
+        WalkArmourNeedingRepair(packs, objects, repair: false);
+
+    /// <summary>
+    /// Mends every damaged piece of party armour, and answers how many that was.
+    /// </summary>
+    /// <remarks>
+    /// <b>The same routine as <see cref="CountNeedingRepair"/> with its third argument set</b> —
+    /// <c>evtcond_pty_inv_repair_cnt(&amp;n, &amp;n, 1)</c>, EVTCOND.C:21. It walks the identical
+    /// set (category 4, condition below 100, <b>equipped or not</b>) and for each one writes
+    /// condition 100 and clears <see cref="ItemFlags.Repairable"/>. Sharing the predicate is the
+    /// point: a count that disagreed with what the repair then mended would charge for one number
+    /// of pieces and fix another.
+    ///
+    /// <para><b>The caller owes the money handling, and it is per PIECE.</b> The original also
+    /// writes the count into <c>lEvtArgValue</c> and multiplies <c>lEvtArgGoldCost</c> by it before
+    /// returning, so the quoted price is a unit price. Charging the unquoted figure mends a whole
+    /// party's armour for the price of one piece.</para>
+    /// </remarks>
+    public static int RepairArmour(IEnumerable<RuntimeContainer> packs,
+        Object.ObjectInfoSet objects) =>
+        WalkArmourNeedingRepair(packs, objects, repair: true);
+
+    private static int WalkArmourNeedingRepair(IEnumerable<RuntimeContainer> packs,
+        Object.ObjectInfoSet objects, bool repair) {
         if (packs == null || objects == null) {
             return 0;
         }
@@ -108,10 +132,68 @@ public static class InventoryQuery {
                     continue;
                 }
                 Object.ObjectInfo info = objects.GetById(item.ObjectId);
-                if (info != null && info.ObjectType == ObjectType.Armor
-                    && item.Variable < PristineCondition) {
-                    total++;
+                if (info == null || info.ObjectType != ObjectType.Armor
+                    || item.Variable >= PristineCondition) {
+                    continue;
                 }
+
+                total++;
+                if (repair) {
+                    item.Variable = PristineCondition;
+                    item.ItemFlags &= unchecked((ushort)~(ushort)ItemFlags.Repairable);
+                }
+            }
+        }
+        return total;
+    }
+
+    /// <summary>All three blessing bits — cleared together before one is set.</summary>
+    private const ushort AnyBlessing =
+        (ushort)(ItemFlags.Blessed1 | ItemFlags.Blessed2 | ItemFlags.Blessed3);
+
+    /// <summary>
+    /// Mends and blesses every sword the party has EQUIPPED, and answers how many.
+    /// </summary>
+    /// <remarks>
+    /// <b>Equipped swords only</b> — <c>flags &amp; 0x40</c> and category 1 (EVTCOND.C case 9), the
+    /// opposite of <see cref="RepairArmour"/>'s "equipped or not". A spare blade in the pack is not
+    /// touched, so the same walk cannot serve both.
+    ///
+    /// <para><b>The blessing is SET, not raised.</b> The body is
+    /// <c>flags &amp;= 0x1fff; flags |= 0x8000;</c> — the three blessing bits are cleared and only
+    /// <see cref="ItemFlags.Blessed3"/> is put back, so a first-tier blessing is replaced by the
+    /// third rather than upgraded through it, and an unblessed sword arrives at the top tier
+    /// directly.</para>
+    ///
+    /// <para><b>It repairs the condition and does NOT clear
+    /// <see cref="ItemFlags.Repairable"/></b>, unlike <see cref="RepairArmour"/> next to it. That
+    /// asymmetry is the original's, verified in both bodies: case 2 clears 0x20 and case 9 does not
+    /// touch it. So a blessed sword ends at full condition still carrying the damaged flag —
+    /// faithful, and worth knowing before anyone "fixes" it here.</para>
+    /// </remarks>
+    public static int BlessEquippedSwords(IEnumerable<RuntimeContainer> packs,
+        Object.ObjectInfoSet objects) {
+        if (packs == null || objects == null) {
+            return 0;
+        }
+        var total = 0;
+        foreach (RuntimeContainer pack in packs) {
+            if (pack == null) {
+                continue;
+            }
+            foreach (RuntimeItem item in pack.Items) {
+                if (item == null || (item.ItemFlags & (ushort)ItemFlags.Equipped) == 0) {
+                    continue;
+                }
+                Object.ObjectInfo info = objects.GetById(item.ObjectId);
+                if (info == null || info.ObjectType != ObjectType.Sword) {
+                    continue;
+                }
+
+                total++;
+                item.Variable = PristineCondition;
+                item.ItemFlags &= unchecked((ushort)~AnyBlessing);
+                item.ItemFlags |= (ushort)ItemFlags.Blessed3;
             }
         }
         return total;

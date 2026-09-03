@@ -90,4 +90,87 @@ public class PartyInventoryQueryTests {
         Assert.Equal(0, InventoryQuery.CountNeedingRepair(
             new[] { Pack((Breastplate, 10, 0)) }, null));
     }
+
+    [Fact]
+    public void TheREPAIRMendsExactlyWhatTheCOUNTCounted() {
+        // The two are one routine with a do_repair flag; a count that disagreed with what the
+        // repair mends would charge for one number of pieces and fix another.
+        var packs = new List<RuntimeContainer> {
+            Pack((Breastplate, 100, 0)),
+            Pack((Helmet, 40, (ushort)ItemFlags.Repairable), (Sword, 5, 0)),
+        };
+
+        int expected = InventoryQuery.CountNeedingRepair(packs, Objects());
+        Assert.Equal(1, expected);
+        Assert.Equal(expected, InventoryQuery.RepairArmour(packs, Objects()));
+
+        RuntimeItem helm = packs[1].Items[0];
+        Assert.Equal(InventoryQuery.PristineCondition, helm.Variable);
+        Assert.Equal(0, helm.ItemFlags & (ushort)ItemFlags.Repairable);
+
+        // The dented sword is NOT armour and is left exactly as it was.
+        Assert.Equal(5, packs[1].Items[1].Variable);
+
+        // And nothing is left to repair afterwards, which is what makes the topic go away.
+        Assert.Equal(0, InventoryQuery.CountNeedingRepair(packs, Objects()));
+    }
+
+    [Fact]
+    public void ArmourIsRepairedWhetherOrNotItIsWorn() {
+        // No equipped check in this routine, unlike the sword blessing next to it — a spare
+        // breastplate at the bottom of a pack is mended too.
+        var packs = new List<RuntimeContainer> { Pack((Breastplate, 30, 0), (Helmet, 30, (ushort)ItemFlags.Equipped)) };
+
+        Assert.Equal(2, InventoryQuery.RepairArmour(packs, Objects()));
+        Assert.Equal(InventoryQuery.PristineCondition, packs[0].Items[0].Variable);
+        Assert.Equal(InventoryQuery.PristineCondition, packs[0].Items[1].Variable);
+    }
+
+    [Fact]
+    public void OnlyEQUIPPEDSwordsAreBlessed() {
+        var packs = new List<RuntimeContainer> {
+            Pack((Sword, 40, (ushort)ItemFlags.Equipped), (Sword, 40, 0)),
+            Pack((Breastplate, 40, (ushort)ItemFlags.Equipped)),   // equipped, but not a sword
+        };
+
+        Assert.Equal(1, InventoryQuery.BlessEquippedSwords(packs, Objects()));
+
+        RuntimeItem worn = packs[0].Items[0], spare = packs[0].Items[1];
+        Assert.Equal(InventoryQuery.PristineCondition, worn.Variable);
+        Assert.NotEqual(0, worn.ItemFlags & (ushort)ItemFlags.Blessed3);
+        Assert.Equal(40, spare.Variable);
+        Assert.Equal(0, spare.ItemFlags & (ushort)ItemFlags.Blessed3);
+        Assert.Equal(40, packs[1].Items[0].Variable);
+    }
+
+    [Fact]
+    public void TheBlessingIsSetToTheThirdTierRatherThanRaisedThroughIt() {
+        // flags &= 0x1fff clears ALL THREE blessing bits before flags |= 0x8000 puts one back, so a
+        // first-tier blessing ends up replaced, not upgraded — and never carries two bits at once.
+        var packs = new List<RuntimeContainer> {
+            Pack((Sword, 100, (ushort)(ItemFlags.Equipped | ItemFlags.Blessed1))),
+        };
+
+        InventoryQuery.BlessEquippedSwords(packs, Objects());
+
+        ushort flags = packs[0].Items[0].ItemFlags;
+        Assert.Equal(0, flags & (ushort)ItemFlags.Blessed1);
+        Assert.Equal(0, flags & (ushort)ItemFlags.Blessed2);
+        Assert.NotEqual(0, flags & (ushort)ItemFlags.Blessed3);
+        Assert.NotEqual(0, flags & (ushort)ItemFlags.Equipped);   // and the low bits survive
+    }
+
+    [Fact]
+    public void BlessingRepairsTheConditionAndLeavesTheDamagedFlagALONE() {
+        // The original's asymmetry, verified in both bodies: case 2 clears 0x20 and case 9 does
+        // not touch it. Pinned so nobody "tidies" the two walks into agreeing.
+        var packs = new List<RuntimeContainer> {
+            Pack((Sword, 20, (ushort)(ItemFlags.Equipped | ItemFlags.Repairable))),
+        };
+
+        InventoryQuery.BlessEquippedSwords(packs, Objects());
+
+        Assert.Equal(InventoryQuery.PristineCondition, packs[0].Items[0].Variable);
+        Assert.NotEqual(0, packs[0].Items[0].ItemFlags & (ushort)ItemFlags.Repairable);
+    }
 }

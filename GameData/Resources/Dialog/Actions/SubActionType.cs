@@ -115,7 +115,22 @@ public enum SubActionType {
     /// </remarks>
     GambleRoll = 8,
 
-    /// <summary>For each active party member, set all equipped Swords to blessed3 with full charge.</summary>
+    /// <summary>
+    /// Mends and blesses every EQUIPPED sword in the active party.
+    /// </summary>
+    /// <remarks>
+    /// <b>"Full charge" was the wrong word</b> — the body writes <c>condition = 100</c>
+    /// (EVTCOND.C case 9), which is durability, not a spell charge. It is a repair, and it is why
+    /// this and <see cref="CountArmorState" /> share a shape.
+    ///
+    /// <para><b>Equipped only</b> (<c>flags &amp; 0x40</c>), category 1, and the blessing is SET
+    /// rather than raised: <c>flags &amp;= 0x1fff</c> clears all three blessing bits and
+    /// <c>flags |= 0x8000</c> puts back only the third, so a first-tier blessing is replaced by the
+    /// third and an unblessed sword arrives at the top tier directly.</para>
+    ///
+    /// <para><b>It does NOT clear the repairable bit</b>, unlike case 2 which does. That asymmetry
+    /// is the original's; a blessed sword ends at full condition still flagged damaged.</para>
+    /// </remarks>
     BlessAllPartySwords = 9,
 
     /// <summary>Copy containers from (zone=0,X=20) and (zone=0,X=30) to (zone=15,X=60,Y=3) and (zone=15,X=64,Y=3).</summary>
@@ -180,7 +195,20 @@ public enum SubActionType {
     /// </remarks>
     SetTutorialFlag = 12,
 
-    /// <summary>Zero all expiry-timer entries of type Light with key Torch, then tick the timer system.</summary>
+    /// <summary>
+    /// Runs the party's carried light out — every Light timer on source 0, then a zero-length tick.
+    /// </summary>
+    /// <remarks>
+    /// <b>The key is the light SOURCE, not an object id.</b> The body matches
+    /// <c>bKind == 1 &amp;&amp; wSub_id == 0</c> (EVTCOND.C case 13), and source 0 is the lit item
+    /// in the party's hands — <c>World.LightSourceDecay.Source.Item</c>. Sources 1..3 are dragon's
+    /// breath, candle glow and stardusk, and this leaves them burning; a port that read "torches"
+    /// as "all light" would blow out the spell that lights caves.
+    ///
+    /// <para><b>The <c>timerpool_tick(0)</c> that follows is half the effect.</b> Zeroing the
+    /// entries only marks them; the tick is what runs the per-tick hooks and removes them, so
+    /// without it the light stays on until the clock next moves.</para>
+    /// </remarks>
     ExtinguishTorches = 13,
 
     /// <summary>Clear items in container at (zone=3, X=1308000, Y=1002400).</summary>
