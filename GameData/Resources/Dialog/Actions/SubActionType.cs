@@ -145,10 +145,16 @@ public enum SubActionType {
     /// <see cref="CapReward" /> for how that was established, and for the two wrong names it had
     /// before.</para>
     ///
-    /// <para><b>One decompilation oddity, recorded rather than ported:</b> the win/loss chain ends
-    /// with the SAME comparison twice (<c>else if (a &lt; b)</c> after <c>else if (a &lt; b)</c>), so
-    /// the third arm is unreachable as written. Establish what a DRAW does from the disassembly
-    /// before implementing, rather than copying a branch that cannot run.</para>
+    /// <para><b>*** SETTLED FROM THE DISASSEMBLY: A DRAW DOES NOTHING. ***</b> The decompiled
+    /// win/loss chain ends with the SAME comparison twice (<c>else if (a &lt; b)</c> after
+    /// <c>else if (a &lt; b)</c>), so its third arm cannot run as written — and that is NOT a
+    /// decompilation artifact. At 0x410c8 the binary compares the two roll globals a third time and
+    /// branches on <c>jl</c>, the same direction as the second arm's <c>jge</c> at 0x4109b; the
+    /// only way to reach it is with the two EQUAL, so the jump is never taken and control falls to
+    /// the return. On a draw the outcome global keeps whatever the last wager left in it, and
+    /// neither the purse nor the fund moves. <c>DialogWager.Settle</c> reports that as "not
+    /// settled" rather than as a third outcome value, because writing a 2 would invent a state the
+    /// shipped game never reaches.</para>
     /// </remarks>
     GambleRoll = 8,
 
