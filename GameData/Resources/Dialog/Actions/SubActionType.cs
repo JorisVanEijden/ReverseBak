@@ -73,14 +73,13 @@ public enum SubActionType {
     /// <c>CombatantState.combatStatus</c> back to 1. So a re-armed encounter is fought against
     /// monsters at full health that are no longer dead.</para>
     ///
-    /// <para><b>Not implemented, and deliberately not half-implemented.</b> The port has
-    /// <c>GameSession.RosterOf</c>, <c>RosterStatsOf</c> (mutable) and the 5200/5210/5220 key rules
-    /// — so the flag clears and the heal are both reachable today. The one missing seam is writing
-    /// a combat record's status: <c>SaveGameCombatData.CombatStatus</c> is get-only and goes through
-    /// the staged-edit path (<c>StageCombatantEdits</c> /
-    /// <c>CollectDirtyCombatantEdits</c>). Shipping the rest without it re-arms an encounter whose
-    /// monsters are still marked dead, which is the half-armed state this remark has always warned
-    /// about. Shipped ids: 151, 152, 375.</para>
+    /// <para><b>Implemented by REUSING the routine the world already had.</b>
+    /// <c>HotspotService.RearmEncounter</c> — the one the eleven self-re-arming encounters use —
+    /// is exactly this operation: <c>EncounterRearm.HealToFull</c> plus
+    /// <c>EncounterRearm.WithStatusReset</c> staged through the two dirty-edit channels, then
+    /// <c>ClearEncounterFlags</c>. A dialog reaches it through a callback rather than a second copy
+    /// of the rule, because <c>HotspotService</c> takes <c>IDialogManager</c> and a constructor
+    /// dependency would close a DI cycle. Shipped ids: 151, 152, 375.</para>
     ///
     /// <para>Name frozen by JSON serialisation, as with <see cref="CountArmorState" />.</para>
     /// </remarks>
