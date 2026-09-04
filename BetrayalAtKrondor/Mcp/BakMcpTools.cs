@@ -388,6 +388,23 @@ public sealed class BakMcpTools {
         [Description("Screen X coordinate (0-319)")] int x,
         [Description("Screen Y coordinate (0-199)")] int y,
         [Description("Mouse button: 'left' or 'right' (default: 'left')")] string button = "left") {
+        // *** CLAMP FIRST -- an out-of-bounds cursor is not merely ignored, it corrupts the screen. ***
+        // This tool writes the game's mouse globals DIRECTLY, bypassing the mouse driver that would
+        // normally clamp them, so it can produce a position real hardware never reports.
+        //
+        // At y == ScreenHeight, DrawMouseCursor (IDA 0x2AECF) -- which clamps NEGATIVE coordinates
+        // only, having no reason to defend against an impossible one -- computes a clipped cursor
+        // height of `scrHeight - y` = 0 and passes it to vga_paste_rect. That row loop is a do-while
+        // (`dec [bp+height]; jz`), so 0 wraps to 0xFFFF and it paints 65536 rows through the 64 KB
+        // VGA aperture, striding 80 bytes each. 65536 mod 80 = 16 bytes = 64 pixels, so the painted
+        // column walks 64 px right on every wrap, leaving five 16-px garbage bands across the screen.
+        //
+        // That was filed as TASK-315 ("screen transitions leave the background as animating VGA
+        // garbage"), labelled a blocker, and cost several sessions chasing VGA timing, Chain4, the
+        // blit, the plane mask and the RNG -- all of which were fine. The repro simply clicked
+        // (320, 200), one pixel past the bottom-right of a 320x200 screen.
+        (x, y) = ClampToScreen(x, y);
+
         // IDA addresses for BaK mouse globals (dseg, always resident)
         const uint idaMouseX = 0x3CE0C;      // MouseHorizontal (word)
         const uint idaMouseY = 0x3CE0E;      // MouseVertical   (word)
@@ -423,5 +440,17 @@ public sealed class BakMcpTools {
             message = $"Mouse {button}-clicked at ({x}, {y})"
         };
     }
+
+    /// <summary>The game's display is mode 13h/mode X: 320x200, so the last addressable pixel is
+    /// (319, 199).</summary>
+    internal const int ScreenWidth = 320;
+    internal const int ScreenHeight = 200;
+
+    /// <summary>Clamps a requested cursor position into the visible screen. See the remarks in
+    /// <see cref="MouseClick"/> for why an off-screen position is destructive rather than
+    /// harmless.</summary>
+    internal static (int X, int Y) ClampToScreen(int x, int y) => (
+        x < 0 ? 0 : x > ScreenWidth - 1 ? ScreenWidth - 1 : x,
+        y < 0 ? 0 : y > ScreenHeight - 1 ? ScreenHeight - 1 : y);
 
 }

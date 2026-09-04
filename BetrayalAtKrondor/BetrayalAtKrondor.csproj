@@ -17,4 +17,9 @@
         <ProjectReference Include="..\..\Spice86\src\Spice86\Spice86.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- So the tests can exercise BakMcpTools.ClampToScreen without widening the public surface
+             of a class the MCP server scans for tools. -->
+        <InternalsVisibleTo Include="BetrayalAtKrondor.Tests" />
+    </ItemGroup>
 </Project>
