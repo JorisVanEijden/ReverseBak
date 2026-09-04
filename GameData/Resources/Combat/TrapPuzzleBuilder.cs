@@ -11,7 +11,7 @@ public sealed class TrapGridElement {
     }
 
     /// <summary>The original's <c>paged_id</c>: 7/8 crystals, 9/10 diamonds, 11 for every cannon.</summary>
-    public int ElementId { get; }
+    public int ElementId { get; internal set; }
 
     /// <summary>Grid position.</summary>
     public int X { get; internal set; }
@@ -128,6 +128,108 @@ public sealed class TrapPuzzle {
         Grid.SetTerrain(toX, toY, CombatTerrain.Pushable);
         Grid.SetOccupied(toX, toY, true);
         return PushResult.Moved;
+    }
+
+    /// <summary>
+    /// Collapse the crystal run through this tile until nothing here is still held —
+    /// <c>crystalChain_collapseUntilIsolated</c> @0x2F259.
+    /// </summary>
+    /// <returns>How many runs were collapsed; 0 when the tile was already isolated.</returns>
+    /// <remarks>
+    /// <b>This is the puzzle.</b> A crystal survives by having a neighbour, so collapsing the run it
+    /// sits on is what takes the chain apart. The caller plays the tile fx (sound and particle burst
+    /// only — see <see cref="FiredSoundId"/>, and note it does NOT damage what it hits).
+    ///
+    /// <para><b>Reached in the shipped game by exactly one thing:</b> a projectile whose effect
+    /// sprite type is 2 passing over a standing crystal, which is Flamecast's and only Flamecast's
+    /// (<c>Spell_ApplyHitWithProjectile</c> maps spell id 4 -&gt; 2). Any other projectile is stopped
+    /// by the crystal instead. Nothing walks into anything — the walk-in reading was retired on
+    /// TASK-270 after the "struct pointer" it rested on turned out to be the address of a single
+    /// stack word holding the sprite type.</para>
+    ///
+    /// <para>The loop guard is defensive, not faithful: each pass erases crystal ground, so
+    /// <see cref="CrystalChain.RunContinues"/> must eventually go false. It bounds a bug, not the
+    /// rule. <c>// ponytail: cell-count ceiling, raise only if a grid ever exceeds it</c></para>
+    /// </remarks>
+    public int CollapseUntilIsolated(int x, int y) {
+        TrapGridElement here = ElementAt(x, y);
+        int kind = here != null && CrystalChain.IsCrystalElement(here.ElementId)
+            ? here.ElementId
+            : CrystalChain.AnyCrystal;
+
+        var collapsed = 0;
+        int guard = CombatGrid.Width * CombatGrid.Height;
+        while (CrystalChain.RunContinues(this, x, y, kind) && collapsed < guard) {
+            CollapseRun(x, y, kind);
+            collapsed++;
+        }
+        return collapsed;
+    }
+
+    /// <summary>
+    /// One collapse pass — <c>crystalChain_collapseRun</c> @0x2F142.
+    /// </summary>
+    /// <remarks>
+    /// Find the run's axis, walk it erasing the crystal <b>ground</b>, then test both ends for
+    /// isolation independently. <b>The ground erasure is the part that had no expression before</b>:
+    /// <see cref="CrystalChain.IsolationDestroys"/> answers for ELEMENTS, while this un-paints the
+    /// terrain along the run, which is a change to the tile rather than to what stands on it.
+    ///
+    /// <para><b>The reversal.</b> If an element sits one step along the chosen axis, the axis is
+    /// negated so the walk goes away from the occupied side. <see cref="FindLineDirection"/> never
+    /// answers "no axis" (it falls back to vertical), so there is always a direction to negate.</para>
+    ///
+    /// <para><b>Interpretation worth checking if this ever looks wrong:</b> the walk erases the
+    /// origin, then steps, and stops <i>before</i> a cell holding an element or leaving the grid —
+    /// so <c>end</c> is the last cell erased, and it is that cell, not the blocker, whose isolation
+    /// is tested. Both ends are tested independently, so one pass can wreck neither, one, or
+    /// both.</para>
+    ///
+    /// <para><b>Deliberately absent:</b> <see cref="CrystalChain.NeighboursTakenWhenBoxedIn"/>. It
+    /// lives in the <c>dx == 0 &amp;&amp; dy == 0</c> arm, and the axis finder cannot return (0,0) —
+    /// established by reading the binary. Wiring it would add a rule the shipped game never
+    /// reaches.</para>
+    /// </remarks>
+    private void CollapseRun(int x, int y, int kind) {
+        (int dx, int dy) = FindLineDirection(x, y);
+        if (ElementAt(x + dx, y + dy) != null) {
+            dx = -dx;
+            dy = -dy;
+        }
+
+        int endX = x;
+        int endY = y;
+        while (true) {
+            Grid.SetTerrain(endX, endY, CombatTerrain.Open);
+            int nextX = endX + dx;
+            int nextY = endY + dy;
+            if (!CombatGrid.InBounds(nextX, nextY) || ElementAt(nextX, nextY) != null) {
+                break;
+            }
+            endX = nextX;
+            endY = nextY;
+        }
+
+        if (CrystalChain.IsolationDestroys(this, x, y, kind)) {
+            Wreck(x, y);
+        }
+        if ((endX != x || endY != y) && CrystalChain.IsolationDestroys(this, endX, endY, kind)) {
+            Wreck(endX, endY);
+        }
+    }
+
+    /// <summary>Turn whatever stands here into a wreck, and the tile under it into wreck terrain.</summary>
+    /// <remarks>
+    /// The element is rewritten in place rather than removed: a wreck still occupies the tile, and
+    /// <see cref="CrystalChain.WreckElementId"/> no longer matches the kind being traced, so it
+    /// cannot hold a run together or be picked twice by a later pass.
+    /// </remarks>
+    private void Wreck(int x, int y) {
+        TrapGridElement element = ElementAt(x, y);
+        if (element != null) {
+            element.ElementId = CrystalChain.WreckElementId;
+        }
+        Grid.SetTerrain(x, y, (CombatTerrain)CrystalChain.WreckTerrain);
     }
 
     /// <summary>
