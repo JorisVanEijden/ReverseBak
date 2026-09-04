@@ -18,6 +18,31 @@ using System;
 /// kept the heading regardless would leave them facing a wall after an encounter declined to fire.
 /// </remarks>
 public static class ArenaFacing {
+    /// <summary>
+    /// The facing octant that points from a combatant toward another cell, or -1 for no direction.
+    /// </summary>
+    /// <param name="deltaColumn">Target column minus the actor's, in grid cells.</param>
+    /// <param name="deltaRow">Target row minus the actor's.</param>
+    /// <remarks>
+    /// <b>Octant 0 is AWAY from the camera</b> — deeper into the arena, the direction the party
+    /// faces — matching <see cref="Combatant.FacingOctant"/>. The arena's rows run away from the
+    /// viewer, so a target one row further in and no columns across is octant 0, and each further
+    /// octant is an eighth of a turn toward increasing columns.
+    ///
+    /// <para><b>The zero delta answers -1 rather than 0.</b> A cursor resting on the actor's own
+    /// cell names no direction, and rounding <c>atan2(0, 0)</c> would silently answer "straight
+    /// ahead" — turning the actor on a cursor move that carried no information.</para>
+    /// </remarks>
+    public static int OctantToward(int deltaColumn, int deltaRow) {
+        if (deltaColumn == 0 && deltaRow == 0) {
+            return -1;
+        }
+        double radians = Math.Atan2(deltaColumn, deltaRow);
+        var octant = (int)Math.Round(radians / (Math.PI / 4.0));
+
+        return ((octant % 8) + 8) % 8;
+    }
+
     /// <summary>A quarter turn — the only headings this produces.</summary>
     public const int Quadrant = 0x4000;
 

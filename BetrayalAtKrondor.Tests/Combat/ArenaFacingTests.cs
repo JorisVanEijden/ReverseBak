@@ -130,4 +130,34 @@ public class ArenaFacingTests {
     public void ANullTriggerAnswersZeroRatherThanThrowing() {
         Assert.Equal(0, ArenaFacing.FacingFor(null, 0, 0, 0, 0));
     }
+
+    [Fact]
+    public void OctantTowardIsZeroDeeperIntoTheArena() {
+        // Octant 0 is AWAY from the camera, matching Combatant.FacingOctant, so a target one row
+        // further in and no columns across is 0 — the direction a freshly deployed party already
+        // faces.
+        Assert.Equal(0, ArenaFacing.OctantToward(0, 1));
+        Assert.Equal(0, ArenaFacing.OctantToward(0, 5));   // distance does not change the direction
+    }
+
+    [Fact]
+    public void OctantTowardWalksTheEighthsInOrder() {
+        // Each further octant is an eighth of a turn toward increasing columns. Pinned as a ring so
+        // a sign flip anywhere shows up as a specific wrong facing rather than a vague one.
+        Assert.Equal(1, ArenaFacing.OctantToward(1, 1));
+        Assert.Equal(2, ArenaFacing.OctantToward(1, 0));
+        Assert.Equal(3, ArenaFacing.OctantToward(1, -1));
+        Assert.Equal(4, ArenaFacing.OctantToward(0, -1));
+        Assert.Equal(5, ArenaFacing.OctantToward(-1, -1));
+        Assert.Equal(6, ArenaFacing.OctantToward(-1, 0));
+        Assert.Equal(7, ArenaFacing.OctantToward(-1, 1));
+    }
+
+    [Fact]
+    public void OctantTowardRefusesTheActorsOwnCell() {
+        // A cursor on the actor's own cell names no direction. Rounding atan2(0,0) would answer 0
+        // — "straight ahead" — and turn the actor on a move that carried no information.
+        Assert.Equal(-1, ArenaFacing.OctantToward(0, 0));
+    }
 }
+
