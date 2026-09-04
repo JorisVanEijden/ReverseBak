@@ -204,12 +204,17 @@ public sealed class Combatant {
     /// where <c>facingDirection</c> lives per creature in <c>creatueBitmapAnim</c> @+0x4. It is
     /// <b>not</b> on <c>combatData</c>, which carries only <c>hitReactionDir</c> — the recoil visual.
     ///
-    /// <para><b>0 means facing the viewer</b>, because of that half turn. That is why a freshly
-    /// deployed party stands frontally in the original on an unopposed puzzle: nobody has turned
-    /// toward anything yet, so everyone is still on 0. Before this existed the port passed the
-    /// party's travel heading for every combatant, and since the arena camera looks along that same
-    /// heading they all resolved to one octant — the whole party in an identical profile (TASK-324).
-    /// </para>
+    /// <para><b>0 means facing AWAY from the viewer</b> — the party is drawn from behind, looking
+    /// into the arena. Corrected 2026-09-04 after being written the other way round: the claim was
+    /// checked against a 320x200 head too small to tell a face from the back of a skull, when the
+    /// reference that settles it is the sprite sheet. <c>OWN1.BMX</c>'s walk columns are the five
+    /// facings, column 0 draws Owyn's face and column 12 his back, and the original's encounter-15
+    /// capture matches column 12. It is also the sensible reading: the arena camera looks over the
+    /// party's shoulders at the enemies.</para>
+    ///
+    /// <para>Before this field existed the port passed the party's travel heading for every
+    /// combatant, and since the arena camera looks along that same heading they all resolved to one
+    /// octant — the whole party in an identical profile (TASK-324).</para>
     ///
     /// <para><b>Turning is a side effect of choosing an animation</b> in the original:
     /// <c>startCreatureBitmapAnimation</c> @0x5EC23 is what writes it, so a combatant faces where
