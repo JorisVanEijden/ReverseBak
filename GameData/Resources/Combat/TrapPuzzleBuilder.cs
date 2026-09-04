@@ -462,7 +462,10 @@ public static class TrapPuzzleBuilder {
     /// straight or perfectly diagonal offset. The same-id test is not redundant with the crystal
     /// test — a red crystal and a green one are both crystals and are <b>not</b> linked.
     /// </remarks>
-    private static bool Aligned(TrapGridElement a, TrapGridElement b) =>
+    /// <remarks>Public because the RENDERER draws a line between every aligned pair
+    /// (<c>crystalChain_drawLinks</c> @0x2FD88) and must not carry a second copy of the rule —
+    /// what is linked and what is drawn as linked cannot be allowed to disagree.</remarks>
+    public static bool Aligned(TrapGridElement a, TrapGridElement b) =>
         a.ElementId == b.ElementId
         && CrystalChain.IsCrystalElement(a.ElementId)
         && CrystalChain.IsCrystalElement(b.ElementId)
