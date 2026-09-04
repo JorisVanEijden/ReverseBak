@@ -189,6 +189,36 @@ public sealed class Combatant {
     /// <inheritdoc cref="GaitFrame"/>
     public bool GaitAdvancing { get; set; } = true;
 
+    /// <summary>
+    /// Which way this combatant is drawn facing, as an octant 0..7 measured <b>relative to the
+    /// camera</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The original stores this; it does not derive it.</b>
+    /// <c>combat_actor_deploy_encounter</c> @0x5C845 builds the sprite's world rotation as
+    /// <code>
+    /// worldRotation = (facingDirection &lt;&lt; 13)          // octant, 45 degrees a step
+    ///               + (camera.rotation3d.z &amp; 0xE000)   // camera yaw snapped to an octant
+    ///               + 0x8000;                           // half a turn
+    /// </code>
+    /// where <c>facingDirection</c> lives per creature in <c>creatueBitmapAnim</c> @+0x4. It is
+    /// <b>not</b> on <c>combatData</c>, which carries only <c>hitReactionDir</c> — the recoil visual.
+    ///
+    /// <para><b>0 means facing the viewer</b>, because of that half turn. That is why a freshly
+    /// deployed party stands frontally in the original on an unopposed puzzle: nobody has turned
+    /// toward anything yet, so everyone is still on 0. Before this existed the port passed the
+    /// party's travel heading for every combatant, and since the arena camera looks along that same
+    /// heading they all resolved to one octant — the whole party in an identical profile (TASK-324).
+    /// </para>
+    ///
+    /// <para><b>Turning is a side effect of choosing an animation</b> in the original:
+    /// <c>startCreatureBitmapAnimation</c> @0x5EC23 is what writes it, so a combatant faces where
+    /// its current pose points rather than being turned by a separate step. Nothing here updates it
+    /// on a move or a swing yet — that is the rest of TASK-324, and until it lands every combatant
+    /// simply keeps the deployed 0.</para>
+    /// </remarks>
+    public int FacingOctant { get; set; }
+
     /// <summary>Whoever this combatant is currently fighting.</summary>
     public Combatant Target { get; set; }
 
