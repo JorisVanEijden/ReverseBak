@@ -526,6 +526,7 @@ public class BakOverrides : CSharpOverrideHelper {
         // diffing it against LoadConfig @0x384B0.
         // DefineFunctionIda(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
         DefineChapterSpike();
+        DefineTrapSpike();
     }
 
     /// <summary>
@@ -545,6 +546,93 @@ public class BakOverrides : CSharpOverrideHelper {
 
     /// <summary>IDA linear address -> the emulator's physical address (resident segments).</summary>
     private static uint IdaLinear(uint idaLinear) => idaLinear - OverlayAddressTranslator.RelocationDelta;
+
+    /// <summary>IDA's seg033 (base 0x2D5F0), resident, holding the TRAPS.DAT loader.</summary>
+    private const ushort Seg033 = 0x2D5F;
+
+    /// <summary>IDA's seg021 (base 0x21710), resident, holding the world/arena render entry.</summary>
+    private const ushort Seg021 = 0x2171;
+
+    /// <summary><c>encounterNumber_dseg_50F4</c>, the number every trap load reads.</summary>
+    private const uint IdaEncounterNumber = 0x3EEC4;
+
+    private int _trapSpikeEncounter = -1;
+    private string _trapFrameDir;
+    private int _trapFramesWanted;
+    private int _trapFramesTaken;
+    private bool _trapSpikeFired;
+
+    /// <summary>
+    /// Opt-in harness for photographing a chosen trap encounter in the ORIGINAL, so a screenshot
+    /// comparison can use the SAME encounter on both sides.
+    /// </summary>
+    /// <remarks>
+    /// <b>Why forcing the NUMBER and not the DATA.</b> The obvious route — dropping a modified
+    /// <c>traps.dat</c> beside the exe, which works because <c>OpenFile</c> @0x1056C fopens the path
+    /// before falling back to KRONDOR.001 — produces an encounter that exists in neither the
+    /// original nor the port as shipped, so the comparison would be against a scene we invented.
+    /// Forcing the encounter NUMBER instead makes the original open a genuine shipped encounter, and
+    /// the port can open the same one by its number with nothing patched anywhere.
+    ///
+    /// <para>Set <c>BAK_TRAP_ENCOUNTER=347</c> (347 and 348 are the cannon rooms: two cannons, two
+    /// red crystals, three enemies and the no-retreat lock) together with the chapter spike's
+    /// <c>BAK_SPIKE_LOADSAVE</c> to reach a fight unattended. <c>BAK_TRAP_FRAMEDIR</c> dumps frames.
+    /// Off unless the variable is set, so a normal run is untouched.</para>
+    ///
+    /// <para><b>The hook is on the loader, not on combat entry.</b> <c>Load_traps.dat</c> reads the
+    /// global at its +0x23, so writing it at the function's first instruction lands before the read
+    /// and after whatever set it — no ordering assumption about the caller.</para>
+    ///
+    /// <para><b>seg033 and seg021 are RESIDENT</b>, which is why
+    /// <see cref="DoOnTopOfInstructionIda" /> is usable here: it applies the relocation delta
+    /// unconditionally and would compute nonsense for an overlay. <c>renderCombatGridScene</c> lives
+    /// in ovr167 and must NOT be hooked this way — hence capturing from the resident
+    /// <c>RenderWorldView</c> instead.</para>
+    /// </remarks>
+    private void DefineTrapSpike() {
+        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_TRAP_ENCOUNTER"), out int encounter)
+            || encounter is < 0 or > 767) {
+            return;
+        }
+        _trapSpikeEncounter = encounter;
+        _trapFrameDir = Environment.GetEnvironmentVariable("BAK_TRAP_FRAMEDIR");
+        _trapFramesWanted =
+            int.TryParse(Environment.GetEnvironmentVariable("BAK_TRAP_FRAMES"), out int n) && n > 0 ? n : 8;
+
+        _loggerService.LogInformation(
+            "Trap spike: armed (encounter {Encounter}, frames {Frames} -> {Dir})",
+            encounter, _trapFramesWanted, _trapFrameDir ?? "none");
+
+        DoOnTopOfInstructionIda(Seg033, 0x0CDE, () => {
+            uint address = IdaLinear(IdaEncounterNumber);
+            ushort was = UInt16[address];
+            if (was == encounter) {
+                return;
+            }
+            UInt16[address] = (ushort)encounter;
+            _trapSpikeFired = true;
+            _loggerService.LogInformation("Trap spike: Load_traps.dat encounter {Was} -> {Now}", was, encounter);
+        });
+
+        if (IsNullOrEmpty(_trapFrameDir)) {
+            return;
+        }
+        Directory.CreateDirectory(_trapFrameDir);
+
+        // RenderWorldView is the arena's own per-frame entry and is RESIDENT, so it is reachable
+        // through the Ida helper where renderCombatGridScene (ovr167) is not. Gated on the loader
+        // having fired, so the frames are of the forced encounter rather than of the world the
+        // party was standing in beforehand.
+        DoOnTopOfInstructionIda(Seg021, 0x0959, () => {
+            if (!_trapSpikeFired || _trapFramesTaken >= _trapFramesWanted) {
+                return;
+            }
+            _trapFramesTaken++;
+            CaptureFrameTo(_trapFrameDir, $"trap_{encounter}_{_trapFramesTaken:D2}.png");
+            _loggerService.LogInformation("Trap spike: captured frame {N}/{Total}",
+                _trapFramesTaken, _trapFramesWanted);
+        });
+    }
 
     private void DefineChapterSpike() {
         // *** EITHER VARIABLE ARMS THE HARNESS, AND THAT IS THE FIX FOR A REAL TRAP. ***
@@ -685,8 +773,17 @@ public class BakOverrides : CSharpOverrideHelper {
     /// output is comparable with it -- but taken from a known point in the animation loop rather
     /// than whenever an external tool happens to ask, which is what makes "the Nth frame" meaningful.
     /// </summary>
-    private void CaptureStorySceneFrame() {
-        _storySceneFrame++;
+    /// <summary>
+    /// Writes the emulator's current frame to <paramref name="fileName"/> under
+    /// <paramref name="directory"/>.
+    /// </summary>
+    /// <remarks>
+    /// BGRA8888 straight out of the VGA renderer — the same encode the MCP screenshot tool uses, so
+    /// the output is comparable with it. The value of taking it from here rather than through that
+    /// tool is WHEN: an override fires at a known instruction, while an external tool captures
+    /// whenever it happens to ask, which for anything mid-animation is not a repeatable moment.
+    /// </remarks>
+    private void CaptureFrameTo(string directory, string fileName) {
         int width = Machine.VgaRenderer.Width;
         int height = Machine.VgaRenderer.Height;
         uint[] buffer = new uint[width * height];
@@ -703,7 +800,12 @@ public class BakOverrides : CSharpOverrideHelper {
         if (png == null) {
             return;
         }
-        File.WriteAllBytes(Path.Combine(_frameDir, $"frame_{_storySceneFrame:D4}.png"), png.ToArray());
+        File.WriteAllBytes(Path.Combine(directory, fileName), png.ToArray());
+    }
+
+    private void CaptureStorySceneFrame() {
+        _storySceneFrame++;
+        CaptureFrameTo(_frameDir, $"frame_{_storySceneFrame:D4}.png");
         if (_storySceneFrame % 25 == 0) {
             _loggerService.LogInformation("Chapter spike: captured story frame {Frame}", _storySceneFrame);
         }
