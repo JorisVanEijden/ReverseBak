@@ -110,4 +110,32 @@ public class CrystalCollapseTests {
         // No extra neighbour is consumed: the element count is unchanged, only an id changed.
         Assert.Equal(before, puzzle.Elements.Count);
     }
+
+    [Fact]
+    public void OnlyFlamecastsSpriteIdTakesTheCrystalArm() {
+        // The gate is the EFFECT SPRITE id, not "a projectile" — Spell_ApplyHitWithProjectile maps
+        // spell 4 to sprite type 2, and a crossbow quarrel flying over the same crystal must do
+        // nothing. Pinned as a value comparison because the arm is a caller-side `if` and this is
+        // the constant it tests.
+        Assert.Equal(2, CombatEffectSprite.Flamecast);
+        Assert.NotEqual(CombatEffectSprite.Flamecast, CombatEffectSprite.Shot);
+        Assert.NotEqual(CombatEffectSprite.Flamecast, CombatEffectSprite.BaneOfBlackSlayers);
+        Assert.NotEqual(CombatEffectSprite.Flamecast, CombatEffectSprite.GenericSpell);
+    }
+
+    [Fact]
+    public void CollapsingTwiceOnTheSameCellIsNotTheSameAsCollapsingOnce() {
+        // Why the sweep remembers its last cell. A flight reports a position every frame, so
+        // without that memory one Flamecast would run the collapse on the same crystal repeatedly;
+        // this shows the second call is not a no-op and therefore that the guard is load-bearing.
+        TrapPuzzle puzzle = PuzzleWith((Crystal, 1, 1));
+        GroundRow(puzzle, 1, 5, 1);
+
+        int first = puzzle.CollapseUntilIsolated(1, 1);
+        int second = puzzle.CollapseUntilIsolated(1, 1);
+
+        Assert.True(first > 0, "the first pass collapses the run");
+        Assert.NotEqual(first, second);
+    }
 }
+
