@@ -528,6 +528,7 @@ public class BakOverrides : CSharpOverrideHelper {
         DefineChapterSpike();
         DefineTrapSpike();
         DefineCombatSpike();
+        DefineTrapTriggerSpike();
     }
 
     /// <summary>
@@ -556,6 +557,9 @@ public class BakOverrides : CSharpOverrideHelper {
 
     /// <summary><c>encounterNumber_dseg_50F4</c>, the number every trap load reads.</summary>
     private const uint IdaEncounterNumber = 0x3EEC4;
+
+    /// <summary>The resident def_file_struct array the trigger dispatcher walks (19 bytes each).</summary>
+    private const uint IdaDefFileStructs = 0x3F0E6;
 
     private int _trapSpikeEncounter = -1;
     private string _trapFrameDir;
@@ -723,6 +727,86 @@ public class BakOverrides : CSharpOverrideHelper {
 
             _loggerService.LogInformation(
                 "Combat spike: calling runCombatEncounter({Encounter}) directly", encounter);
+        });
+    }
+
+    /// <summary>
+    /// Opt-in harness that fires a TRAP TRIGGER directly: set <c>BAK_TRAP_TRIGGER=entryNumber</c>
+    /// and the next world frame runs <c>trapTrigger_phase2</c> for that DEF_TRAP entry.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the refinement of <see cref="DefineCombatSpike" />, which does not work.</b>
+    /// Calling <c>runCombatEncounter</c> straight blew the emulator's call stack, because its real
+    /// caller does a great deal of setup first. <c>trapTrigger_phase2</c> IS that caller, so
+    /// calling it instead gets the setup for free: it reads the DEF_TRAP entry, sets
+    /// <c>creatureType</c>, runs the stealth roll, shows the dialog and relocates the party before
+    /// entering combat.
+    ///
+    /// <para>Signature from its only in-game call site, <c>dispatchTriggers_phase2</c> @0x73be0:
+    /// <code>
+    ///   lea ax,[bp+outPbool]; push ax    ; arg2, near ptr to a bool
+    ///   push si                          ; arg1, near ptr to a def_file_struct
+    ///   call trapTrigger_phase2
+    ///   add sp, 4
+    /// </code></para>
+    ///
+    /// <para>The <c>def_file_struct</c> is 19 bytes — <c>type</c> at +0 (7 = Trap),
+    /// <c>entryNumber</c> at +6 — and is built in the game's own <c>defFileStructs</c> array
+    /// (@0x3f0e6) rather than on the stack, so every pointer convention the callee assumes still
+    /// holds. The near offset is derived at runtime from <c>IdaLinear</c> minus <c>DS &lt;&lt; 4</c>
+    /// rather than hand-computed, because hand-computing IDA-to-runtime addresses has cost this
+    /// project two sessions before.</para>
+    ///
+    /// <para>Combine with <c>BAK_TRAP_ENCOUNTER</c> to force which encounter the trap opens: any
+    /// real entry number will do, since the encounter is rewritten at Load_traps.dat.</para>
+    /// </remarks>
+    private void DefineTrapTriggerSpike() {
+        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_TRAP_TRIGGER"),
+                out int entryNumber) || entryNumber < 0) {
+            return;
+        }
+
+        _loggerService.LogInformation("Trap-trigger spike: armed (DEF_TRAP entry {Entry})", entryNumber);
+
+        var entered = false;
+        DoOnTopOfInstructionIda(0x2C97, 0x000F, () => {
+            if (entered) {
+                return;
+            }
+            entered = true;
+
+            uint structLinear = IdaLinear(IdaDefFileStructs);
+            var nearStruct = (ushort)(structLinear - ((uint)State.DS << 4));
+
+            // Build a Trap def_file_struct in the game's own array slot 0.
+            UInt16[structLinear + 0x00] = 7;                       // type = Trap
+            Memory.UInt8[structLinear + 0x02] = 0;                 // start_x
+            Memory.UInt8[structLinear + 0x03] = 39;                // end_y
+            Memory.UInt8[structLinear + 0x04] = 39;                // end_x
+            Memory.UInt8[structLinear + 0x05] = 0;                 // start_y
+            Memory.UInt32[structLinear + 0x06] = (uint)entryNumber;// entryNumber
+            Memory.UInt8[structLinear + 0x0A] = 0;                 // fireOnce
+            UInt16[structLinear + 0x0B] = 0;                       // requiredKey
+            UInt16[structLinear + 0x0D] = 0;                       // forbiddenKey
+            UInt16[structLinear + 0x0F] = 0;                       // setOnFireKey
+            UInt16[structLinear + 0x11] = 0;                       // repeatable
+
+            // Scratch bool for the out-parameter, on the stack. Sound as a near pointer only
+            // because DS == SS in this program (both 0x2B5A, confirmed at a breakpoint).
+            State.SP -= 2;
+            ushort outPtr = State.SP;
+
+            Stack.Push16(outPtr);      // arg2 pushed first
+            Stack.Push16(nearStruct);  // arg1
+            Stack.Push16(State.CS);    // far return
+            Stack.Push16(State.IP);
+
+            State.CS = RuntimeSegment(0x39A7);   // j_trapTrigger_phase2 @0x39A75
+            State.IP = 0x0005;
+
+            _loggerService.LogInformation(
+                "Trap-trigger spike: calling trapTrigger_phase2(entry {Entry}) at DS:{Ptr:X4}",
+                entryNumber, nearStruct);
         });
     }
 
