@@ -527,6 +527,7 @@ public class BakOverrides : CSharpOverrideHelper {
         // DefineFunctionIda(0x3849, 0x0020, LoadConfig, true, nameof(LoadConfig));
         DefineChapterSpike();
         DefineTrapSpike();
+        DefineCombatSpike();
     }
 
     /// <summary>
@@ -631,6 +632,97 @@ public class BakOverrides : CSharpOverrideHelper {
             CaptureFrameTo(_trapFrameDir, $"trap_{encounter}_{_trapFramesTaken:D2}.png");
             _loggerService.LogInformation("Trap spike: captured frame {N}/{Total}",
                 _trapFramesTaken, _trapFramesWanted);
+        });
+    }
+
+    /// <summary>
+    /// Opt-in harness that CALLS the combat entry directly: set <c>BAK_COMBAT_ENCOUNTER=N</c> and
+    /// the next world frame enters encounter N, with no trap trigger and no walking.
+    /// </summary>
+    /// <remarks>
+    /// <b>Why this exists.</b> Reaching a trap the honest way means walking the party onto a
+    /// trigger, and that turned into a pathfinding problem: the party wedges on impassable terrain
+    /// 4,000 units from the only usable save, and teleporting past it desyncs the walkability list
+    /// so nothing moves at all (TASK-323). But the trigger is only a DELIVERY MECHANISM — what has
+    /// to happen is the combat entry running. So call it.
+    ///
+    /// <para>The signature is taken from the one real call site, <c>trapTrigger_phase2</c> @0x748fd:
+    /// <code>
+    ///   push [bp+var_6]                          ; flag
+    ///   lea ax,[bp+var_4]; push ax               ; near ptr to an out-word
+    ///   push [bp+trap_entry.encounterNumber]     ; encounter (word)
+    ///   call j_runCombatEncounter                ; @0x3909f, RESIDENT thunk
+    ///   add sp, 6
+    /// </code>
+    /// Three words, C order, caller cleans up. The out-pointer is a NEAR pointer taken from the
+    /// caller's own stack frame, which is only sound because this program runs with
+    /// <b>DS == SS</b> — confirmed live at a MoveParty breakpoint (both 0x2B5A). That is why the
+    /// scratch word below can live on the stack.</para>
+    ///
+    /// <para><b>This deliberately does not restore SP afterwards.</b> The forged frame abandons the
+    /// world loop, so the game is not expected to survive returning from the fight. That is
+    /// acceptable for a capture harness whose whole job is to get the arena on screen, and it is
+    /// why this is opt-in rather than always armed. Do not reuse it for anything that has to keep
+    /// playing afterwards.</para>
+    ///
+    /// <para><b>STATUS: the call FIRES but the game does not survive it, so this does not yet
+    /// produce a capture.</b> The log shows "Combat spike: calling runCombatEncounter(347)" and
+    /// then, within 40 ms, "CALL STACK DEPTH EXCEEDED 1000" followed by a storm of "Returning but
+    /// no call was done". So the entry mechanics are right — the thunk is reached — but
+    /// <c>runCombatEncounter</c> evidently needs context that only its real caller sets up.
+    /// <c>trapTrigger_phase2</c> builds a 0x199-byte <c>def_trap</c> on its own stack, sets
+    /// <c>creatureType</c> from the first enemy slot, may show a dialog, and relocates the party,
+    /// all before it calls this — none of which exists in the forged frame.</para>
+    ///
+    /// <para><b>The better target is therefore <c>j_trapTrigger_phase2</c> @0x39a75</b> (also
+    /// resident), which does that setup itself. It takes <c>(def_file_struct near*, bool near*)</c>,
+    /// so it needs a filled-in <c>def_file_struct</c> — <c>defFileStructs</c> @0x3f0e6 is a
+    /// resident array of 19-byte entries and is the obvious place to borrow or build one. That
+    /// needs the field offsets pinned down first; do that before the next attempt rather than
+    /// guessing.</para>
+    /// </remarks>
+    private void DefineCombatSpike() {
+        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_COMBAT_ENCOUNTER"),
+                out int encounter) || encounter <= 0) {
+            return;
+        }
+
+        _loggerService.LogInformation("Combat spike: armed (encounter {Encounter})", encounter);
+
+        // *** NOT RenderWorldView. *** Seg021:0x0959 (RenderWorldView @0x22069) is never called —
+        // an MCP breakpoint on it does not trip while the travel view is plainly rendering, so the
+        // world is drawn by some other path. The trap spike's frame capture hangs off that same
+        // address and has therefore never run either. menu_resolveHoverAndClick @0x2c97f IS
+        // resident and IS called every frame of the travel loop (breakpoint trips within 3s).
+        var entered = false;
+        DoOnTopOfInstructionIda(0x2C97, 0x000F, () => {
+            if (entered) {
+                return;
+            }
+            entered = true;
+
+            // Scratch word for the out-parameter, carved off the top of the stack. Safe as a near
+            // pointer only because DS == SS here.
+            State.SP -= 2;
+            ushort outPtr = State.SP;
+
+            // C order: pushed right to left, so the encounter number ends up as the FIRST argument.
+            Stack.Push16(0);                    // flag  (var_6 at the real call site)
+            Stack.Push16(outPtr);               // out word
+            Stack.Push16((ushort)encounter);    // encounter number
+
+            // Far return address, so the thunk's RETF lands back on this instruction.
+            Stack.Push16(State.CS);
+            Stack.Push16(State.IP);
+
+            // j_runCombatEncounter is IDA 0x3909F; any (para, offset) pair that resolves to it
+            // works, because RuntimeSegment applies one uniform relocation delta to the resident
+            // segments. 0x3909:000F is the tidiest split.
+            State.CS = RuntimeSegment(0x3909);
+            State.IP = 0x000F;
+
+            _loggerService.LogInformation(
+                "Combat spike: calling runCombatEncounter({Encounter}) directly", encounter);
         });
     }
 
