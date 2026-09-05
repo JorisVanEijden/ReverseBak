@@ -63,6 +63,26 @@ public class Spell : IResource {
 
     private const int TileEffectKind = 5;
     private const int SummonKind = 6;
+
+    /// <summary>
+    /// The spell's effect kind (<c>nEffect_kind</c>) — the field the original's combat renderer
+    /// switches on, NOT <see cref="TargetingType"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>These two are one field apart and read like synonyms, and that has already cost an
+    /// analysis.</b> The original's <c>SpellDef</c> runs <c>nCost, nCost_max, nSchool,
+    /// nSpell_kind, nEffect_sprite_id, nEffect_kind, ...</c>, which the extractor reads straight
+    /// down as <c>MinimumCost, MaximumCost, IsMartial, TargetingType, EffectSubject,
+    /// AnimationEffectType</c>. So <c>nSpell_kind</c> is <see cref="TargetingType"/> and
+    /// <c>nEffect_kind</c> is this.
+    ///
+    /// <para>Concretely: <c>combat_actor_rndr_stat_vfx_pre</c> (CACTOR.C:909) switches on
+    /// <c>nEffect_kind - 3</c>, and case 2 draws the actor's wireframe box. Read as this field it
+    /// means Hocho's Haven (6) and Mirrorwall (14); read as <see cref="TargetingType"/> it wrongly
+    /// gives Mirrorwall, Gambit of the Eight (29) and Asphyxiation (40). Map a rule from the
+    /// original by POSITION, never by matching a name — see
+    /// docs/re-notes/2026-09-05-spelldef-field-mapping.md.</para>
+    /// </remarks>
     public int AnimationEffectType { get; set; }
     public int ObjectId { get; set; }
     public SpellCalculation Calculation { get; set; }
