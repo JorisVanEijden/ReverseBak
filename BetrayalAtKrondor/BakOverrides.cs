@@ -768,12 +768,27 @@ public class BakOverrides : CSharpOverrideHelper {
 
         _loggerService.LogInformation("Trap-trigger spike: armed (DEF_TRAP entry {Entry})", entryNumber);
 
+        // *** THE FORGED CALL MUST PUT SP BACK. *** The callee returns with the caller's cleanup
+        // still owed (6 bytes of arguments) plus the 2-byte scratch, so SP comes back 8 bytes low
+        // — and the return lands mid-function in code the game entered by a NEAR call, so the
+        // mismatch corrupts the frame. It survived for one DEF_TRAP entry and killed the emulator
+        // on another, i.e. it was working by luck. The far return is aimed at this same hook, so
+        // the next time it fires is exactly the moment to restore SP.
         var entered = false;
+        var returning = false;
+        ushort savedSp = 0;
         DoOnTopOfInstructionIda(0x2C97, 0x000F, () => {
+            if (returning) {
+                State.SP = savedSp;
+                returning = false;
+                _loggerService.LogInformation("Trap-trigger spike: returned, SP restored to {Sp:X4}", savedSp);
+                return;
+            }
             if (entered) {
                 return;
             }
             entered = true;
+            savedSp = State.SP;
 
             uint structLinear = IdaLinear(IdaDefFileStructs);
             var nearStruct = (ushort)(structLinear - ((uint)State.DS << 4));
@@ -801,6 +816,7 @@ public class BakOverrides : CSharpOverrideHelper {
             Stack.Push16(State.CS);    // far return
             Stack.Push16(State.IP);
 
+            returning = true;
             State.CS = RuntimeSegment(0x39A7);   // j_trapTrigger_phase2 @0x39A75
             State.IP = 0x0005;
 
