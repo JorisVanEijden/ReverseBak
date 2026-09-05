@@ -40,8 +40,24 @@ public static class CreatureColorSet {
     }
 
     /// <summary>Apply the LUT to every sub-image's index data, in place — <c>pixel = lut[pixel]</c>
-    /// across the whole set (matches the original's set-wide <c>ApplyColorSetToBitmap</c>). Operates on the
-    /// raw stored indices, so it is independent of row/column ordering and compression.</summary>
+    /// across the whole set.</summary>
+    /// <remarks>
+    /// <b>Verified against the original</b> — <c>ApplyColorSetToBitmap</c> @0x1657c does exactly
+    /// <c>pixel = lut[pixel]</c>, so the direction here is right (it is a substitution, not an
+    /// inverse mapping; getting that backwards is the obvious way to be wrong and we are not).
+    ///
+    /// <para>Two things the original does that this does NOT, both deliberate:</para>
+    /// <list type="bullet">
+    /// <item>The original walks the <b>RLE stream</b> and remaps only the pixel bytes, stepping over
+    /// the control bytes (high bit set = one literal, else a run of <c>b &amp; 0x7F</c>). We run
+    /// <b>after</b> <c>BitmapExtractor.Extract</c> has decoded the image, so every byte we see is
+    /// already a pixel and a blanket loop is equivalent. Do not move this call before the decode —
+    /// it would rewrite the control bytes and shred the image.</item>
+    /// <item>The original skips a bitmap that is not flagged compressed, recolouring nothing. We
+    /// recolour unconditionally. Inert in practice: no creature BMX in the shipped archive has an
+    /// uncompressed frame (checked across all 4244 BMX frames), so the branch is never taken.</item>
+    /// </list>
+    /// </remarks>
     public static void Apply(ImageSet set, byte[] lut) {
         if (lut.Length != 256) {
             throw new ArgumentException("colorset LUT must be 256 entries", nameof(lut));
