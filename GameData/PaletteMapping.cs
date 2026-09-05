@@ -13,6 +13,16 @@ public static class PaletteMapping {
             return "CONTENTS.PAL";
         }
 
+        // The same case on the full map: REQ_FMAP's only widget is an Exit button with IconBase 119,
+        // which resolves to BICONS1 #60 (normal) and BICONS2 #60 (hover), and the original blits it
+        // over FULLMAP.SCX with FULLMAP.PAL installed. Under the shared OPTIONS palette its
+        // parchment face comes out as red and teal noise with the lettering still legible through
+        // it — the letterforms line up with the original exactly, only the colours are wrong.
+        // <see cref="FMAP_ICN"/> below is the same reasoning for the party marker on this screen.
+        if (subImage == 60 && (image == "BICONS1" || image == "BICONS2")) {
+            return "FULLMAP.PAL";
+        }
+
         // Zone slot bitmaps (Z##SLOT#.BMX — the object/wall textures sampled by Flags&0x10 faces)
         // render under the zone palette, like the Z##L terrain atlas. They have no per-slot .PAL, so
         // the default same-name lookup fails. (RE: resource_loadZoneDataFiles @0x7313b loads them per zone.)

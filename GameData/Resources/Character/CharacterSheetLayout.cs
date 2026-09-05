@@ -71,6 +71,26 @@ public static class CharacterSheetLayout {
     /// across the top and bottom, taken from the inventory screen's own sheet. Drawing a plain
     /// rectangle instead would lose the dotted texture the whole screen family shares.
     /// </remarks>
+    /// <summary>
+    /// Canonical X offset from REQ_INFO's spell-button entry to the name plate under the portrait.
+    /// </summary>
+    /// <remarks>
+    /// <b>The plate is that same widget, drawn a second time.</b> <c>UI_attributes_screen</c>
+    /// @0x581ee copies REQ_INFO's element index 2 — the "Spells" button — into a local, swaps its
+    /// label for the actor's name, and calls <c>menu_drawElement(el, -228, 0, 0)</c>. Those trailing
+    /// arguments are offsets rather than positions: <c>menu_type_6_8</c> @0x2bba7 does
+    /// <c>x = arg + element.xPosition</c> and <c>y += element.yPosition</c>. So the plate lands at
+    /// VGA (251-228, 71) = (23, 71), which is canonical (115, 426) — the Spells rect shifted left
+    /// and not moved vertically at all, which is why the two share a baseline on screen.
+    ///
+    /// <para>Sourced from the widget rather than written as a coordinate so the plate keeps
+    /// following REQ_INFO if that entry ever moves. -228 VGA is the original's own constant.</para>
+    /// </remarks>
+    public const int NamePlateOffsetX = -228 * 5;
+
+    /// <summary>Y offset from the same entry — the original passes zero.</summary>
+    public const int NamePlateOffsetY = 0;
+
     public const string FrameIconSet = "INVSHP2.BMX";
 
     /// <summary>The vertical dotted rule, drawn down both sides.</summary>
