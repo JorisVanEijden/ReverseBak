@@ -13,7 +13,10 @@ using System.Collections.Generic;
 /// vocabulary and grouping; which entries appear is per-character.</para>
 ///
 /// <para>The six rows line up with the six category anchors on the casting ring, which is the other
-/// place the same grouping shows up.</para>
+/// place the same grouping shows up — but <b>not in the same order</b>. Compared as sets of spell
+/// ids against the shipped SYMBOL files, the first four agree and the last two swap:
+/// group 4 is SYMBOL6 and group 5 is SYMBOL5. Anything that treats a row index as a ring school
+/// (or the reverse) has to swap those two; four of six matching is exactly enough to look right.</para>
 /// </summary>
 public class SpellBookPage : IResource {
     public SpellBookPage(string id) {

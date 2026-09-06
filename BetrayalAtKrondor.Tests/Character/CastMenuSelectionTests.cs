@@ -48,23 +48,24 @@ public class CastMenuSelectionTests {
     }
 
     [Fact]
-    public void TheDefaultSchoolIsSYMBOL5_WhichIsINDEX4() {
-        // *** THIS TEST USED TO PIN THE OFF-BY-ONE. *** It asserted 5 under the name
-        // "TheDefaultSchoolIsTheLastOneNotTheFirst", from a note reading "the original opens on 5".
-        // The original does open on 5 — SYMBOL5.DAT — but the SYMBOL files are 1-BASED and this
-        // index is 0-based (CastScreen.LoadSchoolAsync loads SYMBOL{school + 1}.DAT), so 5 loaded
-        // SYMBOL6: one school too far.
+    public void TheDefaultSchoolIsSYMBOL6_WhichIsINDEX5() {
+        // *** THIS TEST ONCE PINNED 4, AND 4 WAS WRONG. *** The argument for it was a screenshot:
+        // opening the screen on SYMBOL6 with Owyn above ground draws an EMPTY ring, because the one
+        // spell he knows there is Candle Glow and Candle Glow is refused above ground. That reads
+        // like an off-by-one and is not one.
         //
-        // Why it stayed invisible: SYMBOL6's spells are 0, 2, 26, 34, 35, and the only one Owyn
-        // knows is Candle Glow, which is correctly refused above ground. The ring therefore drew
-        // nothing and the panel named nothing, which read as a dead screen (TASK-332) rather than
-        // as the wrong school. SYMBOL5 yields Scent of Sarig — the spell the original names in the
-        // right panel on open, which is what the task recorded seeing.
-        Assert.Equal(4, CastMenuSelection.DefaultSchool);
-        Assert.Equal(4, CastMenuSelection.ResolveSchool(CastMenuSelection.None));
-        Assert.Equal(4, CastMenuSelection.ResolveSchool(6));
+        // The original settles it twice over. cspell_cast_menu_loop assigns school = 5 with nothing
+        // remembered (CSPELL.C:2181), and cspell_symbol_resources_load builds the name with
+        // szFile[6] = chapter + '1' (CSPELL.C:1745) — so 5 IS SYMBOL6, the same 0-based/1-based
+        // relationship CastScreen.LoadSchoolAsync uses. And the ring draws only CASTABLE spells
+        // (cspell_menu_animate_hilite gates each glyph on cspell_check_castable, CSPELL.C:1840), so
+        // the original draws the same empty ring from the same save. The emptiness was the correct
+        // rendering of that state.
+        Assert.Equal(5, CastMenuSelection.DefaultSchool);
+        Assert.Equal(5, CastMenuSelection.ResolveSchool(CastMenuSelection.None));
+        Assert.Equal(5, CastMenuSelection.ResolveSchool(6));
 
-        // Still in range, so ResolveSchool's own bounds test is unaffected by the change.
+        // Still in range, so ResolveSchool's own bounds test is unaffected.
         Assert.InRange(CastMenuSelection.DefaultSchool, 0, CastRingLayout.CategoryCount - 1);
     }
 
