@@ -328,4 +328,47 @@ public class SaveGameWriterTests {
 
         Assert.Equal((short)0x00A0, reloaded.Data!.StateData.LightingStateData.ActiveSpellTimerFlags);
     }
+
+    [Fact]
+    public void TheCastScreensStickyPairIsTheTwoWORDSAfterThePaletteMask() {
+        // *** THESE ARE ALREADY PARSED, UNDER NAMES THAT DO NOT SAY SO. ***
+        // gstate.inc runs wPalEventMask, nSpellMenuCasterSlot, nSpellMenuPreselect — and the parser
+        // files that whole run on the LIGHTING block, so the cast screen's sticky caster and school
+        // arrive as PartyMember and LastSpellSymbolFile. Nothing consumed them until GameSession
+        // grew CastMenuCasterSlot/CastMenuSchool, so the screen always opened on the default.
+        //
+        // Written straight into the body at the two offsets rather than through SaveGameFields,
+        // because the writer does not model them — which is exactly what this pins: the READ path
+        // has to keep landing on 1622/1624 whatever the writer knows about.
+        byte[] body = PatternBody();
+        BitConverter.GetBytes((short)1).CopyTo(body, SaveGameOffsets.PaletteEventMask + 2);
+        BitConverter.GetBytes((short)4).CopyTo(body, SaveGameOffsets.PaletteEventMask + 4);
+
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
+        SaveGame reloaded = new SaveGameExtractor().Extract("SAVE.GAM", new MemoryStream(r.Bytes));
+
+        // Slot 1, school 4 — the pair every played save in OriginalGame/GAMES carries, and school 4
+        // is SYMBOL5, which is why the original opens naming "Scent of Sarig" rather than on
+        // CastMenuSelection.DefaultSchool.
+        Assert.Equal((short)1, reloaded.Data!.StateData.LightingStateData.PartyMember);
+        Assert.Equal((short)4, reloaded.Data!.StateData.LightingStateData.LastSpellSymbolFile);
+    }
+
+    [Fact]
+    public void TheMinusOneSentinelSurvivesTheRoundTrip() {
+        // savegame_chapter_start_dispatch writes -1/-1 at the start of EVERY chapter, not only on a
+        // new game, so this is the value the screen sees most often. It has to arrive as -1 rather
+        // than 65535, or ResolveSchool takes it for a real school and skips the default.
+        byte[] body = PatternBody();
+        BitConverter.GetBytes((short)-1).CopyTo(body, SaveGameOffsets.PaletteEventMask + 2);
+        BitConverter.GetBytes((short)-1).CopyTo(body, SaveGameOffsets.PaletteEventMask + 4);
+
+        SaveGameWriteResult r = SaveGameWriter.Write(body, FieldsFrom(body), "C", 40, 41, 3);
+        SaveGame reloaded = new SaveGameExtractor().Extract("SAVE.GAM", new MemoryStream(r.Bytes));
+
+        Assert.Equal((short)GameData.Resources.Spells.CastMenuSelection.None,
+            reloaded.Data!.StateData.LightingStateData.PartyMember);
+        Assert.Equal((short)GameData.Resources.Spells.CastMenuSelection.None,
+            reloaded.Data!.StateData.LightingStateData.LastSpellSymbolFile);
+    }
 }
