@@ -128,6 +128,25 @@ public static class SlayerRevival {
     /// </remarks>
     public static bool CanRiseOnTile(bool tileBlocked) => !tileBlocked;
 
+    /// <summary><c>sound_trapsup</c> (71) — the rise, heard once per creature that gets up.</summary>
+    /// <remarks>
+    /// <b>Inside the tile test, not before it.</b> <c>combataiact_bhood_revive_cycle</c>
+    /// (CBTAIACT.C:260) opens with <c>if (combatgrid_tile_is_blocked(...) == 0)</c> and everything
+    /// including this cue is inside it, so a body waiting under something that has blocked its
+    /// grave is SILENT. Playing on the attempt rather than the rise would tick every round for as
+    /// long as the tile stayed occupied — see <see cref="CanRiseOnTile"/>, which is retried each
+    /// tick once the countdown has run out.
+    ///
+    /// <para><b>And it belongs to the rise, not to the transformation.</b> It plays before the
+    /// species change and unconditionally of it (CBTAIACT.C:287), so the creature that was already
+    /// the risen type sounds exactly like the one morphing into it — gating on
+    /// <see cref="TypeAfterRising"/> changing anything would silence half of them.</para>
+    ///
+    /// <para>The name is the resource's, not the event's: <c>trapsup</c> is what the archive calls
+    /// id 71, and the routine pushing it is the Black Slayer's revival.</para>
+    /// </remarks>
+    public const int RisingSound = 0x47;
+
     /// <summary>
     /// The species the actor is once it is up.
     /// </summary>

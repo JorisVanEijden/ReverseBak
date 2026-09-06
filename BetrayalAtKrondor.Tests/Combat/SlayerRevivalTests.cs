@@ -130,4 +130,36 @@ public class SlayerRevivalTests {
         // that falls again starts a fresh count rather than rising instantly.
         Assert.True(SlayerRevival.ClearsItsOwnCountdown);
     }
+
+    [Fact]
+    public void TheRiseSoundIsSEVENTYONE_TheIdTheRoutinePushes() {
+        // combataiact_bhood_revive_cycle plays audio_play(0x47) between removing the actor from the
+        // grid and running its VFX (CBTAIACT.C:287). Pinned as the decimal the archive keys on as
+        // well, because the resource name is the DECIMAL string while the disassembly and this
+        // constant are hex — 0x47 loads as "71".
+        Assert.Equal(71, SlayerRevival.RisingSound);
+    }
+
+    [Fact]
+    public void ABodyUnderABLOCKEDTileRisesSilently_BecauseItDoesNotRise() {
+        // *** THE CUE SITS INSIDE THE TILE TEST. *** The whole cycle is wrapped in
+        // `if (combatgrid_tile_is_blocked(...) == 0)`, and the countdown has already run out by the
+        // time CanRiseOnTile is consulted — so the attempt is retried EVERY tick while somebody
+        // stands on the grave. A cue on the attempt rather than the rise would tick once a round
+        // for as long as that lasted.
+        Assert.False(SlayerRevival.CanRiseOnTile(tileBlocked: true));
+        Assert.True(SlayerRevival.CanRiseOnTile(tileBlocked: false));
+    }
+
+    [Fact]
+    public void TheRisenSpeciesSoundsTheSameAsTheMorphingOne() {
+        // The cue plays before the species change and unconditionally of it, so a creature that was
+        // already the risen type sounds exactly like one transforming into it. Gating the sound on
+        // TypeAfterRising changing something would silence every riser of the first kind.
+        Assert.Equal(SlayerRevival.RisenType, SlayerRevival.TypeAfterRising(SlayerRevival.RisenType));
+        Assert.Equal(SlayerRevival.RisenType,
+            SlayerRevival.TypeAfterRising(SlayerRevival.TransformingType));
+        Assert.True(SlayerRevival.IsEligibleSpecies(SlayerRevival.RisenType));
+        Assert.True(SlayerRevival.IsEligibleSpecies(SlayerRevival.TransformingType));
+    }
 }
