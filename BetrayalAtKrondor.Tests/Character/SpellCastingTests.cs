@@ -162,6 +162,42 @@ public class SpellCastingTests {
     }
 
     [Fact]
+    public void DannonsDelusionsIsGatedTOO_ThoughItIsNotASummonKind() {
+        // *** THE RULE HAS TWO ARMS AND ONLY ONE IS THE KIND. ***
+        // `if ((nSpell_kind == 6 || spell_id == 1) && g_combat_count_A == 7)` — spell 1 is named
+        // outright alongside the kind test (CSPELL.C:1624). Dannon's Delusions is targeting type 5,
+        // not 6, so a port that gated on the kind alone would keep offering it on a full field.
+        SpellCastContext context = ContextKnowing(SpellIds.DannonsDelusions);
+        Spell delusions = SpellWith(targetingType: 5);
+
+        context.CombatActorCount = 6;
+        Assert.True(SpellCasting.IsCastable(SpellIds.DannonsDelusions, delusions, context));
+
+        context.CombatActorCount = 7;
+        Assert.False(SpellCasting.IsCastable(SpellIds.DannonsDelusions, delusions, context));
+
+        // And the id is what carries it: the same non-summon kind at another id is unaffected.
+        SpellCastContext other = ContextKnowing(7);
+        other.CombatActorCount = 7;
+        Assert.True(SpellCasting.IsCastable(7, SpellWith(targetingType: 5), other));
+    }
+
+    [Fact]
+    public void TheCapIsSEVEN_TheSameNumberTheROSTERAddEnforces() {
+        // Two guards, one number: cspell_check_castable compares g_combat_count_A to a literal 7,
+        // and combat_actor_party_add refuses past `#define MAX_COMBAT_ACTORS 7` (CACTOR.C:55).
+        // Pinned together so the castability side cannot drift from the add's own bound.
+        Assert.Equal(7, GameData.Resources.Combat.MonsterSummon.FightActorCapacity);
+        Assert.False(GameData.Resources.Combat.MonsterSummon.HasRoom(7));
+        Assert.True(GameData.Resources.Combat.MonsterSummon.HasRoom(6));
+
+        SpellCastContext context = ContextKnowing(7);
+        Spell summon = SpellWith(targetingType: 6);
+        context.CombatActorCount = GameData.Resources.Combat.MonsterSummon.FightActorCapacity;
+        Assert.False(SpellCasting.IsCastable(7, summon, context));
+    }
+
+    [Fact]
     public void ThePowerCeilingDropsToJustBelowTheCastersPool() {
         SpellCastContext context = ContextKnowing(7);
         context.HealthStaminaPool = 8;
