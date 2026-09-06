@@ -103,6 +103,67 @@ public class FaceWindingInvariantTests {
             + "will depend on it. Disagreeing: " + string.Join("; ", disagreements));
     }
 
+    /// <summary>
+    /// The shipped TBLs still contain LINE faces — polygon faces with exactly two vertices.
+    /// </summary>
+    /// <remarks>
+    /// <b>This guards a feature against silently becoming dead code.</b> Two-vertex faces are drawn
+    /// as lines (TblMeshConverter.AppendLine, added 2026-09-05 after they were found to be dropped
+    /// entirely — the trap cannon's body hung in the air without its five struts). The Unity tests
+    /// cover the CONVERTER given a synthetic two-vertex face; nothing covered the DATA.
+    ///
+    /// <para>So if ZoneTableExtractor ever stopped emitting them — a filter, a changed vertex-count
+    /// read — every one of those tests would still pass, the line code would quietly render nothing,
+    /// and the struts would come off the cannon again with no failure anywhere. That is the exact
+    /// shape of the dead-feature bugs this project keeps hitting.</para>
+    ///
+    /// <para>The count is a property of SHIPPED data, which does not change, so pinning it is safe:
+    /// a different number means the parser changed, which is precisely what should fail here.</para>
+    /// </remarks>
+    [Fact]
+    public void ShippedTablesStillContainLineFaces() {
+        string? gameDir = FindOriginalGameDir();
+        if (gameDir == null) {
+            return;
+        }
+
+        var linesByObject = new Dictionary<string, int>();
+        int totalLines = 0;
+
+        foreach (string path in Directory.EnumerateFiles(gameDir, "*.TBL")) {
+            using FileStream stream = File.OpenRead(path);
+            ZoneTable table = new ZoneTableExtractor().Extract(Path.GetFileName(path), stream);
+
+            foreach (ZoneTableEntry entry in table.Entries) {
+                foreach (LodLevel lod in entry.Dat.Lods) {
+                    foreach (MeshRecord mesh in lod.Meshes) {
+                        foreach (MeshFaceRecord faceRecord in mesh.MeshFaces) {
+                            if (faceRecord is not PolygonMeshFace polygon) {
+                                continue;
+                            }
+                            foreach (PolygonFace face in polygon.Faces) {
+                                if (face.VertexIndices.Count != 2) {
+                                    continue;
+                                }
+                                totalLines++;
+                                string key = entry.Name ?? "?";
+                                linesByObject[key] = linesByObject.TryGetValue(key, out int n)
+                                    ? n + 1 : 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(61, totalLines);
+
+        // Named so a failure says WHICH object lost its lines, not just that a number moved.
+        Assert.Equal(19, linesByObject["catapult"]);   // its frame and ropes
+        Assert.Equal(30, linesByObject["corn"]);       // 5 stalks x 6 zones
+        Assert.Equal(5, linesByObject["frpcnon"]);     // the trap cannon's struts
+    }
+
     private static bool AnyIndexOutOfRange(List<int> indices, int poolCount) {
         foreach (int i in indices) {
             if (i < 0 || i >= poolCount) {
