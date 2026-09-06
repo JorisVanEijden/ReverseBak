@@ -98,13 +98,16 @@ public static class DialogSpeakerNamePill {
     /// </summary>
     /// <remarks>
     /// The three arms of <c>askabout_name_or_keyword_lookup</c>: 0 answers null, 1..6 a party
-    /// member, 7..53 a keyword-table name. <b>Everything above 53 answers nothing</b> — including
-    /// 255, which the shipped DDX uses 221 times and which 19 of the 21 ChoiceMenu entries carry.
+    /// member, 7..53 a keyword-table name. <b>Everything above 53 answers nothing.</b>
+    ///
+    /// <para><b>That does NOT make 255 nameless.</b> 255 is a sentinel and never reaches this
+    /// lookup: <see cref="DialogSpeakerSentinel"/> substitutes the running party speaker first,
+    /// exactly as the original's record loop does. Callers must pass the RESOLVED id — passing the
+    /// raw ActorNumber is what cost the ask-about page its "&lt;name&gt; asked about:" heading on
+    /// 19 of the 21 shipped grids.</para>
     ///
     /// <para>The name is thrown away again unless the entry sets <see cref="RequiredFlag"/>
-    /// (DIALOG.C:968), which is why an unresolvable id is harmless on most of those 221 and not on
-    /// the ChoiceMenu ones, where it is the "&lt;name&gt; asked about:" heading that goes missing.
-    /// Two of the twenty-one resolve, and both are party members.</para>
+    /// (DIALOG.C:968), which is what keeps most records uncaptioned.</para>
     /// </remarks>
     public static bool ResolvesToAName(int speakerId) =>
         IsPartySpeaker(speakerId)
