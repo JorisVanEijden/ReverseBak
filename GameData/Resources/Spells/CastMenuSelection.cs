@@ -62,12 +62,27 @@ public static class CastMenuSelection {
     public const int None = -1;
 
     /// <summary>
-    /// The school shown when nothing is remembered.
-    ///
-    /// <para><b>The last one, not the first.</b> The original opens on 5; defaulting to 0 would put
-    /// a different set of symbols on the ring the first time the screen is ever opened.</para>
+    /// The school shown when nothing is remembered — <c>SYMBOL5.DAT</c>, index 4.
     /// </summary>
-    public const int DefaultSchool = CastRingLayout.CategoryCount - 1;
+    /// <remarks>
+    /// <b>The original opens on SYMBOL5, and the SYMBOL files are 1-BASED while this index is
+    /// 0-based.</b> This was <c>CategoryCount - 1</c> = 5, under a comment reading "the original
+    /// opens on 5" — but <c>CastScreen.LoadSchoolAsync</c> loads <c>SYMBOL{school + 1}.DAT</c>, so
+    /// index 5 is SYMBOL6, one school past the intended one. The comment and the code were each
+    /// right about a different numbering.
+    ///
+    /// <para>Measured 2026-09-06 on the world route with Owyn (roster 2) standing outdoors, which is
+    /// what makes the off-by-one visible rather than merely wrong: SYMBOL6 holds spells 0, 2, 26, 34
+    /// and 35, of which he knows only Candle Glow — and Candle Glow is correctly refused above
+    /// ground (<see cref="SpellIds.CandleGlow"/>). So the ring drew NOTHING and the panel named
+    /// nothing, which read as "the cast screen renders its chrome but does nothing" (TASK-332).
+    /// SYMBOL5 holds 8, 11, 17, 18 and yields Scent of Sarig — which is exactly the spell the
+    /// original names in the right panel on open.</para>
+    /// </remarks>
+    public const int DefaultSchool = SymbolFileFive - 1;
+
+    /// <summary>The 1-based SYMBOL file the original opens on, kept so the -1 above has a reason.</summary>
+    private const int SymbolFileFive = 5;
 
     /// <summary>Party slots the screen offers faces for.</summary>
     /// <inheritdoc cref="Character.ActiveParty.Slots"/>
