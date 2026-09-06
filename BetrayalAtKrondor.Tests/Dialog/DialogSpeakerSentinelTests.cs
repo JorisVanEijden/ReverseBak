@@ -78,22 +78,62 @@ public class DialogSpeakerSentinelTests {
     }
 
     [Fact]
-    public void CombatSpeakerSlotsAnswerNothingRatherThanGuessing() {
+    public void CombatSlotsNameWhoeverTheTextVariableSlotHolds() {
         var speakers = new DialogSpeakerSentinel();
         speakers.Begin(ChapterSpeaker);
 
-        // 0xf0..0xfc index the combat speaker-kind table this port has no equivalent of (192 shipped
-        // entries). Answering 0 shows no caption; falling through to the NPC arm would caption the
-        // wrong character AND poison the latch for every later 0xfd.
+        // 0xf0+n is "whoever slot n holds" — the same six-slot table the @N text variables use.
+        var table = new DialogSlotTable();
+        table.Kinds[0] = 5;
+        table.Kinds[1] = 0;
+
+        Assert.Equal(6, speakers.Resolve(0xF0, ChapterSpeaker, table.Kinds)); // actor 5 -> id 6
+        Assert.Equal(5, speakers.NewPrimaryActor);
+
+        // It LATCHES, exactly like a literal 1..6: a later 255 follows the combatant just named.
+        Assert.Equal(6, speakers.Resolve(0xFF, ChapterSpeaker, table.Kinds));
+
+        Assert.Equal(1, speakers.Resolve(0xF1, ChapterSpeaker, table.Kinds)); // actor 0 -> id 1
+        Assert.Equal(0, speakers.NewPrimaryActor);
+
+        // The three named sentinels sit above the range and are NOT table indices.
         Assert.True(DialogSpeakerSentinel.IsCombatSpeakerSlot(0xF0));
         Assert.True(DialogSpeakerSentinel.IsCombatSpeakerSlot(0xF5));
-        Assert.Equal(0, speakers.Resolve(0xF4, ChapterSpeaker));
-        Assert.Equal(0, speakers.Resolve(0xFD, ChapterSpeaker));
-
-        // The three named sentinels sit above that range and are NOT table indices.
         Assert.False(DialogSpeakerSentinel.IsCombatSpeakerSlot(0xFD));
         Assert.False(DialogSpeakerSentinel.IsCombatSpeakerSlot(0xFE));
         Assert.False(DialogSpeakerSentinel.IsCombatSpeakerSlot(0xFF));
+    }
+
+    [Fact]
+    public void AnEmptyOrCreatureSlotNamesNobody_AndDisturbsNothing() {
+        var speakers = new DialogSpeakerSentinel();
+        speakers.Begin(ChapterSpeaker);
+        speakers.Resolve(4, ChapterSpeaker); // party latch = 4
+
+        var table = new DialogSlotTable();               // every slot starts NoActor
+        table.Kinds[2] = DialogSlotTable.CreatureActor;
+
+        // Both must answer "nobody" rather than fall back to someone: DialogSlotTable makes the
+        // same refusal in ResolveActorOperand, and for the same reason.
+        Assert.Equal(0, speakers.Resolve(0xF0, ChapterSpeaker, table.Kinds));
+        Assert.Null(speakers.NewPrimaryActor);
+        Assert.Equal(0, speakers.Resolve(0xF2, ChapterSpeaker, table.Kinds));
+        Assert.Null(speakers.NewPrimaryActor);
+
+        // And neither may poison the latch — a caption that goes missing is recoverable, a caption
+        // naming the wrong character is not.
+        Assert.Equal(4, speakers.Resolve(0xFF, ChapterSpeaker, table.Kinds));
+    }
+
+    [Fact]
+    public void WithoutASlotTableACombatSlotAnswersNothing() {
+        var speakers = new DialogSpeakerSentinel();
+        speakers.Begin(ChapterSpeaker);
+
+        // The table is per-play state. A record resolved without one is being asked a question that
+        // has no answer yet, so it must not invent one.
+        Assert.Equal(0, speakers.Resolve(0xF4, ChapterSpeaker));
+        Assert.Null(speakers.NewPrimaryActor);
     }
 
     [Fact]
