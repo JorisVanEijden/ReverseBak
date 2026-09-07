@@ -42,4 +42,43 @@ public class CipherPuzzleSoundTests {
         double total = CipherPuzzleSound.BoltDelaysSeconds.Sum();
         Assert.InRange(total, 2.0, 6.0);
     }
+
+    /// <summary>Every bolt has a latch to paint, and there are no spare sprites.</summary>
+    /// <remarks>
+    /// PUZZLE.BMX ships exactly two images and CIPHER.C blits one per bolt. Pinning the two counts
+    /// together is what stops a third bolt being added with nothing to draw, or a latch being
+    /// dropped and only heard.
+    /// </remarks>
+    [Fact]
+    public void EveryBoltHasALatch() {
+        Assert.Equal(CipherPuzzleSound.Bolts, CipherPuzzleLayout.LatchOriginsVga().Length);
+    }
+
+    /// <summary>The two latches are at different places, and neither mirrors the other.</summary>
+    /// <remarks>
+    /// (0x1e, 0x17) and (0x100, 0x14) — the y values differ, so a port that placed the second from
+    /// the first by mirroring x would sit three pixels low. Both are on screen in VGA space.
+    /// </remarks>
+    [Fact]
+    public void TheLatchesAreTwoDistinctOnScreenPositions() {
+        (int X, int Y)[] latches = CipherPuzzleLayout.LatchOriginsVga();
+
+        Assert.NotEqual(latches[0], latches[1]);
+        Assert.NotEqual(latches[0].Y, latches[1].Y);
+        Assert.All(latches, latch => {
+            Assert.InRange(latch.X, 0, 319);
+            Assert.InRange(latch.Y, 0, 199);
+        });
+    }
+
+    /// <summary>The hold after the last bolt outlasts either gap between them.</summary>
+    /// <remarks>
+    /// 200 ticks against 150 and 60. It is the pause the closing line waits out, so collapsing it
+    /// to the shorter of the two would put narration over the second latch landing.
+    /// </remarks>
+    [Fact]
+    public void TheClosingHoldIsTheLongestWait() {
+        Assert.All(CipherPuzzleSound.BoltDelaysSeconds,
+            d => Assert.True(CipherPuzzleSound.AfterBoltsSeconds > d));
+    }
 }

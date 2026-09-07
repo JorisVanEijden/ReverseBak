@@ -325,6 +325,33 @@ public static class CipherPuzzleLayout {
     /// </remarks>
     public const int SolvedDialog = 0x0e;
 
+    /// <summary>The image set the two opened latches come from.</summary>
+    /// <remarks>
+    /// <c>resblit_load_asset_table("puzzle.bmx", 0)</c> at CIPHER.C:66 — loaded with the screen and
+    /// used only on a solve. It holds exactly two sprites, which is why the sequence has exactly
+    /// two bolts.
+    /// </remarks>
+    public const string LatchImageSet = "PUZZLE.BMX";
+
+    /// <summary>
+    /// Where each latch is blitted, in VGA pixels, in the order the bolts sound.
+    /// </summary>
+    /// <remarks>
+    /// <b>Solving the riddle replaces the latch art, and that is the visible half of the
+    /// sequence.</b> CIPHER.C:189 and :197 blit <c>pImgTable[0]</c> at (0x1e, 0x17) and
+    /// <c>pImgTable[1]</c> at (0x100, 0x14) — one per bolt, each straight after its
+    /// <see cref="CipherPuzzleSound.BoltCue"/> — so the two lock plates on PUZZLE.SCX are painted
+    /// over with open ones, left first and then right.
+    ///
+    /// <para>The two y values differ by three pixels and the sprites are 77 and 79 rows tall: the
+    /// latches are not a mirrored pair and neither position can be derived from the other.</para>
+    ///
+    /// <para><b>Each blit is issued twice</b> (once either side of <c>screen_frame_present</c>),
+    /// which is the double-buffer idiom for "make this stick" and not two draws — there is nothing
+    /// to reproduce in a retained-mode UI.</para>
+    /// </remarks>
+    public static (int X, int Y)[] LatchOriginsVga() => new[] { (0x1e, 0x17), (0x100, 0x14) };
+
     /// <summary>
     /// The two refusals a gated puzzle gives, recorded and NOT ported.
     /// </summary>
