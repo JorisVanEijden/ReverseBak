@@ -83,8 +83,18 @@ public static class SpellInfoPanel {
     /// The nine spells whose panel also shows the caster's health and stamina.
     /// </summary>
     /// <remarks>
-    /// A jump table, not a property of the spell data — so it cannot be derived and has to be
-    /// carried. These are the spells whose cost the player weighs against what the caster has left.
+    /// A jump table in the original (CSPELL.C:1964), and it is not arbitrary: <b>these are exactly
+    /// the nine field spells</b> — the same set as <see cref="FieldSpells.All"/>, in a different
+    /// order. That explains the rule rather than merely listing it. A field cast is the one the
+    /// player makes at leisure with nothing else on screen showing the pool; in a fight the combat
+    /// HUD's own panel is already showing Health and Stamina beside the caster's portrait, so the
+    /// footer would repeat it.
+    ///
+    /// <para><b>Kept as its own list even so.</b> The two come from different places in the original
+    /// — one from the info panel's jump table, one from the field dispatcher — and folding them
+    /// together would make a future divergence inexpressible rather than merely unlikely. The
+    /// coincidence is pinned by a test instead, so a change to either is a decision rather than a
+    /// drift.</para>
     /// </remarks>
     public static readonly int[] ShowsCasterHealthStamina = { 0, 2, 8, 11, 17, 18, 26, 34, 35 };
 

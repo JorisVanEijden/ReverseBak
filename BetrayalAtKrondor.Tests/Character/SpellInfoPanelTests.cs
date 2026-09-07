@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.Character;
 
+using System.Linq;
 using GameData.Resources.Spells;
 using global::GameData.Resources.Character;
 using Xunit;
@@ -72,5 +73,23 @@ public class SpellInfoPanelTests {
 
         Assert.Equal("Health/Stamina:  76 of 85", SpellInfoPanel.HealthStaminaLine(
             StatEngine.HealthPool(health, stamina), StatEngine.HealthPoolMax(health, stamina)));
+    }
+
+    /// <summary>The footer's nine are the nine FIELD spells — the same set, different order.</summary>
+    /// <remarks>
+    /// The two lists come from different places in the original: this one from the info panel's jump
+    /// table (CSPELL.C:1964), <see cref="FieldSpells.All"/> from the field dispatcher. They agree
+    /// because the footer exists for the cast made outside a fight, where nothing else on screen
+    /// shows the caster's pool — in combat the HUD panel already does.
+    ///
+    /// <para>Asserted as SETS, since the orders differ and neither is wrong. If this ever fails,
+    /// the answer is to work out which of the two really changed, not to edit whichever list is
+    /// convenient.</para>
+    /// </remarks>
+    [Fact]
+    public void TheFooterIsShownForExactlyTheFieldSpells() {
+        Assert.Equal(
+            FieldSpells.All.OrderBy(id => id),
+            SpellInfoPanel.ShowsCasterHealthStamina.OrderBy(id => id));
     }
 }
