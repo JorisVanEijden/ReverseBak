@@ -106,9 +106,7 @@ public static class InventoryTransfer {
         // Every other destination refuses (caller plays DDX 1800014). Crossbow and armor are
         // deliberately NOT in this guard: they take the normal path below, which clears the
         // flag and re-runs auto-equip at the destination.
-        if ((item.ItemFlags & ItemEquippedFlag) != 0
-            && source.ContainerType == SaveGameContainerType.Inventory
-            && (category == ObjectType.Sword || category == ObjectType.Staff)) {
+        if (NeverUnequips(item, category, source.ContainerType)) {
             if (target.ContainerType == SaveGameContainerType.Inventory) {
                 int other = InventoryEquip.FindEquippedIndex(target, category, objects);
                 if (other >= 0) {
@@ -395,6 +393,32 @@ public static class InventoryTransfer {
 
     // item_equipped (DOS ItemFlags bit 0x40, see GameData.ItemFlags.Equipped): equipped gear is
     // excluded from a character's slot-footprint sums by canItemFitInContainer.
+    /// <summary>
+    /// Whether this item refuses to leave its owner because it is worn — the first branch of
+    /// <c>cmbinv_actor_transfer_item</c> (CMBINV.C:758-771).
+    /// </summary>
+    /// <remarks>
+    /// <b>Only a member-to-member move of the SAME category escapes it, by swapping.</b> Every
+    /// other destination is refused outright with DDX 1800014 — including a shop, whose container
+    /// is not a member's <see cref="SaveGameContainerType.Inventory"/>. So an equipped sword cannot
+    /// be sold, which is what the original tells you: *"he realized it would be utter madness to
+    /// strip himself of his defenses at a time when he most needed them."*
+    ///
+    /// <para>Crossbow and armour are deliberately NOT in this guard — the original names categories
+    /// 1 and 3 only, so those take the ordinary path, clear the flag and re-run auto-equip at the
+    /// destination.</para>
+    ///
+    /// <para><b>Public because the shop path does not go through <see cref="Plan"/>.</b> Selling
+    /// short-circuits to the shop before any transfer is planned, so it has to ask this itself —
+    /// and until 2026-09-07 it did not ask at all, and would sell the sword off a member's back.
+    /// Verified against the original at Fletcher's Post the same day.</para>
+    /// </remarks>
+    public static bool NeverUnequips(RuntimeItem item, ObjectType category,
+        SaveGameContainerType sourceType) =>
+        (item.ItemFlags & ItemEquippedFlag) != 0
+        && sourceType == SaveGameContainerType.Inventory
+        && (category == ObjectType.Sword || category == ObjectType.Staff);
+
     private const ushort ItemEquippedFlag = (ushort)GameData.ItemFlags.Equipped;
 
     // canItemFitInContainer @0x551ec: per-container count cap + a two-pass slot-footprint budget.
