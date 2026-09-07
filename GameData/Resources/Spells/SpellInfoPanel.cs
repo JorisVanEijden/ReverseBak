@@ -100,6 +100,15 @@ public static class SpellInfoPanel {
     /// </remarks>
     public const int HealthStaminaY = 564;
 
+    /// <summary>The footer line — <c>sprintf("Health/Stamina:  %d of %d", cur, max)</c>.</summary>
+    /// <remarks>
+    /// <b>Two spaces after the colon</b>, which is the original's format string and not a typo to
+    /// tidy: the panel's other lines have one, so the footer sits a space further right and reads as
+    /// a footer rather than a seventh description line.
+    /// </remarks>
+    public static string HealthStaminaLine(int current, int max) =>
+        $"Health/Stamina:  {current} of {max}";
+
     // ------------------------------------------------- what the panel shows before anything is picked
     // UI_drawSpellNames @0x69448.
 

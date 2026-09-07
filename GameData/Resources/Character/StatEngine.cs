@@ -238,6 +238,15 @@ public static class StatEngine {
     public static int HealthPool(ActorStat health, ActorStat stamina) =>
         (health?.Base ?? 0) + (stamina?.Base ?? 0);
 
+    /// <summary>That pool's ceiling — <c>stat_actor_get(actor, 0x10, 1)</c>.</summary>
+    /// <remarks>
+    /// Here rather than summed at the call site for the reason <see cref="HealthPool"/> gives: the
+    /// combo has no slot of its own, so every reader would otherwise re-derive it, and a reader that
+    /// summed the wrong pair would be indistinguishable from one that did not.
+    /// </remarks>
+    public static int HealthPoolMax(ActorStat health, ActorStat stamina) =>
+        (health?.Max ?? 0) + (stamina?.Max ?? 0);
+
     /// <summary>The pool's maximum.</summary>
     /// <inheritdoc cref="HealthPool"/>
     public static int HealthPoolMaximum(ActorStat health, ActorStat stamina) =>

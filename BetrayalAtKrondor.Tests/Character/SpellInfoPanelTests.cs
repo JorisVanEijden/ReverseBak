@@ -1,6 +1,7 @@
 namespace BetrayalAtKrondor.Tests.Character;
 
 using GameData.Resources.Spells;
+using global::GameData.Resources.Character;
 using Xunit;
 
 public class SpellInfoPanelTests {
@@ -44,5 +45,32 @@ public class SpellInfoPanelTests {
         Assert.True(SpellInfoPanel.ShowsHealthStamina(35));
         Assert.False(SpellInfoPanel.ShowsHealthStamina(1));
         Assert.False(SpellInfoPanel.ShowsHealthStamina(36));
+    }
+
+    /// <summary>The footer reads the way the original's sprintf writes it.</summary>
+    /// <remarks>
+    /// Pinned as the whole string because the two spaces after the colon are load-bearing — the
+    /// description lines above use one, so the footer is indented past them. A tidy-up to a single
+    /// space changes nothing that fails, which is exactly why it is asserted.
+    /// </remarks>
+    [Fact]
+    public void TheFooterKeepsTheOriginalSpacing() {
+        Assert.Equal("Health/Stamina:  76 of 85", SpellInfoPanel.HealthStaminaLine(76, 85));
+    }
+
+    /// <summary>The pool it prints is the sum of both pairs, current against maximum.</summary>
+    /// <remarks>
+    /// <c>stat_actor_get(actor, 0x10, ...)</c> with mode 0 and 1. Owyn on the shipped dungeon save
+    /// reads 40/40 health and 36/45 stamina, and the original's panel says "76 of 85" — so the two
+    /// halves come from different fields of the same pair, and summing the wrong one gives 80 or 85
+    /// twice over without ever throwing.
+    /// </remarks>
+    [Fact]
+    public void ThePoolIsBothPairsSummedSeparately() {
+        var health = new ActorStat { Base = 40, Max = 40 };
+        var stamina = new ActorStat { Base = 36, Max = 45 };
+
+        Assert.Equal("Health/Stamina:  76 of 85", SpellInfoPanel.HealthStaminaLine(
+            StatEngine.HealthPool(health, stamina), StatEngine.HealthPoolMax(health, stamina)));
     }
 }
