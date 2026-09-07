@@ -10,6 +10,26 @@ namespace GameData.Resources.Character;
 /// occasion. Nothing you see there is the container it came from.
 /// </remarks>
 public static class PicklockWorkingSet {
+    /// <summary>
+    /// "Shall we try to open it?" — asked BEFORE anything is assembled or shown.
+    /// </summary>
+    /// <remarks>
+    /// <b>The prompt belongs to the lock screen, not to whatever clicked it.</b>
+    /// <c>picklock_screen_run</c> opens with <c>dialog_play_record(0x4f, 1)</c> and only proceeds
+    /// when the player answers yes, so a chest, a door, a ladder and a locked NPC all get it — the
+    /// container handler is right that <c>handle_Container</c> asks nothing, and wrong that there
+    /// is nothing to ask.
+    ///
+    /// <para><b>It comes before the working set is built.</b> A party with neither picks nor keys
+    /// is still asked, and only then told <see cref="NothingToTryDialog"/>. Refusing up front
+    /// because the set would be empty answers a question the player was never given.</para>
+    ///
+    /// <para>Its wording is chosen by <see cref="LockPicking.LockContext"/> and it names the party's
+    /// best picker — "It appears to be locked," <i>Owyn</i> said — so both arguments have to be
+    /// published before it is shown.</para>
+    /// </remarks>
+    public const int AskToOpenDialog = 79;
+
     /// <summary>"You need keys or picklocks" — shown when the working set comes out empty.</summary>
     public const int NothingToTryDialog = 86;
 
