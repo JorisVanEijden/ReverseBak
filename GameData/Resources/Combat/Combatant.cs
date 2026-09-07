@@ -105,6 +105,20 @@ public sealed class Combatant {
     /// <summary>State flags.</summary>
     public CombatantFlags Flags { get; set; } = CombatantFlags.Ready;
 
+    /// <summary>Which spell school this combatant's cast screen opens on — <c>spellSchool</c>.</summary>
+    /// <remarks>
+    /// <b>The combatant remembers, not the party.</b> <c>cspell_cast_menu_loop</c> reads it on open
+    /// and writes it back on close (CSPELL.C:2175, 2414), and takes that branch precisely because
+    /// the caster has combat data — the overworld's own sticky pair
+    /// (<c>CastMenuSelection.OpeningSchool</c>) is left untouched, so browsing schools mid-fight
+    /// cannot change what the travel screen opens on, or the reverse.
+    ///
+    /// <para>Starts at 0 because <c>CombatantState</c> is zeroed when the arena is built, and 0 is a
+    /// school <c>SPELL.DAT</c> offers — the field default of 5 is one of the two schools that
+    /// layout disables.</para>
+    /// </remarks>
+    public int SpellSchool { get; set; }
+
     /// <summary>Redraws left in this combatant's hit reaction — <c>hitReactionTimer</c>.</summary>
     /// <remarks>
     /// Set with <see cref="CombatantFlags.Knockback"/> by <see cref="HitReaction.Begin"/> and counted
