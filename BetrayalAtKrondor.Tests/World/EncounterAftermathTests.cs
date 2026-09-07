@@ -22,16 +22,7 @@ public class EncounterAftermathTests {
             EncounterAftermath.Outcome.Nothing, EncounterAftermath.Outcome.Unhandled }) {
             Assert.False(EncounterAftermath.RelocatesTheParty(outcome));
             Assert.False(EncounterAftermath.FiresThePostEvent(outcome));
-            Assert.False(EncounterAftermath.ReloadsSceneAndMap(outcome));
         }
-    }
-
-    [Fact]
-    public void ONLYTheTwoThatChangedSomethingRebuildTheScene() {
-        // Reloading unconditionally costs a rebuild after every trivial outcome; never reloading
-        // leaves a defeated encounter still standing in the world.
-        Assert.True(EncounterAftermath.ReloadsSceneAndMap(EncounterAftermath.Outcome.Resolved));
-        Assert.True(EncounterAftermath.ReloadsSceneAndMap(EncounterAftermath.Outcome.PartyMoved));
     }
 
     [Fact]

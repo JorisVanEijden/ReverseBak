@@ -72,17 +72,6 @@ public static class EncounterAftermath {
     /// <summary>Whether the encounter's post event fires and it is marked as fought.</summary>
     public static bool FiresThePostEvent(Outcome outcome) => outcome == Outcome.Resolved;
 
-    /// <summary>
-    /// Whether the scene and the map are rebuilt afterwards.
-    /// </summary>
-    /// <remarks>
-    /// <b>The two outcomes that changed something, and no others.</b> Reloading unconditionally
-    /// costs a rebuild after every trivial outcome; never reloading leaves a defeated encounter
-    /// still standing in the world.
-    /// </remarks>
-    public static bool ReloadsSceneAndMap(Outcome outcome) =>
-        outcome != Outcome.Nothing && outcome != Outcome.Unhandled;
-
     // ---------------------------------------------------------------- where the party lands
 
     /// <summary>
