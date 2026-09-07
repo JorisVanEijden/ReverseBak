@@ -30,6 +30,19 @@ public static class ContainerImage {
     /// the DOS <c>RES_PICKLOCK_BUFFER</c> residence).</summary>
     public const int MemberInventoryIndex = 11;
 
+    /// <summary>
+    /// INVMISC.BMX#7 — the hanging wooden sign reading "Shop".
+    /// </summary>
+    /// <remarks>
+    /// <b>Resolved from the CONTAINER's shop block, before the world-item switch below.</b> The
+    /// class summary has named this case since the type was written ("shop container → 7") and
+    /// left it to "the not-yet-built entry points"; those are built now, and until this was wired
+    /// a shopkeeper's shelf showed whatever its world-item type gave — a chest (#1) for a location
+    /// container, a ring of keys (#11) for the shop-screen path. Verified against the original at
+    /// Fletcher's Post, LaMut (2026-09-07): the detail window reads "Shop".
+    /// </remarks>
+    public const int ShopIndex = 7;
+
     /// <summary>INVMISC.BMX#0 — the member-inventory image shown while an item IS selected: a bag.
     /// With <c>flag != 0</c> the selector falls past the 0xB branch and, for a party slot with no
     /// second inventory actor, returns 0. So the detail window swaps keys → bag on selection and

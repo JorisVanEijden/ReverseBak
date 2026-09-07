@@ -91,4 +91,16 @@ public class ShopCellLabelTests {
         Assert.Null(first);
         Assert.Equal("Short", last);
     }
+
+    [Theory]
+    [InlineData(4, true)]    // Standard Kingdom Armor, the staves, the bag of grain
+    [InlineData(2, false)]   // Broadsword
+    [InlineData(1, false)]   // most of the table
+    [InlineData(0, false)]
+    public void OnlyABulkyItemGetsTheTextOutline(int slots, bool expected) {
+        // The original guards each cell-text draw with `wDefault_qty_or_1 == 4` and draws a black
+        // copy at (x-1,y-1) first. The eleven items carrying a 4 are the ones whose sprite reaches
+        // down into the name lines; everything else is drawn once.
+        Assert.Equal(expected, ShopCellLabel.NeedsTextOutline(slots));
+    }
 }

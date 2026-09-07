@@ -68,6 +68,29 @@ public static class ShopCellLabel {
         return (head, Suffixed(tail, flags, condition));
     }
 
+    /// <summary>
+    /// Whether a cell's text needs the black outline the original draws behind it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The test is the item's bulk, and the original spells it <c>== 4</c>.</b>
+    /// <c>invui_grid_render</c> guards each of the three text draws with
+    /// <c>if (wDefault_qty_or_1 == 4)</c> and, when it holds, draws the same string first at
+    /// (x-1, y-1) in colour 0. The eleven items carrying a 4 are exactly the bulky ones — four
+    /// staves, six armours and the bag of grain — whose sprites are tall enough to reach down into
+    /// the name lines. The original does not move the text out of the way; it outlines it.
+    ///
+    /// <para>Not <c>&gt;= 4</c>: nothing in the shipped table exceeds 4, so the two agree today and
+    /// only the equality is evidenced.</para>
+    /// </remarks>
+    /// <param name="inventorySlots">
+    /// <see cref="ObjectInfo.InventorySlots"/> — the <c>wDefault_qty_or_1</c> word, by position in
+    /// <c>ItemRecord</c>.
+    /// </param>
+    public static bool NeedsTextOutline(int inventorySlots) => inventorySlots == BulkySlots;
+
+    /// <summary>The slot count the original tests for.</summary>
+    private const int BulkySlots = 4;
+
     /// <summary>The condition or count the original appends to the last name line.</summary>
     private static string Suffixed(string line, ObjectFlags flags, int condition) {
         var bits = (int)flags;
