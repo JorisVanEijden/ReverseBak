@@ -14,6 +14,25 @@ public class PaletteMappingTests {
     }
 
     [Fact]
+    public void CipherExitIcon_SubImage20_UsesPuzzlePalette() {
+        // REQ_PUZL's Exit is IconBase 40 -> BICONS1 #20 (normal) / BICONS2 #20 (hovered), and
+        // CIPHER.C installs PUZZLE.PAL for the whole screen. Under OPTIONS.PAL the lettering came
+        // out rust-brown on navy with a cyan bar; the original is black on a grey-blue plate.
+        Assert.Equal("PUZZLE.PAL", PaletteMapping.GetPaletteFor("BICONS1.BMX", 20));
+        Assert.Equal("PUZZLE.PAL", PaletteMapping.GetPaletteFor("BICONS2.BMX", 20));
+    }
+
+    [Fact]
+    public void TheCipherOverrideStopsAt20_Because21IsTheInventorysExit() {
+        // *** THIS IS THE BOUNDARY THAT MATTERS. *** The cipher button's OFF states are #21, and
+        // #21 is REQ_INV's Exit in its NORMAL state (IconBase 42) — correct under OPTIONS.PAL.
+        // Nothing draws the cipher's Exit disabled, so widening the override would only recolour
+        // the inventory.
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("BICONS1.BMX", 21));
+        Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("BICONS2.BMX", 21));
+    }
+
+    [Fact]
     public void Bicons_OtherSubImages_KeepOptionsPalette() {
         // Every other BICONS frame stays on the shared OPTIONS UI palette.
         Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("BICONS1.BMX", 10));

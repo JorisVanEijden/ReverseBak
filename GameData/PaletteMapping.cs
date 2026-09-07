@@ -23,6 +23,26 @@ public static class PaletteMapping {
             return "FULLMAP.PAL";
         }
 
+        // And a third time on the cipher chest: REQ_PUZL's only widget is an Exit ImageButton with
+        // IconBase 40, which resolves to BICONS1 #20 (normal) and BICONS2 #20 (hovered), and
+        // CIPHER.C:78 installs PUZZLE.PAL for the whole screen before menupage_draw ever runs.
+        // Under the shared OPTIONS palette the same letterforms come out rust-brown on navy with a
+        // cyan bar along the bottom edge; the original is black on a grey-blue plate. Measured
+        // side by side at zone-1 puzzle chest 54, 2026-09-07.
+        //
+        // *** #20 ONLY, NOT #21. *** An ImageButton's OFF states are IconBase+2/+3, i.e. BICONS1/2
+        // #21 — and #21 is REQ_INV's Exit in its NORMAL state (IconBase 42), which is correct under
+        // OPTIONS.PAL. Nothing draws the cipher's Exit disabled, so the two never collide; widening
+        // this to #21 would recolour the inventory's Exit instead.
+        //
+        // Checked before adding: combined indices 40 and 41 have exactly one producer. COMBAT's
+        // action 47 carries IconBase 38 and would reach them at +2/+3, but MenuIconLoader takes the
+        // +2 arm only for Toggles and that entry is an ImageButton; no spellbook group icon is 20
+        // (INVSPELL ships 36-39, 55, 56); and no other REQ carries IconBase 37-41.
+        if (subImage == 20 && (image == "BICONS1" || image == "BICONS2")) {
+            return "PUZZLE.PAL";
+        }
+
         // Zone slot bitmaps (Z##SLOT#.BMX — the object/wall textures sampled by Flags&0x10 faces)
         // render under the zone palette, like the Z##L terrain atlas. They have no per-slot .PAL, so
         // the default same-name lookup fails. (RE: resource_loadZoneDataFiles @0x7313b loads them per zone.)
