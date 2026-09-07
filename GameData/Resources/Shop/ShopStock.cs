@@ -16,6 +16,29 @@ public static class ShopStock {
     /// </summary>
     public const ushort ForSaleFlag = (ushort)ItemFlags.Unknown2;
 
+    /// <summary>
+    /// Whether a stocked item is on the shelf yet, in the chapter the party is in.
+    /// </summary>
+    /// <remarks>
+    /// <b>A shop's shelf is gated per item, and the container is not the shelf.</b> The grid
+    /// builder skips any slot whose item record fails
+    /// <c>wDamage_class_threshold &lt;= g_gameState.nChapter</c> (INVENTOR.C, the shop arm), so a
+    /// container can hold seventeen items and show six. Without this the port sells things the
+    /// story has not introduced: Fletcher's Post in LaMut offers a Medium Crossbow, which is
+    /// chapter 3 stock, on a chapter-1 visit.
+    ///
+    /// <para><b>The skipped slot is left EMPTY, not closed up.</b> The builder's cell position
+    /// comes from the loop index over the page, while only passing items become entries — so a
+    /// gated item leaves a hole and the following ones do not slide up. Compacting would put a
+    /// different six on the page than the original shows.</para>
+    ///
+    /// <para>The field is <see cref="ObjectInfo.ChapterNumber"/> — canassa calls it
+    /// <c>wDamage_class_threshold</c>, and that name is wrong: it is compared against the chapter
+    /// and nothing else. It was parsed and unread until this.</para>
+    /// </remarks>
+    public static bool IsOfferedInChapter(ObjectInfo info, int chapter) =>
+        info == null || info.ChapterNumber <= chapter;
+
     /// <summary>The outcome of offering an item to a shop.</summary>
     public enum SellResult {
         /// <summary>The shop took it and paid.</summary>
