@@ -73,6 +73,51 @@ public static class ChapterTransition {
     /// <summary>Where that record goes, relative to the table base.</summary>
     public static int FinishingGoldOffset(int chapterNumber) => (chapterNumber - 1) * 4;
 
+    /// <summary>The last chapter; finishing it ends the game rather than advancing.</summary>
+    public const int LastChapter = 9;
+
+    /// <summary>
+    /// The exit request value that means "advance to the next chapter".
+    /// </summary>
+    /// <remarks>
+    /// <b>The field is not a boolean, and the two values are different exits.</b>
+    /// <c>worldloop</c> (WORLDLP.C:402-408) branches on <c>nWorldLoopExitRequest</c>: 1 leaves with
+    /// exit_mode 5, anything else with exit_mode 7. Only mode 5 advances — it plays the current
+    /// chapter's closing cutscene, then the NEXT chapter's opening one, then dispatches into
+    /// <c>savegame_chapter_start_dispatch(g_nChapterAtLoopExit + 1)</c> (GMAIN.C:753, 205). Mode 7
+    /// plays one cutscene and dispatches without changing chapter at all (GMAIN.C:758).
+    ///
+    /// <para>Both values ship: of the seven dialogs that write this field, six write 1 and
+    /// <c>DIAL_Z30:109569</c> writes 2. Treating "non-zero" as "advance" would move the story on
+    /// from that one.</para>
+    /// </remarks>
+    public const int AdvanceRequest = 1;
+
+    /// <summary>Whether an exit request advances the chapter, or is the other kind of exit.</summary>
+    public static bool Advances(int exitRequest) => exitRequest == AdvanceRequest;
+
+    /// <summary>
+    /// The chapter an advance goes TO.
+    /// </summary>
+    /// <remarks>
+    /// <b>Nothing writes the destination; the caller adds one.</b> <c>worldloop</c> stores the
+    /// CURRENT chapter in <c>g_nChapterAtLoopExit</c> (WORLDLP.C:403) and every consumer adds 1
+    /// itself. Verified against the shipped data rather than assumed: across all 32 DDX files the
+    /// dialogs write Vars 0, 4, 14, 15, 16 and 17 — <b>never Var 7</b>, which is the chapter field.
+    /// So a port that expects a dialog to have set the destination re-applies the chapter it is
+    /// already in, and the story can never move.
+    /// </remarks>
+    public static int NextChapter(int currentChapter) => currentChapter + 1;
+
+    /// <summary>
+    /// Whether finishing <paramref name="currentChapter"/> ends the GAME rather than advancing.
+    /// </summary>
+    /// <remarks>
+    /// <c>if (g_nChapterAtLoopExit == 9)</c> takes the main-menu arm instead of playing chapter
+    /// ten's opening (GMAIN.C:748-751) — there is no chapter 10, and CHAP10.DAT does not ship.
+    /// </remarks>
+    public static bool EndsTheGame(int currentChapter) => currentChapter >= LastChapter;
+
     /// <summary>Lowest global variable the transition clears.</summary>
     /// <remarks>
     /// <c>ClearGlobalVars_400_5200</c> @0x74d9b runs after the file apply and before the per-chapter arm,

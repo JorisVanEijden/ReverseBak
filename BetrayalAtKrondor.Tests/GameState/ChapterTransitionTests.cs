@@ -106,4 +106,41 @@ public class ChapterTransitionTests {
         Assert.Equal(ChapterSetupArm.Default, ChapterTransition.ArmFor(9));
         Assert.Equal(ChapterSetupArm.Default, ChapterTransition.ArmFor(0));
     }
+
+    [Fact]
+    public void NothingWritesTheDestinationChapter_SoTheCallerADDSOne() {
+        // *** THE BUG THIS PINS. *** GameFlow passed the session's own chapter into GoToChapter,
+        // on a comment claiming "the same dialog writes Field.Chapter". No shipped dialog does:
+        // across all 32 DDX files the SetVarEffect writes cover Vars 0, 4, 14, 15, 16 and 17 —
+        // never Var 7. The original stores the CURRENT chapter at the exit
+        // (g_nChapterAtLoopExit = g_gameState.nChapter, WORLDLP.C:403) and each consumer adds one
+        // (GMAIN.C:112, 205, 753). Measured live before the fix: raising the flag in chapter 1
+        // landed back at chapter 1 zone 1 tile (10,16), not chapter 2 zone 11 tile (11,11).
+        Assert.Equal(2, ChapterTransition.NextChapter(1));
+        Assert.Equal(9, ChapterTransition.NextChapter(8));
+    }
+
+    [Fact]
+    public void ONLYRequestONEAdvances_BecauseTwoIsADifferentExit() {
+        // worldloop branches 1 -> exit_mode 5 (advance) and anything else -> exit_mode 7, which
+        // plays a cutscene and changes no chapter (WORLDLP.C:402-408, GMAIN.C:753 vs 758). Both
+        // values ship: six dialogs write 1, DIAL_Z30:109569 writes 2. "Non-zero means advance"
+        // would move the story on from that one.
+        Assert.True(ChapterTransition.Advances(ChapterTransition.AdvanceRequest));
+        Assert.True(ChapterTransition.Advances(1));
+        Assert.False(ChapterTransition.Advances(2));
+        Assert.False(ChapterTransition.Advances(0));
+    }
+
+    [Fact]
+    public void FinishingChapterNINEEndsTheGame_ThereIsNoChapterTen() {
+        // GMAIN.C:748-751 takes the main-menu arm instead of playing chapter ten's opening, and
+        // CHAP10.DAT does not ship — OriginalGame carries CHAP1..CHAP9 only.
+        Assert.Equal(9, ChapterTransition.LastChapter);
+        Assert.False(ChapterTransition.EndsTheGame(8));
+        Assert.True(ChapterTransition.EndsTheGame(9));
+
+        // Defensive: a save that somehow carries a higher chapter must not ask for CHAP10.DAT.
+        Assert.True(ChapterTransition.EndsTheGame(10));
+    }
 }
