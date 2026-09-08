@@ -154,42 +154,6 @@ public static class SpellPerSpellHandlers {
     public static bool DespairIsPermanentFor(int targetActorNumber) => targetActorNumber == 0;
 
     /// <summary>
-    /// Whether a timed attribute modifier is accepted into the victim's slot table.
-    /// </summary>
-    /// <param name="occupiedFlags">The <c>ActorAttributeFlag</c> mask of each occupied slot.</param>
-    /// <param name="occupiedKinds">Each occupied slot's kind word, parallel to the masks.</param>
-    /// <param name="attribute">The attribute this modifier targets.</param>
-    /// <remarks>
-    /// <b>A modifier is refused if a modifier of a <i>different kind</i> already holds the same
-    /// attribute.</b> The scan compares the slot's kind against this routine's own (0x100) and only
-    /// rejects when they differ, so spell modifiers of the same kind coexist while something else
-    /// holding that attribute blocks the spell entirely — silently, with no feedback to the caster.
-    /// </remarks>
-    public static bool TimedModifierAccepted(int[] occupiedKinds, ActorAttributeFlag[] occupiedFlags,
-        ActorAttribute attribute) {
-        if (occupiedKinds == null || occupiedFlags == null) {
-            return true;
-        }
-
-        var wanted = (ActorAttributeFlag)(1 << (int)attribute);
-        int slots = occupiedKinds.Length < occupiedFlags.Length
-            ? occupiedKinds.Length
-            : occupiedFlags.Length;
-
-        for (int i = 0; i < slots; i++) {
-            if (occupiedKinds[i] != 0 && occupiedFlags[i] == wanted
-                && occupiedKinds[i] != TimedModifierKind) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>The kind word a spell-cast timed attribute modifier carries.</summary>
-    public const int TimedModifierKind = 0x100;
-
-    /// <summary>
     /// The timed modifier's second timestamp is the current game time <b>doubled</b>.
     /// </summary>
     /// <remarks>

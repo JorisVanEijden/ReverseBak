@@ -91,33 +91,6 @@ public class SpellPerSpellHandlersTests {
     }
 
     [Fact]
-    public void ATimedModifierIsRefusedByAForeignHolderOfTheSameAttribute() {
-        var kinds = new[] { 0x0055, 0, 0, 0, 0, 0, 0, 0 };
-        var flags = new ActorAttributeFlag[8];
-        flags[0] = ActorAttributeFlag.AccuracyMelee;
-        Assert.False(SpellPerSpellHandlers.TimedModifierAccepted(kinds, flags,
-            ActorAttribute.AccuracyMelee));
-    }
-
-    [Fact]
-    public void ButNotByOneOfItsOwnKind() {
-        var kinds = new[] { SpellPerSpellHandlers.TimedModifierKind, 0, 0, 0, 0, 0, 0, 0 };
-        var flags = new ActorAttributeFlag[8];
-        flags[0] = ActorAttributeFlag.AccuracyMelee;
-        Assert.True(SpellPerSpellHandlers.TimedModifierAccepted(kinds, flags,
-            ActorAttribute.AccuracyMelee));
-    }
-
-    [Fact]
-    public void NorByAForeignHolderOfADifferentAttribute() {
-        var kinds = new[] { 0x0055, 0, 0, 0, 0, 0, 0, 0 };
-        var flags = new ActorAttributeFlag[8];
-        flags[0] = ActorAttributeFlag.Strength;
-        Assert.True(SpellPerSpellHandlers.TimedModifierAccepted(kinds, flags,
-            ActorAttribute.AccuracyMelee));
-    }
-
-    [Fact]
     public void GriefExemptsTwelveCreatureTypesAndAffectsEverythingElse() {
         Assert.False(SpellPerSpellHandlers.GriefAffects(28));
         Assert.False(SpellPerSpellHandlers.GriefAffects(44));
