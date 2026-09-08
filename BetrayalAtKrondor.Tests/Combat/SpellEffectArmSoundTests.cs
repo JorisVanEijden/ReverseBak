@@ -13,8 +13,18 @@ public class SpellEffectArmSoundTests {
         // rule behind it. Kind 3 is the projectile, already handled elsewhere.
         Assert.True(SpellEffectArmSound.HasSequence(SpellEffectArmSound.StormFlashKind));
         Assert.True(SpellEffectArmSound.HasSequence(SpellEffectArmSound.ParticleBlastKind));
+        Assert.True(SpellEffectArmSound.HasSequence(SpellEffectArmSound.WalkWithSoundKind));
         Assert.False(SpellEffectArmSound.HasSequence(3));
         Assert.False(SpellEffectArmSound.HasSequence(-1));
+    }
+
+    [Fact]
+    public void TouchIsAONESHOTWithNoHold() {
+        // Unlike the other two arms it neither holds a cue nor sequences one, so it needs no stop.
+        // Its arm's DEATH is dead code in the shipped game (a C precedence bug), which is why the
+        // cue is the only part of it a port should reproduce.
+        Assert.Equal(0x50, SpellEffectArmSound.TouchCue);
+        Assert.Equal(11, SpellEffectArmSound.WalkWithSoundKind);
     }
 
     [Fact]

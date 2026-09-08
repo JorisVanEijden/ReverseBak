@@ -22,6 +22,28 @@ public static class SpellEffectArmSound {
     /// <summary>Mind Melt's arm — the particle-blast-and-flash case (CSPELL.C:836).</summary>
     public const int ParticleBlastKind = 13;
 
+    /// <summary>
+    /// Touch of Lims-Kragma's arm — <c>cspell_actor_walk_with_sound</c> (CSPELL.C:776).
+    /// </summary>
+    /// <remarks>
+    /// <b>ITS KILL IS DEAD CODE IN THE SHIPPED GAME, AND PORTING IT WOULD BE A NEW SPELL.</b> The
+    /// routine ends
+    /// <code>if (!(signed char)actor-&gt;inner-&gt;flags &amp; CAF_DEAD) combat_arena_actor_die(...)</code>
+    /// which C parses as <c>(!flags) &amp; CAF_DEAD</c>. <c>!flags</c> is 0 or 1 and
+    /// <c>CAF_DEAD</c> is <c>0x02</c>, so the test is <b>always zero</b> and the death never fires —
+    /// the same precedence class as the unreachable routine behind
+    /// <c>MonsterSpellcasting.SlotAction.SpecialLast</c>. canassa byte-matches, so this is what the
+    /// binary does, not a transcription slip.
+    ///
+    /// <para>So the whole of this arm that a port should reproduce is the cue and the walk. Reading
+    /// the routine's shape and "fixing" the guard would turn a theatrical near-miss into an
+    /// instant-kill the game never had.</para>
+    /// </remarks>
+    public const int WalkWithSoundKind = 11;
+
+    /// <summary><c>sound_touch</c> (0x50). One shot, no hold.</summary>
+    public const int TouchCue = 0x50;
+
     /// <summary><c>sound_static</c> (0x11). Started ONCE and held across the whole sequence.</summary>
     public const int StaticCue = 0x11;
 
@@ -39,7 +61,9 @@ public static class SpellEffectArmSound {
 
     /// <summary>Whether this effect kind has a sound sequence modelled here.</summary>
     public static bool HasSequence(int animationEffectType) =>
-        animationEffectType == StormFlashKind || animationEffectType == ParticleBlastKind;
+        animationEffectType == StormFlashKind
+        || animationEffectType == ParticleBlastKind
+        || animationEffectType == WalkWithSoundKind;
 
     /// <summary>Ticks to wait before the next flash.</summary>
     /// <remarks>
