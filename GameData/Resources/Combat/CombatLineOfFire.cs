@@ -56,6 +56,32 @@ public static class CombatLineOfFire {
             return true;
         }
 
+        foreach ((int x, int y) in CellsCrossed(fromX, fromY, toX, toY)) {
+            // Rule 3: arriving at the target is success, and it is checked BEFORE the block test so
+            // that a target standing on a blocking tile is still shootable.
+            if (x == toX && y == toY) {
+                return true;
+            }
+            if (blocks(x, y)) {
+                return false;
+            }
+        }
+        // Rule 4.
+        return true;
+    }
+
+    /// <summary>
+    /// The tiles a shot from (<paramref name="fromX"/>, <paramref name="fromY"/>) towards
+    /// (<paramref name="toX"/>, <paramref name="toY"/>) passes through, in order, excluding the
+    /// tile it starts on.
+    /// </summary>
+    /// <remarks>
+    /// Shared by <see cref="IsClear"/> and by the terrain question its own remarks say it does not
+    /// answer, so the two cannot disagree about which tiles a shot crosses — which is the whole
+    /// reason it is factored out rather than written twice.
+    /// </remarks>
+    public static System.Collections.Generic.IEnumerable<(int X, int Y)> CellsCrossed(
+        int fromX, int fromY, int toX, int toY) {
         int dx = toX - fromX;
         int dy = toY - fromY;
         // One sample per half tile: fine enough that no tile the line crosses is stepped over, which
@@ -72,18 +98,8 @@ public static class CombatLineOfFire {
             }
             lastX = x;
             lastY = y;
-
-            // Rule 3: arriving at the target is success, and it is checked BEFORE the block test so
-            // that a target standing on a blocking tile is still shootable.
-            if (x == toX && y == toY) {
-                return true;
-            }
-            if (blocks(x, y)) {
-                return false;
-            }
+            yield return (x, y);
         }
-        // Rule 4.
-        return true;
     }
 
     /// <summary>

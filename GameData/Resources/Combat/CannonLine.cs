@@ -64,8 +64,9 @@ public static class CannonLine {
     /// <remarks>
     /// <b>The cue belongs to the tile cast, not to the cannon.</b>
     /// <c>cspell_apply_step_tile_spell</c> (CSPELL.C:1130) plays it, and that routine has a second
-    /// caller — a spell whose flight was intercepted mid-air re-resolves through it. Both are the
-    /// same noise; only the cannon is modelled here.
+    /// caller — a spell whose flight was intercepted mid-air re-resolves through it
+    /// (<see cref="SpellReflection"/>, which plays this same constant). Both are the same noise
+    /// because they are the same routine.
     ///
     /// <para><b>Its one guard is spell 42.</b> The whole routine, cue included, is skipped when the
     /// spell is Strength Drain (0x2a). A cannon hard-codes spell <see cref="SpellId"/>, so the guard
