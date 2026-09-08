@@ -11,6 +11,38 @@ public static class ActorFaceCache {
     /// <summary>Actor numbers at and above this have no portrait at all.</summary>
     public const int FirstFacelessActor = 49;
 
+    /// <summary>
+    /// First palette index an <c>ACT###.PAL</c> actually defines. Everything below it is taken from
+    /// the palette of the screen the portrait is drawn on, not from the actor's own file.
+    /// </summary>
+    /// <remarks>
+    /// <b>An actor palette is PARTIAL, and the surrounding pixels are not black — they are the host
+    /// screen's colours.</b> <c>askabout_actor_spr_blit_pal_swap</c> (canassa
+    /// <c>SRC/DIALOG/ASKABOUT.C:155-167</c>) merges the two palettes before it blits: for
+    /// <c>i &lt; FaceRangeFirst || i &gt;= FaceRangeEnd</c> the SCREEN palette overwrites the actor's
+    /// entry, and only in between does the actor's own palette win (and get written back into the
+    /// screen palette so the face keeps its colours).
+    ///
+    /// <para>Measured on the shipped data: <b>47 of the 53 <c>ACT*.PAL</c> files are zero everywhere
+    /// outside this range</b>, because the game is going to overwrite it anyway. The other six carry
+    /// leftover data there that the merge discards — so a reader that trusts the file outside the
+    /// range gets black for 47 actors and stale colours for six.</para>
+    ///
+    /// <para><b>This is why a portrait rendered from <c>ACT###.PAL</c> alone sits on a black
+    /// rectangle</b> (TASK-363). On the character sheet the screen palette is <c>INVENTOR.PAL</c>,
+    /// whose 0x0b-0x0f run is the dithered browns of the sheet's wood — so the original's surround
+    /// paints as the frame the player sees, not as black. The fix is a merged palette, NOT
+    /// transparency: the surround is a real pattern the artist authored, so letting the background
+    /// through would lose it.</para>
+    /// </remarks>
+    public const int FaceRangeFirst = 0x10;
+
+    /// <summary>One past the last palette index an <c>ACT###.PAL</c> defines.</summary>
+    /// <remarks>
+    /// <inheritdoc cref="FaceRangeFirst"/>
+    /// </remarks>
+    public const int FaceRangeEnd = 0x70;
+
     /// <summary>Value stamped into the loaded palette's first byte.</summary>
     public const int PreparedPaletteMarker = 0x3f;
 
