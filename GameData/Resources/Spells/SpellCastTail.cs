@@ -55,13 +55,30 @@ public static class SpellCastTail {
     public static bool EndingEarlyIsFree(int spellId) => !HandlerEndsTheCast(spellId);
 
     /// <summary>
-    /// Skyfire against a target carrying no metal <b>ends the cast on the spot</b>.
+    /// Skyfire against a target carrying no metal does <b>zero damage</b>.
     /// </summary>
     /// <remarks>
-    /// The FixedAmount arm of the calculation switch exists only for this test. Combined with
-    /// <see cref="SpellEffectMagnitude"/> already yielding zero in the same case, the effect is that
-    /// Skyfire on an unarmoured target is not a weak cast — it is not a cast at all: no animation,
-    /// no damage, no cost.
+    /// <b>CORRECTED 2026-09-08 — this used to say the cast "ends on the spot… no animation, no
+    /// damage, no cost". Only the damage clause is true.</b> Checked in both sources:
+    ///
+    /// <list type="bullet">
+    /// <item><c>Spell_CalcEffectMagnitude</c> @0x68245 is a pure calculation. Its FixedAmount arm
+    /// compares the spell number against Skyfire and, when <c>IsUsingMetal</c> is false, jumps to
+    /// the default exit with <c>di</c> still zero. It <i>returns a number</i>; it cannot end
+    /// anything.</item>
+    /// <item><c>cspell_resolve_cast</c> (CSPELL.C:1258-1540) has <b>no early return</b> between the
+    /// magnitude computation at :1334 and the caster's charge at :1520/:1536, so the cast reaches
+    /// the charge like any other.</item>
+    /// </list>
+    ///
+    /// <para>So the behaviour is already fully implemented by <see cref="SpellEffectMagnitude"/>
+    /// yielding zero, and this predicate is a restatement rather than a missing rule. <b>The name
+    /// still says "EndsTheCast" and is wrong</b> — kept only because renaming a public member is a
+    /// wider change than this correction; treat the summary above as the contract.</para>
+    ///
+    /// <para>Worth noting the IDA comment on that arm records its own earlier correction — it had
+    /// the Skyfire test backwards until 2026-08-13. This part of the switch has now misled two
+    /// separate readings.</para>
     /// </remarks>
     public static bool SkyfireEndsTheCast(int spellId, bool targetUsesMetal) =>
         spellId == SpellIds.Skyfire && !targetUsesMetal;
