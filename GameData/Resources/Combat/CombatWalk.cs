@@ -133,6 +133,22 @@ public static class CombatWalk {
     public const int CrystalDamage = 100;
 
     /// <summary>
+    /// The cue crossing crystal ground makes — <c>sound_zapped</c> (0x45).
+    /// </summary>
+    /// <remarks>
+    /// <b>It belongs to a short cine, not to the damage.</b> The terrain-3 arm
+    /// (<c>CMBTAI.C:222</c>) runs <c>combat_actor_play_short_cine</c> BEFORE
+    /// <c>combat_arena_apply_damage(actor, 100, ...)</c>, and that routine is ten frames of
+    /// pose-3 + overlay, each playing <c>audio_play(0x45)</c> — so in the original the zap
+    /// repeats across the cine rather than sounding once.
+    ///
+    /// <para><c>ponytail: played once, not ten times. The repeat is a property of the cine's frame
+    /// loop, which needs the overlay render TASK-117 owns; wiring the count without the visual would
+    /// just be a stutter.</c></para>
+    /// </remarks>
+    public const int CrystalGroundSoundId = 0x45;
+
+    /// <summary>
     /// Walks toward <paramref name="destX"/>,<paramref name="destY"/>, spending up to
     /// <paramref name="speed"/> steps.
     /// </summary>
