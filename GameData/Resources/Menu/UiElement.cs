@@ -7,7 +7,20 @@ using System.Text.Json.Serialization;
 public class UiElement {
     public ElementType ElementType { get; set; }
     public int ActionId { get; set; }
-    public bool Visible { get; set; } // 0 = skipped by menu_drawEntry? (hit-test still runs). Hit-only zones backed by an SCX background, e.g. CONTENTS chapter rows, set this 0.
+    /// <summary>
+    /// Whether the entry is painted. <b>0 means never painted, by any colorset</b> — the hit-test
+    /// still runs.
+    /// </summary>
+    /// <remarks>
+    /// The question mark this comment used to carry is settled: <c>widget_dispatch_by_type</c>
+    /// (WIDGET.C:160) wraps its whole type switch in <c>if (widget-&gt;bActive_flag != 0)</c> and
+    /// tests nothing else — no colorset, no screen kind. So an entry with this clear is skipped
+    /// outright, and a "Plain" screen is no exception.
+    ///
+    /// <para>Hit-only zones backed by a background image set this 0 — CONTENTS' chapter rows are the
+    /// clearest case: the rows you click are painted by the background, not by the entries.</para>
+    /// </remarks>
+    public bool Visible { get; set; }
     public int Disabled { get; set; } // 0 = interactive, non-zero = disabled (sub_seg030_97F skips hit-test; menu_type_6_8 dims text; menu_type_3_4 swaps to icon 0x32). FilePicker runtime-overload: the scrollable item count (always 0 in shipped files; the engine sets it when populating).
     public int State { get; set; } // current widget state: Toggle on/off; InputField alt-label switch (state==0 ⇒ LabelAlt); FilePicker scroll position; Preferences value
     public int XPosition { get; set; }
