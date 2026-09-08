@@ -162,6 +162,18 @@ public sealed class Combatant {
     /// ambiguous, since a party slot and an enemy index share the same range.</summary>
     public bool FlightToParty { get; set; }
 
+    /// <summary>Steps the pending flight arcs over, or 0 for a flight that does not arc.</summary>
+    /// <remarks>
+    /// Only a thrown rock arcs — see <see cref="ThrownRockFlight"/>. The step count and the delta
+    /// are resolved HERE rather than by whatever draws the flight, because a miss's delta is a
+    /// random roll and the roll belongs on the model's side of the seam with the rest of combat's
+    /// randomness.
+    /// </remarks>
+    public int FlightArcSteps { get; set; }
+
+    /// <summary>The pending flight's initial vertical delta — <c>arcDelta</c> at launch.</summary>
+    public int FlightArcDelta { get; set; }
+
     /// <summary>Ticks counted toward this combatant's next idle frame — <c>tickCounter</c>.</summary>
     /// <remarks>
     /// Driven by <see cref="CreatureAnimationStep.Advances"/>, which is a MODULO rather than a
