@@ -129,6 +129,17 @@ public static class CombatActionDispatch {
     /// button you pressed. Implementing both as "attack if adjacent" removes the game's only
     /// click-to-engage.</para>
     /// </remarks>
+    /// <remarks>
+    /// <b>Deliberately without a production caller.</b> The rule is expressed structurally rather
+    /// than through this predicate: <c>CombatRuntime.ResolveMeleeClick</c> refuses a non-adjacent
+    /// SWING outright and, on the thrust arm, calls <c>StepIntoContact</c> before striking. So the
+    /// behaviour is honoured and this states it in one line for a reader.
+    ///
+    /// <para>Recorded because an implemented-but-unconsumed sweep flags it, and this project has a
+    /// standing rule that such a predicate usually means a missing caller. Here it does not — check
+    /// <c>ResolveMeleeClick</c> before "wiring" it, or you will add a second copy of a rule that is
+    /// already obeyed.</para>
+    /// </remarks>
     public static bool ApproachesTarget(MeleeAttack attack) => attack == MeleeAttack.Thrust;
 
     /// <summary>
