@@ -149,6 +149,18 @@ public static class CombatWalk {
     public const int CrystalGroundSoundId = 0x45;
 
     /// <summary>
+    /// <c>sound_arrowexp</c> (0x1d) — a tile trap going off, the first line of
+    /// <c>cspell_tile_trap_trigger</c>.
+    /// </summary>
+    /// <remarks>
+    /// The same id a fired crystal plays (<see cref="TrapPuzzle.FiredSoundId"/>), which is
+    /// consistent rather than coincidental: both are a charge on the floor discharging. It is
+    /// spelled here as well as there because the two are separate call sites in the original and a
+    /// change to one is not a change to the other.
+    /// </remarks>
+    public const int TileTrapSoundId = 0x1d;
+
+    /// <summary>
     /// Walks toward <paramref name="destX"/>,<paramref name="destY"/>, spending up to
     /// <paramref name="speed"/> steps.
     /// </summary>
@@ -328,9 +340,20 @@ public static class CombatWalk {
             case CombatTerrain.Trap:
                 // *** ONE-SHOT, unlike the crystal. *** The trigger clears the tile's effect, so the
                 // tile is spent. Opposite persistence to crystal ground, on the same switch.
-                int damage = tileTrapDamage?.Invoke(actor.X, actor.Y) ?? 0;
+                //
+                // *** THE DAMAGE IS THE CELL'S OWN TIMER. *** cspell_tile_trap_trigger reads
+                // combatgrid_tile_field4 at the actor's cell and hands that number straight to
+                // combat_arena_apply_damage — the countdown IS the charge. So a Gambit of the Eight
+                // cast at 18 lays a 180-point mine and one cast at 2 lays a 20-point one, which is
+                // what SPELLDOC means by "Damage: Variable". Nothing extracted it before, so every
+                // trap dealt 0; the caller override stays for tests that want a fixed number.
+                int damage = tileTrapDamage?.Invoke(actor.X, actor.Y)
+                    ?? grid.EffectTimerAt(actor.X, actor.Y);
                 hazard = new Hazard(HazardKind.TileTrap, actor.X, actor.Y, damage, actor.X, actor.Y);
-                grid.SetTerrain(actor.X, actor.Y, CombatTerrain.Open);
+                // Both halves, as the original does: combatgrid_set_tile_effect(x, y, 0, -1) clears
+                // the kind AND the countdown. Clearing only the terrain leaves a live timer on an
+                // Open cell, which the decay tick would then age for nothing.
+                grid.SetTileEffect(actor.X, actor.Y, CombatTerrain.Open, CombatGrid.NoEffect);
                 break;
 
             default:

@@ -65,6 +65,35 @@ public class CombatWalkTests {
     }
 
     [Fact]
+    public void WithNoOverrideATrapDealsTheCELLSOwnCountdown() {
+        // cspell_tile_trap_trigger reads combatgrid_tile_field4 at the actor's cell and hands that
+        // number to the damage routine — the countdown IS the charge, which is how Gambit of the
+        // Eight gets its "Damage: Variable". 37 above is a test override; this is the real source.
+        CombatGrid grid = GridWith(CombatTerrain.Open, (2, 5));
+        grid.SetTileEffect(2, 5, CombatTerrain.Trap, 180);
+        Combatant actor = Actor(1, 5);
+
+        CombatWalk.WalkResult result = CombatWalk.Walk(grid, actor, 2, 5, 5);
+
+        Assert.Equal(180, Assert.Single(result.Hazards).Damage);
+    }
+
+    [Fact]
+    public void AFiredTrapClearsBOTHItsKindAndItsCountdown() {
+        // combatgrid_set_tile_effect(x, y, 0, -1) clears the pair. Clearing only the terrain leaves
+        // a live timer on an Open cell, which the decay tick would then age for nothing — and the
+        // cell would expire a second time, reverting terrain that is already Open.
+        CombatGrid grid = GridWith(CombatTerrain.Open, (2, 5));
+        grid.SetTileEffect(2, 5, CombatTerrain.Trap, 180);
+        Combatant actor = Actor(1, 5);
+
+        CombatWalk.Walk(grid, actor, 2, 5, 5);
+
+        Assert.Equal(CombatTerrain.Open, grid.TerrainAt(2, 5));
+        Assert.Equal(CombatGrid.NoEffect, grid.EffectTimerAt(2, 5));
+    }
+
+    [Fact]
     public void AProbeFiresNothing_MovesNobodyAndSpendsNoMovement() {
         // The original saves the position up front and restores it, skips the whole hazard block and
         // never writes the speed back — it is the AI asking "could I get there", with a scratch
