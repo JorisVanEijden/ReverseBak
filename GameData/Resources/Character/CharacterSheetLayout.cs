@@ -125,6 +125,19 @@ public static class CharacterSheetLayout {
     /// </remarks>
     public const bool PortraitIsAlternate = true;
 
+    /// <summary>
+    /// The palette the sheet installs for itself — <c>CHARSCRN.C:281</c>,
+    /// <c>chunk_load_into_slot("INVENTOR.PAL")</c>.
+    /// </summary>
+    /// <remarks>
+    /// It is not only the pens' palette. The portrait's surround is painted from it too, because an
+    /// <c>ACT###.PAL</c> defines nothing outside
+    /// <see cref="Resources.Dialog.ActorFaceCache.FaceRangeFirst"/>..<c>FaceRangeEnd</c> — this
+    /// palette's 0x0b-0x0f run is the sheet's dithered browns, which is the frame around the face
+    /// the player sees.
+    /// </remarks>
+    public const string ScreenPalette = "INVENTOR.PAL";
+
     // ---- the two column headings ------------------------------------------------------------
 
     /// <summary>Baseline shared by both headings — VGA y=14.</summary>

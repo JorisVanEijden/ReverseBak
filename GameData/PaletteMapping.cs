@@ -2,6 +2,38 @@ namespace GameData;
 
 public static class PaletteMapping {
 
+    /// <summary>
+    /// Separates a host palette from a resource key: <c>ACT001A.BMX#0@INVENTOR.PAL</c> is the
+    /// portrait as it looks on a screen that has INVENTOR.PAL installed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only a partial palette needs this.</b> An <c>ACT###.PAL</c> defines nothing outside
+    /// <see cref="Resources.Dialog.ActorFaceCache.FaceRangeFirst"/>..<c>FaceRangeEnd</c> because the
+    /// original fills the rest from whatever palette the screen has loaded, so the same portrait
+    /// genuinely has different surround colours on the character sheet and in a dialog. Naming the
+    /// host in the key is what lets the resource layer cache one sprite per (portrait, host) pair
+    /// instead of pretending there is one right answer.
+    /// </remarks>
+    public const char HostPaletteSeparator = '@';
+
+    /// <summary>Builds a key that renders <paramref name="key"/> against <paramref name="hostPalette"/>.</summary>
+    public static string WithHostPalette(string key, string? hostPalette) =>
+        string.IsNullOrEmpty(hostPalette) ? key : key + HostPaletteSeparator + hostPalette;
+
+    /// <summary>The host palette named in a key, or null when it names none.</summary>
+    public static string? HostPaletteOf(string key) {
+        int at = key.IndexOf(HostPaletteSeparator);
+
+        return at < 0 || at == key.Length - 1 ? null : key[(at + 1)..];
+    }
+
+    /// <summary>The key without its host-palette suffix — what the archive is actually asked for.</summary>
+    public static string StripHostPalette(string key) {
+        int at = key.IndexOf(HostPaletteSeparator);
+
+        return at < 0 ? key : key[..at];
+    }
+
     public static string? GetPaletteFor(string image, int subImage = -1) {
         image = StripThreeLetterExtension(image).ToUpper();
 
