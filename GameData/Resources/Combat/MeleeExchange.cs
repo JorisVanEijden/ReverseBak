@@ -18,6 +18,36 @@ using GameData.Resources.Character;
 /// happens when this attacker swings at that defender.</para>
 /// </summary>
 public static class MeleeExchange {
+    /// <summary>What a swing costs the ATTACKER, before any of it reaches the defender.</summary>
+    /// <remarks>
+    /// <b>Swinging is not free.</b> <c>resolveSwingAttack</c> (COMBAT.C:466) bills the attacker one
+    /// point and only then rolls to hit — so a fight drains the swinger as well as the swung-at, and
+    /// a port that skips it lets a party grind indefinitely.
+    ///
+    /// <para><b>It bypasses the shield.</b> The call is
+    /// <c>combat_arena_apply_damage(attacker, 1, 0, 0, 0, 1)</c>, and that last argument is the flag
+    /// that skips the Hocho's Haven absorb. It is 1 at exactly three call sites, all of them damage
+    /// an actor does to itself — this, the cast's own bill, and the attacker's share of a resolved
+    /// hit. No armour either: the third argument is 0.</para>
+    /// </remarks>
+    public const int SwingCost = 1;
+
+    /// <summary>
+    /// Whether the attacker is billed for this swing — <c>stat_actor_get(attacker, 0x10, 4) &gt; 1</c>.
+    /// </summary>
+    /// <param name="attackerPool">The attacker's current health plus stamina.</param>
+    /// <remarks>
+    /// <b>The pool, and it really is the plain sum.</b> <c>stat_actor_get</c> answers index
+    /// <c>0x10</c> by returning <c>stat 0 + stat 1</c> for the same mode (STAT.C:110), and mode 4
+    /// differs from mode 0 only in skipping the <c>g_abStatRatio</c> health-scaling — which is
+    /// <c>0x00</c> for both health and stamina and <c>0x01</c> for every other stat. So for this
+    /// index the two modes are identical and the value is simply the current pool.
+    ///
+    /// <para>The guard is what stops the cost killing a combatant who has one point left: at a pool
+    /// of exactly 1 the swing is free.</para>
+    /// </remarks>
+    public static bool SwingIsBilled(int attackerPool) => attackerPool > SwingCost;
+
     /// <summary>What one swing did.</summary>
     public readonly struct Result {
         public Result(bool hit, int damage, bool defenderDown, int? absorbPool = null) {
