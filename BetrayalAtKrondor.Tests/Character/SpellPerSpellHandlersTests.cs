@@ -151,7 +151,7 @@ public class SpellPerSpellHandlersTests {
 
     [Fact]
     public void TheRollIsUnderNotUnderOrEqual() {
-        Assert.True(SpellPerSpellHandlers.BlackNimbusSucceeds(rollUnder100: 16, spellCost: 1));
-        Assert.False(SpellPerSpellHandlers.BlackNimbusSucceeds(rollUnder100: 17, spellCost: 1));
+        Assert.True(SpellPerSpellHandlers.BlackNimbusSucceeds(rollUnder100: 16, effectiveCost: 1));
+        Assert.False(SpellPerSpellHandlers.BlackNimbusSucceeds(rollUnder100: 17, effectiveCost: 1));
     }
 }

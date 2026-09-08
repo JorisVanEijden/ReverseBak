@@ -239,12 +239,18 @@ public static class SpellPerSpellHandlers {
     /// cost range is 1 to 10, so it runs from a 17% chance to an 80% one and <b>is never certain</b>
     /// — the only spell in the cast path whose whole effect is a die roll, and nothing in its record
     /// hints at it: it carries a NonCostRelated calculation, no damage and no duration.
+    ///
+    /// <para><b>Feed it the EFFECTIVE cost, not the power the player picked.</b>
+    /// <c>cspell_resolve_cast</c> passes its <c>intensity</c> to the handler, and by the time arm 37
+    /// runs that value has been amplified by the Infinity Pool surcharge and doubled against a weak
+    /// target. The two coincide on an ordinary cast, which is exactly why passing the raw power
+    /// would look correct almost always and quietly deny a weak target its doubled chance.</para>
     /// </remarks>
-    public static int BlackNimbusChancePercent(int spellCost) => (spellCost * 700 / 100) + 10;
+    public static int BlackNimbusChancePercent(int effectiveCost) => (effectiveCost * 700 / 100) + 10;
 
     /// <summary>Whether a Black Nimbus cast lands, given the d100 roll.</summary>
-    public static bool BlackNimbusSucceeds(int rollUnder100, int spellCost) =>
-        rollUnder100 < BlackNimbusChancePercent(spellCost);
+    public static bool BlackNimbusSucceeds(int rollUnder100, int effectiveCost) =>
+        rollUnder100 < BlackNimbusChancePercent(effectiveCost);
 
     /// <summary>
     /// Two shipped spells use the negative-duration divide.
