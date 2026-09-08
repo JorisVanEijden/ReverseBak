@@ -49,6 +49,31 @@ public static class CannonLine {
     /// <summary>The intensity it casts at.</summary>
     public const int Intensity = 0x14;
 
+    /// <summary><c>sound_arrow</c> (1) — the cannon going off, played at the muzzle.</summary>
+    /// <remarks>
+    /// <b>A cannon shot is heard TWICE on this id, and that is the original's.</b>
+    /// <c>combatgrid_actor_step_to_tile</c> plays it before it resolves anything, and the cast it
+    /// then resolves flies a projectile, whose own launch plays id 1 again
+    /// (<see cref="SpellProjectileSound.LaunchCue"/>, reached because Flamecast's
+    /// <c>AnimationEffectType</c> is 3). Two separate call sites, not one heard twice — do not
+    /// "deduplicate" them.
+    /// </remarks>
+    public const int MuzzleCue = 1;
+
+    /// <summary><c>sound_select</c> (10) — the tile cast itself, after the muzzle.</summary>
+    /// <remarks>
+    /// <b>The cue belongs to the tile cast, not to the cannon.</b>
+    /// <c>cspell_apply_step_tile_spell</c> (CSPELL.C:1130) plays it, and that routine has a second
+    /// caller — a spell whose flight was intercepted mid-air re-resolves through it. Both are the
+    /// same noise; only the cannon is modelled here.
+    ///
+    /// <para><b>Its one guard is spell 42.</b> The whole routine, cue included, is skipped when the
+    /// spell is Strength Drain (0x2a). A cannon hard-codes spell <see cref="SpellId"/>, so the guard
+    /// can never fire on this path — it exists for the interception path, where the spell is
+    /// whatever was cast.</para>
+    /// </remarks>
+    public const int FireCue = 10;
+
     /// <summary>
     /// The element id that does <b>not</b> stop a cannon's line, unlike every other element.
     /// </summary>
