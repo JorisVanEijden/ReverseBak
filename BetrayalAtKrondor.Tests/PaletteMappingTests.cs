@@ -125,4 +125,41 @@ public class PaletteMappingTests {
         Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("MAPICONS.BMX"));
         Assert.Equal("OPTIONS.PAL", PaletteMapping.GetPaletteFor("MAPICONS.BMX", 4));
     }
+
+    // The host-palette key convention, which the resource layer parses on every sprite load. The
+    // round trip matters more than any single case: WithHostPalette must be undone exactly by
+    // StripHostPalette, or the archive is asked for a member that does not exist.
+    [Fact]
+    public void AHostPaletteRoundTripsThroughTheKey() {
+        string key = PaletteMapping.WithHostPalette("ACT001A.BMX#0", "INVENTOR.PAL");
+
+        Assert.Equal("ACT001A.BMX#0@INVENTOR.PAL", key);
+        Assert.Equal("INVENTOR.PAL", PaletteMapping.HostPaletteOf(key));
+        Assert.Equal("ACT001A.BMX#0", PaletteMapping.StripHostPalette(key));
+    }
+
+    // A key with no host must come back untouched — every non-portrait sprite in the game takes this
+    // path, so a stray separator here would corrupt ordinary loads rather than portrait ones.
+    [Fact]
+    public void AKeyWithoutAHostIsLeftAlone() {
+        Assert.Equal("BICONS1.BMX#66", PaletteMapping.WithHostPalette("BICONS1.BMX#66", null));
+        Assert.Equal("BICONS1.BMX#66", PaletteMapping.WithHostPalette("BICONS1.BMX#66", ""));
+        Assert.Null(PaletteMapping.HostPaletteOf("BICONS1.BMX#66"));
+        Assert.Equal("BICONS1.BMX#66", PaletteMapping.StripHostPalette("BICONS1.BMX#66"));
+    }
+
+    // A trailing separator names no palette. Reading it as one would ask the resource layer to load
+    // "", which fails far from here.
+    [Fact]
+    public void ATrailingSeparatorNamesNoHost() {
+        Assert.Null(PaletteMapping.HostPaletteOf("ACT001A.BMX#0@"));
+        Assert.Equal("ACT001A.BMX#0", PaletteMapping.StripHostPalette("ACT001A.BMX#0@"));
+    }
+
+    // The host is a palette key in its own right, so it has to resolve to itself rather than through
+    // an override — the merge loads it with the same LoadPalette every other key goes through.
+    [Fact]
+    public void TheHostPaletteKeysResolveToThemselves() {
+        Assert.Equal("INVENTOR.PAL", PaletteMapping.GetPaletteFor("INVENTOR.PAL"));
+    }
 }
