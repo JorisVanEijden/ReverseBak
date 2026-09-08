@@ -66,6 +66,19 @@ public static class CombatCapability {
     /// casting <c>dist &gt;= 2</c> — which are the same test on integers. Distance is to the NEAREST
     /// actor, so being surrounded is no different from one neighbour.
     /// </remarks>
+    /// <remarks>
+    /// <b>"Nearest actor" means nearest OPPONENT, and the original's loop hides that.</b>
+    /// <c>combatenc_find_nearest_actor</c> (canassa CBENC.C) walks
+    /// <c>g_pCombatActiveActors</c> with no faction test at all, which reads as "any actor,
+    /// allies included". What makes it opponents-only is the line above the loop: when the
+    /// asking actor is <i>not</i> an encounter actor — i.e. is a party member — it calls
+    /// <c>combat_arena_swap_tgt_state()</c> first and swaps back afterwards, so the list it
+    /// walks is the monsters. A monster asking gets the party for the same reason, unswapped.
+    ///
+    /// <para>So a party member standing shoulder to shoulder with an ally can still cast, and
+    /// the test that says "an ally is not a threat" is right. Recorded because the loop invites
+    /// the opposite conclusion and the swap is four lines away from it.</para>
+    /// </remarks>
     public static bool RangeIsClear(int nearestActorDistance) => nearestActorDistance >= 2;
 
     /// <summary>
