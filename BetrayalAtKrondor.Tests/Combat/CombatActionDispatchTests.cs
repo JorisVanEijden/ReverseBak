@@ -175,4 +175,14 @@ public class CombatActionDispatchTests {
         // Performing the action in the click handler runs it a step too early.
         Assert.True(CombatActionDispatch.LeftClickOnlyRecordsTheChoice);
     }
+
+    // Only the swing is billed. combat_arena_apply_damage(attacker, ...) appears exactly once in
+    // COMBAT.C, inside the swing; the thrust never touches the attacker. Billing both is what a
+    // single melee path does and it makes every thrust cost a point it should not.
+    [Fact]
+    public void OnlyTheSwingChargesTheAttacker() {
+        Assert.True(CombatActionDispatch.BillsTheAttacker(CombatActionDispatch.MeleeAttack.Swing));
+        Assert.False(CombatActionDispatch.BillsTheAttacker(CombatActionDispatch.MeleeAttack.Thrust));
+        Assert.False(CombatActionDispatch.BillsTheAttacker(CombatActionDispatch.MeleeAttack.None));
+    }
 }

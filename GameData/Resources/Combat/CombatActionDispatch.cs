@@ -74,6 +74,25 @@ public static class CombatActionDispatch {
         attack == MeleeAttack.Thrust ? thrustAccuracy : swingAccuracy;
 
     /// <summary>
+    /// Whether this attack charges the attacker a point of its own pool.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only the swing is billed.</b> <c>combat_arena_apply_damage(attacker, 1, 0, 0, 0, 1)</c>
+    /// appears exactly once in COMBAT.C — at :473, inside the SWING
+    /// (<c>combat_arena_melee_attack</c>). The thrust
+    /// (<c>combat_arena_resolve_melee_swing</c>, :596) never touches the attacker, and the same
+    /// asymmetry shows in the callers: the swing arm is gated on
+    /// <c>stat_actor_get(attacker, 0x10, 4) &gt; 1</c> at the call site (COMBAT.C:2366) while the
+    /// thrust arm has no such test, and the AI falls back to the thrust
+    /// (<c>CBENC.C:836-845</c>) precisely when it cannot afford or land the swing.
+    ///
+    /// <para>Read the routines rather than their names — canassa's two are swapped, as
+    /// <see cref="AccuracyOf"/> records at length. Billing both is what a single melee path does,
+    /// and it makes every thrust cost a point it should not.</para>
+    /// </remarks>
+    public static bool BillsTheAttacker(MeleeAttack attack) => attack == MeleeAttack.Swing;
+
+    /// <summary>
     /// The weapon's damage base this attack adds.
     /// </summary>
     /// <remarks>
