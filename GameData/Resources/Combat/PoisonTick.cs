@@ -20,10 +20,11 @@ using System;
 public static class PoisonTick {
     /// <summary>What one tick did.</summary>
     public readonly struct Result {
-        public Result(int damage, int? absorbPool, bool died) {
+        public Result(int damage, int? absorbPool, bool died, bool ticked = true) {
             Damage = damage;
             AbsorbPool = absorbPool;
             Died = died;
+            Ticked = ticked;
         }
 
         /// <summary>Points actually removed from stamina and health. Zero when nothing was taken.</summary>
@@ -35,7 +36,18 @@ public static class PoisonTick {
         /// <summary>Health reached zero on this tick.</summary>
         public bool Died { get; }
 
-        public static readonly Result None = new Result(0, null, false);
+        /// <summary>
+        /// Whether poison actually ticked, as opposed to the actor not being poisoned or being dead.
+        /// </summary>
+        /// <remarks>
+        /// <b>Zero damage does not mean nothing happened.</b> A tick fully soaked by an absorb
+        /// shield also reports zero, and its <see cref="AbsorbPool"/> is the reduced shield that the
+        /// caller must write back. Without this flag the two are indistinguishable and a caller
+        /// committing the pool on <see cref="None"/> would delete a shield that was never touched.
+        /// </remarks>
+        public bool Ticked { get; }
+
+        public static readonly Result None = new Result(0, null, false, ticked: false);
     }
 
     /// <summary>

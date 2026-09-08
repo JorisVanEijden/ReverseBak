@@ -20,10 +20,11 @@ using GameData.Resources.Character;
 public static class MeleeExchange {
     /// <summary>What one swing did.</summary>
     public readonly struct Result {
-        public Result(bool hit, int damage, bool defenderDown) {
+        public Result(bool hit, int damage, bool defenderDown, int? absorbPool = null) {
             Hit = hit;
             Damage = damage;
             DefenderDown = defenderDown;
+            AbsorbPool = absorbPool;
         }
 
         /// <summary>Whether the swing landed at all.</summary>
@@ -34,6 +35,16 @@ public static class MeleeExchange {
 
         /// <summary>Whether this swing put the defender down.</summary>
         public bool DefenderDown { get; }
+
+        /// <summary>
+        /// The defender's absorb shield AFTER the blow, or null when it broke or was never up.
+        /// </summary>
+        /// <remarks>
+        /// <b>The caller has to write this back.</b> The original decrements
+        /// <c>nDuration_or_hp</c> in the pool slot in place and removes the slot when it goes
+        /// negative (COMBAT.C:341); a port that absorbs without persisting gives an endless shield.
+        /// </remarks>
+        public int? AbsorbPool { get; }
 
         public static Result Miss => new Result(false, 0, false);
     }
@@ -66,12 +77,13 @@ public static class MeleeExchange {
     /// <summary>What the defender brings.</summary>
     public readonly struct Defender {
         public Defender(int defenseRating, int armorRating = 0, bool immune = false,
-            bool applyArmor = true, int? absorbPool = null) {
+            bool applyArmor = true, int? absorbPool = null, bool negated = false) {
             DefenseRating = defenseRating;
             ArmorRating = armorRating;
             Immune = immune;
             ApplyArmor = applyArmor;
             AbsorbPool = absorbPool;
+            Negated = negated;
         }
 
         public int DefenseRating { get; }
@@ -79,6 +91,9 @@ public static class MeleeExchange {
         public bool Immune { get; }
         public bool ApplyArmor { get; }
         public int? AbsorbPool { get; }
+
+        /// <summary>Damage is zeroed outright — the defender is under Skin of the Dragon.</summary>
+        public bool Negated { get; }
     }
 
     /// <summary>
@@ -165,7 +180,7 @@ public static class MeleeExchange {
         DamageOutcome outcome = CombatFormulas.ApplyDamage(
             rolled, defender.Stamina, defender.Health, defenderStats.Immune,
             defenderStats.ApplyArmor, defenderStats.ArmorRating, defenderStats.AbsorbPool,
-            fromDirectAttack: true, negated: false,
+            fromDirectAttack: true, negated: defenderStats.Negated,
             weakToDamageType: false, resistsDamageType: false, rnd);
 
         int before = defender.Health + defender.Stamina;
@@ -173,6 +188,6 @@ public static class MeleeExchange {
         defender.Health = outcome.Health;
         int taken = before - (defender.Health + defender.Stamina);
 
-        return new Result(true, taken < 0 ? 0 : taken, defender.Health <= 0);
+        return new Result(true, taken < 0 ? 0 : taken, defender.Health <= 0, outcome.AbsorbPool);
     }
 }
