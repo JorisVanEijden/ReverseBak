@@ -43,13 +43,24 @@ public class MonsterDisengageTests {
 
     [Fact]
     public void ACorneredCasterFallsThroughToTheMovementAi() {
-        Assert.True(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: false, roll: 99));
+        Assert.True(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: false, roll: 99, mayAttack: true));
     }
 
     [Fact]
     public void AndSoDoesOneInSevenThatFoundSomewhereToGo() {
-        Assert.True(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: true, roll: 14));
-        Assert.False(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: true, roll: 15));
+        Assert.True(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: true, roll: 14, mayAttack: true));
+        Assert.False(MonsterSpellcasting.DefersToMovementAi(foundSomewhereBetter: true, roll: 15, mayAttack: true));
+    }
+
+    [Fact]
+    public void WithoutMayAttackTheActorWalksEvenWithNowhereBetter() {
+        // The third argument is not decoration: `... && may_attack` (CBTAITRN.C:73-83). The one
+        // caller that passes zero is combataipath_select_action's own low-stamina fallback, and
+        // without the term it would recurse straight back into itself.
+        Assert.False(MonsterSpellcasting.DefersToMovementAi(
+            foundSomewhereBetter: false, roll: 99, mayAttack: false));
+        Assert.False(MonsterSpellcasting.DefersToMovementAi(
+            foundSomewhereBetter: true, roll: 0, mayAttack: false));
     }
 
     [Fact]

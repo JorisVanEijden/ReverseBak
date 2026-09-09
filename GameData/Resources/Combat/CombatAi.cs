@@ -99,6 +99,26 @@ public enum AiAction {
     /// opposite instruction.
     /// </remarks>
     Defend,
+
+    /// <summary>
+    /// Back away instead of acting — <c>combataiturn_pick_tile_or_attack</c> (CBTAITRN.C:32), which
+    /// every cascade turn function calls before it looks at its pattern table.
+    /// </summary>
+    /// <remarks>
+    /// <b>An engaged caster spends the whole turn repositioning.</b> The routine returns whether the
+    /// actor was engaged, not whether it managed to move, so the turn is consumed either way and the
+    /// pattern cascade is skipped — see <see cref="MonsterSpellcasting.MustDisengageBeforeCasting"/>.
+    ///
+    /// <para><b>Only the caster branch produces this</b>, and the asymmetry is deliberate rather than
+    /// an oversight in the original. <c>combatenc_ai_sel_execute_action</c> (CBENC.C:958) enters the
+    /// caster branch through <c>combatenc_actor_can_cast_spells(actor, <b>0</b>)</c> — the zero says
+    /// "do not look for the nearest actor", so adjacency is deliberately left out of the branch
+    /// choice and decided one level down, as a retreat. The shooter branch's test
+    /// (<c>combatenc_show_missile_stat_row</c>, CBENC.C:507) has no such flag and demands
+    /// <c>1 &lt; nearestDist</c> outright, so an engaged shooter never enters its branch at all and
+    /// falls through to ordinary melee. Same fact, opposite handling.</para>
+    /// </remarks>
+    Retreat,
 }
 
 /// <summary>

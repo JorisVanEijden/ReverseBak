@@ -709,7 +709,25 @@ public static class MonsterSpellcasting {
     public static bool CandidateIsEligible(bool candidateIncapacitated) => !candidateIncapacitated;
 
     // ---------------------------------------------------------------- the pre-check: disengage
-    // sub_ovr172_0 @0x65f70, the first thing monster_chooseSpellcastAction calls.
+    // combataiturn_pick_tile_or_attack (CBTAITRN.C:32) = monster_disengageBeforeCasting @0x65f70.
+    //
+    // *** IT IS NOT A SPELLCAST PRE-CHECK, AND ITS IDA NAME (WHICH IS OURS) SAYS OTHERWISE. ***
+    // The routine is shared and takes its threshold and an "may I attack instead" flag as arguments:
+    // pick_tile_or_attack(actor, minScore, mayAttack). IDA gives it four callers, matching canassa's
+    // four exactly -- monster_chooseSpellcastAction @0x65e3e and monster_chooseCrossbowAction
+    // @0x6660c call it FIRST THING (+0x19 and +0x1b into the function), and
+    // monster_chooseMeleeMoveAction @0x65652 and monster_rangedKnockbackElseCloseIn @0x6aa74 call it
+    // late, from a fallback. All four pass minScore 1; the first three pass mayAttack 1.
+    //
+    // And the two "first thing" callers are not action choosers at all: @0x65e3e is canassa's
+    // combat_ai_take_turn (CBTAI.C:346) -- the whole cascade turn, keyed on spellcastPattern, with
+    // the 91%-commit loop over the pattern table. So this sits at the HEAD of the cascade turn and
+    // gates everything the pattern table could have yielded, not the cast alone.
+    //
+    // It is still only the CASTER branch that produces a retreat, for the reason recorded on
+    // AiAction.Retreat: the caster branch is entered with adjacency deliberately unchecked, the
+    // shooter branch tests it at the door. The name is kept for now because it is the caster branch
+    // this models; what is wrong is reading it as "a pre-check belonging to spellcasting".
 
     /// <summary>
     /// <b>A caster with an enemy in contact does not cast. It backs away.</b>
@@ -737,8 +755,15 @@ public static class MonsterSpellcasting {
     /// The search walks the whole grid, and for each cell that is unblocked and reachable it
     /// <i>temporarily writes the caster's position there</i>, re-runs the nearest-living-enemy
     /// search, and restores the position. The cell that leaves the greatest distance wins. It is a
-    /// genuine "where am I safest" evaluation rather than a step away from the threat, so a caster
-    /// can cross the field in one turn if that is what puts the most ground between it and the party.
+    /// genuine "where am I safest" evaluation rather than a step away from the threat.
+    ///
+    /// <para><b>"Reachable" means reachable THIS TURN, which bounds the whole search.</b> The probe
+    /// is <c>combataipath_actor_walk_path(actor, 1)</c>, and that second argument makes it a dry
+    /// run — it saves the position, walks the path under the actor's remaining move budget
+    /// (<c>g_acting_actor_speed</c>), and restores the position afterwards (CMBTAI.C:186-245). So a
+    /// caster backs off as far as its speed allows and no further. An earlier version of this remark
+    /// said it "can cross the field in one turn", which read the grid sweep as the limit and missed
+    /// the budget inside the probe.</para>
     /// </remarks>
     public static bool RetreatEvaluatesEveryCell => true;
 
@@ -768,13 +793,30 @@ public static class MonsterSpellcasting {
     /// </summary>
     /// <param name="foundSomewhereBetter">The search improved on where the caster already stands.</param>
     /// <param name="roll">A roll in 0..99.</param>
+    /// <param name="mayAttack">
+    /// The routine's third argument. <b>Without it the actor walks regardless</b> — see the remarks.
+    /// </param>
     /// <remarks>
     /// Two ways in: the search found nowhere better, or it found somewhere better and a 15% roll
-    /// throws it away anyway. Either way the movement AI takes over — so a cornered caster is not
-    /// simply stuck, it falls through to ordinary movement behaviour.
+    /// throws it away anyway. So a cornered caster is not simply stuck.
+    ///
+    /// <para><b>But the handover is conditional on <paramref name="mayAttack"/>, and the earlier
+    /// model left that term out entirely.</b> The source is
+    /// <c>if (((atBestCell) || rand &lt; 0xf) &amp;&amp; may_attack) select_action(); else walk();</c>
+    /// (CBTAITRN.C:73-83) — with <c>may_attack</c> zero the actor walks to the best cell even when
+    /// that cell is the one it already stands on, which is how the one caller that passes zero
+    /// (<c>combataipath_select_action</c>'s own low-stamina fallback, CMBTAI.C:511) avoids recursing
+    /// into itself. The caster path passes one.</para>
+    ///
+    /// <para><b>And what it hands over to is an ACTION table, not a movement AI.</b>
+    /// <c>combataipath_select_action</c> (CMBTAI.C:496) runs the actor's <c>aiPathProfile</c> row of
+    /// the action-function table and only falls back to <c>combataipath_follow_tgt_check</c> — the
+    /// approach — when none of the eight entries commits. So a caster that gives up on retreating
+    /// most often ends up attacking, which is the opposite of what this method's old name implies.
+    /// The name is left alone rather than churned; the behaviour is stated here.</para>
     /// </remarks>
-    public static bool DefersToMovementAi(bool foundSomewhereBetter, int roll) =>
-        !foundSomewhereBetter || roll < RetreatAbandonPercent;
+    public static bool DefersToMovementAi(bool foundSomewhereBetter, int roll, bool mayAttack) =>
+        mayAttack && (!foundSomewhereBetter || roll < RetreatAbandonPercent);
 
     /// <summary>
     /// <b>The pre-check reports engagement, not whether anything happened.</b>
