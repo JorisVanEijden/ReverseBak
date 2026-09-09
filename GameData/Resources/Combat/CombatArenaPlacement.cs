@@ -35,6 +35,31 @@ public static class CombatArenaPlacement {
         (row * cellSize) + (cellSize / 2) + CombatGroundCheck.ForwardOffset);
 
     /// <summary>
+    /// How far the arena reaches from the party, in world units — the farthest of the grid's four
+    /// corner cells, plus a cell of margin.
+    /// </summary>
+    /// <remarks>
+    /// <b>For a caller that has to clear the ground the fight is drawn on.</b> A port rendering the
+    /// live world during a fight has to stop zone scenery coming between the camera and a
+    /// combatant; the original does not, because <c>zone_teardown(1)</c> has already removed it.
+    /// Derived from <see cref="CellOffset"/> rather than stated, so it follows
+    /// <c>StartData.CombatGridCellSize</c> and cannot drift from where the actors are actually put.
+    /// </remarks>
+    public static int Reach(int cellSize) {
+        long worst = 0;
+        foreach ((int column, int row) in new[] {
+                     (0, 0), (CombatGrid.Width - 1, 0),
+                     (0, CombatGrid.Height - 1), (CombatGrid.Width - 1, CombatGrid.Height - 1) }) {
+            (int across, int away) = CellOffset(column, row, cellSize);
+            long squared = ((long)across * across) + ((long)away * away);
+            if (squared > worst) {
+                worst = squared;
+            }
+        }
+        return (int)System.Math.Sqrt(worst) + cellSize;
+    }
+
+    /// <summary>
     /// Which cell an offset falls in — the inverse of <see cref="CellOffset"/>.
     /// </summary>
     /// <param name="across">Toward the party's right, <b>after</b> the heading has been undone.</param>
