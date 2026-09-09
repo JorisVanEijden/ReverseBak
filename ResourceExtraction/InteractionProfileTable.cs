@@ -99,18 +99,24 @@ public static class InteractionProfileTable {
             OpensLoot = false,
             HasLock = false,
         }),
-        // bytes 20 / 39 / 42 = tunnel, tunnel exit and ladder
-        // (wcursor_click_fixedobj_picklock, WCURSOR.C:999). *** THE THIRD EMPTY PROFILE, and the
-        // same reasoning as the door and the building. *** These are the level-traversal mechanic:
-        // the click runs a lock and then plays the object's own message, whose Teleport action is
-        // what moves the party. No loot, no container type, and the lock is a lookup key on the
-        // params subrecord rather than SaveGameContainerLockData — so every field a container
-        // profile carries is absent. The rules are TraversalClick.
+        // bytes 20 / 39 / 42 = tunnel, tunnel exit and ladder. *** THE THIRD EMPTY PROFILE, and
+        // the same reasoning as the door and the building. *** These are the level-traversal
+        // mechanic: no loot, no container type, and what lock there is is a lookup key on the
+        // params subrecord rather than SaveGameContainerLockData, so every field a container
+        // profile carries is absent.
         //
-        // Range is null because this handler has no reach test at all: unlike the building click it
-        // never compares tiles, so a radius here would invent a restriction and make distant
-        // ladders silently unclickable.
-        [WorldEntityType.Tunnel] = ("traversal", new InteractionProfile {
+        // *** BUT THEY ARE TWO HANDLERS, NOT ONE. *** wcursor_click_world_hotspot switches on
+        // `kind - 6` (WCURSOR.C:95), which sends 20 to case 14 and 39 to case 33 — both
+        // wcursor_click_npc_or_trap — while only 42 reaches case 36,
+        // wcursor_click_fixedobj_picklock. All three carried "traversal" until 2026-09-09, so the
+        // tunnels ran the ladder's routine, which knows nothing about hotspot actions; that is why
+        // the Mac Mordain Cadal's stairs answered "nothing happens" and the mine had no exit. The
+        // rules are TunnelClick for the first two and TraversalClick for the ladder.
+        //
+        // Range is null for both, and for different reasons that happen to agree here: the ladder's
+        // handler has no reach test at all, and the tunnel's is a map-TILE comparison rather than a
+        // radius (TunnelClick.IsWithinReach), which a distance in fine units cannot express.
+        [WorldEntityType.Tunnel] = ("tunnel", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
             ExamineDialogId = 0,
@@ -119,7 +125,7 @@ public static class InteractionProfileTable {
             OpensLoot = false,
             HasLock = false,
         }),
-        [WorldEntityType.TunnelExit] = ("traversal", new InteractionProfile {
+        [WorldEntityType.TunnelExit] = ("tunnel", new InteractionProfile {
             Range = null,
             ActionableContainerTypes = None,
             ExamineDialogId = 0,

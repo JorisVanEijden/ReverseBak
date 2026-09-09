@@ -1,13 +1,20 @@
 namespace GameData.Resources.World;
 
 /// <summary>
-/// Clicking a ladder, tunnel or tunnel exit — <c>wcursor_click_fixedobj_picklock</c>
-/// (WCURSOR.C:999), the handler for entity kinds 20, 39 and 42.
+/// Clicking a <b>ladder</b> — <c>wcursor_click_fixedobj_picklock</c> (WCURSOR.C:999), the handler
+/// for entity kind <b>42</b> and no other.
 /// </summary>
 /// <remarks>
 /// <b>Much shorter than the building click, and it differs in every part that matters.</b> No reach
 /// test, no flag bits, no world-event gate, no warp — and its own describe line. What it does have
 /// is a lock, and the lock is not optional.
+///
+/// <para><b>This summary said "kinds 20, 39 and 42" until 2026-09-09, and that sentence was the
+/// bug.</b> <c>wcursor_click_world_hotspot</c> switches on <c>kind - 6</c> (WCURSOR.C:95): 20 lands
+/// on case 14 and 39 on case 33, both <c>wcursor_click_npc_or_trap</c>, and only 42 reaches case
+/// 36. Tunnels and tunnel exits are <see cref="TunnelClick"/>, whose click dispatches a zone
+/// hotspot — which is how a mine is left, and why giving them this handler left the Mac Mordain
+/// Cadal with no exit at all.</para>
 /// </remarks>
 public static class TraversalClick {
     /// <summary>The sound the click makes, shared with the building click.</summary>
@@ -46,8 +53,29 @@ public static class TraversalClick {
     /// <para>So a ladder cannot be walked through by giving it no lock, and a port cannot ship an
     /// "unlocked ladders work now" half: the traversal is downstream of a screen that always runs.
     /// </para>
+    ///
+    /// <para><b>The value, not the subrecord</b> — see <see cref="HasLockToRun"/>.</para>
     /// </remarks>
     public static bool LockFlowAlwaysRuns => true;
+
+    /// <summary>
+    /// Whether there is a lock to run at all: the <c>SUBREC_PARAMS</c> subrecord must be
+    /// <b>present</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one condition <see cref="LockFlowAlwaysRuns"/> does not cover, and it is easy to lose
+    /// to a defaulting getter.</b> The original's guard is an assignment inside the test —
+    /// <c>(pSubrec1 = actorrec_get_subrecord(actor_record, SUBREC_PARAMS)) != 0</c> — so an object
+    /// with no params block plays <see cref="NothingToDoDialog"/> and never opens the picklock
+    /// screen.
+    ///
+    /// <para>Reading the difficulty instead gives 0 for a missing subrecord, which is
+    /// indistinguishable from a real lock of zero, and the whole prompt-screen-verdict sequence
+    /// runs against a lock that is not there. Measured on the Mac Mordain Cadal's stairs, whose
+    /// <c>DataTypes</c> is <c>Encounter</c> alone: the port asked to pick a lock, accepted the
+    /// picks, and reported success on nothing.</para>
+    /// </remarks>
+    public static bool HasLockToRun(bool hasLockSubrecord) => hasLockSubrecord;
 
     /// <summary>
     /// <b>The traversal itself is in the DIALOG, not in the handler.</b>
