@@ -78,32 +78,58 @@ public static class PicklockAttempt {
     }
 
     /// <summary>
+    /// The lock score each key kind opens — <c>g_abInvQuizAnswerTable</c> (PICKLOCK.C:29).
+    /// </summary>
+    /// <remarks>
+    /// <b>A key's kind is an INDEX, not its value.</b> The eleven keys are object ids 61..71, so
+    /// kind = <c>objectId - 60</c>, and this table turns that kind into the lock score it opens.
+    /// The two are nothing like each other: kind 3 opens 101, kind 8 opens 60, kind 11 opens 106.
+    ///
+    /// <para>Comparing the kind directly against the lock score — which is what this class did until
+    /// 2026-09-09 — lets a key open only a lock whose score happens to equal its own index, so of the
+    /// eleven only kinds 1..11 could ever match anything and the interesting locks were unopenable.
+    /// The palace ladder that ends chapter 1 scores <b>106</b>, which is kind 11's entry: under the
+    /// old rule it wanted an object id of 166, and no such object ships.</para>
+    ///
+    /// <para>Index 0 and 12 are 0 — the table is 13 long and only 1..11 are keys.</para>
+    /// </remarks>
+    public static readonly int[] KeyLockScores =
+        { 0, 0x32, 0x5a, 0x65, 0x66, 0x67, 0x68, 0x46, 0x3c, 0x50, 0x69, 0x6a, 0 };
+
+    /// <summary>The lock score a key kind opens, or 0 for a kind that is not a key.</summary>
+    public static int LockScoreForKeyKind(int keyKind) =>
+        keyKind >= 0 && keyKind < KeyLockScores.Length ? KeyLockScores[keyKind] : 0;
+
+    /// <summary>
     /// Trying a key.
     /// </summary>
-    /// <param name="keyValue">
-    /// The key's own value from the key table. <b>It must equal the lock's score exactly</b> —
-    /// there is no "close enough", and a more valuable key is not a better key, only a different
-    /// one.
+    /// <param name="keyKind">
+    /// The key's kind — <c>objectId - 60</c>, an index into <see cref="KeyLockScores"/>. The score
+    /// it looks up <b>must equal the lock's exactly</b>: there is no "close enough", and a
+    /// higher-scoring key is not a better key, only a different one.
     /// </param>
     /// <param name="skill">The picker's LockPicking, which only affects the breakage odds.</param>
     /// <param name="rnd">Returns a value in [0, 100); consulted only when the key does not fit.</param>
-    public static AttemptResult WithKey(int keyValue, int lockScore, int skill, Func<int, int> rnd) {
-        if (keyValue == lockScore) {
+    public static AttemptResult WithKey(int keyKind, int lockScore, int skill, Func<int, int> rnd) {
+        if (LockScoreForKeyKind(keyKind) == lockScore) {
             return AttemptResult.Opened;
         }
-        return rnd != null && rnd(100) <= KeyBreakThreshold(keyValue, skill)
+        return rnd != null && rnd(100) <= KeyBreakThreshold(keyKind, skill)
             ? AttemptResult.ToolBroke
             : AttemptResult.Failed;
     }
 
     /// <summary>
-    /// Chance in 100 that a wrong key snaps: <c>(100 - keyValue - skill/3) * 2 / 3</c>.
+    /// Chance in 100 that a wrong key snaps:
+    /// <c>(100 - KeyLockScores[kind] - skill/3) * 2 / 3</c>.
     ///
-    /// <para>So a <b>more valuable key is safer</b> to try, and a skilled picker breaks fewer keys —
-    /// the lock's own difficulty does not enter into it at all.</para>
+    /// <para>So a <b>higher-scoring key is safer</b> to try, and a skilled picker breaks fewer keys —
+    /// the lock's own difficulty does not enter into it at all. The original reads the same table
+    /// entry here that it compares with (PICKLOCK.C:130), so passing the kind straight in understates
+    /// the threshold for every key.</para>
     /// </summary>
-    public static int KeyBreakThreshold(int keyValue, int skill) =>
-        (100 - keyValue - (skill / 3)) * 2 / 3;
+    public static int KeyBreakThreshold(int keyKind, int skill) =>
+        (100 - LockScoreForKeyKind(keyKind) - (skill / 3)) * 2 / 3;
 
     /// <summary>The flag recording that this key kind has opened its lock.</summary>
     public static int PickedWithFlag(int itemKind) => PickedWithFlagBase + itemKind;

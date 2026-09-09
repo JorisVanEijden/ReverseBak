@@ -72,31 +72,37 @@ public class PicklockAttemptTests {
 
     // ---- keys -----------------------------------------------------------------------------
 
+    // *** THESE TAKE A KEY KIND, NOT A LOCK SCORE. *** They passed raw scores until 2026-09-09,
+    // which happened to pass because the rule compared the argument directly — the very bug. A
+    // key's kind is objectId - 60 and PicklockAttempt.KeyLockScores turns it into the score it
+    // opens: kind 8 -> 60, kind 9 -> 80, kind 1 -> 50 (g_abInvQuizAnswerTable, PICKLOCK.C:29).
+
     [Fact]
     public void AKeyMustMatchExactly() {
         Assert.Equal(PicklockAttempt.AttemptResult.Opened,
-            PicklockAttempt.WithKey(keyValue: 60, lockScore: 60, skill: 0, rnd: null));
+            PicklockAttempt.WithKey(keyKind: 8, lockScore: 60, skill: 0, rnd: null));
         Assert.NotEqual(PicklockAttempt.AttemptResult.Opened,
-            PicklockAttempt.WithKey(61, 60, 0, Always(99)));
+            PicklockAttempt.WithKey(9, 60, 0, Always(99)));
     }
 
     [Fact]
     public void AMoreValuableKeyIsNotABetterKeyOnlyADifferentOne() {
-        // No "close enough" and no ordering: 99 does not open a lock of 60.
+        // No "close enough" and no ordering: kind 11 scores 106 and still does not open a 60.
         Assert.NotEqual(PicklockAttempt.AttemptResult.Opened,
-            PicklockAttempt.WithKey(99, 60, 255, Always(99)));
+            PicklockAttempt.WithKey(11, 60, 255, Always(99)));
     }
 
     [Fact]
     public void AMoreValuableKeyIsSaferToTry() {
-        Assert.True(PicklockAttempt.KeyBreakThreshold(keyValue: 80, skill: 0)
-            < PicklockAttempt.KeyBreakThreshold(keyValue: 20, skill: 0));
+        // kind 9 scores 80, kind 1 scores 50.
+        Assert.True(PicklockAttempt.KeyBreakThreshold(keyKind: 9, skill: 0)
+            < PicklockAttempt.KeyBreakThreshold(keyKind: 1, skill: 0));
     }
 
     [Fact]
     public void ASkilledPickerBreaksFewerKeys() {
-        Assert.True(PicklockAttempt.KeyBreakThreshold(20, skill: 90)
-            < PicklockAttempt.KeyBreakThreshold(20, skill: 0));
+        Assert.True(PicklockAttempt.KeyBreakThreshold(1, skill: 90)
+            < PicklockAttempt.KeyBreakThreshold(1, skill: 0));
     }
 
     [Fact]

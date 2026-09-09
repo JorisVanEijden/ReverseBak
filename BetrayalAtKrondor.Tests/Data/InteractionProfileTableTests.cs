@@ -58,26 +58,45 @@ public class InteractionProfileTableTests {
     /// The clickable traversal trio share one behaviour key, with empty profiles.
     /// </summary>
     /// <remarks>
-    /// <b>One key for three types is the point:</b> tunnel, tunnel exit and ladder all reach the
-    /// same handler in the original, so three keys would be three copies of one mechanic. The
-    /// profile is empty for the door's reasons — no loot, no container type, and a lock that lives
-    /// on the params subrecord rather than in container lock data.
+    /// <b>They share an empty profile and they do NOT share a handler.</b> This asserted one
+    /// behaviour for all three until 2026-09-09, and that was the bug: <c>wcursor_click_world_hotspot</c>
+    /// switches on <c>kind - 6</c> (WCURSOR.C:95), sending Tunnel (20) to case 14 and TunnelExit (39)
+    /// to case 33 — both <c>wcursor_click_npc_or_trap</c> — while only Ladder (42) reaches case 36's
+    /// <c>wcursor_click_fixedobj_picklock</c>. Running the tunnels on the ladder's handler is what
+    /// left the Mac Mordain Cadal with no exit, because that handler knows nothing about the hotspot
+    /// action a tunnel carries.
     ///
-    /// <para>Range is null because this handler has NO reach test at all, unlike the building's
-    /// tile guard — a radius here would invent a restriction the original does not have.</para>
+    /// <para>The profile is empty for the door's reasons — no loot, no container type, and a lock
+    /// that lives on the params subrecord rather than in container lock data.</para>
+    ///
+    /// <para>Range is null for both, and for different reasons that agree here: the ladder's handler
+    /// has no reach test at all, and the tunnel's is a map-TILE comparison
+    /// (<c>TunnelClick.IsWithinReach</c>) that a distance in fine units cannot express.</para>
     /// </remarks>
     [Theory]
-    [InlineData(WorldEntityType.Ladder)]
-    [InlineData(WorldEntityType.Tunnel)]
-    [InlineData(WorldEntityType.TunnelExit)]
-    public void TheTraversalTrioSharesOneBehaviourWithAnEmptyProfile(WorldEntityType type) {
+    [InlineData(WorldEntityType.Ladder, "traversal")]
+    [InlineData(WorldEntityType.Tunnel, "tunnel")]
+    [InlineData(WorldEntityType.TunnelExit, "tunnel")]
+    public void TheTraversalTrioSharesAnEmptyProfileButNotAHandler(
+        WorldEntityType type, string expectedBehavior) {
         Assert.True(InteractionProfileTable.TryGet(type, out string behavior,
             out InteractionProfile profile));
-        Assert.Equal("traversal", behavior);
+        Assert.Equal(expectedBehavior, behavior);
         Assert.NotEqual("container", behavior);
         Assert.Empty(profile.ActionableContainerTypes);
         Assert.False(profile.OpensLoot);
         Assert.Null(profile.Range);
+    }
+
+    /// <summary>The ladder is alone on the picklock handler — the distinction above, stated once.</summary>
+    [Fact]
+    public void OnlyTheLadderIsOnTheTraversalHandler() {
+        InteractionProfileTable.TryGet(WorldEntityType.Ladder, out string ladder, out _);
+        InteractionProfileTable.TryGet(WorldEntityType.Tunnel, out string tunnel, out _);
+        InteractionProfileTable.TryGet(WorldEntityType.TunnelExit, out string exit, out _);
+        Assert.Equal("traversal", ladder);
+        Assert.Equal(tunnel, exit);
+        Assert.NotEqual(ladder, tunnel);
     }
 
     /// <summary>
