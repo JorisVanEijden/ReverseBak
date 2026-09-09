@@ -80,11 +80,21 @@ public static class TrapPuzzleGoal {
     /// combatant list on a non-zero character slot, so monsters wandering past the line do not end
     /// anything.</para>
     /// </remarks>
-    public static bool PartyIsOut(CombatGrid grid, IEnumerable<int> partyMemberRows) {
+    public static bool PartyIsOut(CombatGrid grid, IEnumerable<int> partyMemberRows) =>
+        PartyIsOut(ExitRow(grid), partyMemberRows);
+
+    /// <summary>
+    /// The same test against an exit row already scanned — see <see cref="ExitRow"/>.
+    /// </summary>
+    /// <remarks>
+    /// The grid does not change while the encounter runs, so the row is scanned once on entry and
+    /// carried on <c>CombatEncounter.ObjectiveExitRow</c>. This overload is what lets the encounter
+    /// answer "is it over" without holding a grid.
+    /// </remarks>
+    public static bool PartyIsOut(int exitRow, IEnumerable<int> partyMemberRows) {
         if (partyMemberRows == null) {
             return false;
         }
-        int exitRow = ExitRow(grid);
         foreach (int row in partyMemberRows) {
             if (row >= exitRow) {
                 return true;

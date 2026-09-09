@@ -53,6 +53,18 @@ public sealed class CombatEncounter {
     public bool HasObjective { get; set; }
 
     /// <summary>
+    /// The row a party member has to reach for <see cref="HasObjective"/> to be satisfied, or null
+    /// when there is no objective.
+    /// </summary>
+    /// <remarks>
+    /// <b>Stored rather than recomputed, because it is a fact about the grid the encounter opened
+    /// on</b> — <see cref="TrapPuzzleGoal.ExitRow"/> is a pure scan of the terrain and the terrain
+    /// does not move. Keeping the row here is what lets <see cref="IsOver"/> answer without a
+    /// reference to the grid.
+    /// </remarks>
+    public int? ObjectiveExitRow { get; set; }
+
+    /// <summary>
     /// Whether this encounter may be retreated from at all — TRAPS.DAT's
     /// <see cref="TrapElementType.RetreatLock"/> element, read once on entry.
     /// </summary>
@@ -101,10 +113,42 @@ public sealed class CombatEncounter {
     }
 
     /// <summary>
-    /// Whether the encounter has ended: the party is wiped, or the enemies are gone and no objective
-    /// remains.
+    /// Whether the encounter has ended: the party is wiped, the enemies are gone and no objective
+    /// remains, or the objective has been met.
     /// </summary>
-    public bool IsOver() => PartyAlive() == 0 || (EnemiesAlive() == 0 && !HasObjective);
+    /// <remarks>
+    /// <b>The third arm was missing, and its absence made every trap puzzle unwinnable.</b>
+    /// <see cref="TrapPuzzleGoal.PartyIsOut"/> — the rule that says reaching the exit's row ends the
+    /// puzzle — had no production caller at all, so a party that crossed the hazards and stood on
+    /// the exit tile was told the fight was still on. Measured on zone 1 tile (10,11)'s trap: all
+    /// three members on row 6 with the exit row 6, and <c>IsOver</c> false.
+    ///
+    /// <para>Retreat did not help either: an encounter with a downed member strips the living ones
+    /// one at a time and never completes, so the only way out was to restart the game.</para>
+    /// </remarks>
+    public bool IsOver() =>
+        PartyAlive() == 0 || (EnemiesAlive() == 0 && !HasObjective) || ObjectiveIsMet();
+
+    /// <summary>
+    /// Whether a living party member has reached the objective's row.
+    /// </summary>
+    /// <remarks>
+    /// <b>The dead do not count.</b> A corpse lying past the line is not the party getting out, and
+    /// counting it would end a puzzle the moment its first casualty fell in the right place — which
+    /// on this grid is exactly where the hazards drop you.
+    /// </remarks>
+    public bool ObjectiveIsMet() {
+        if (!HasObjective || !ObjectiveExitRow.HasValue) {
+            return false;
+        }
+        var rows = new List<int>();
+        foreach (Combatant c in Party) {
+            if (!c.IsDead && c.IsPartyMember) {
+                rows.Add(c.Y);
+            }
+        }
+        return TrapPuzzleGoal.PartyIsOut(ObjectiveExitRow.Value, rows);
+    }
 
     /// <summary>
     /// Starts a new round: everyone becomes ready, defend orders lapse, and anyone whose target died
