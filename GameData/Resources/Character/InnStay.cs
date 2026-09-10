@@ -138,15 +138,42 @@ public static class InnStay {
     public static bool OfferAnotherNight(bool everyMemberAtFullPool) => !everyMemberAtFullPool;
 
     /// <summary>
-    /// <b>Payment happens AFTER the night, and nothing in the code checks the party can afford
-    /// it.</b>
+    /// <b>Payment happens AFTER the night, and no C-level code checks the party can afford it —
+    /// because the DIALOG has already refused them.</b>
     /// </summary>
     /// <remarks>
-    /// The deduction is at 0x50353, past the loop and past the completion test — so a stay that is
-    /// somehow interrupted is free, and gold is only ever spent on a night actually slept. There is
-    /// no balance check anywhere on the path: global 30003 exposes "party gold &gt;= the quoted
-    /// price" to the DIALOG, so refusing a pauper is the nightmaster's line to deliver, not a guard
-    /// in the flow. A port that adds an affordability check here makes that dialog branch dead.
+    /// The deduction is at 0x50353, past the loop and past the completion test, so a stay that is
+    /// somehow interrupted is free and gold is only ever spent on a night actually slept.
+    ///
+    /// <para><b>This remark used to stop at "there is no balance check anywhere on the path" and
+    /// warn that adding one would make a dialog branch dead. Both halves were wrong, and they cost
+    /// a wrong "faithful" verdict on 2026-09-10.</b> The check is real and it lives in the dialog
+    /// graph, two hops below the offer: <see cref="OfferDialog"/> routes on Var 0 to the
+    /// nightmaster's line, whose YES branch lands on <c>base:ddx:dial_z13:16238</c> — a text-less
+    /// router that tests <b>Var 3</b> (global 30003, <c>party gold &gt;= the quoted price</c>) and
+    /// falls through to <see cref="RefusedDialogKey"/>, where the innkeeper turns a pauper away and
+    /// the stay never happens.</para>
+    ///
+    /// <para>So the port must not deduct unconditionally. Reading only the top-level record's
+    /// branches finds a Var 0 test and no Var 3, which is exactly the false negative that produced
+    /// the original mistake — the gate is on the ACCEPT path, not on the offer.</para>
     /// </remarks>
     public const bool ChargedAfterTheStay = true;
+
+    /// <summary>
+    /// The condition the offer's accept branch tests — global 30003, <c>Var 3</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>Min = 1</c> on that branch, and 30003 is computed as <c>PartyGold &gt;= price</c>, so a
+    /// party holding exactly the asking price CAN stay. Both figures are in royals.
+    /// </remarks>
+    public static bool CanAfford(int partyGoldRoyals, int priceRoyals) =>
+        partyGoldRoyals >= priceRoyals;
+
+    /// <summary>The nightmaster refusing a party that cannot pay — terminal, so nothing is charged.</summary>
+    /// <remarks>
+    /// "The innkeeper frowned. 'Let me guess,' he said, reading @4's distressed face as he searched
+    /// his pack for the money…". It carries no branches, so the conversation ends there.
+    /// </remarks>
+    public const string RefusedDialogKey = "base:ddx:dial_z13:16267";
 }
