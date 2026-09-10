@@ -243,16 +243,47 @@ public static class DialogBranchWalker {
         return entry.Branches[index];
     }
 
-    // Faithful for FlagCondition (the corpse path) and VarCondition (the named-variable range
-    // 30000+Var, e.g. Var 7 = chapter for the chapter-setup branch); unknown conditions -> false.
+    /// <summary>
+    /// A branch's condition, asked the way the engine asks it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every one of these is a RANGE TEST ON ONE GLOBAL KEY</b> — `gstate_event_read(id)` with a
+    /// min and a max — and the vocabulary of condition types is only the extractor naming the key's
+    /// range. So each arm resolves back to its key and asks <paramref name="getGlobal"/>; adding a
+    /// range is a matter of teaching the reader that key, not of teaching this method a new idea.
+    ///
+    /// <para><b>*** A NULL UPPER BOUND MEANS UNBOUNDED, NOT "EQUAL TO MIN". ***</b> The DDX
+    /// sentinel is 0xFFFF and `DialogBranchFactory` decodes it to null; this read it as
+    /// `value &lt;= (Max ?? Min)`, turning every open-ended test into an exact match. Measured
+    /// 2026-09-10: Limm's "worth a hundred sovereigns if it's worth a pence" gates on
+    /// `Var 1 &gt;= 100` — the party's gold in sovereigns — and with 123 in the purse the deal was
+    /// refused as "a few coins short", because 123 is not 100.</para>
+    ///
+    /// <para><b>And an item gate is a real read, not an unknown.</b> `HasItemCondition` is key
+    /// 50000+id, which `gstate_event_read` answers with `itemtbl_partySize_by_kind` (GSTATE.C:45).
+    /// Returning false for it made every "do you have X" branch in the game unreachable — including
+    /// the seal that opens Romney's bridge.</para>
+    ///
+    /// <para>Still unmodelled and still false: PartyCondition (40001+), HasNoteCondition (51000+),
+    /// SpellTimerActiveCondition (52000+), RandomCondition (53000+) and RawGlobalCondition. Those
+    /// are reader work, not walker work — see TASK-410.</para>
+    /// </remarks>
     private static bool Holds(Condition condition, Func<int, int?> getGlobal) {
         if (condition is FlagCondition f) {
             return ((getGlobal(f.Flag) ?? 0) != 0) == f.Set;
         }
         if (condition is VarCondition v) {
-            int value = getGlobal(30000 + v.Var) ?? 0;
-            return value >= v.Min && value <= (v.Max ?? v.Min);
+            return InRange(getGlobal(30000 + v.Var) ?? 0, v.Min, v.Max);
+        }
+        if (condition is HasItemCondition h) {
+            return InRange(getGlobal(ItemCountGlobalBase + h.Item) ?? 0, h.AtLeast, h.AtMost);
         }
         return false;
     }
+
+    /// <summary>The global key range that answers "how many of object N does the party hold".</summary>
+    public const int ItemCountGlobalBase = 50000;
+
+    private static bool InRange(int value, int min, int? max) =>
+        value >= min && value <= (max ?? int.MaxValue);
 }

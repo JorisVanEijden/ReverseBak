@@ -39,6 +39,33 @@ public static class InventoryQuery {
         return total;
     }
 
+    /// <summary>
+    /// How many of an object the whole party holds, and which member has it —
+    /// <c>itemtbl_partySize_by_kind</c> (ITEMTBL.C:109), the answer behind global key 50000+id.
+    /// </summary>
+    /// <remarks>
+    /// Every active member's pack, then the shared inventory, summed with <see cref="CountByKind"/>
+    /// — charges and all. <paramref name="holderSlot"/> is the original's <c>nEvtArgActor0</c>
+    /// write, which a dialog uses to name whoever is carrying the thing: it starts at slot 0 and
+    /// moves to the LAST member found holding one, exactly as the loop does. -1 only when there are
+    /// no packs at all; the shared inventory is nobody's, so finding it there leaves the slot alone.
+    /// </remarks>
+    public static int CountAcrossParty(IReadOnlyList<RuntimeContainer> packs,
+        RuntimeContainer shared, int objectId, out int holderSlot) {
+        holderSlot = packs != null && packs.Count > 0 ? 0 : -1;
+        var total = 0;
+        if (packs != null) {
+            for (var slot = 0; slot < packs.Count; slot++) {
+                int n = CountByKind(packs[slot], objectId);
+                if (n > 0) {
+                    holderSlot = slot;
+                    total += n;
+                }
+            }
+        }
+        return total + CountByKind(shared, objectId);
+    }
+
     // ---------------------------------------------------------------- across the whole party
 
     /// <summary>
