@@ -320,6 +320,26 @@ public static class InventoryTransfer {
     // worth exactly one on the ring.
     private static Result AddToKeyring(RuntimeContainer source, int itemIndex, RuntimeItem item,
         RuntimeContainer keys, ObjectInfoSet objects) {
+        AddKeyToRing(item, keys, objects);
+        RemoveAt(source, itemIndex);
+        return Result.Moved;
+    }
+
+    /// <summary>
+    /// Puts one key on the party's ring, with no source slot to take it from.
+    /// </summary>
+    /// <remarks>
+    /// The half of the cat-7 branch that is not about moving: a kind already on the ring bumps its
+    /// count, a new kind is appended with count 1, and there is no fit test — the ring never
+    /// refuses. Shared with <see cref="InventoryAcquire"/>, because a key a DIALOG hands over goes
+    /// to the same place as one picked up: <c>cmbinv_actor_acquire_item</c> (CMBINV.C:1008) opens
+    /// with <c>if (rec-&gt;wCategory == 7) cmbinv_actor_pickup_item(...)</c> before it looks at the
+    /// member's pack at all.
+    /// </remarks>
+    public static void AddKeyToRing(RuntimeItem item, RuntimeContainer keys, ObjectInfoSet objects) {
+        if (item == null || keys == null) {
+            return;
+        }
         bool alreadyHeld = false;
         foreach (RuntimeItem held in keys.Items) {
             if (held.ObjectId == item.ObjectId) {
@@ -334,8 +354,6 @@ public static class InventoryTransfer {
         }
         keys.Dirty = true;
         InventoryOrder.Sort(keys, objects, equippedOrder: false); // cmbinv_combat_sort_initiative
-        RemoveAt(source, itemIndex);
-        return Result.Moved;
     }
 
     // The shared insert: destination receives a clone carrying `amount`, arriving unequipped

@@ -17,9 +17,26 @@ public static class InventoryAcquire {
     /// False when there is no room — and the caller must act on that, because the original charges
     /// for the item only when it was actually accepted.
     /// </returns>
-    public static bool TryGive(RuntimeContainer container, RuntimeItem item, ObjectInfoSet objects) {
+    /// <param name="sharedKeys">
+    /// The party's one shared keys inventory. A KEY never reaches the member's pack:
+    /// <c>cmbinv_actor_acquire_item</c> (CMBINV.C:1008) opens with
+    /// <c>if (rec-&gt;wCategory == 7) { cmbinv_actor_pickup_item(...); return 1; }</c>, before the
+    /// space test. Null disables the diversion, which is what a save with no such container gets.
+    ///
+    /// <para><b>This is not cosmetic.</b> The picklock screen builds its working set from the ring,
+    /// so a key that landed in a pack is invisible to every lock. Measured 2026-09-10: Jimmy the
+    /// Hand's Royal Key of Krondor — the ONLY copy of object 71 the game hands out, and the only
+    /// thing that opens the chapter-1 palace grate — went into Owyn's pack and the grate's working
+    /// set showed a Peasant's Key and two picklocks.</para>
+    /// </param>
+    public static bool TryGive(RuntimeContainer container, RuntimeItem item, ObjectInfoSet objects,
+        RuntimeContainer sharedKeys = null) {
         if (container == null || item == null) {
             return false;
+        }
+        if (sharedKeys != null && objects?.GetById(item.ObjectId)?.ObjectType == ObjectType.Key) {
+            InventoryTransfer.AddKeyToRing(item, sharedKeys, objects);
+            return true;
         }
         if (!InventoryTransfer.CanFit(container, item, objects)) {
             return false;
