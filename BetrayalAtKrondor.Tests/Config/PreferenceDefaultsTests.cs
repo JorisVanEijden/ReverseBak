@@ -12,10 +12,10 @@ using Xunit;
 /// <remarks>
 /// <b>A comment in PreferencesService claimed they matched and one of them did not.</b>
 /// <c>StepSize</c> initialized to Medium where byte 0 of the file is 2 = Large, so every consumer
-/// that fell back to the initializers walked one preset too fast — MOVEMENT.DAT's step distance
-/// AND, because its third array is indexed by the same preference, the game seconds elapsed per
-/// step. Measured against the original on the same save: 200 units and 120 s per keypress against
-/// the original's 100 and 60.
+/// that fell back to the initializers took one preset too BIG a step — MOVEMENT.DAT's step
+/// distance and, because its third array is indexed by the same preference, the game seconds
+/// elapsed per step. Measured against the original on the same save: 200 units and 120 s per
+/// keypress against the original's 100 and 60.
 /// </remarks>
 public class PreferenceDefaultsTests {
     /// <summary>The five bytes of the shipped DEFAULT.DAT (CDEFAULT.DAT differs only in flags).</summary>
@@ -43,9 +43,12 @@ public class PreferenceDefaultsTests {
     [Fact]
     public void TheStepPresetPicksBothTheDistanceAndTheClockRate() {
         // MOVEMENT.DAT: StepDistances[3] then TurnAngles[3] then SecondsPerStep[3], and
-        // WORLDMOV.C indexes the FIRST and THIRD with step_speed. So one wrong preset moves the
-        // party further per press *and* burns game time faster — the reason a wrong default shows
-        // up as attrition (exhaustion, rations) rather than as a movement bug.
+        // WORLDMOV.C indexes the FIRST and THIRD with step_speed. The two move TOGETHER: every
+        // preset is 6.667 units per game-second (400/60, 800/120, 1600/240), so the preset sets
+        // the GRANULARITY of a press and not the party's speed, and a journey costs the same game
+        // time at any setting. Asserted here because the tempting reading — "bigger step, so time
+        // runs faster" — is wrong, and it briefly had a wrong default blamed for the playthrough's
+        // exhaustion and ration drain.
         var table = new MovementData("MOVEMENT.DAT") {
             StepDistances = new[] { 400, 800, 1600 },
             TurnAngles = new[] { 1024, 2048, 4096 },
@@ -59,5 +62,11 @@ public class PreferenceDefaultsTests {
 
         // The turn array is indexed by the OTHER preference, so it does not move with StepSize.
         Assert.Equal(2048, table.TurnAngleFor(TurnSize.Medium));
+
+        // The invariant that makes the preset a comfort setting rather than a difficulty one.
+        foreach (StepSize preset in new[] { StepSize.Small, StepSize.Medium, StepSize.Large }) {
+            Assert.Equal(400m / 60m,
+                (decimal)table.StepDistanceFor(preset) / table.SecondsPerStepFor(preset));
+        }
     }
 }
