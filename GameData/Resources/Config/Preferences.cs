@@ -20,7 +20,14 @@ public class Preferences : IResource {
     }
 
     // Movement
-    public StepSize StepSize { get; set; } = StepSize.Medium;
+    /// <remarks>
+    /// <b>These initializers are the shipped DEFAULT.DAT (02 01 02 00 0F), field for field</b> —
+    /// they are what a first run gets before any file is read, so a value that drifts from the
+    /// file is a silent behaviour change with nothing to compare against.
+    /// <see cref="BetrayalAtKrondor.Tests"/>' BuiltInDefaultsMatchShippedDefaultDat pins them.
+    /// <c>StepSize</c> read Medium until 2026-09-10 while the file says 2 = Large.
+    /// </remarks>
+    public StepSize StepSize { get; set; } = StepSize.Large;
     public TurnSize TurnSize { get; set; } = TurnSize.Medium;
 
     // Display
