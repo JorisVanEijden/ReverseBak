@@ -264,9 +264,20 @@ public static class DialogBranchWalker {
     /// Returning false for it made every "do you have X" branch in the game unreachable — including
     /// the seal that opens Romney's bridge.</para>
     ///
-    /// <para>Still unmodelled and still false: PartyCondition (40001+), HasNoteCondition (51000+),
-    /// SpellTimerActiveCondition (52000+), RandomCondition (53000+) and RawGlobalCondition. Those
-    /// are reader work, not walker work — see TASK-410.</para>
+    /// <para><b>The 56000-stride keys are not a range test at all</b> — they are a masked bitfield
+    /// test over one byte of <c>event_bitmap_hi</c>, ANDed or ORed with a chapter mask, and the
+    /// extractor already splits them into an <see cref="AllOf"/> / <see cref="AnyOf"/> of per-bit
+    /// <see cref="FlagCondition"/>s plus an <see cref="InChapters"/>. DIALOG.C:1399-1420 is the
+    /// original: with the selector byte set it takes the branch only when every selected bit matches
+    /// AND the chapter bit is in the mask; with the selector clear, when any selected bit matches OR
+    /// the chapter bit is. <b>141 shipped branches</b> are one of those two — seven times everything
+    /// else left unmodelled put together.</para>
+    ///
+    /// <para>Still unmodelled and still false: PartyCondition (12 shipped branches),
+    /// HasNoteCondition (3), SpellTimerActiveCondition (3), RandomCondition (1) and
+    /// RawGlobalCondition (0). Those need the READER to answer their key ranges, which is
+    /// TASK-410; these three needed nothing new, because everything inside them was already
+    /// answerable.</para>
     /// </remarks>
     private static bool Holds(Condition condition, Func<int, int?> getGlobal) {
         if (condition is FlagCondition f) {
@@ -278,8 +289,45 @@ public static class DialogBranchWalker {
         if (condition is HasItemCondition h) {
             return InRange(getGlobal(ItemCountGlobalBase + h.Item) ?? 0, h.AtLeast, h.AtMost);
         }
+        if (condition is AllOf all) {
+            // Empty is TRUE, and that is the shipped arithmetic rather than a convention:
+            // a zero match mask makes `((bits ^ xor) & mask) == mask` hold vacuously.
+            foreach (Condition part in all.Conditions) {
+                if (!Holds(part, getGlobal)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (condition is AnyOf any) {
+            foreach (Condition part in any.Conditions) {
+                if (Holds(part, getGlobal)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (condition is InChapters chapters) {
+            return chapters.Chapters != null && chapters.Chapters.Contains(ChapterOf(getGlobal));
+        }
         return false;
     }
+
+    /// <summary>Global 30007, with everything past chapter 8 folded onto 8.</summary>
+    /// <remarks>
+    /// The original builds a one-bit mask, <c>chapter &lt; 9 ? 1 &lt;&lt; (chapter - 1) : 0x80</c>
+    /// (DIALOG.C:1402), so chapter 9 and beyond share chapter 8's bit — and the extractor's chapter
+    /// list, which only ever runs 1..8, is the other half of the same rule.
+    /// </remarks>
+    private static int ChapterOf(Func<int, int?> getGlobal) {
+        int chapter = getGlobal(ChapterGlobalKey) ?? 0;
+        return chapter >= LastChapterBit ? LastChapterBit : chapter;
+    }
+
+    /// <summary>Global 30007 — the chapter, which is Var 7.</summary>
+    public const int ChapterGlobalKey = 30007;
+
+    private const int LastChapterBit = 8;
 
     /// <summary>The global key range that answers "how many of object N does the party hold".</summary>
     public const int ItemCountGlobalBase = 50000;

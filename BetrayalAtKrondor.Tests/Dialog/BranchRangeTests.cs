@@ -81,4 +81,75 @@ public class BranchRangeTests {
         Assert.Equal("the condition held", Walk(condition, k => k == key ? 1 : (int?)null));
         Assert.Equal("the default", Walk(condition, k => k == key ? 0 : (int?)null));
     }
+
+    // The 56000-stride masked-bitfield branches, which the extractor splits into AllOf/AnyOf of
+    // per-bit FlagConditions plus an InChapters. 141 shipped branches, all of them false until now.
+    private const int StoryFlagA = 56201;
+    private const int StoryFlagB = 56202;
+
+    private static System.Func<int, int?> Flags(int chapter, params int[] set) =>
+        key => key == DialogBranchWalker.ChapterGlobalKey ? chapter
+            : System.Array.IndexOf(set, key) >= 0 ? 1 : 0;
+
+    [Fact]
+    public void AllOfNeedsEveryBitToMatch() {
+        // DIALOG.C:1400-1409, the selector-set arm: ((bits ^ xor) & match) == match.
+        var condition = new AllOf {
+            Conditions = new List<Condition> {
+                new FlagCondition { Flag = StoryFlagA, Set = true },
+                new FlagCondition { Flag = StoryFlagB, Set = false },
+            },
+        };
+
+        Assert.Equal("the condition held", Walk(condition, Flags(3, StoryFlagA)));
+        Assert.Equal("the default", Walk(condition, Flags(3, StoryFlagA, StoryFlagB)));
+        Assert.Equal("the default", Walk(condition, Flags(3)));
+    }
+
+    [Fact]
+    public void AnyOfNeedsOnlyOne() {
+        // The selector-clear arm: ((bits ^ xor) & match) != 0 OR the chapter bit is in the mask.
+        var condition = new AnyOf {
+            Conditions = new List<Condition> {
+                new FlagCondition { Flag = StoryFlagA, Set = true },
+                new InChapters { Chapters = new List<int> { 5 } },
+            },
+        };
+
+        Assert.Equal("the condition held", Walk(condition, Flags(3, StoryFlagA)));
+        Assert.Equal("the condition held", Walk(condition, Flags(5)));
+        Assert.Equal("the default", Walk(condition, Flags(3)));
+    }
+
+    [Fact]
+    public void AnEmptyAllOfHoldsAndAnEmptyAnyOfDoesNot() {
+        // Not a convention: a zero match mask makes ((bits ^ xor) & 0) == 0 hold vacuously on the
+        // AND arm and fail on the OR arm, which is the same asymmetry.
+        Assert.Equal("the condition held",
+            Walk(new AllOf { Conditions = new List<Condition>() }, Flags(1)));
+        Assert.Equal("the default",
+            Walk(new AnyOf { Conditions = new List<Condition>() }, Flags(1)));
+    }
+
+    [Fact]
+    public void EveryChapterPastTheEighthSharesTheEighthsBit() {
+        // `chapter < 9 ? 1 << (chapter - 1) : 0x80` (DIALOG.C:1402), which is why the extractor's
+        // chapter list only ever runs 1..8.
+        var condition = new InChapters { Chapters = new List<int> { 8 } };
+
+        Assert.Equal("the condition held", Walk(condition, Flags(8)));
+        Assert.Equal("the condition held", Walk(condition, Flags(9)));
+        Assert.Equal("the default", Walk(condition, Flags(7)));
+    }
+
+    [Fact]
+    public void AnEmptyChapterListMatchesNoChapterAtAll() {
+        // chapterMask 0 decodes to an empty list, and it is a real "never" arm rather than a
+        // missing one — 0xFF is what means "any chapter", and DecodeChapters drops it entirely.
+        var condition = new InChapters { Chapters = new List<int>() };
+
+        for (var chapter = 1; chapter <= 9; chapter++) {
+            Assert.Equal("the default", Walk(condition, Flags(chapter)));
+        }
+    }
 }
