@@ -43,6 +43,15 @@ public sealed class PendingTeleport {
     /// <summary>Whether anything is waiting at all.</summary>
     public bool HasAnything => _destination != null;
 
+    /// <summary>The waiting row's id, or null when the slot is empty.</summary>
+    /// <remarks>
+    /// A peek, not a take. TOWNSCN.C:460/510 snapshots <c>abTeleportRecord[0]</c> before a
+    /// hotspot's dialog and compares it afterwards to decide whether that dialog queued a
+    /// teleport — the location loop exits when it did. Comparing <see cref="HasAnything"/>
+    /// instead would miss a dialog that REPLACES one already waiting.
+    /// </remarks>
+    public int? QueuedId => _destination?.Id;
+
     /// <summary>Whether the waiting destination sends the location loop to another scene.</summary>
     public bool HasScene => _destination != null && ZoneTransition.RunsAScene(_destination.GdsNumber);
 

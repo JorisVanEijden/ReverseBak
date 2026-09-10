@@ -114,4 +114,38 @@ public class PendingTeleportTests {
         Assert.False(slot.HasAnything);
         Assert.False(slot.HasScene);
     }
+
+    [Fact]
+    public void TheQueuedIdIsAPeek_AndSurvivesTheSceneHalfBeingTaken() {
+        // TOWNSCN.C:460/510 compares this id before and after a hotspot's dialog to decide whether
+        // the location loop exits. It has to read WITHOUT draining, and it has to still be there
+        // after the scene half has gone, or a temple teleport would look like it had been cancelled.
+        var slot = new PendingTeleport();
+        Assert.Null(slot.QueuedId);
+
+        slot.Queue(Temple());
+        Assert.Equal(0, slot.QueuedId);
+        Assert.Equal(0, slot.QueuedId);   // still there: peeking is not taking
+
+        slot.TryTakeScene(out _, out _);
+        Assert.Equal(0, slot.QueuedId);
+
+        slot.TakeLocation();
+        Assert.Null(slot.QueuedId);
+    }
+
+    [Fact]
+    public void ADialogThatREPLACESAWaitingDestinationStillCountsAsQueueingOne() {
+        // Why the check is on the id and not on HasAnything: the slot is a single global and the
+        // last writer wins, so "something is waiting" reads the same before and after.
+        var slot = new PendingTeleport();
+        slot.Queue(Temple());
+        int? before = slot.QueuedId;
+
+        slot.Queue(LadderOrTunnel());
+
+        Assert.True(slot.HasAnything);
+        Assert.NotEqual(before, slot.QueuedId);
+        Assert.Equal(12, slot.QueuedId);
+    }
 }
