@@ -187,6 +187,23 @@ public class ShopStockTests {
     }
 
     [Fact]
+    public void ABuyerWithNoRoomBuysNothingAndKeepsTheGold() {
+        // The refusal InventoryMenu.CompletePurchaseAsync has to SAY something about: at Romney's
+        // tavern on 2026-09-10 the offer was accepted, Buy returned false on the room check and
+        // nothing moved or was said, which reads as a dead Accept button (TASK-413).
+        RuntimeContainer shop = Shop(4, Owned(OtherId));
+        var buyer = new RuntimeContainer { Capacity = 1, ContainerType = SaveGameContainerType.Inventory };
+        buyer.Items.Add(new RuntimeItem((byte)CheapId, 1, 0));
+        var gold = 100;
+
+        Assert.False(ShopStock.Buy(shop, buyer, shop.Items[0], Objects(), 40, ref gold));
+
+        Assert.Equal(100, gold);
+        Assert.Single(buyer.Items);
+        Assert.Single(shop.Items);
+    }
+
+    [Fact]
     public void APartyThatCannotAffordItBuysNothing() {
         RuntimeContainer shop = Shop(4, Stocked(OtherId));
         var buyer = new RuntimeContainer { Capacity = 10, ContainerType = SaveGameContainerType.Inventory };
