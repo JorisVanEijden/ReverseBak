@@ -97,15 +97,15 @@ public static class FixedObjectClick {
     /// original is
     /// <c>pSub8 != 0 &amp;&amp; pSub8-&gt;hotspot_action.bHas_hotspot != 0</c> (WCURSOR.C:285) — the
     /// subrecord AND a non-zero byte inside it, which IDA names
-    /// <c>containerData_encounter.firesTrapEncounter</c> and <c>handle_Grave</c> @0x77d5b tests the
+    /// <c>containerData_encounter.hasHotspot</c> and <c>handle_Grave</c> @0x77d5b tests the
     /// same way. canassa's <c>bHas_hotspot</c> is the misleading half: it reads as "there is a
     /// hotspot" when it is a field within one.</para>
     ///
     /// <para>An object that fires no trap has no such restriction.</para>
     /// </remarks>
-    public static bool IsWithinReach(bool firesTrapEncounter, int objectTileX, int objectTileY,
+    public static bool IsWithinReach(bool hasHotspot, int objectTileX, int objectTileY,
         int partyTileX, int partyTileY) =>
-        !firesTrapEncounter || (objectTileX == partyTileX && objectTileY == partyTileY);
+        !hasHotspot || (objectTileX == partyTileX && objectTileY == partyTileY);
 
     /// <summary>
     /// Whether the entry gate lets the click through.

@@ -6,17 +6,17 @@ public class SaveGameContainerEncounterData {
         int globalDataKey2,
         byte gdsNumber,
         byte gdsLetter,
-        byte firesTrapEncounter,
-        byte x,
-        byte y
+        byte hasHotspot,
+        byte hotspotX,
+        byte hotspotY
     ) {
         GlobalDataKey1 = globalDataKey1;
         GlobalDataKey2 = globalDataKey2;
         GdsNumber = gdsNumber;
         GdsLetter = gdsLetter;
-        FiresTrapEncounter = firesTrapEncounter;
-        X = x;
-        Y = y;
+        HasHotspot = hasHotspot;
+        HotspotX = hotspotX;
+        HotspotY = hotspotY;
     }
 
     /// <summary>
@@ -39,16 +39,33 @@ public class SaveGameContainerEncounterData {
     public byte GdsNumber { get; }
     public byte GdsLetter { get; }
 
-    // 0x06. When nonzero, this location has a positioned trap/ambush: handle_Building (0x76b39),
-    // handle_Tunnel, handle_Grave require the player on the exact tile, then fire the tile's
-    // DEF_TRAP encounter at (X, Y) via sub_stub187_34(def_trap_dat, X, Y) before the GDS/dialog
-    // flow. 0 = plain GDS-scene/dialog location. (IDA: containerData_encounter.firesTrapEncounter.)
-    public byte FiresTrapEncounter { get; }
-    public byte X { get; }
-    public byte Y { get; }
+    /// <summary>
+    /// 0x06. Nonzero when this location names a HOTSPOT at
+    /// (<see cref="HotspotX"/>, <see cref="HotspotY"/>) for its click to dispatch.
+    /// </summary>
+    /// <remarks>
+    /// <b>It was called <c>FiresTrapEncounter</c>, and the "trap" was wrong.</b> The original's
+    /// subrecord is <c>hotspot_action { bHas_hotspot, bHotspot_x, bHotspot_y }</c> (WCURSOR.C:268)
+    /// and the DISPATCH KIND is the caller's, not the field's:
+    /// <c>wcursor_click_fixedobj_picklock</c> dispatches type <b>7</b> at WCURSOR.C:308 — a trap —
+    /// while <c>wcursor_click_npc_or_trap</c> dispatches type <b>8</b>, a zone crossing, which is
+    /// how the Mac Mordain Cadal's stairs are left. A name that says "trap" reads as
+    /// "tunnels do not use this", which is exactly the wrong conclusion (TASK-400).
+    ///
+    /// <para>Every caller gates the same way: the party must be on the object's own map tile, then
+    /// the hotspot at (X, Y) is dispatched before any GDS scene or dialog. Zero means a plain
+    /// scene/dialog location.</para>
+    /// </remarks>
+    public byte HasHotspot { get; }
 
-    public bool IsFiresTrapEncounterSet {
-        get => FiresTrapEncounter != 0;
+    /// <summary>The hotspot's grid X — the OBJECT's coordinate, not the party's.</summary>
+    public byte HotspotX { get; }
+
+    /// <inheritdoc cref="HotspotX"/>
+    public byte HotspotY { get; }
+
+    public bool HasHotspotSet {
+        get => HasHotspot != 0;
     }
 
     public string? GdsFilename {

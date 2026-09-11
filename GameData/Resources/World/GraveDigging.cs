@@ -105,7 +105,7 @@ public static class GraveDigging {
     /// <param name="partyTileX">The tile the party is standing in.</param>
     /// <param name="partyTileY"><inheritdoc cref="PartyIsCloseEnough" path="/param[@name='partyTileX']"/></param>
     /// <remarks>
-    /// Only when the container's encounter data has <c>firesTrapEncounter</c> set. The handler
+    /// Only when the container's encounter data has <c>hasHotspot</c> set. The handler
     /// divides the grave's world coordinates by <see cref="WorldPlacement.TileSize"/> and compares
     /// both against the current tile, bailing <b>silently</b> if either differs — no dialog, no
     /// sound, nothing. An untrapped grave has no such test and can be dug from wherever it is
