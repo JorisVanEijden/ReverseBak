@@ -529,6 +529,7 @@ public class BakOverrides : CSharpOverrideHelper {
         DefineTrapSpike();
         DefineCombatSpike();
         DefineTrapTriggerSpike();
+        DefineTownTriggerSpike();
     }
 
     /// <summary>
@@ -822,6 +823,108 @@ public class BakOverrides : CSharpOverrideHelper {
 
             _loggerService.LogInformation(
                 "Trap-trigger spike: calling trapTrigger_phase2(entry {Entry}) at DS:{Ptr:X4}",
+                entryNumber, nearStruct);
+        });
+    }
+
+    /// <summary>
+    /// Opt-in harness that ENTERS A TOWN directly: set <c>BAK_TOWN_TRIGGER=entryNumber</c> and the
+    /// next world frame runs <c>townTrigger_phase2</c> for that DEF_TOWN entry.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is <see cref="DefineTrapTriggerSpike" /> for the other door, and it exists for the
+    /// same reason.</b> Comparing a shop against the original needs the party inside a town, and
+    /// walking there is not reliably possible: zone 1 has exactly one Town trigger in chapter 1
+    /// (<c>def_town:0</c>, tile (10,14), a single-subcell column), the shipped save parked closest
+    /// to it cannot step in any of the eight compass headings, and the walk from <c>dir:1:1</c>
+    /// runs into an encounter dialog that no input dismisses. Four sessions have now tried.
+    ///
+    /// <para><b>The entry number is a DEF_TOWN index, and the scene is its own.</b>
+    /// <c>hotspotevt_action_enter_town</c> loads DEF_TOWN record <c>evt-&gt;dwDef_record_offset</c>
+    /// and hands <c>*(unsigned int *)(buf + 2)</c> — the record's <c>GdsSceneNumber</c> — to
+    /// <c>townscene_main_loop</c>. They are NOT the same number:
+    /// <c>def_town:6</c> opens GDS scene 6 but <c>def_town:2</c> opens scene 5. The shop work this
+    /// was built for is in Romney, which is <c>BAK_TOWN_TRIGGER=6</c>.</para>
+    ///
+    /// <para><b>One argument, not two.</b> The signature is
+    /// <c>void far hotspotevt_action_enter_town(ZoneHotspot *evt)</c> — no out-parameter, so there
+    /// is no stack scratch to reserve. The struct is the same 19-byte <c>ZoneHotspot</c> the trap
+    /// spike forges (<c>wKind</c> at +0, <c>dwDef_record_offset</c> at +6), built in the game's own
+    /// <c>defFileStructs</c> array so every pointer convention the callee assumes still holds.</para>
+    ///
+    /// <para>The resident thunk is <c>j_townTrigger_phase2</c> @0x39A6B — the body is in ovr187 and
+    /// must be reached through the stub, exactly as the trap one is.</para>
+    /// </remarks>
+    private void DefineTownTriggerSpike() {
+        if (!int.TryParse(Environment.GetEnvironmentVariable("BAK_TOWN_TRIGGER"),
+                out int entryNumber) || entryNumber < 0) {
+            return;
+        }
+
+        _loggerService.LogInformation("Town-trigger spike: armed (DEF_TOWN entry {Entry})", entryNumber);
+
+        // SP is restored on the way back for the reason the trap spike documents: the callee
+        // returns with the caller's argument cleanup still owed, and the return lands mid-function
+        // in code the game entered by a NEAR call.
+        var entered = false;
+        var returning = false;
+        ushort savedSp = 0;
+        DoOnTopOfInstructionIda(0x2C97, 0x000F, () => {
+            if (returning) {
+                // *** THE TOWN SCENE RUNS ITS OWN MAIN LOOP, AND IT REACHES THIS INSTRUCTION. ***
+                // The trap spike restores SP on the hook's next firing, which is sound only while
+                // nothing between the call and the return comes back through here.
+                // townscene_main_loop does: the first firing after the call was 2.5 seconds in,
+                // deep inside the scene, and restoring SP there tore the stack up — the CPU ended
+                // at 0000:0033 executing a LOCK-prefixed RCL and the emulator took #UD.
+                //
+                // The real return is the ONE firing with the stack back where the far return left
+                // it: savedSp minus the 2-byte argument this caller still owes. Inside the scene
+                // loop SP is far lower, so the test is unambiguous.
+                if (State.SP != (ushort)(savedSp - 2)) {
+                    return;
+                }
+                State.SP = savedSp;
+                returning = false;
+                _loggerService.LogInformation("Town-trigger spike: returned, SP restored to {Sp:X4}", savedSp);
+                return;
+            }
+            if (entered) {
+                return;
+            }
+            entered = true;
+            savedSp = State.SP;
+
+            uint structLinear = IdaLinear(IdaDefFileStructs);
+            var nearStruct = (ushort)(structLinear - ((uint)State.DS << 4));
+
+            // A Town ZoneHotspot in the game's own array slot 0. The bbox spans the whole tile so
+            // nothing downstream can decide the party is outside it.
+            UInt16[structLinear + 0x00] = 6;                        // wKind = Town
+            Memory.UInt8[structLinear + 0x02] = 0;                  // bbox.minX
+            Memory.UInt8[structLinear + 0x03] = 39;                 // bbox.maxY
+            Memory.UInt8[structLinear + 0x04] = 39;                 // bbox.maxX
+            Memory.UInt8[structLinear + 0x05] = 0;                  // bbox.minY
+            Memory.UInt32[structLinear + 0x06] = (uint)entryNumber; // dwDef_record_offset
+            Memory.UInt8[structLinear + 0x0A] = 0;                  // bInhibitChapter
+            UInt16[structLinear + 0x0B] = 0;                        // wEvent_flag_pre1
+            UInt16[structLinear + 0x0D] = 0;                        // wEvent_flag_pre2
+            // *** ZERO, DELIBERATELY. *** enter_town writes this key on the way out
+            // (gstate_event_write(evt->wEvent_key_post, 1)), so a forged non-zero value would set a
+            // story flag the player never earned and leave the save quietly wrong.
+            UInt16[structLinear + 0x0F] = 0;                        // wEvent_key_post
+            UInt16[structLinear + 0x11] = 0;                        // wRepeat
+
+            Stack.Push16(nearStruct);  // the only argument
+            Stack.Push16(State.CS);    // far return
+            Stack.Push16(State.IP);
+
+            returning = true;
+            State.CS = RuntimeSegment(0x39A6);   // j_townTrigger_phase2 @0x39A6B
+            State.IP = 0x000B;
+
+            _loggerService.LogInformation(
+                "Town-trigger spike: calling townTrigger_phase2(entry {Entry}) at DS:{Ptr:X4}",
                 entryNumber, nearStruct);
         });
     }
