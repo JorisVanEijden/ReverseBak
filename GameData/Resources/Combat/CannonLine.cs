@@ -98,10 +98,21 @@ public static class CannonLine {
     /// Which way a cannon shoots, derived from the scan that finds it.
     /// </summary>
     /// <remarks>
-    /// <see cref="Scans"/> reads "step this way from the target and a cannon of this kind can see
-    /// you", so the shot travels back along that step — the negation. Derived rather than written
-    /// out, because the four terrain names do not agree with the grid's y direction and a hand-typed
-    /// table would be a coin flip on two of them.
+    /// <b>Nothing in this build reads it, and that is the finding.</b> The wiki-level rules say
+    /// "the posts can be deactivated if hit by a cannon's fireball", so a first pass walked the
+    /// shot outward from the cannon and collapsed the post it reached. That mechanism is not in
+    /// V102CD: the cannon fires <see cref="SpellId"/> (Flamecast), whose <c>AnimationEffectType</c>
+    /// is <b>3</b>, and the only branch that collapses a run —
+    /// <c>combat_actor_tile_entry_effect</c> case 3's <c>else</c>, which calls
+    /// <c>combatgrid_shove_until_unblocked</c> — is reached only when the entity's
+    /// <c>shapeId</c> is <b>2</b>. <c>projectile.base.shapeId = action_id</c>
+    /// (WORLDHIT.C:627), so a Flamecast projectile never takes it. The one shipped spell with
+    /// animation 2 is Despair Thy Eyes; Black Nimbus reaches the collapse by a different route
+    /// (<c>combatgrid_push_back_actor(g_cursor_tile_x, g_cursor_tile_y)</c>, CSPELL.C:876).
+    ///
+    /// <para>Kept because the direction itself is measured and awkward to re-derive — the four
+    /// terrain names do not agree with the grid's y direction — and because the collapse question
+    /// will be asked again. The answer is here with its evidence rather than in a task note.</para>
     /// </remarks>
     public static (int Dx, int Dy) FiringDirection(CombatTerrain cannon) {
         foreach ((int dx, int dy, CombatTerrain wanted) in Scans) {
@@ -111,59 +122,6 @@ public static class CannonLine {
         }
 
         return (0, 0);
-    }
-
-    /// <summary>
-    /// The gem-post a cannon's fireball reaches, if any — the shot continues PAST a transparent
-    /// crystal and stops at anything else.
-    /// </summary>
-    /// <remarks>
-    /// <b>This is the route the later puzzles are built around.</b> The rules, as the game is
-    /// described: "the cannons fire a single blast each time a person <i>or crystal</i> is moved
-    /// into their path; their fireballs are blocked by solid crystals but pass through transparent
-    /// ones", and "the posts can be deactivated if hit by a cannon's fireball". So pushing the
-    /// CLEAR crystal into a cannon's line shoots whatever stands beyond it, and a post beyond it is
-    /// switched off — which is how a board with no safe lane is opened up.
-    ///
-    /// <para>The walk starts on the tile after the cannon and stops at the first thing that is not
-    /// transparent: a post (answered), a solid crystal or a living combatant (blocked, nothing
-    /// answered), or the edge of the grid.</para>
-    /// </remarks>
-    /// <param name="occupiedByLiveCombatant">
-    /// Whether a tile holds a LIVING combatant, who stops the shot. Dead ones do not block, exactly
-    /// as in <see cref="ShotsOn"/>.
-    /// </param>
-    public static TrapGridElement PostStruckBy(TrapPuzzle puzzle, Shot shot,
-        System.Func<int, int, bool> occupiedByLiveCombatant = null) {
-        if (puzzle == null) {
-            return null;
-        }
-
-        (int dx, int dy) = FiringDirection(shot.Cannon);
-        if (dx == 0 && dy == 0) {
-            return null;
-        }
-
-        int tx = shot.X;
-        int ty = shot.Y;
-        while (true) {
-            tx += dx;
-            ty += dy;
-            if (!CombatGrid.InBounds(tx, ty)) {
-                return null;
-            }
-
-            if (occupiedByLiveCombatant != null && occupiedByLiveCombatant(tx, ty)) {
-                return null;   // it hits the person instead
-            }
-
-            TrapGridElement element = puzzle.ElementAt(tx, ty);
-            if (element == null || element.ElementId == TransparentElementId) {
-                continue;      // empty ground, or a clear crystal the shot passes through
-            }
-
-            return CrystalChain.IsCrystalElement(element.ElementId) ? element : null;
-        }
     }
 
     /// <summary>

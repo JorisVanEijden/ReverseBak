@@ -22,38 +22,6 @@ public class CannonLineTests {
     private const int LaysCannonNorth = -12;
     private const int LaysCannonSouth = -13;
 
-    // The two halves of a linked pair; a run is painted between aligned ones.
-    private const int SolidCrystalPost = 7;
-    private const int ClearPushable = 10;
-    private const int SolidPushable = 9;
-
-    [Fact]
-    public void AFireballPassesThroughAClearCrystalAndReachesThePostBeyond() {
-        // Cannon at (1,5) firing east; a clear pushable at (3,5); a post at (5,5).
-        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements(
-            (LaysCannonEast, 1, 5), (ClearPushable, 3, 5), (SolidCrystalPost, 5, 5)));
-
-        CannonLine.Shot shot = new List<CannonLine.Shot>(
-            CannonLine.ShotsOn(puzzle, 3, 5))[0];
-        TrapGridElement hit = CannonLine.PostStruckBy(puzzle, shot);
-
-        Assert.NotNull(hit);
-        Assert.Equal(5, hit.X);
-        Assert.Equal(5, hit.Y);
-    }
-
-    [Fact]
-    public void ASolidCrystalStopsTheFireballShortOfThePost() {
-        // Same board, but the thing in the way is SOLID: "blocked by solid crystals".
-        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements(
-            (LaysCannonEast, 1, 5), (SolidPushable, 3, 5), (SolidCrystalPost, 5, 5)));
-
-        // The solid crystal also blocks the cannon SEEING the tile beyond it, so ask about its own.
-        var shots = new List<CannonLine.Shot>(CannonLine.ShotsOn(puzzle, 3, 5));
-        Assert.NotEmpty(shots);
-        Assert.Null(CannonLine.PostStruckBy(puzzle, shots[0]));
-    }
-
     [Fact]
     public void FiringDirectionIsTheReverseOfTheScanThatFoundIt() {
         // Derived rather than typed out: the four terrain names do not agree with the grid's y
@@ -63,6 +31,20 @@ public class CannonLineTests {
         Assert.Equal((0, 1), CannonLine.FiringDirection(CombatTerrain.CannonNorth));
         Assert.Equal((0, -1), CannonLine.FiringDirection(CombatTerrain.CannonSouth));
     }
+
+    [Fact]
+    public void ACannonSeesACrystalPushedIntoItsLine() {
+        // The behaviour that IS in this build: a cannon at (1,5) firing east has line on (3,5), so
+        // a crystal shoved there is seen and the cannon fires. It hurts nobody -- the original
+        // resolves the shot against a throwaway combatant -- so what a caller gets is the count.
+        TrapPuzzle puzzle = TrapPuzzleBuilder.Build(Elements(
+            (LaysCannonEast, 1, 5), (ClearPushable, 3, 5)));
+
+        Assert.NotEmpty(CannonLine.ShotsOn(puzzle, 3, 5));
+    }
+
+    // The two halves of a linked pair; a run is painted between aligned ones.
+    private const int ClearPushable = 10;
 
     [Fact]
     public void ACannonDownTheLineFires() {
