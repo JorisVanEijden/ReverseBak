@@ -108,7 +108,10 @@ public static class UpkeepEngine {
         regeneration += ConditionEngine.RegenBonus(conditions);
 
         if (regeneration != 0) {
-            StatEngine.ModifyHealthPool(health, stamina, regeneration * 0x100, capPercent, out _);
+            // RegenBonus goes NEGATIVE for the afflictions that sap (poison, starvation), so this
+            // is a drain as often as a heal -- and a drain that empties the pool owes Near-death.
+            StatEngine.ModifyHealthPool(health, stamina, regeneration * 0x100, capPercent, out _,
+                conditions: conditions);
         }
     }
 
@@ -161,7 +164,12 @@ public static class UpkeepEngine {
     /// worn down to nothing — the original uses that to decide whether the whole party is still on
     /// its feet before nagging them to sleep.
     /// </summary>
-    public static bool ApplyExhaustion(ActorStat health, ActorStat stamina, int characterIndex) {
+    /// <param name="conditions">
+    /// The actor's affliction row, so a drain that empties the pool can put them into Near-death
+    /// the way <c>STAT.C:225</c> does. Optional: omit it and only the pool moves.
+    /// </param>
+    public static bool ApplyExhaustion(ActorStat health, ActorStat stamina, int characterIndex,
+        ActorConditions conditions = null) {
         if (health == null) {
             throw new ArgumentNullException(nameof(health));
         }
@@ -170,7 +178,7 @@ public static class UpkeepEngine {
         }
         int drain = ExhaustionDrainFor(characterIndex);
         int remaining = StatEngine.ModifyHealthPool(health, stamina, drain * 0x100,
-            FullRestCapPercent, out _);
+            FullRestCapPercent, out _, conditions: conditions);
         return remaining != 0;
     }
 

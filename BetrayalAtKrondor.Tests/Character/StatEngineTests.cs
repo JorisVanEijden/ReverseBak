@@ -268,6 +268,57 @@ public class StatEngineTests {
         Assert.True(collapsed, "the caller needs this to apply Near-death");
     }
 
+    /// <summary>
+    /// <c>STAT.C:225</c> — the pool routine applies Near-death itself, so every route that can
+    /// empty a character (a blow, a chest trap, a spell's cost, exhaustion, a dialog) does it the
+    /// same way. Five production callers used to pass <c>out _</c> and the rank was never written.
+    /// </summary>
+    [Fact]
+    public void ADrainedCharacterIsPutIntoNearDeathByThePoolRoutineItself() {
+        ActorStat health = Stat(10, 60);
+        ActorStat stamina = Stat(0, 40);
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Poisoned] = 40;
+
+        StatEngine.ModifyHealthPool(health, stamina, -30 * 256, healTargetPercent: 100,
+            out bool collapsed, conditions: conditions);
+
+        Assert.True(collapsed);
+        Assert.Equal(ActorConditions.MaxRank, conditions[ActorCondition.NearDeath]);
+        // Near-death wipes the rest, and the collapse leaves the pool EMPTY: the original writes
+        // sum (0) back over the sliver stat_combatant_apply_condition refilled.
+        Assert.Equal(0, conditions[ActorCondition.Poisoned]);
+        Assert.Equal(0, health.Base);
+        Assert.Equal(0, stamina.Base);
+    }
+
+    /// <summary>A monster has no condition row — <c>actor->charSlot != 0</c> in the original.</summary>
+    [Fact]
+    public void WithNoConditionRowACollapseOnlyEmptiesThePool() {
+        ActorStat health = Stat(10, 60);
+        ActorStat stamina = Stat(0, 40);
+
+        StatEngine.ModifyHealthPool(health, stamina, -30 * 256, healTargetPercent: 100,
+            out bool collapsed);
+
+        Assert.True(collapsed);
+        Assert.Equal(0, health.Base);
+    }
+
+    /// <summary>Healing can never collapse, so it must never write the rank.</summary>
+    [Fact]
+    public void HealingNeverPutsAnyoneIntoNearDeath() {
+        ActorStat health = Stat(10, 60);
+        ActorStat stamina = Stat(0, 40);
+        var conditions = new ActorConditions();
+
+        StatEngine.ModifyHealthPool(health, stamina, 30 * 256, healTargetPercent: 100,
+            out bool collapsed, conditions: conditions);
+
+        Assert.False(collapsed);
+        Assert.Equal(0, conditions[ActorCondition.NearDeath]);
+    }
+
     [Fact]
     public void HealingStopsAtTheRequestedPercentageOfTheCombinedMaximum() {
         ActorStat health = Stat(10, 60);

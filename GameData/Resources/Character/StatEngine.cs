@@ -261,7 +261,8 @@ public static class StatEngine {
     }
 
     public static int ModifyHealthPool(ActorStat health, ActorStat stamina, long delta,
-        int healTargetPercent, out bool collapsed, int nearDeathRank = 0) {
+        int healTargetPercent, out bool collapsed, int nearDeathRank = 0,
+        ActorConditions conditions = null, bool inCombat = false) {
         if (health == null) {
             throw new ArgumentNullException(nameof(health));
         }
@@ -289,6 +290,29 @@ public static class StatEngine {
             if (sum <= 0) {
                 sum = 0;
                 collapsed = true;
+                // *** DRAINING THE POOL TO ZERO IS WHAT PUTS A CHARACTER INTO NEAR-DEATH, AND IT
+                // HAPPENS HERE, NOT IN THE COMBAT DEATH PATH. *** STAT.C:225 calls
+                // stat_combatant_apply_condition(actor, 6, 100) from inside this branch, so ANY
+                // drain does it -- a blow, a chest trap, a spell's cost, exhaustion, a dialog. The
+                // port used to hand the fact out as `collapsed` and leave the write to the caller;
+                // all five production callers passed `out _`, so a character could be emptied to
+                // 0/0 and still read Near-death 0. That is not cosmetic: PartyDownState.Recompute
+                // keys on the rank, so a wiped-out party never registered as down; the temple never
+                // offered (or charged for) the cure; the daily recovery had nothing to recover; and
+                // the rank's own pool cap below never engaged, so the character healed straight
+                // back to full. Four saves from one chapter-3 run carry members at 0/0 with rank 0.
+                //
+                // `conditions != null` IS the original's `actor->charSlot != 0` guard -- a party
+                // character has a condition row, a monster does not.
+                //
+                // The refill Apply performs is then DISCARDED by the write-back below, which stores
+                // `sum` (still 0). That is the original's order too: it applies the condition and
+                // then writes 0/0 over the sliver. A collapse leaves you empty; the sliver belongs
+                // to the OTHER ways of entering Near-death.
+                if (conditions != null) {
+                    ConditionEngine.Apply(conditions, ActorCondition.NearDeath,
+                        ActorConditions.MaxRank, health, stamina, inCombat);
+                }
             }
         }
 

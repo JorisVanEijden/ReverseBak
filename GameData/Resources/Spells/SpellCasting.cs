@@ -186,14 +186,15 @@ public static class SpellCasting {
     /// </summary>
     /// <returns>The pool delta actually applied, in whole points.</returns>
     public static int ApplyCost(SpellCastContext context, int cost,
-        Character.ActorStat health, Character.ActorStat stamina, out bool collapsed) {
+        Character.ActorStat health, Character.ActorStat stamina, out bool collapsed,
+        Character.ActorConditions conditions = null) {
         collapsed = false;
         if (context == null || cost <= 0) {
             return 0;
         }
 
         int applied = Character.StatEngine.ModifyHealthPool(health, stamina,
-            -(long)cost << 8, 100, out collapsed);
+            -(long)cost << 8, 100, out collapsed, conditions: conditions);
 
         if (context.Chapter == PowerSourceChapter) {
             RuntimeItem source = FindPowerSource(context, requireReadyFlag: true);
