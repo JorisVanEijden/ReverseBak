@@ -231,7 +231,7 @@ public static class CombatWalk {
             pathClear = step.Succeeded;
 
             if (step.Status == StepStatus.BlockedByPushable) {
-                shove = Shoves(actor, step, puzzle, probe);
+                shove = Shoves(actor, step, puzzle, probe, occupiedByLiveCombatant);
                 break;
             }
 
@@ -304,7 +304,7 @@ public static class CombatWalk {
     /// damage is an open question on <c>Cast_Spell</c> and is recorded there.</para>
     /// </remarks>
     private static Shove? Shoves(Combatant actor, StepResult step, TrapPuzzle puzzle,
-        bool probe) {
+        bool probe, Func<int, int, bool> occupiedByLiveCombatant = null) {
         if (probe || puzzle == null) {
             return null;
         }
@@ -320,7 +320,48 @@ public static class CombatWalk {
             actor.Y = step.Y;
         }
 
+        // *** A CANNON FIRES AT A PUSHED CRYSTAL, NOT ONLY AT A PERSON. *** "The cannons fire a
+        // single blast each time a person OR CRYSTAL is moved into their path", and "the posts can
+        // be deactivated if hit by a cannon's fireball". The shot passes through a transparent
+        // crystal and strikes whatever stands beyond, so pushing the CLEAR crystal into a cannon's
+        // line is how a board with no safe lane is opened up -- the designed answer to the later
+        // puzzles, and one this port had no expression for at all.
+        //
+        // Only a crystal that came to REST in the line counts: one that landed on crystal ground is
+        // already gone (CrystalFired), and there is nothing in the path to shoot at.
+        if (result == PushResult.Moved) {
+            FireCannonsAtPushedCrystal(puzzle, step.X + dx, step.Y + dy, occupiedByLiveCombatant);
+        }
+
         return new Shove(result, step.X, step.Y, step.X + dx, step.Y + dy);
+    }
+
+    /// <summary>
+    /// Every cannon that can now see the crystal fires, and a gem-post in the shot's path is
+    /// switched off.
+    /// </summary>
+    /// <remarks>
+    /// <b>The fireball is not what destroys the crystal</b> — "the fireball cannon will NOT destroy
+    /// either type of crystal", so the pushed crystal stays where it landed and can be pushed again.
+    /// What the shot changes is the BOARD: a post it reaches has its chain collapsed, exactly as
+    /// Black Nimbus does, and the run it held stops being lethal ground.
+    ///
+    /// <para>An ACTIVE run between two standing posts eats the shot before it arrives — that is the
+    /// same rule that makes a run block ranged spells — and is why the order matters: the first post
+    /// to fall opens the line for the next.</para>
+    /// </remarks>
+    private static void FireCannonsAtPushedCrystal(TrapPuzzle puzzle, int x, int y,
+        Func<int, int, bool> occupiedByLiveCombatant) {
+        if (puzzle == null || !CombatGrid.InBounds(x, y)) {
+            return;
+        }
+
+        foreach (CannonLine.Shot shot in CannonLine.ShotsOn(puzzle, x, y, occupiedByLiveCombatant)) {
+            TrapGridElement post = CannonLine.PostStruckBy(puzzle, shot, occupiedByLiveCombatant);
+            if (post != null && post.IsOnGrid) {
+                puzzle.CollapseUntilIsolated(post.X, post.Y);
+            }
+        }
     }
 
     private static void FireTerrainHazard(CombatGrid grid, Combatant actor, List<Hazard> hazards,

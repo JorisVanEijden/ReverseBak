@@ -95,6 +95,78 @@ public static class CannonLine {
     };
 
     /// <summary>
+    /// Which way a cannon shoots, derived from the scan that finds it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Scans"/> reads "step this way from the target and a cannon of this kind can see
+    /// you", so the shot travels back along that step — the negation. Derived rather than written
+    /// out, because the four terrain names do not agree with the grid's y direction and a hand-typed
+    /// table would be a coin flip on two of them.
+    /// </remarks>
+    public static (int Dx, int Dy) FiringDirection(CombatTerrain cannon) {
+        foreach ((int dx, int dy, CombatTerrain wanted) in Scans) {
+            if (wanted == cannon) {
+                return (-dx, -dy);
+            }
+        }
+
+        return (0, 0);
+    }
+
+    /// <summary>
+    /// The gem-post a cannon's fireball reaches, if any — the shot continues PAST a transparent
+    /// crystal and stops at anything else.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the route the later puzzles are built around.</b> The rules, as the game is
+    /// described: "the cannons fire a single blast each time a person <i>or crystal</i> is moved
+    /// into their path; their fireballs are blocked by solid crystals but pass through transparent
+    /// ones", and "the posts can be deactivated if hit by a cannon's fireball". So pushing the
+    /// CLEAR crystal into a cannon's line shoots whatever stands beyond it, and a post beyond it is
+    /// switched off — which is how a board with no safe lane is opened up.
+    ///
+    /// <para>The walk starts on the tile after the cannon and stops at the first thing that is not
+    /// transparent: a post (answered), a solid crystal or a living combatant (blocked, nothing
+    /// answered), or the edge of the grid.</para>
+    /// </remarks>
+    /// <param name="occupiedByLiveCombatant">
+    /// Whether a tile holds a LIVING combatant, who stops the shot. Dead ones do not block, exactly
+    /// as in <see cref="ShotsOn"/>.
+    /// </param>
+    public static TrapGridElement PostStruckBy(TrapPuzzle puzzle, Shot shot,
+        System.Func<int, int, bool> occupiedByLiveCombatant = null) {
+        if (puzzle == null) {
+            return null;
+        }
+
+        (int dx, int dy) = FiringDirection(shot.Cannon);
+        if (dx == 0 && dy == 0) {
+            return null;
+        }
+
+        int tx = shot.X;
+        int ty = shot.Y;
+        while (true) {
+            tx += dx;
+            ty += dy;
+            if (!CombatGrid.InBounds(tx, ty)) {
+                return null;
+            }
+
+            if (occupiedByLiveCombatant != null && occupiedByLiveCombatant(tx, ty)) {
+                return null;   // it hits the person instead
+            }
+
+            TrapGridElement element = puzzle.ElementAt(tx, ty);
+            if (element == null || element.ElementId == TransparentElementId) {
+                continue;      // empty ground, or a clear crystal the shot passes through
+            }
+
+            return CrystalChain.IsCrystalElement(element.ElementId) ? element : null;
+        }
+    }
+
+    /// <summary>
     /// Every cannon that can see <paramref name="x"/>,<paramref name="y"/> — checked after each step
     /// of a walk, so all four directions fire in the same instant if all four have line.
     /// </summary>
