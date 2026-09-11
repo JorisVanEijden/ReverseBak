@@ -48,6 +48,32 @@ public static class GdsActionDispatch {
     /// The original tests the code with a run of independent <c>if</c>s rather than a switch, so the
     /// order here is presentational only — no code reaches two arms.
     /// </remarks>
+    /// <summary>
+    /// The action that LEAVES a scene — the one the hotspot table never carries.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is not a hotspot code, which is why it is missing from <see cref="KindOf"/>.</b>
+    /// <c>TOWNSCN.C</c>'s loop handles it after the <c>action &lt; 0x80</c> skip:
+    /// <code>
+    /// if (action == 1) {
+    ///     townscene_anim_channel_play_sync(g_pCurrentTownScene->nExitAnim);
+    ///     sceneIdx = g_pCurrentTownScene->nExitScene;
+    ///     if (sceneIdx &lt;= 0) exitFlag = 1;
+    /// }
+    /// </code>
+    /// <c>action</c> comes from <c>menupage_run</c>, which answers 1 when the click lands on no menu
+    /// entry — the entries being the scene's hotspots. So the destination is the SCENE's
+    /// <see cref="GdsScene.NextSceneLetter"/>, not a hotspot's, and
+    /// <see cref="TransitionLeavesTheLocation"/> decides whether that is a sub-scene move or the way
+    /// out.
+    ///
+    /// <para><b>Four shipped scenes have no exit hotspot and depend on this entirely</b> —
+    /// <c>GDS2B</c>, <c>GDS40B</c>, <c>GDS40L</c> and <c>GDS40M</c>. <c>GDS40L</c> is the Oracle of
+    /// Aal, whose single hotspot is the consultation dialog; without this the party walks in and
+    /// cannot walk out. Met in play on 2026-09-11.</para>
+    /// </remarks>
+    public const int LeaveSceneActionId = 1;
+
     public static ActionKind KindOf(int actionCode) {
         switch (actionCode) {
             case 2: return ActionKind.DialogOnly;
