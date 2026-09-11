@@ -67,10 +67,15 @@ public static class GdsActionDispatch {
     /// <see cref="TransitionLeavesTheLocation"/> decides whether that is a sub-scene move or the way
     /// out.
     ///
-    /// <para><b>Four shipped scenes have no exit hotspot and depend on this entirely</b> —
-    /// <c>GDS2B</c>, <c>GDS40B</c>, <c>GDS40L</c> and <c>GDS40M</c>. <c>GDS40L</c> is the Oracle of
-    /// Aal, whose single hotspot is the consultation dialog; without this the party walks in and
-    /// cannot walk out. Met in play on 2026-09-11.</para>
+    /// <para><b>Three shipped scenes have no transition hotspot at all and depend on this
+    /// entirely</b> — <c>GDS40B</c>, <c>GDS40L</c> and <c>GDS40M</c>, each a single action-2 dialog
+    /// hotspot, all three in the Oracle of Aal complex. <c>GDS40L</c> is the Oracle itself; without
+    /// this the party walks in and cannot walk out. Met in play on 2026-09-11.</para>
+    ///
+    /// <para>Counting a way out means counting actions 3, 4, 11 and 15 — a code-4 transition back to
+    /// the entry scene is as much an exit as a code-3. A first sweep that looked only for code 3
+    /// wrongly flagged <c>GDS2B</c>, the Krondor throne room, whose hotspot 5 is a code-4 back to
+    /// <c>GDS2A</c> hidden only in chapters 1 and 2.</para>
     /// </remarks>
     public const int LeaveSceneActionId = 1;
 
