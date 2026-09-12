@@ -136,6 +136,13 @@ public static class EncounterCompletion {
     }
 
     /// <summary>Whether anything at all happens when this encounter is beaten.</summary>
+    /// <remarks>
+    /// <b>Deliberately callerless.</b> It is a convenience over three predicates that production
+    /// asks individually — <c>HotspotService</c> calls <see cref="DialogAfterDefeat"/>,
+    /// <see cref="GroupFlagEarnedBy"/> and <see cref="ReArmsWhenDefeated"/> in turn, because it acts
+    /// on each answer rather than on whether there is one. Raised by <c>make unconsumed</c> and
+    /// triaged 2026-09-12 (TASK-448); noted here so the next sweep does not re-raise it.
+    /// </remarks>
     public static bool HasFollowup(long encounter) =>
         DialogAfterDefeat(encounter) != None
         || ReArmsWhenDefeated(encounter)

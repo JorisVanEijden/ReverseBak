@@ -374,5 +374,11 @@ public static class ActorStatModifiers {
     public static uint ItemExpiryAt(uint gameTime, int durationPoints) =>
         gameTime + (uint)(durationPoints * ItemDurationUnit);
 
+    /// <summary>Whether a clear with this flag mask takes this slot.</summary>
+    /// <remarks>
+    /// <b>Deliberately callerless</b> — the one flag test it wraps is written inline where it is
+    /// needed. It exists so the rule has a name and a place to be tested. Raised by
+    /// <c>make unconsumed</c> and triaged 2026-09-12 (TASK-448).
+    /// </remarks>
     public static bool ClearedBy(in Slot slot, int mask) => (slot.Flags & mask) != 0;
 }

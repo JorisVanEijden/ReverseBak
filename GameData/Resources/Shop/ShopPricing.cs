@@ -53,6 +53,13 @@ public static class ShopPricing {
     /// <summary>
     /// Builds the whole per-shop price table, one entry per object type, in object-id order.
     /// </summary>
+    /// <remarks>
+    /// <b>Deliberately callerless.</b> The shop screen prices items one at a time —
+    /// <see cref="ListPrice"/> over <see cref="ExchangeRate"/>, per row as it draws — so it never
+    /// needs the whole table. Kept because it is how the original builds it, and it is the shape a
+    /// price-list tool or an export would want. Raised by <c>make unconsumed</c> and triaged
+    /// 2026-09-12 (TASK-448).
+    /// </remarks>
     public static int[] BuildPriceTable(
         IReadOnlyList<int> basePrices, int markupPercent, int exchangeRatePercent = NormalExchangeRate) {
         if (basePrices == null) {
