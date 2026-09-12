@@ -91,4 +91,26 @@ public readonly record struct SaveGameFields(
     /// positionally; a parameter added in the middle rebinds every one of them, which is exactly how
     /// SaveGameWriter.Write's optional-argument break happened earlier the same day.</para>
     /// </remarks>
-    byte[] ActiveParty = null);
+    byte[] ActiveParty = null,
+
+    /// <summary>
+    /// Steps taken inside the current 1600-unit movement cell — body offset 52,
+    /// <c>nWorldStepTickCount</c>.
+    /// </summary>
+    /// <remarks>
+    /// Nullable for the same reason the camera and follow-road scalars are: the writer clones the
+    /// body and overwrites only what it is given. See <c>GameData.Resources.World.WorldStepTick</c>
+    /// for what the pair it forms with <see cref="TileBoundaryCrossed"/> decides — the short version
+    /// is that it gates whether an avoidable encounter is evaluated on this step at all, so
+    /// restarting the count on every load hands the party a roll they had already spent.
+    ///
+    /// <para><b>APPENDED, past <see cref="ActiveParty"/>, rather than slotted in beside the other
+    /// movement scalars where it reads better.</b> Its remark above says why, and I put these two
+    /// there first: a parameter added mid-list rebinds every positional caller, and the compiler
+    /// only complains when the types happen to differ.</para>
+    /// </remarks>
+    byte? SubTileStepCount = null,
+
+    /// <summary>The cell-boundary flag — body offset 53, <c>world_step_tick</c>.</summary>
+    /// <inheritdoc cref="SubTileStepCount"/>
+    short? TileBoundaryCrossed = null);

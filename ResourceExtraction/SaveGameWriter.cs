@@ -103,6 +103,12 @@ public static class SaveGameWriter {
         if (fields.IsAutoTravelling.HasValue) {
             PatchI16(SaveGameOffsets.IsAutoTravelling, fields.IsAutoTravelling.Value);
         }
+        if (fields.SubTileStepCount.HasValue) {
+            PatchU8(SaveGameOffsets.SubTileStepCount, fields.SubTileStepCount.Value);
+        }
+        if (fields.TileBoundaryCrossed.HasValue) {
+            PatchI16(SaveGameOffsets.TileBoundaryCrossed, fields.TileBoundaryCrossed.Value);
+        }
 
         // *** THE CHANGE-DETECTOR BASELINE, AND IT IS ONLY WRITTEN WHEN THE CALLER HAS ONE. ***
         // The body is cloned, so leaving these alone already round-trips whatever was there. They

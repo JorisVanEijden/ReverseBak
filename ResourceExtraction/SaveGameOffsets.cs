@@ -72,6 +72,38 @@ public static class SaveGameOffsets {
     /// </remarks>
     public const int IsAutoTravelling = 50;  // Int16
 
+    /// <summary>
+    /// The step counter inside the current 1600-unit movement cell — <c>nWorldStepTickCount</c>,
+    /// a BYTE at body offset 52. Already parsed as
+    /// <see cref="GameData.Resources.Data.SaveGameMovementData.SubTileStepCount"/>; this constant
+    /// exists so the offset has a name for tooling that works on raw bodies.
+    /// </summary>
+    /// <remarks>
+    /// <b>Counted from canassa's own TASM struct, not probed.</b> <c>bak/INCLUDE/gstate.inc</c> lays
+    /// the block out field by field, and summing it from <c>nChapter</c> lands every offset this
+    /// file already knew independently — 17/18 for the zones, 46/48 for the two baselines, 55 for
+    /// the map camera, 119 for the party records and 689 for the party size. Six agreements, which
+    /// is what makes 52 and 53 trustworthy without a probe of their own.
+    ///
+    /// <para>Corroborated live the same day: after loading the chapter-3 save, whose
+    /// <c>nPrevZoneId</c> differs from its <c>nZoneId</c>, the original's running state read
+    /// <c>world_step_tick == 1</c> — the value <c>worldmove_step_tick_reset()</c> writes on a zone
+    /// change — while the chapter-1 save, whose two zone ids agree, read 0.</para>
+    /// </remarks>
+    public const int SubTileStepCount = 52;  // byte
+
+    /// <summary>
+    /// <b>The cell-boundary flag</b> — <c>world_step_tick</c>, an Int16 at body offset 53, parsed as
+    /// <see cref="GameData.Resources.Data.SaveGameMovementData.TileBoundaryCrossed"/>.
+    /// </summary>
+    /// <remarks>
+    /// 1 only on the step that completes a whole 1600-unit movement cell, which at the Small step
+    /// preset is one press in four. <c>hotspotevt_activate_at_player</c> (HOTSPOT.C:474) returns
+    /// OUTRIGHT when it reads 0, so an encounter eligible for the avoidance roll is not evaluated at
+    /// all on a mid-cell step — see <c>WorldStepTick.IsCellBoundary</c>.
+    /// </remarks>
+    public const int TileBoundaryCrossed = 53;  // Int16
+
     public const int MapCameraZ = 55;  // Int32
 
     /// <summary>
