@@ -281,6 +281,34 @@ public static class RoadTravel {
     }
 
     /// <summary>Centre of the cell a coordinate falls in.</summary>
+    /// <summary>
+    /// Where the cell-ahead probe is taken FROM — <c>worldmove_crossing_check_8dir</c>'s snap
+    /// (WORLDMOV.C:404) and the same one its sweep does.
+    /// </summary>
+    /// <remarks>
+    /// <b>A party between cell centres probes from the centre BEHIND it, not from where it
+    /// stands.</b> The original backs up half a cell along the reversed heading and then re-centres
+    /// on that sub-cell (<c>czone_world_pos_tile_sub_ctr</c>), so every probe of a run of steps
+    /// along one cell asks about the SAME cell ahead and gets the same answer.
+    ///
+    /// <para>Skipping it looks harmless and is not: with the step at 400 and the cell at 1600, three
+    /// of every four steps are off-centre, and probing from the off-centre position samples a point
+    /// that is not the next cell at all. Measured 2026-09-12 at (672400, 824400) — three steps along
+    /// a diagonal road — the port refused a step the original takes, because its probe had drifted
+    /// off the road while the party had not.</para>
+    ///
+    /// <para>A party already on a cell centre is returned unchanged, which is the original's own
+    /// <c>(x_in_tile != 0x320) || (y_in_tile != 0x320)</c> guard.</para>
+    /// </remarks>
+    public static (int X, int Y) ProbeOrigin(int x, int y, ushort heading) {
+        if (IsOnCellCentre(x, y)) {
+            return (x, y);
+        }
+        (int backX, int backY) = AxisOffset(unchecked((ushort)(heading + 0x8000)), HalfCell);
+
+        return (CellCentre(x + backX), CellCentre(y + backY));
+    }
+
     public static int CellCentre(int value) => value - Mod(value, CellSize) + HalfCell;
 
     /// <summary>Whether the party is standing exactly on a cell centre, where the road may bend.</summary>
