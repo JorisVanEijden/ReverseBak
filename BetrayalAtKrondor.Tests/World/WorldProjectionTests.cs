@@ -19,14 +19,43 @@ public class WorldProjectionTests {
     private const int TravelViewHeightVga = 101;
 
     [Fact]
-    public void TheTravelFovIsTheHANDCALIBRATEDConstantItReplaces() {
-        // 13.5 was measured against the original's arena grid to a 0.3% span agreement (TASK-201)
-        // before anyone knew where it came from. Deriving it is what proves the two-shift model:
-        // an arbitrary formula that happened to widen the map would not land back on this number.
+    public void TheTravelFovIsTheTRUEVerticalHalfAngle_NotTheOneThatMatchesHorizontally() {
+        // *** 13.50 WAS THE HORIZONTAL-MATCHING VALUE, AND IT IS WRONG FOR THE VERTICAL. ***
+        // It folded VGA's 6:5 pixel aspect into the FOV, which lands the horizontal exactly right
+        // and leaves the vertical short by that same 1.2. Measured 2026-09-12 against the original's
+        // own tactical grid with both games in one fight: all 13 rows agreed on width to within
+        // 0.5%, and the vertical was compressed by 0.85 about the viewport centre (TASK-439).
+        //
+        // The horizontal is restored by CameraAspect, NOT here.
         double travel = WorldProjection.VerticalFovDegrees(
             TravelViewHeightVga, WorldProjection.TravelProjectionShift);
 
-        Assert.Equal(13.5, travel, 2);
+        Assert.Equal(11.27, travel, 2);
+
+        // And the old number is exactly 1.2x this one in tangent — which is what says the change is
+        // the pixel aspect and not a recalibration.
+        Assert.Equal(13.50,
+            2.0 * Math.Atan(WorldProjection.CanonicalPixelAspect
+                * Math.Tan(travel * Math.PI / 360.0)) * 180.0 / Math.PI, 2);
+    }
+
+    [Fact]
+    public void TheCameraAspectCarriesTheSixToFive() {
+        // The travel viewport is canonical 1470x606 — VGA 294x101 — so the answer is that VGA
+        // rect's own w/h, and the camera is 1.2x wider than its pixels are.
+        Assert.Equal(294.0 / 101.0, WorldProjection.CameraAspect(1470, 606), 6);
+        Assert.Equal(WorldProjection.CanonicalPixelAspect * 1470.0 / 606.0,
+            WorldProjection.CameraAspect(1470, 606), 9);
+
+        // Device pixels work as well as canonical ones: only the ratio matters, which is what lets
+        // WorldViewportView pass the RenderTexture's size straight in. They are not IDENTICAL --
+        // a RenderTexture is whole pixels, so 1470x606 scaled to a 1080-tall window rounds to
+        // 1323x545 and the aspect lands 0.07% out. Assert the tolerance rather than a decimal
+        // count, so the number the engine actually produces is the one under test.
+        double canonical = WorldProjection.CameraAspect(1470, 606);
+        double device = WorldProjection.CameraAspect(1323, 545);
+        Assert.True(System.Math.Abs(device - canonical) / canonical < 0.005,
+            $"canonical {canonical:F5} vs device {device:F5}");
     }
 
     [Fact]
@@ -55,8 +84,8 @@ public class WorldProjectionTests {
 
         Assert.Equal(89, height);
         Assert.True(locator < overhead, $"locator {locator:F2} should be narrower than map {overhead:F2}");
-        Assert.Equal(45.29, locator, 2);
-        Assert.Equal(50.67, overhead, 2);
+        Assert.Equal(38.34, locator, 2);
+        Assert.Equal(43.06, overhead, 2);
     }
 
     [Fact]
