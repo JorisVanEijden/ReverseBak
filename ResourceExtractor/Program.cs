@@ -72,6 +72,22 @@ internal static class Program {
             return;
         }
 
+        // *** OBJFIXED HAS ITS OWN MODE BECAUSE ITS OUTPUT WENT MISSING. ***
+        // It is written by the full extraction too, but `generated/DAT/OBJFIXED.json` had never
+        // been committed — and it is the ONLY place the fixed objects' interact-message dialog ids
+        // appear, so every `grep generated` sweep was blind to them. TASK-411 spent six correct
+        // eliminations reaching "referenced by nothing" because of it. A single-file mode makes the
+        // gap cheap to close without a full run over the whole corpus.
+        if (args.Length >= 1 && args[0] == "--objfixed") {
+            string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
+            const string objFixed = "OBJFIXED.DAT";
+            using FileStream stream = File.OpenRead(Path.Combine(gamePath, objFixed));
+            FixedObjectSet fixedObjects =
+                new ResourceExtraction.Extractors.ObjFixedExtractor().Extract(objFixed, stream);
+            WriteToJsonFile(objFixed, ResourceType.DAT, fixedObjects.Containers.ToJson());
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--dialog-styles") {
             string gamePath = args.Length >= 2 ? args[1] : @"D:\BaK\OriginalGame";
             IResourceProvider provider = ResourceProviderFactory.CreateResourceProvider(gamePath);
