@@ -83,6 +83,19 @@ public class CombatAffinityTables : IResource {
     /// weapons; refusing the lookup would drop the modifier entirely. The out-of-range read is what
     /// the game does, and it is deterministic.</para>
     /// </remarks>
+    /// <summary>
+    /// The damage-type affinity row for a creature class, or null outside the table.
+    /// </summary>
+    /// <remarks>
+    /// <b>Index it by the CREATURE class, not by a party member's roster position.</b> A party
+    /// member's creature class comes from their save record (<c>SaveGameCombatData.CreatureType</c>)
+    /// — Locklear is 17, Gorath 15, Owyn 16 — and three of those rows carry real flags, so indexing
+    /// by 0/1/2 silently answers "no affinity" for the whole party. Measured against the original
+    /// 2026-09-12 (TASK-446): a reflected Flamecast that should have done 7 to Owyn did 15.
+    /// </remarks>
+    public CreatureAffinity AffinityOf(int creatureClass) =>
+        creatureClass >= 0 && creatureClass < Creatures.Count ? Creatures[creatureClass] : null;
+
     public int ModifierFor(int creatureClass, int itemRace) {
         if (creatureClass < 0 || creatureClass >= ClassCombatGroup.Length) {
             // The original indexes the class table unchecked too, and everything past its end reads
