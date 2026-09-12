@@ -1,7 +1,9 @@
 namespace BetrayalAtKrondor.Mcp;
 
+using System.Collections.Generic;
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using Spice86.Core.Emulator.CPU;
 using Spice86.Core.Emulator.CPU.CfgCpu.Ast.Instruction;
 using Spice86.Core.Emulator.CPU.CfgCpu.InstructionRenderer;
 using Spice86.Core.Emulator.CPU.CfgCpu.Parser;
@@ -376,6 +378,123 @@ public sealed class BakMcpTools {
         } finally {
             // Always remove the temporary breakpoint
             _emulator.BreakpointsManager.ToggleBreakPoint(bp, false);
+        }
+    }
+
+    [McpServerTool(Name = "bak_call_function")]
+    [Description("Call a function INSIDE the running game and return what it answers. Pushes the " +
+        "given 16-bit words right-to-left (Borland cdecl), pushes the CURRENT CS:IP as the far " +
+        "return address, jumps to the target, runs until it returns, then restores every register. " +
+        "Address MUST be seg:off (e.g. '3BEB:0430') — a far routine uses near jumps inside its own " +
+        "segment, so a made-up segment executes the right bytes and then jumps to the wrong place. " +
+        "ONLY CALL PURE FUNCTIONS: registers are restored, memory the routine wrote is not.")]
+    public object CallFunction(
+        [Description("Target as seg:off, e.g. '3BEB:0430'. Get one from bak_translate_address.")]
+        string address,
+        [Description("Comma-separated 16-bit arguments, in SOURCE order; they are pushed right-to-left.")]
+        string args = "",
+        [Description("Data segment for the call, hex or decimal. Empty leaves DS as it is.")]
+        string ds = "",
+        [Description("Timeout in milliseconds (default 5000, max 30000)")] int timeoutMs = 5000) {
+        timeoutMs = Math.Clamp(timeoutMs, 100, 30000);
+
+        SegmentedAddress? target = AddressAndValueParser.ParseSegmentedAddress(address, _emulator.State);
+        if (target == null) {
+            return new { error = $"'{address}' is not seg:off. A far routine needs its real segment." };
+        }
+
+        var words = new List<ushort>();
+        foreach (string part in args.Split(',', StringSplitOptions.RemoveEmptyEntries)) {
+            string t = part.Trim();
+            uint? parsed = t.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? AddressAndValueParser.ParseHex(t)
+                : (uint.TryParse(t, out uint d) ? d : (int.TryParse(t, out int sd) ? (uint)(ushort)sd : null));
+            if (parsed == null) {
+                return new { error = $"cannot parse argument '{t}'" };
+            }
+            words.Add((ushort)parsed.Value);
+        }
+
+        State st = _emulator.State;
+        // *** SNAPSHOT EVERYTHING BEFORE TOUCHING ANY OF IT. *** The game is mid-frame; the whole
+        // safety of this tool is that it puts the CPU back exactly as it found it.
+        (ushort ax, ushort bx, ushort cx, ushort dx) = (st.AX, st.BX, st.CX, st.DX);
+        (ushort si, ushort di, ushort bp, ushort sp) = (st.SI, st.DI, st.BP, st.SP);
+        (ushort dsSaved, ushort es, ushort ss, ushort cs, ushort ip) = (st.DS, st.ES, st.SS, st.CS, st.IP);
+
+        void Push(ushort value) {
+            st.SP -= 2;
+            _emulator.Memory.UInt16[(uint)(st.SS << 4) + st.SP] = value;
+        }
+
+        bool returned = false;
+        uint returnPhysical = (uint)(cs << 4) + ip;
+        var bp2 = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS, returnPhysical,
+            _ => {
+                returned = true;
+                _emulator.PauseHandler.RequestPause("bak_call_function returned");
+            },
+            false);
+        _emulator.BreakpointsManager.ToggleBreakPoint(bp2, true);
+
+        try {
+            for (int i = words.Count - 1; i >= 0; i--) {
+                Push(words[i]);
+            }
+            // A far CALL pushes CS then IP, and RETF pops them back in that order. The return
+            // address is where the game was already paused, so the routine lands exactly where we
+            // found it and the breakpoint above catches it.
+            Push(cs);
+            Push(ip);
+
+            if (!string.IsNullOrWhiteSpace(ds)) {
+                uint? dsValue = ds.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                    ? AddressAndValueParser.ParseHex(ds)
+                    : (uint.TryParse(ds, out uint dv) ? dv : null);
+                if (dsValue == null) {
+                    return new { error = $"cannot parse ds '{ds}'" };
+                }
+                st.DS = (ushort)dsValue.Value;
+            }
+
+            st.CS = target.Value.Segment;
+            st.IP = target.Value.Offset;
+
+            _emulator.PauseHandler.Resume();
+            int elapsed = 0;
+            while (!returned && elapsed < timeoutMs) {
+                Thread.Sleep(20);
+                elapsed += 20;
+            }
+
+            ushort resultAx = st.AX;
+            ushort resultDx = st.DX;
+            if (!returned) {
+                _emulator.PauseHandler.RequestPause("bak_call_function timed out");
+                Thread.Sleep(200);
+            }
+
+            return new {
+                returned,
+                ax = resultAx,
+                dx = resultDx,
+                signed_ax = (short)resultAx,
+                // A Borland `long` comes back in DX:AX.
+                dx_ax = ((uint)resultDx << 16) | resultAx,
+                called = $"{target.Value.Segment:X4}:{target.Value.Offset:X4}",
+                args = words.Count,
+                timeout_ms = returned ? (int?)null : timeoutMs
+            };
+        } finally {
+            _emulator.BreakpointsManager.ToggleBreakPoint(bp2, false);
+            // Restore in a fixed order; SS and SP together, so a half-restored stack can never be
+            // left behind even if the call timed out.
+            st.AX = ax; st.BX = bx; st.CX = cx; st.DX = dx;
+            st.SI = si; st.DI = di; st.BP = bp;
+            st.DS = dsSaved; st.ES = es;
+            st.SS = ss; st.SP = sp;
+            st.CS = cs; st.IP = ip;
         }
     }
 
