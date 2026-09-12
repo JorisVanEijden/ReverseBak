@@ -107,13 +107,16 @@ public static class MeleeExchange {
     /// <summary>What the defender brings.</summary>
     public readonly struct Defender {
         public Defender(int defenseRating, int armorRating = 0, bool immune = false,
-            bool applyArmor = true, int? absorbPool = null, bool negated = false) {
+            bool applyArmor = true, int? absorbPool = null, bool negated = false,
+            bool weakToDamageType = false, bool resistsDamageType = false) {
             DefenseRating = defenseRating;
             ArmorRating = armorRating;
             Immune = immune;
             ApplyArmor = applyArmor;
             AbsorbPool = absorbPool;
             Negated = negated;
+            WeakToDamageType = weakToDamageType;
+            ResistsDamageType = resistsDamageType;
         }
 
         public int DefenseRating { get; }
@@ -124,6 +127,21 @@ public static class MeleeExchange {
 
         /// <summary>Damage is zeroed outright — the defender is under Skin of the Dragon.</summary>
         public bool Negated { get; }
+
+        /// <summary>
+        /// This defender's class takes half again as much from the type this blow carries.
+        /// </summary>
+        /// <remarks>
+        /// The verdict, not the tables: the caller matches
+        /// <see cref="CombatDamageMask.ForSwing"/> against the defender's
+        /// <see cref="CreatureAffinity"/> row, because only it knows the attacker's gear and the
+        /// defender's CREATURE class — which for a party member is not their roster index.
+        /// </remarks>
+        public bool WeakToDamageType { get; }
+
+        /// <inheritdoc cref="WeakToDamageType"/>
+        /// <summary>This defender's class takes half from the type this blow carries.</summary>
+        public bool ResistsDamageType { get; }
     }
 
     /// <summary>
@@ -228,7 +246,8 @@ public static class MeleeExchange {
             rolled, defender.Stamina, defender.Health, defenderStats.Immune,
             defenderStats.ApplyArmor, defenderStats.ArmorRating, defenderStats.AbsorbPool,
             fromDirectAttack: true, negated: defenderStats.Negated,
-            weakToDamageType: false, resistsDamageType: false, rnd);
+            weakToDamageType: defenderStats.WeakToDamageType,
+            resistsDamageType: defenderStats.ResistsDamageType, rnd);
 
         int before = defender.Health + defender.Stamina;
         defender.Stamina = outcome.Stamina;
