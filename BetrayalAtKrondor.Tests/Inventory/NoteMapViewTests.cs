@@ -130,6 +130,36 @@ public class NoteMapViewTests {
         Assert.Equal(1, flags[NoteMapView.ViewedFlag(7)]);
     }
 
+    [Fact]
+    public void TheFirstLookAtTheMapPlaysThePrefaceAndTheSecondDoesNot() {
+        var container = new RuntimeContainer { ContainerType = SaveGameContainerType.Inventory, Capacity = 6 };
+        container.Items.Add(new RuntimeItem((byte)NoteMapView.MapNoteItemId, (byte)NoteMapView.RiftMapId, 0));
+        var flags = new Dictionary<int, int>();
+
+        ItemUseResult first = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+        ItemUseResult second = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+
+        // The line the original plays over the inventory before it blits the map, once ever.
+        Assert.Equal(NoteMapView.PrefaceDialogId, first.PrefaceDialogId);
+        Assert.Equal(0, second.PrefaceDialogId);
+        // Both still show the map itself.
+        Assert.Equal(NoteMapView.MapShownDialogId, first.DialogId);
+        Assert.Equal(NoteMapView.MapShownDialogId, second.DialogId);
+    }
+
+    /// <summary>A map with no image is all preface and never announces a second one.</summary>
+    [Fact]
+    public void AMaplessNoteHasNoSeparatePreface() {
+        var container = new RuntimeContainer { ContainerType = SaveGameContainerType.Inventory, Capacity = 6 };
+        container.Items.Add(new RuntimeItem((byte)NoteMapView.MapNoteItemId, 4, 0));
+        var flags = new Dictionary<int, int>();
+
+        ItemUseResult result = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
+
+        Assert.Equal(NoteMapView.PrefaceDialogId, result.DialogId);
+        Assert.Equal(0, result.PrefaceDialogId);
+    }
+
     private static ObjectInfoSet Notes() => new ObjectInfoSet("O", new List<ObjectInfo> {
         Note((byte)NoteMapView.MapNoteItemId),
         Note((byte)(NoteMapView.MapNoteItemId + 1)),

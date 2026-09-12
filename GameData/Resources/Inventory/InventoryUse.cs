@@ -89,12 +89,13 @@ public enum ItemUseOutcome {
 /// whether the used item left the container (so a caller re-renders rather than re-indexes).</summary>
 public readonly struct ItemUseResult {
     public ItemUseResult(ItemUseOutcome outcome, int dialogId, int dialogVar0, bool sourceRemoved,
-        int musicTrack = Audio.MusicPlayback.QueryOnly) {
+        int musicTrack = Audio.MusicPlayback.QueryOnly, int prefaceDialogId = 0) {
         Outcome = outcome;
         DialogId = dialogId;
         DialogVar0 = dialogVar0;
         SourceRemoved = sourceRemoved;
         MusicTrack = musicTrack;
+        PrefaceDialogId = prefaceDialogId;
     }
 
     public ItemUseOutcome Outcome { get; }
@@ -122,6 +123,18 @@ public readonly struct ItemUseResult {
     /// <i>silence</i> — every ordinary item use would then stop the music.</para>
     /// </remarks>
     public int MusicTrack { get; }
+
+    /// <summary>
+    /// A record to play <b>before</b> <see cref="DialogId"/>, or 0 for none. Same
+    /// <see cref="DialogVar0"/>.
+    /// </summary>
+    /// <remarks>
+    /// One use sets it: the first look at a map note. <c>ITEMUSE.C</c>'s category-16 arm plays
+    /// 0x1b7753 while the inventory is still on screen, and only then blits RIFTMAP and holds
+    /// 0x1b7772 over it — so this is a separate line before the picture, not the picture's own
+    /// caption, and it plays once ever.
+    /// </remarks>
+    public int PrefaceDialogId { get; }
 }
 
 /// <summary>
@@ -725,12 +738,21 @@ public static class InventoryUse {
         }
 
         int mapId = source.Variable;
+        bool hasImage = NoteMapView.HasImage(mapId);
+
+        // *** READ BEFORE THE WRITE. *** The original reads MAP_VIEWED to decide the preface and
+        // only writes it at the end of the arm, so reading after would answer "seen" on the very
+        // first look and the line would never play at all.
+        bool preface = hasImage
+            && NoteMapView.NeedsPreface(context.ReadFlag?.Invoke(NoteMapView.ViewedFlag(mapId)) ?? 0);
+
         // Written whichever way the branch goes — a note whose map has no image still marks it seen.
         context.WriteFlag?.Invoke(NoteMapView.ViewedFlag(mapId), 1);
 
         return new ItemUseResult(ItemUseOutcome.Silent,
-            NoteMapView.HasImage(mapId) ? NoteMapView.MapShownDialogId : NoteMapView.PrefaceDialogId,
-            mapId, false);
+            hasImage ? NoteMapView.MapShownDialogId : NoteMapView.PrefaceDialogId,
+            mapId, false,
+            prefaceDialogId: preface ? NoteMapView.PrefaceDialogId : 0);
     }
 
 }
