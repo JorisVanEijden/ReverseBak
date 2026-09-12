@@ -395,7 +395,9 @@ public sealed class BakMcpTools {
         string args = "",
         [Description("Data segment for the call, hex or decimal. Empty leaves DS as it is.")]
         string ds = "",
-        [Description("Timeout in milliseconds (default 5000, max 30000)")] int timeoutMs = 5000) {
+        [Description("Timeout in milliseconds (default 5000, max 30000)")] int timeoutMs = 5000,
+        [Description("Skip the 'push bp' prologue check. Only for a deliberate non-function target.")]
+        bool force = false) {
         timeoutMs = Math.Clamp(timeoutMs, 100, 30000);
 
         SegmentedAddress? target = AddressAndValueParser.ParseSegmentedAddress(address, _emulator.State);
@@ -413,6 +415,24 @@ public sealed class BakMcpTools {
                 return new { error = $"cannot parse argument '{t}'" };
             }
             words.Add((ushort)parsed.Value);
+        }
+
+        // *** CHECK YOU ARE POINTING AT A FUNCTION. *** Every Borland far routine in this binary
+        // opens `push bp` (0x55). An OVERLAY moves, and the translator's own `is_loaded` can be
+        // STALE — measured 2026-09-12: bak_translate_address answered a physical address for
+        // ovr177, and the bytes there were somebody else's code, because the overlay had since been
+        // swapped out. Without this guard that call ran whatever happened to be resident, returned
+        // a plausible-looking 95 twice for two different inputs, and the second one wandered until
+        // it timed out. One byte of checking is cheaper than that.
+        uint targetPhysical = (uint)(target.Value.Segment << 4) + target.Value.Offset;
+        byte first = _emulator.Memory.UInt8[targetPhysical];
+        if (first != 0x55 && !force) {
+            return new {
+                error = $"{target.Value.Segment:X4}:{target.Value.Offset:X4} starts with 0x{first:X2}, "
+                    + "not 0x55 (push bp) — that is not a Borland far function. An overlay has "
+                    + "probably moved: find it by signature search while it is resident, or pass "
+                    + "force=true if you really mean this address."
+            };
         }
 
         State st = _emulator.State;
