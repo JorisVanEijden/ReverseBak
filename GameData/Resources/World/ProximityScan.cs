@@ -1,10 +1,26 @@
 namespace GameData.Resources.World;
 
 /// <summary>
-/// Deciding what is near enough to matter as the party moves — <c>proxscan_encounter_records</c>
-/// (<c>SRC/R3D/VIS/PROXSCAN.C</c>). It does two jobs in one pass: build the visible-entry list for
-/// rendering, and fire the roaming-encounter proximity check.
+/// Deciding what is near enough to matter as the party moves — <c>SRC/R3D/VIS/PROXSCAN.C</c>.
 /// </summary>
+/// <remarks>
+/// <b>THERE ARE TWO SCANS AND THEY ADMIT DIFFERENT KINDS.</b> They look almost identical and the
+/// difference is one line:
+/// <list type="bullet">
+/// <item><b><c>proxscan_run</c></b> (line 72) builds the VISIBLE-ENTRY LIST that the renderer walks.
+/// It skips <b>kind 7</b> and takes everything else whose filter threshold is not -1. No
+/// whitelist — see <see cref="JoinsVisibleList"/>.</item>
+/// <item><b><c>proxscan_encounter_records</c></b> (line 203) is the roaming-encounter pass. It
+/// admits only <c>kind &lt;= 4 || 7 || 10 || 14 || 15 || 20 || 23 || 38 || 39</c> — and
+/// <b>includes</b> kind 7, which the other one drops. See
+/// <see cref="ParticipatesInEncounterScan"/>.</item>
+/// </list>
+///
+/// <para>Getting these the wrong way round is not a subtle error: the whitelist leaves out kinds
+/// 5, 6, 8, 9, 11-13, 16-19, 21, 22 and 24-42, which is most of the world's furniture. A visibility
+/// gate built on it would hide nearly everything and then show the <c>db1..db8</c> records that
+/// <c>proxscan_run</c> exists to drop.</para>
+/// </remarks>
 public static class ProximityScan {
     /// <summary>Entries the visible list can hold; the scan stops adding beyond this.</summary>
     public const int MaxVisibleEntries = 600;
@@ -34,10 +50,16 @@ public static class ProximityScan {
     public const int AutomapZoneKind = ZoneDefinition.UndergroundZoneLocation;
 
     /// <summary>
-    /// Whether an entity kind takes part in the scan at all. Anything outside this set is skipped
+    /// Whether an entity kind takes part in the ROAMING-ENCOUNTER scan at all — the whitelist of
+    /// <c>proxscan_encounter_records</c> (PROXSCAN.C:220-222). Anything outside this set is skipped
     /// before its distance is even measured.
     /// </summary>
-    public static bool Participates(int kind) =>
+    /// <remarks>
+    /// <b>This is NOT the visibility rule</b>, however much the two functions resemble each other;
+    /// see the class remarks and <see cref="JoinsVisibleList"/>. Renamed from <c>Participates</c> on
+    /// 2026-09-12, when <see cref="IsVisible"/> was found to be built on it.
+    /// </remarks>
+    public static bool ParticipatesInEncounterScan(int kind) =>
         kind <= 4 || kind == 7 || kind == 10 || kind == 0xe || kind == 0xf
         || kind == 0x14 || kind == 0x17 || kind == 0x26 || kind == 0x27;
 
@@ -66,10 +88,42 @@ public static class ProximityScan {
     public static long CullingMetric(long octagonalDistance, int radius, int shift, long threshold) =>
         threshold == AlwaysVisibleThreshold ? 0 : octagonalDistance - ((long)radius << shift);
 
-    /// <summary>Whether an entity joins the visible list.</summary>
-    public static bool IsVisible(int kind, long octagonalDistance, int radius, int shift,
+    /// <summary>The kind the visible-entry scan drops outright — the <c>db1..db8</c> records.</summary>
+    public const int NeverRenderedKind = 7;
+
+    /// <summary>
+    /// Whether an entity joins the VISIBLE-ENTRY LIST — <c>proxscan_run</c>, PROXSCAN.C:88-111.
+    /// </summary>
+    /// <remarks>
+    /// <b>No kind whitelist.</b> The only kind excluded by identity is <see cref="NeverRenderedKind"/>;
+    /// everything else is admitted unless FILTER.DAT switches it off with
+    /// <see cref="DisabledThreshold"/>. That is the whole difference from
+    /// <see cref="ParticipatesInEncounterScan"/>, and it is the difference between drawing the world
+    /// and drawing almost none of it.
+    /// </remarks>
+    public static bool JoinsVisibleList(int kind, long octagonalDistance, int radius, int shift,
         long threshold, int visibleSoFar) {
-        if (visibleSoFar >= MaxVisibleEntries || !Participates(kind)
+        if (visibleSoFar >= MaxVisibleEntries || kind == NeverRenderedKind
+            || threshold == DisabledThreshold) {
+            return false;
+        }
+        return CullingMetric(octagonalDistance, radius, shift, threshold) < threshold;
+    }
+
+    /// <summary>
+    /// Whether an entity joins the ROAMING-ENCOUNTER scan's list —
+    /// <c>proxscan_encounter_records</c>, PROXSCAN.C:218-243.
+    /// </summary>
+    /// <remarks>
+    /// <b>Was called <c>IsVisible</c>, and it never was that.</b> It is built on the encounter
+    /// scan's kind whitelist, so as a visibility test it excluded most of the world and admitted the
+    /// one kind <c>proxscan_run</c> drops. It had tests and no production caller, so nothing was
+    /// broken by it — but it was about to be wired into rendering (TASK-436) when the two functions
+    /// were read side by side.
+    /// </remarks>
+    public static bool JoinsEncounterScan(int kind, long octagonalDistance, int radius, int shift,
+        long threshold, int visibleSoFar) {
+        if (visibleSoFar >= MaxVisibleEntries || !ParticipatesInEncounterScan(kind)
             || threshold == DisabledThreshold) {
             return false;
         }
