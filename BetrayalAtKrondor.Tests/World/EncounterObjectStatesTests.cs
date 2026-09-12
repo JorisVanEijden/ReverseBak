@@ -124,6 +124,59 @@ public class EncounterObjectStatesTests {
         return null;
     }
 
+    // ---- the zone-change table init (rgnenc_savefile_init_35slot_tbl, RGNENC.C:108) ---------
+
+    [Fact]
+    public void THEZONECHANGEInitWipesEveryRefPair_NotJustTheCurrentOne() {
+        // *** The scope is what separates this from the reset sweep below. *** The original builds
+        // ONE 35-entry table and writes it to all forty pairs; a port that wipes only the pair the
+        // party is standing in leaves thirty-nine zones' worth of wandering actors mid-stride.
+        var states = new EncounterObjectStates();
+        states.SetKindForTest(0, 0, 1, EncounterObjectStates.KindRoaming);
+        states.SetKindForTest(26, 2, 3, EncounterObjectStates.KindStanding);
+        states.SetKindForTest(39, 4, 6, EncounterObjectStates.KindRoaming);
+
+        states.InitAllRefPairs();
+
+        foreach (int pair in new[] { 0, 26, 39 }) {
+            Assert.Equal(EncounterObjectStates.KindRemoved,
+                states[EncounterObjectStates.IndexOf(pair, 0, 1)].Kind);
+        }
+        Assert.Equal(EncounterObjectStates.KindRemoved,
+            states[EncounterObjectStates.IndexOf(26, 2, 3)].Kind);
+        Assert.Equal(EncounterObjectStates.KindRemoved,
+            states[EncounterObjectStates.IndexOf(39, 4, 6)].Kind);
+    }
+
+    [Fact]
+    public void THEZONECHANGEInitLeavesSlotZeroOfEachPairAtABareZero() {
+        // The original's loop is `if (i != 0) p->wKind_state = 0x100; else p->wKind_state = 0;` —
+        // an asymmetry that would look like a tidying opportunity and is not.
+        var states = new EncounterObjectStates();
+        states.SetKindForTest(0, 0, 0, EncounterObjectStates.KindRoaming);
+        states.SetKindForTest(7, 0, 0, EncounterObjectStates.KindStanding);
+
+        states.InitAllRefPairs();
+
+        Assert.Equal(0, states[EncounterObjectStates.IndexOf(0, 0, 0)].Kind);
+        Assert.Equal(0, states[EncounterObjectStates.IndexOf(7, 0, 0)].Kind);
+        Assert.Equal(EncounterObjectStates.KindRemoved,
+            states[EncounterObjectStates.IndexOf(7, 0, 1)].Kind);
+    }
+
+    [Fact]
+    public void THEZONECHANGEInitZeroesThePoseToo() {
+        var states = new EncounterObjectStates();
+        states.MarkPlaced(3, 1, 2, 400, -400, 1024, false);
+
+        states.InitAllRefPairs();
+
+        EncounterObjectStates.Entry e = states[EncounterObjectStates.IndexOf(3, 1, 2)];
+        Assert.Equal(0, e.WorldXOffset);
+        Assert.Equal(0, e.WorldYOffset);
+        Assert.Equal(0, e.Facing);
+    }
+
     // ---- the encounter reset sweep (rgnenc_reset_and_save, RGNENC.C:457) --------------------
 
     [Fact]

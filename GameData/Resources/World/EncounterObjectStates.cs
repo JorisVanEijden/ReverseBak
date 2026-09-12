@@ -284,6 +284,50 @@ public sealed class EncounterObjectStates {
     /// increased</b> — see <see cref="StepSizeChange"/>. A longer stride changes the granularity
     /// encounters are placed at, which invalidates roamers positioned for a finer one.</para>
     /// </remarks>
+    /// <summary>
+    /// Wipe every ref-pair's slots back to unplaced — <c>rgnenc_savefile_init_35slot_tbl</c>
+    /// (RGNENC.C:108-127), which the original runs on a ZONE CHANGE.
+    /// </summary>
+    /// <returns>How many entries changed.</returns>
+    /// <remarks>
+    /// <b>NOT the roaming reset, and the differences are the whole point.</b>
+    /// <see cref="ResetRoamers"/> is <c>rgnenc_reset_and_save</c>: it touches ONE ref-pair, only the
+    /// entries currently <see cref="KindRoaming"/>, and writes <see cref="KindReset"/>. This builds a
+    /// 35-entry table and writes the SAME table to all forty ref-pairs, unconditionally, with
+    /// <see cref="KindRemoved"/> in every slot but the first — which gets a bare zero.
+    ///
+    /// <para><b>Slot 0 of each ref-pair is zero, not Removed</b>, and that asymmetry is in the
+    /// original's loop as an <c>if (i != 0)</c>. Writing Removed there too would look tidier and
+    /// would be a different table.</para>
+    ///
+    /// <para><b>Measured, because this is a wipe and deserved proof:</b> loading
+    /// <c>dir.G01/SAVE07</c> (whose PreviousZone and CurrentZone differ) left the original's TEMP.GAM
+    /// with kind byte 1 across 1,363 of the 1,400 entries where the save carried 3, while the port
+    /// had touched four. 2026-09-12.</para>
+    /// </remarks>
+    public int InitAllRefPairs() {
+        var changed = 0;
+        for (var pair = 0; pair < RefPairs; pair++) {
+            for (var entry = 0; entry < EntriesPerRefPair; entry++) {
+                int at = pair * EntriesPerRefPair + entry;
+                var fresh = new Entry {
+                    WorldXOffset = 0,
+                    WorldYOffset = 0,
+                    Facing = 0,
+                    KindState = entry == 0 ? (ushort)0 : (ushort)(KindRemoved << 8),
+                };
+                if (_entries[at].KindState == fresh.KindState
+                    && _entries[at].WorldXOffset == 0 && _entries[at].WorldYOffset == 0
+                    && _entries[at].Facing == 0) {
+                    continue;
+                }
+                _entries[at] = fresh;
+                changed++;
+            }
+        }
+        return changed;
+    }
+
     public int ResetRoamers(int refPair) {
         var reset = 0;
         for (var record = 0; record < RecordsPerRefPair; record++) {
