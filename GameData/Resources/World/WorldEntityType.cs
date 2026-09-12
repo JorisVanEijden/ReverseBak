@@ -45,12 +45,39 @@ namespace GameData.Resources.World;
 /// they are three members here and not one.</para>
 /// </summary>
 public enum WorldEntityType : byte {
-    Ground      = 0,   Road        = 1,   Water     = 3,
+    Ground      = 0,   Road        = 1,   Bridge    = 2,   Water      = 3,
+    Landscape   = 4,   Decoration  = 5,   GroundPatch = 7, Fence      = 8,
+    MineCorridor = 14,
     Container   = 6,   RiftMachine = 9,   Building  = 10,  Grave      = 12,
     WayMarker   = 13,  Pit         = 15,  Corpse    = 16,  Dirt       = 17,
     Corn        = 18,  Ashes       = 19,  Tunnel    = 20,  Door       = 23,
     Crystals    = 24,  RockPile    = 25,  Bush      = 26,  BushPoison = 27,
     BushHealing = 28,  StoneSlab   = 29,  TreeStump = 30,  Well       = 31,
     SiegeEngine = 33,  ScareCrow   = 34,  DeadAnimal = 35, Catapult   = 36,
-    Pillar      = 37,  TunnelExit  = 39,  Bag       = 41,  Ladder     = 42,
+    Pillar      = 37,  LandscapeAlt = 38, TunnelExit = 39, Bag        = 41,
+    Grove       = 21,  Fern        = 22,  Ladder    = 42,
 }
+
+/// <summary>
+/// Where the nine names added on 2026-09-12 come from, and which of them are provisional.
+/// </summary>
+/// <remarks>
+/// <b>Read out of the shipped zone tables, not inferred.</b> Every <c>Z##.TBL</c> entry carries a
+/// kind and a NAME, so a census over all ten zones says outright what each kind holds:
+///
+/// <list type="table">
+/// <item><term>2 <see cref="WorldEntityType.Bridge"/></term><description>bridge1..bridge4, 17 placements — and it is in the walkable set {0,1,2,14,15,23}, which is what a bridge has to be.</description></item>
+/// <item><term>4 <see cref="WorldEntityType.Landscape"/></term><description>landscp1..4, zero1..9, one1..3, fall1, spring, invis — 107 placements. The terrain mesh: extent 9328, bbox 7992x4800x4800. NOT walkable, which is what makes it a wall.</description></item>
+/// <item><term>5 <see cref="WorldEntityType.Decoration"/></term><description>tree0..4 and cryst1..6 with their 'a' variants. <b>Unbounded, with no bbox at all</b> — a billboard, and the reason the driving notes say trees do not block.</description></item>
+/// <item><term>7 <see cref="WorldEntityType.GroundPatch"/> <b>(provisional)</b></term><description>db1..db8, 46 placements, a flat 600x400 quad with <b>Z = 0</b>. Flat, small and on the floor reads as a ground decal; what "db" abbreviates is not established, so the name carries the project's <c>?</c> convention in spirit — rename it the moment the art says otherwise.</description></item>
+/// <item><term>8 <see cref="WorldEntityType.Fence"/></term><description>one name, <c>fence</c>.</description></item>
+/// <item><term>14 <see cref="WorldEntityType.MineCorridor"/></term><description>m_1way, m_2way, m_3way, m_4way, m_hallw*, m_rm1..3, m_con, m_block — the Mac Mordain Cadal's corridor and room pieces, 168 placements. <b>In the walkable set</b>, which is why a mine is walkable at all.</description></item>
+/// <item><term>21 <see cref="WorldEntityType.Grove"/>, 22 <see cref="WorldEntityType.Fern"/></term><description>one name each.</description></item>
+/// <item><term>38 <see cref="WorldEntityType.LandscapeAlt"/> <b>(provisional)</b></term><description>the SAME meshes as kind 4 — landscp1/3/4, zero*, one1 — with identical extent and bbox. Two kinds over one mesh set; why there are two is not established.</description></item>
+/// </list>
+///
+/// <para>Kind 4 is the answer to TASK-403: the "wall" east of the road to Sarth that a BFS could
+/// not cross is a continuous band of landscape mesh, and the port refuses it because the original
+/// refuses it. Naming it turns a census result into something a reader can see in the code.</para>
+/// </remarks>
+internal static class WorldEntityTypeProvenance { }
