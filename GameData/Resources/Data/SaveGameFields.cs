@@ -60,6 +60,22 @@ public readonly record struct SaveGameFields(
     int? MapCameraZ = null,
 
     /// <summary>
+    /// The follow-road toggle as it stands — body offset 50, REQ_MAIN ActionId 19.
+    /// </summary>
+    /// <remarks>
+    /// <b>Saved because it gates movement, not because it decorates a button.</b> With it set the
+    /// original refuses every step that would leave the road; the same save walks freely with it
+    /// clear. It round-trips through <c>GameSession.IsAutoTravelling</c>, which
+    /// <c>PartyMovement</c> seeds its travel mode from on load and writes back when the player
+    /// toggles it.
+    ///
+    /// <para>Nullable for the same reason <see cref="MapCameraZ"/> is: the writer clones the body
+    /// and overwrites only what it is given, so an unconditional patch would stamp a zero over a
+    /// player's engaged travel mode on every write by a caller that knows nothing about it.</para>
+    /// </remarks>
+    short? IsAutoTravelling = null,
+
+    /// <summary>
     /// The active party's character indices, or null to leave the save's own untouched.
     /// </summary>
     /// <remarks>

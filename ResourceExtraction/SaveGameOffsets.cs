@@ -60,6 +60,18 @@ public static class SaveGameOffsets {
     // second copy of PositionZ at 29. MAP.C:474 drops the world camera to it at pitch -90;
     // ZONE.C:105 reseeds it from the zone default only on a zone change. Authored 2026-09-01;
     // before that the zoom reset on every load.
+    /// <summary>
+    /// The follow-road toggle — REQ_MAIN's ActionId 19, <c>bIsAutoTravelling</c> at body offset 50.
+    /// </summary>
+    /// <remarks>
+    /// <b>It decides whether the party may leave the road at all</b>, which is why it belongs in the
+    /// save rather than in the session's scratch. Measured 2026-09-12: the same save at
+    /// (670400, 1066800) refuses every heading with this set and walks in all four the moment the
+    /// button is clicked off. Four of the shipped/bridged saves carry a 1, and a port that ignores
+    /// it disagrees with the original about where the party may go — TASK-422.
+    /// </remarks>
+    public const int IsAutoTravelling = 50;  // Int16
+
     public const int MapCameraZ = 55;  // Int32
 
     /// <summary>

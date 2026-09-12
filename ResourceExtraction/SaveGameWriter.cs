@@ -100,6 +100,9 @@ public static class SaveGameWriter {
         if (fields.MapCameraZ.HasValue) {
             PatchI32(SaveGameOffsets.MapCameraZ, fields.MapCameraZ.Value);
         }
+        if (fields.IsAutoTravelling.HasValue) {
+            PatchI16(SaveGameOffsets.IsAutoTravelling, fields.IsAutoTravelling.Value);
+        }
 
         // *** THE CHANGE-DETECTOR BASELINE, AND IT IS ONLY WRITTEN WHEN THE CALLER HAS ONE. ***
         // The body is cloned, so leaving these alone already round-trips whatever was there. They
