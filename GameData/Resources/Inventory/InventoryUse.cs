@@ -470,7 +470,15 @@ public static class InventoryUse {
         int gain = Audio.MusicSelection.PracticeGainLow
             + context.Random(Audio.MusicSelection.PracticeGainHigh
                 - Audio.MusicSelection.PracticeGainLow + 1);
-        StatEngine.Modify(barding, ActorAttribute.Barding, gain, StatChangeMode.Absolute);
+        // *** THE PRACTICE LUTE IS THE WALKTHROUGH'S OWN EXAMPLE OF THE STUDY BONUS. ***
+        // "Before using the Practice Lutes make sure that Owyn's Barding Skill is the only one
+        // Selected - this will make it rise 50% faster." The bonus applies to EVERY change mode, not
+        // only SkillUse: STAT.C:264-273 puts it after the mode switch and before the frac banking,
+        // so this Absolute gain is boosted too. charSlot is 1-based, and the flag rows are
+        // charSlot - 1 (STAT.C:107, :196) — which also gives the "party members only" gate for free.
+        StatEngine.Modify(barding, ActorAttribute.Barding, gain, StatChangeMode.Absolute,
+            Character.SkillEmphasis.BonusFor(context.ReadFlag, context.PartySlot - 1,
+                (int)ActorAttribute.Barding, context.PartySlot != 0));
 
         byte objectId = source.ObjectId;
         container.Dirty = true;

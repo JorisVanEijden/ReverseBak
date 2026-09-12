@@ -1,5 +1,7 @@
 namespace GameData.Resources.Combat;
 
+using System;
+
 using GameData;
 using GameData.Resources.Character;
 
@@ -31,9 +33,10 @@ public static class CombatAdvancement {
     /// </summary>
     /// <param name="defenderDefense">The defender's Defense stat, or null to skip.</param>
     /// <param name="attackerMelee">The attacker's AccuracyMelee stat, or null to skip.</param>
-    public static void OnMeleeDeclared(ActorStat defenderDefense, ActorStat attackerMelee) {
-        Award(defenderDefense, ActorAttribute.Defense);
-        Award(attackerMelee, ActorAttribute.AccuracyMelee);
+    public static void OnMeleeDeclared(ActorStat defenderDefense, ActorStat attackerMelee,
+        Func<ActorAttribute, int> defenderStudy = null, Func<ActorAttribute, int> attackerStudy = null) {
+        Award(defenderDefense, ActorAttribute.Defense, defenderStudy);
+        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy);
     }
 
     /// <summary>
@@ -43,9 +46,10 @@ public static class CombatAdvancement {
     /// <para>So a landed hit pays the attacker twice over for Melee — once for trying, once for
     /// connecting — which is the whole of the "fighting makes you better at fighting" curve.</para>
     /// </summary>
-    public static void OnMeleeHit(ActorStat attackerMelee, ActorStat attackerStrength) {
-        Award(attackerMelee, ActorAttribute.AccuracyMelee);
-        Award(attackerStrength, ActorAttribute.Strength);
+    public static void OnMeleeHit(ActorStat attackerMelee, ActorStat attackerStrength,
+        Func<ActorAttribute, int> attackerStudy = null) {
+        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy);
+        Award(attackerStrength, ActorAttribute.Strength, attackerStudy);
     }
 
     /// <summary>
@@ -59,8 +63,9 @@ public static class CombatAdvancement {
     /// entirely: there is no defensive skill in play to improve. A port that mirrored the melee pair
     /// would train Defense off arrows that defence never affected.
     /// </remarks>
-    public static void OnShotDeclared(ActorStat shooterCrossbow) {
-        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow);
+    public static void OnShotDeclared(ActorStat shooterCrossbow,
+        Func<ActorAttribute, int> shooterStudy = null) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy);
     }
 
     /// <summary>
@@ -72,8 +77,9 @@ public static class CombatAdvancement {
     /// damage has no Strength term (<see cref="CombatFormulas.RangedDamage"/>), so there is nothing
     /// for it to train.
     /// </remarks>
-    public static void OnShotHit(ActorStat shooterCrossbow) {
-        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow);
+    public static void OnShotHit(ActorStat shooterCrossbow,
+        Func<ActorAttribute, int> shooterStudy = null) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy);
     }
 
     /// <summary>
@@ -84,8 +90,9 @@ public static class CombatAdvancement {
     /// Unconditional, exactly as the attacker's award in <see cref="OnMeleeDeclared"/> is. A cast
     /// that misses still teaches you something.
     /// </remarks>
-    public static void OnSpellCast(ActorStat casterCasting) {
-        Award(casterCasting, ActorAttribute.AccuracyCasting);
+    public static void OnSpellCast(ActorStat casterCasting,
+        Func<ActorAttribute, int> casterStudy = null) {
+        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy);
     }
 
     /// <summary>
@@ -101,13 +108,22 @@ public static class CombatAdvancement {
     /// <para>Note it is only the delivery categories that reach this pair — the ones that play the
     /// windup animation. Others take a different branch.</para>
     /// </remarks>
-    public static void OnSpellHit(ActorStat casterCasting) {
-        Award(casterCasting, ActorAttribute.AccuracyCasting);
+    public static void OnSpellHit(ActorStat casterCasting,
+        Func<ActorAttribute, int> casterStudy = null) {
+        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy);
     }
 
-    private static void Award(ActorStat stat, ActorAttribute attribute) {
+    /// <param name="study">
+    /// The combatant's study bonus for this attribute, or null for none. A delegate rather than a
+    /// number because one call can advance two different attributes
+    /// (<see cref="OnMeleeHit"/> pays Melee and Strength) and the emphasis mark is per attribute —
+    /// STAT.C:271 asks for THIS rating's own flag before applying the actor's rate.
+    /// </param>
+    private static void Award(ActorStat stat, ActorAttribute attribute,
+        Func<ActorAttribute, int> study = null) {
         if (stat != null) {
-            StatEngine.Modify(stat, attribute, AwardDelta, StatChangeMode.SkillUse);
+            StatEngine.Modify(stat, attribute, AwardDelta, StatChangeMode.SkillUse,
+                study?.Invoke(attribute) ?? 0);
         }
     }
 }

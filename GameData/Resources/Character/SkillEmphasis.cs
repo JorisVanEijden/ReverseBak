@@ -1,5 +1,7 @@
 namespace GameData.Resources.Character;
 
+using System;
+
 /// <summary>
 /// Marking a rating for study — the character sheet's per-skill emphasis, and what the mark on its
 /// bar means. Read from <c>charscreen_info_loop</c> @0x58378 (ovr160).
@@ -81,5 +83,79 @@ public static class SkillEmphasis {
         int row = actionId - FirstRowActionId;
 
         return row >= 0 && row < CharacterSheetLayout.LowerHalfAttributeCount ? row : -1;
+    }
+
+    /// <summary>How many of the actor's first sixteen ratings are marked for study.</summary>
+    /// <param name="flagValue">Reads a global flag by key — the session's own lookup.</param>
+    /// <remarks>
+    /// <b>Sixteen, against a stride of seventeen.</b> <c>charscreen_recalc_train_rates</c>
+    /// (CHARSCRN.C:373) counts <c>i &lt; 0x10</c> while indexing <c>memberIdx * 0x11 + i</c>, so the
+    /// seventeenth slot — the Health/Stamina combo pseudo-attribute — is addressable but never
+    /// counted. Counting it would dilute every rate by one whenever it happened to be set.
+    /// </remarks>
+    public static int EmphasisedCount(Func<int, int> flagValue, int actorNumber) {
+        if (flagValue == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int attribute = 0; attribute < CountedAttributes; attribute++) {
+            if (IsEmphasised(flagValue(FlagFor(actorNumber, attribute)))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /// <summary>Attributes the count above covers — the first sixteen of seventeen.</summary>
+    public const int CountedAttributes = 16;
+
+    /// <summary>
+    /// The actor's study rate: <c>26 / count</c>, or zero when nothing is marked.
+    /// </summary>
+    /// <remarks>
+    /// <c>g_gameState.aSkillTrainRate[memberIdx] = count != 0 ? 0x1a / count : 0</c>
+    /// (CHARSCRN.C:379), integer division. It is the numerator of
+    /// <see cref="StatEngine.Modify"/>'s <c>studyBonusPer52</c>, whose denominator is 52 — so one
+    /// marked rating is <b>+50%</b>, two are +25%, three +15%, and thirteen or more round down to
+    /// +4% or +2%. The walkthrough's "if it is the ONLY skill selected it will rise 50% faster" is
+    /// this line.
+    ///
+    /// <para>Computed on demand rather than cached. The original keeps an array and recalculates it
+    /// for every member whenever the sheet changes; the flags are the source of truth either way,
+    /// and recomputing sixteen flag reads at the point of use cannot go stale the way a cache that
+    /// misses a toggle can.</para>
+    /// </remarks>
+    public static int TrainRate(int emphasisedCount) =>
+        emphasisedCount != 0 ? RateNumerator / emphasisedCount : 0;
+
+    /// <summary>The 0x1a the rate divides.</summary>
+    public const int RateNumerator = 0x1a;
+
+    /// <summary>
+    /// The study bonus to hand <see cref="StatEngine.Modify"/> for one change to one rating.
+    /// </summary>
+    /// <param name="flagValue">Reads a global flag by key.</param>
+    /// <param name="actorNumber">The actor, for both the count and the per-rating test.</param>
+    /// <param name="attribute">Which rating is changing.</param>
+    /// <param name="isPartyMember">
+    /// False for anyone who is not in the party. <c>STAT.C:271</c> gates the whole bonus on
+    /// <c>actor-&gt;charSlot != 0</c>, so a monster gets none however its flags read.
+    /// </param>
+    /// <remarks>
+    /// <b>The rate is per ACTOR but the test is per RATING.</b> Emphasising Lockpicking does not
+    /// speed up Barding: STAT.C:271 asks for this attribute's own flag before applying the actor's
+    /// rate. Getting that wrong would turn one mark into a blanket bonus on everything.
+    ///
+    /// <para><b>And it applies to every change MODE, not only skill use.</b> The bonus sits after
+    /// the mode switch and before the <c>frac</c> banking (STAT.C:264-273), so an absolute award to
+    /// a marked rating is boosted too.</para>
+    /// </remarks>
+    public static int BonusFor(Func<int, int> flagValue, int actorNumber, int attribute,
+        bool isPartyMember) {
+        if (!isPartyMember || flagValue == null
+            || !IsEmphasised(flagValue(FlagFor(actorNumber, attribute)))) {
+            return 0;
+        }
+        return TrainRate(EmphasisedCount(flagValue, actorNumber));
     }
 }

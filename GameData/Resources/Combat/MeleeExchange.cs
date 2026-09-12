@@ -141,15 +141,30 @@ public static class MeleeExchange {
     /// </remarks>
     public readonly struct Advancement {
         public Advancement(ActorStat attackerMelee = null, ActorStat attackerStrength = null,
-            ActorStat defenderDefense = null) {
+            ActorStat defenderDefense = null,
+            Func<ActorAttribute, int> attackerStudy = null,
+            Func<ActorAttribute, int> defenderStudy = null) {
             AttackerMelee = attackerMelee;
             AttackerStrength = attackerStrength;
             DefenderDefense = defenderDefense;
+            AttackerStudy = attackerStudy;
+            DefenderStudy = defenderStudy;
         }
 
         public ActorStat AttackerMelee { get; }
         public ActorStat AttackerStrength { get; }
         public ActorStat DefenderDefense { get; }
+
+        /// <summary>The attacker's study bonus by attribute, or null for none.</summary>
+        /// <remarks>
+        /// Two delegates rather than two numbers because one exchange advances three different
+        /// ratings across two actors, and the emphasis mark is per rating — an attacker who has
+        /// marked Melee and not Strength is boosted on one and not the other.
+        /// </remarks>
+        public Func<ActorAttribute, int> AttackerStudy { get; }
+
+        /// <summary>The defender's study bonus by attribute, or null for none.</summary>
+        public Func<ActorAttribute, int> DefenderStudy { get; }
     }
 
     /// <summary>
@@ -190,7 +205,8 @@ public static class MeleeExchange {
         // attacked at all and the attacker improves Melee for swinging — win or lose. Awarding
         // these only on a hit would quietly halve the attacker's Melee curve and pay a defender
         // nothing for a fight they survived by being missed.
-        CombatAdvancement.OnMeleeDeclared(advancement.DefenderDefense, advancement.AttackerMelee);
+        CombatAdvancement.OnMeleeDeclared(advancement.DefenderDefense, advancement.AttackerMelee,
+            advancement.DefenderStudy, advancement.AttackerStudy);
 
         bool parrying = (defender.Flags & CombatantFlags.Parry) != 0;
         if (!CombatFormulas.MeleeHits(rnd(100), chance, parrying)) {
@@ -198,7 +214,8 @@ public static class MeleeExchange {
         }
 
         // And again on connecting: Melee a SECOND time, plus Strength.
-        CombatAdvancement.OnMeleeHit(advancement.AttackerMelee, advancement.AttackerStrength);
+        CombatAdvancement.OnMeleeHit(advancement.AttackerMelee, advancement.AttackerStrength,
+            advancement.AttackerStudy);
 
         int enchantment = attackerStats.HasWeapon
             ? CombatFormulas.WeaponEnchantmentBonus(attackerStats.WeaponFlags, attackerStats.WeaponBase)
