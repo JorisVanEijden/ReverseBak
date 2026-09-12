@@ -29,6 +29,24 @@ public class ZoneDefinition : IResource
     public short ZonePointer { get; set; }
 
     /// <summary>
+    /// The view zoom — the projection shift this zone's world is rendered through.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is per-zone, and the shipped data is not uniform.</b> <c>zone_load</c> (canassa
+    /// <c>SRC/R3D/SCENE/ZONE.C:67-89</c>) reads it out of <c>Z##DEF.DAT</c> straight after
+    /// <see cref="ZoneLocation"/>, into the first two bytes of <c>g_world_widget</c>, on every zone
+    /// change. Zones 1-9 ship <b>9</b>; the three dungeons, 10-12, ship <b>8</b> — one bit of shift,
+    /// so the original's dungeon camera sees twice as much ground at the same height.
+    ///
+    /// <para><see cref="ZonePointer"/> is that field, and the name is a leftover from a layout pass
+    /// that did not have <c>zone_load</c> to read against. Renaming the serialized property means
+    /// regenerating <c>generated/</c>, so it is TASK-441's job; this is the name to USE meanwhile.
+    /// Feed it to <c>WorldProjection.VerticalFovDegrees</c>, never the hard-coded
+    /// <c>TravelProjectionShift</c>.</para>
+    /// </remarks>
+    public int ViewZoomShift => ZonePointer;
+
+    /// <summary>
     /// Height of the player's eye while walking this zone — 230 in every outdoor zone, 250
     /// underground.
     /// </summary>
