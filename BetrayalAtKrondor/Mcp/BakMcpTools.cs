@@ -381,6 +381,75 @@ public sealed class BakMcpTools {
         }
     }
 
+    [McpServerTool(Name = "bak_find_function")]
+    [Description("Find a routine in memory by its opening bytes and return the seg:off " +
+        "bak_call_function needs. Give it a signature taken from IDA at the function's address and " +
+        "the function's OFFSET WITHIN ITS IDA SEGMENT (ida - idaapi.get_segm_base(seg)). Requires " +
+        "exactly one match: several means the signature is too short, none means the overlay is not " +
+        "resident right now. Use this INSTEAD of the overlay map, whose is_loaded goes stale.")]
+    public object FindFunction(
+        [Description("Opening bytes as hex, e.g. '558BEC83EC02568B7606'. 16+ bytes keeps it unique.")]
+        string signature,
+        [Description("The function's offset within its IDA segment — ida minus the segment base.")]
+        int segmentOffset) {
+        string hex = signature.Replace(" ", "").Replace("0x", "");
+        if (hex.Length < 8 || hex.Length % 2 != 0) {
+            return new { error = "signature must be an even number of hex digits, at least 4 bytes" };
+        }
+
+        var pattern = new byte[hex.Length / 2];
+        for (var i = 0; i < pattern.Length; i++) {
+            if (!byte.TryParse(hex.Substring(i * 2, 2), System.Globalization.NumberStyles.HexNumber,
+                    null, out pattern[i])) {
+                return new { error = $"'{hex}' is not hex" };
+            }
+        }
+
+        var hits = new List<uint>();
+        const uint conventional = 0x100000;
+        for (uint addr = 0; addr + (uint)pattern.Length <= conventional && hits.Count <= 8; addr++) {
+            if (_emulator.Memory.UInt8[addr] != pattern[0]) {
+                continue;
+            }
+            var match = true;
+            for (var i = 1; i < pattern.Length; i++) {
+                if (_emulator.Memory.UInt8[addr + (uint)i] != pattern[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                hits.Add(addr);
+            }
+        }
+
+        if (hits.Count == 0) {
+            return new { found = false,
+                error = "not in memory — the overlay holding it is not resident. Put the game in a "
+                    + "state that uses it and look again." };
+        }
+        if (hits.Count > 1) {
+            return new { found = false, matches = hits.Count,
+                error = "signature is not unique; take more bytes from IDA." };
+        }
+
+        uint physical = hits[0];
+        if (physical < (uint)segmentOffset || (physical - (uint)segmentOffset) % 16 != 0) {
+            return new { found = false,
+                error = $"0x{physical:X} minus offset 0x{segmentOffset:X} is not paragraph-aligned — "
+                    + "the segment offset does not belong to this signature." };
+        }
+
+        ushort segment = (ushort)((physical - (uint)segmentOffset) >> 4);
+        return new {
+            found = true,
+            address = $"{segment:X4}:{segmentOffset:X4}",
+            segment = $"0x{segment:X4}",
+            offset = $"0x{segmentOffset:X4}",
+            physical = $"0x{physical:X}"
+        };
+    }
+
     [McpServerTool(Name = "bak_call_function")]
     [Description("Call a function INSIDE the running game and return what it answers. Pushes the " +
         "given 16-bit words right-to-left (Borland cdecl), pushes the CURRENT CS:IP as the far " +
@@ -447,6 +516,20 @@ public sealed class BakMcpTools {
             _emulator.Memory.UInt16[(uint)(st.SS << 4) + st.SP] = value;
         }
 
+        // *** A SECOND BREAKPOINT ON THE TARGET, BECAUSE THE FIRST VERSION LIED. *** Without it the
+        // tool reported `returned: true` for an address that cannot possibly return — writing
+        // State.CS/IP does not redirect Spice86's CfgCpu, so the CPU stayed where it was, and the
+        // breakpoint on the RETURN address (which is where it still was) fired at once. The smoke
+        // test passed for that reason and meant nothing; what caught it was a target with a known
+        // answer returning the wrong one.
+        bool enteredTarget = false;
+        var entryBp = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS,
+            (uint)(target.Value.Segment << 4) + target.Value.Offset,
+            _ => enteredTarget = true,
+            false);
+        _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
+
         bool returned = false;
         uint returnPhysical = (uint)(cs << 4) + ip;
         var bp2 = new AddressBreakPoint(
@@ -495,8 +578,20 @@ public sealed class BakMcpTools {
                 Thread.Sleep(200);
             }
 
+            if (!enteredTarget) {
+                return new {
+                    returned = false,
+                    entered_target = false,
+                    error = "the CPU never reached the target: writing State.CS/IP does not redirect "
+                        + "Spice86's CfgCpu. Redirection is the missing piece — see TASK-449. Any "
+                        + "answer this tool gave before this check existed was the register file as "
+                        + "it happened to be, not the routine's."
+                };
+            }
+
             return new {
                 returned,
+                entered_target = true,
                 ax = resultAx,
                 dx = resultDx,
                 signed_ax = (short)resultAx,
@@ -507,6 +602,7 @@ public sealed class BakMcpTools {
                 timeout_ms = returned ? (int?)null : timeoutMs
             };
         } finally {
+            _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
             _emulator.BreakpointsManager.ToggleBreakPoint(bp2, false);
             // Restore in a fixed order; SS and SP together, so a half-restored stack can never be
             // left behind even if the call timed out.
