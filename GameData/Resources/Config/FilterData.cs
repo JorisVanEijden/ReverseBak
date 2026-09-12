@@ -47,6 +47,27 @@ public class FilterData : IResource {
     /// <summary>One entry per graphics detail-level preference (index = <c>config.levelOfDetail</c>,
     /// 0 = lowest detail / shortest draw distance .. 3 = highest).</summary>
     public List<DetailLevelFilter> DetailLevels { get; set; } = new();
+
+    /// <summary>
+    /// The 43 thresholds for a detail level, clamped to what the file actually carries.
+    /// </summary>
+    /// <remarks>
+    /// <b>Clamps rather than throws</b>, because the caller is a per-step render or collision sweep
+    /// and a preference out of range must not stop the world being drawn or walked. Lives here
+    /// rather than in each consumer so the two — <c>ProximityWorld</c>'s collision gate and
+    /// <c>WorldEntityVisibility</c>'s render gate — cannot drift on the clamp.
+    /// </remarks>
+    /// <returns>The block's distances, or null when no block was loaded at all.</returns>
+    public int[] DrawDistancesFor(int detailLevel) {
+        if (DetailLevels == null || DetailLevels.Count == 0) {
+            return null;
+        }
+        int index = detailLevel < 0 ? 0
+            : detailLevel >= DetailLevels.Count ? DetailLevels.Count - 1
+            : detailLevel;
+
+        return DetailLevels[index].DrawDistances;
+    }
 }
 
 /// <summary>
