@@ -69,6 +69,17 @@ public sealed class TargetCandidate {
     /// the pack. Counted from the monsters' own side, like <see cref="AlliesNearby"/>.
     /// </summary>
     public int AttackersAlready { get; set; }
+
+    /// <summary>
+    /// Whether the monster could not stand next to this candidate at all. <b>Melee path only.</b>
+    /// </summary>
+    /// <remarks>
+    /// A candidate boxed in on BOTH of its approach cells is skipped and the monster looks
+    /// elsewhere — see <see cref="CombatAi.ApproachIsBlocked"/> for the test. Left false by the
+    /// ranged path, which does not have the rule, exactly as <see cref="AlliesNearby"/> is left at
+    /// zero by the melee one.
+    /// </remarks>
+    public bool ApproachBlocked { get; set; }
 }
 
 /// <summary>What a monster does on its turn.</summary>
@@ -443,6 +454,13 @@ public static class CombatAi {
                 && candidate.AttackersAlready >= maxAttackersPerCandidate) {
                 continue;
             }
+            // *** AND WHETHER THERE IS ANYWHERE TO STAND. *** The original's gate sits immediately
+            // before the attacker count (CMBTAI.C:344-348), so a target boxed in on both approach
+            // cells is skipped rather than chosen and shuffled at. Filled by the caller that owns
+            // the grid; see CombatAi.ApproachIsBlocked and TargetCandidate.ApproachBlocked.
+            if (candidate.ApproachBlocked) {
+                continue;
+            }
             if (!MatchesRole(candidate, role)) {
                 continue;
             }
@@ -516,6 +534,42 @@ public static class CombatAi {
 
     /// <summary>The highest <c>RND(100)</c> that parries — <c>0x19</c>.</summary>
     public const int ParryRollBound = 0x19;
+
+    /// <summary>
+    /// Whether a monster could not reach a spot beside this target — <c>combataipath_select_target</c>
+    /// (canassa <c>SRC/COMBAT/AI/CMBTAI.C:344-348</c>).
+    /// </summary>
+    /// <remarks>
+    /// <code>
+    /// if (combatgrid_tile_is_blocked(approachX, tile_y) == 0 ||
+    ///     combatgrid_tile_is_blocked(tile_x, approachY) == 0 ||
+    ///     (actor-&gt;inner-&gt;gridX == approachX &amp;&amp; actor-&gt;inner-&gt;gridY == tile_y) ||
+    ///     (actor-&gt;inner-&gt;gridX == tile_x   &amp;&amp; actor-&gt;inner-&gt;gridY == approachY)) {
+    ///     ... consider this candidate ...
+    /// }
+    /// </code>
+    /// So a target with both approach cells occupied is <b>skipped</b>, and the monster goes looking
+    /// for another — rather than choosing someone it cannot reach and spending its turns shuffling.
+    ///
+    /// <para><b>The two cells are the same pair <see cref="ApproachCell"/> picks between</b>, and the
+    /// arithmetic is shared with it deliberately: a gate that disagreed with the cell the walk then
+    /// aims at would reject targets the monster could reach, or accept ones it could not.</para>
+    ///
+    /// <para><b>"Already standing there" counts as reachable</b>, which is what the two equality
+    /// arms are for — a monster in contact must not disqualify the target it is already next to.</para>
+    /// </remarks>
+    /// <param name="isBlocked">The grid's occupancy test, or null to disable the rule.</param>
+    public static bool ApproachIsBlocked(int actorX, int actorY, int targetX, int targetY,
+        Func<int, int, bool> isBlocked) {
+        if (isBlocked == null) {
+            return false;
+        }
+        int approachX = targetX + (targetX < actorX ? 1 : -1);
+        int approachY = targetY + (targetY < actorY ? 1 : -1);
+        bool xUsable = !isBlocked(approachX, targetY) || (actorX == approachX && actorY == targetY);
+        bool yUsable = !isBlocked(targetX, approachY) || (actorX == targetX && actorY == approachY);
+        return !xUsable && !yUsable;
+    }
 
     private static bool MatchesRole(TargetCandidate candidate, TargetRole role) => role switch {
         TargetRole.Anyone => true,
