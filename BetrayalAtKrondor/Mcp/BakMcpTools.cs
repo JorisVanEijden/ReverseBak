@@ -451,7 +451,11 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_call_function")]
-    [Description("Call a function INSIDE the running game and return what it answers. Pushes the " +
+    [Description("SPIKE — TREAT A CALL AS THE LAST THING YOU DO BEFORE RESTARTING THE EMULATOR. " +
+        "Only the FIRST call of a session reaches the routine (the CfgCpu honours a CS:IP change on " +
+        "its cold path only), and the cleanup afterwards is not reliable: the CPU can be left parked " +
+        "in the call stub, where a later resume kills the process. Call it, read the answer, restart. " +
+        "Call a function INSIDE the running game and return what it answers. Pushes the " +
         "given 16-bit words right-to-left (Borland cdecl), pushes the CURRENT CS:IP as the far " +
         "return address, jumps to the target, runs until it returns, then restores every register. " +
         "Address MUST be seg:off (e.g. '3BEB:0430') — a far routine uses near jumps inside its own " +
@@ -612,6 +616,7 @@ public sealed class BakMcpTools {
                 returned,
                 entered_target = enteredTarget,
                 trustworthy = enteredTarget && returned,
+                restart_advised = true,
                 ax = resultAx,
                 dx = resultDx,
                 signed_ax = (short)resultAx,
