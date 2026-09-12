@@ -179,11 +179,19 @@ public sealed class TrapPuzzle {
     /// negated so the walk goes away from the occupied side. <see cref="FindLineDirection"/> never
     /// answers "no axis" (it falls back to vertical), so there is always a direction to negate.</para>
     ///
-    /// <para><b>Interpretation worth checking if this ever looks wrong:</b> the walk erases the
-    /// origin, then steps, and stops <i>before</i> a cell holding an element or leaving the grid —
-    /// so <c>end</c> is the last cell erased, and it is that cell, not the blocker, whose isolation
-    /// is tested. Both ends are tested independently, so one pass can wreck neither, one, or
-    /// both.</para>
+    /// <para><b>The walk stops ON the blocker, and the blocker is what gets tested.</b> The
+    /// original's loop increments inside its own condition
+    /// (<c>while ((tile_x += dx, ..., coord_valid(...)) &amp;&amp; find_cmbt_at_tile(...) == 0)</c>,
+    /// canassa <c>CMBTGRID.C:1066</c>), so on exit the cursor sits on the occupied — or
+    /// off-grid — cell, and it is <i>that</i> element the isolation probe then kills. It also never
+    /// erases the ORIGIN: the first thing the loop does is step off it.
+    ///
+    /// <b>This was transcribed the other way round until 2026-09-12</b> — the walk erased the origin
+    /// and stopped one cell short, so the far end of a run was never tested and never wrecked. The
+    /// remark that used to sit here called it out as the interpretation to check if this ever looked
+    /// wrong, and it did: one Black Nimbus at power 10 on the chapter-1 crystal trap wrecks BOTH
+    /// type-7 crystals in the original and only the aimed one in the port (TASK-376). Both ends are
+    /// still tested independently, so one pass can wreck neither, one, or both.</para>
     ///
     /// <para><b>Deliberately absent:</b> <see cref="CrystalChain.NeighboursTakenWhenBoxedIn"/>. It
     /// lives in the <c>dx == 0 &amp;&amp; dy == 0</c> arm, and the axis finder cannot return (0,0) —
@@ -200,20 +208,21 @@ public sealed class TrapPuzzle {
         int endX = x;
         int endY = y;
         while (true) {
-            Grid.SetTerrain(endX, endY, CombatTerrain.Open);
-            int nextX = endX + dx;
-            int nextY = endY + dy;
-            if (!CombatGrid.InBounds(nextX, nextY) || ElementAt(nextX, nextY) != null) {
+            endX += dx;
+            endY += dy;
+            if (!CombatGrid.InBounds(endX, endY) || ElementAt(endX, endY) != null) {
                 break;
             }
-            endX = nextX;
-            endY = nextY;
+            Grid.SetTerrain(endX, endY, CombatTerrain.Open);
         }
 
         if (CrystalChain.IsolationDestroys(this, x, y, kind)) {
             Wreck(x, y);
         }
-        if ((endX != x || endY != y) && CrystalChain.IsolationDestroys(this, endX, endY, kind)) {
+        // The exit cell is the blocker, which may be off the grid — the original's kill is a no-op
+        // there, and here it would index outside it.
+        if (CombatGrid.InBounds(endX, endY)
+                && CrystalChain.IsolationDestroys(this, endX, endY, kind)) {
             Wreck(endX, endY);
         }
     }

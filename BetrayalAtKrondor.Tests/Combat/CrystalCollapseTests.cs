@@ -45,6 +45,42 @@ public class CrystalCollapseTests {
         }
     }
 
+    /// <summary>
+    /// The crystal at the FAR end of the run goes too — the defect the original found.
+    /// </summary>
+    /// <remarks>
+    /// <c>combatgrid_push_back_actor</c> increments inside its own loop condition (CMBTGRID.C:1066),
+    /// so the walk stops ON the blocking cell and it is that element the isolation probe kills.
+    /// Transcribed the other way round, the walk stopped one cell short and the far end was never
+    /// tested: one Black Nimbus wrecked both type-7 crystals in the original and only the aimed one
+    /// here (TASK-376, driven in both games 2026-09-12).
+    /// </remarks>
+    [Fact]
+    public void CollapsingARunWrecksTheCrystalAtBOTHENDS() {
+        TrapPuzzle puzzle = PuzzleWith((Crystal, 1, 1), (Crystal, 5, 1));
+        GroundRow(puzzle, 1, 5, 1);
+
+        puzzle.CollapseUntilIsolated(1, 1);
+
+        Assert.Equal(CrystalChain.WreckElementId, puzzle.Elements[0].ElementId);
+        Assert.Equal(CrystalChain.WreckElementId, puzzle.Elements[1].ElementId);
+    }
+
+    /// <summary>A run that ends at the grid edge wrecks only the crystal that is on it.</summary>
+    /// <remarks>
+    /// The original's cursor walks off the grid and its kill is a no-op there; ours would index
+    /// outside the grid, so the far-end test is guarded. Nothing to wreck, and no throw.
+    /// </remarks>
+    [Fact]
+    public void ARunThatWalksOffTheGridWrecksOnlyItsOwnEnd() {
+        TrapPuzzle puzzle = PuzzleWith((Crystal, 1, 1));
+        GroundRow(puzzle, 1, CombatGrid.Width - 1, 1);
+
+        puzzle.CollapseUntilIsolated(1, 1);
+
+        Assert.Equal(CrystalChain.WreckElementId, puzzle.Elements[0].ElementId);
+    }
+
     [Fact]
     public void AnIsolatedTileCollapsesNothing() {
         // One crystal with no run beside it: RunContinues is false from the start, so the loop
