@@ -492,6 +492,31 @@ public static class CombatAi {
         return xUsable ? (approachX, targetY) : (targetX, approachY);
     }
 
+    /// <summary>
+    /// What a monster standing next to its target actually does — <c>combataipath_followup_action</c>
+    /// (canassa <c>SRC/COMBAT/AI/CMBTAI.C:381-388</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Being in contact is not the same as attacking.</b> The routine is two lines:
+    /// <code>
+    /// r = RND(100);
+    /// if (r > 0x19) { combatenc_ai_attempt_melee(actor); return; }
+    /// combatenc_set_flag8_clear_flag1(actor);      /* set CAF_PARRY, clear CAF_READY */
+    /// </code>
+    /// so **a quarter of the time it raises its guard instead**, spending the turn without swinging.
+    /// A port that attacks on every adjacent turn makes every melee enemy a third again as
+    /// dangerous, and makes the original's monsters look passive by comparison when they are not.
+    ///
+    /// <para><b>The boundary is <c>&gt; 0x19</c>, not <c>&gt;= 25</c>.</b> A roll of exactly 25
+    /// parries, so 26 of the 100 outcomes do — reproduced rather than rounded because the two read
+    /// the same and differ by a point of behaviour.</para>
+    /// </remarks>
+    /// <param name="roll"><c>RND(100)</c>, in 0..99.</param>
+    public static bool ContactParries(int roll) => roll <= ParryRollBound;
+
+    /// <summary>The highest <c>RND(100)</c> that parries — <c>0x19</c>.</summary>
+    public const int ParryRollBound = 0x19;
+
     private static bool MatchesRole(TargetCandidate candidate, TargetRole role) => role switch {
         TargetRole.Anyone => true,
         TargetRole.Spellcaster => candidate.CanCastSpells,
