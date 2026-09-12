@@ -571,12 +571,18 @@ public sealed class BakMcpTools {
                 elapsed += 20;
             }
 
-            ushort resultAx = st.AX;
-            ushort resultDx = st.DX;
+            // *** WAIT FOR THE PAUSE TO LAND BEFORE TOUCHING ANYTHING. *** The breakpoint callback
+            // only REQUESTS a pause; the CPU thread is still running when this one wakes up. Reading
+            // AX there is a race, and restoring SP there is worse — it rewrites the stack pointer
+            // under a running instruction, which is how the second call in a row ended up doing a
+            // RETF into segment zero. bak_run_to_ida settles the same way after its own request.
             if (!returned) {
                 _emulator.PauseHandler.RequestPause("bak_call_function timed out");
-                Thread.Sleep(200);
             }
+            Thread.Sleep(PauseSettleMs);
+
+            ushort resultAx = st.AX;
+            ushort resultDx = st.DX;
 
             if (!enteredTarget) {
                 return new {
@@ -696,6 +702,11 @@ public sealed class BakMcpTools {
             message = $"Mouse {button}-clicked at ({x}, {y})"
         };
     }
+
+    /// <summary>
+    /// How long to wait after a pause is REQUESTED before believing the CPU has stopped.
+    /// </summary>
+    private const int PauseSettleMs = 200;
 
     /// <summary>How long the cursor sits at the new position, button up, before it is pressed.</summary>
     private const int MoveSettleMs = 120;
