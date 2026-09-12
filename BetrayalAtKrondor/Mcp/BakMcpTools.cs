@@ -530,8 +530,29 @@ public sealed class BakMcpTools {
             false);
         _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
 
+        // *** THE GUEST MAKES THE CALL, NOT US. *** Jumping straight at the routine and letting it
+        // RETF means Spice86's FunctionHandler sees a return it never saw a call for. Five bytes of
+        // `CALL FAR target` in the BIOS inter-application scratch at 0040:00F0 — sixteen bytes DOS
+        // reserves and never touches — and a jump THERE instead: the guest executes a real far call
+        // and the RETF balances it.
+        //
+        // *** AND THE BYTE AFTER THE CALL IS `JMP $`, NOT `HLT`. *** The first version parked an
+        // 0xF4 there on the reasoning that it is never reached. It is: the breakpoint only REQUESTS
+        // a pause, the CPU can run one more instruction before that lands, and Spice86 treats HLT as
+        // the machine exiting — "Exiting machine entry point but current function does not seem to
+        // be entry point" — and the emulator shuts down mid-session. `EB FE` costs a few harmless
+        // cycles instead of the process.
+        const uint stubSegment = 0x0040;
+        const uint stubOffset = 0x00F0;
+        uint stubPhysical = (stubSegment << 4) + stubOffset;
+        _emulator.Memory.UInt8[stubPhysical] = 0x9A;
+        _emulator.Memory.UInt16[stubPhysical + 1] = target.Value.Offset;
+        _emulator.Memory.UInt16[stubPhysical + 3] = target.Value.Segment;
+        _emulator.Memory.UInt8[stubPhysical + 5] = 0xEB;
+        _emulator.Memory.UInt8[stubPhysical + 6] = 0xFE;
+
         bool returned = false;
-        uint returnPhysical = (uint)(cs << 4) + ip;
+        uint returnPhysical = stubPhysical + 5;
         var bp2 = new AddressBreakPoint(
             BreakPointType.CPU_EXECUTION_ADDRESS, returnPhysical,
             _ => {
@@ -545,11 +566,7 @@ public sealed class BakMcpTools {
             for (int i = words.Count - 1; i >= 0; i--) {
                 Push(words[i]);
             }
-            // A far CALL pushes CS then IP, and RETF pops them back in that order. The return
-            // address is where the game was already paused, so the routine lands exactly where we
-            // found it and the breakpoint above catches it.
-            Push(cs);
-            Push(ip);
+            // No return address is pushed here: the stub's own CALL FAR pushes it.
 
             if (!string.IsNullOrWhiteSpace(ds)) {
                 uint? dsValue = ds.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
@@ -561,8 +578,8 @@ public sealed class BakMcpTools {
                 st.DS = (ushort)dsValue.Value;
             }
 
-            st.CS = target.Value.Segment;
-            st.IP = target.Value.Offset;
+            st.CS = (ushort)stubSegment;
+            st.IP = (ushort)stubOffset;
 
             _emulator.PauseHandler.Resume();
             int elapsed = 0;
@@ -584,20 +601,17 @@ public sealed class BakMcpTools {
             ushort resultAx = st.AX;
             ushort resultDx = st.DX;
 
-            if (!enteredTarget) {
-                return new {
-                    returned = false,
-                    entered_target = false,
-                    error = "the CPU never reached the target: writing State.CS/IP does not redirect "
-                        + "Spice86's CfgCpu. Redirection is the missing piece — see TASK-449. Any "
-                        + "answer this tool gave before this check existed was the register file as "
-                        + "it happened to be, not the routine's."
-                };
-            }
-
+            // *** ONE CALL PER SESSION IS ALL THIS GETS, AND THE FLAGS SAY WHICH ONE. *** Writing
+            // State.CS/IP only redirects on the CfgCpu's COLD path — ExecuteOneNode compares the
+            // node's address against the registers and drops NodeToExecuteNextAccordingToGraph when
+            // they differ, and that check is skipped once the surrounding block is discovered and
+            // live. Measured: the first call answers correctly, every later one answers a constant
+            // with entered_target false. TASK-449 has the way out —
+            // ExecutionContextManager.SignalNewExecutionContext, the path an interrupt takes.
             return new {
                 returned,
-                entered_target = true,
+                entered_target = enteredTarget,
+                trustworthy = enteredTarget && returned,
                 ax = resultAx,
                 dx = resultDx,
                 signed_ax = (short)resultAx,
