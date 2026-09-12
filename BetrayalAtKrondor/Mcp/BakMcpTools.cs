@@ -420,17 +420,38 @@ public sealed class BakMcpTools {
 
         byte buttonBit = button.ToLowerInvariant() == "right" ? (byte)0x02 : (byte)0x01;
 
-        // BaK mouse globals use 4x screen coordinates (LoadMousePosition divides by 4)
+        // *** MOVE FIRST, AND LET THE GAME SEE THE CURSOR THERE WITH THE BUTTON UP. ***
+        // Writing the position and the button in the same instant tells the game a press with no
+        // preceding hover, and some widgets never act on it. Measured 2026-09-12 on the inventory's
+        // Use button (REQ_INV action 22, `bActive_flag = 1` and `wEnable_gate = 0` for a party
+        // member's own pack, so it is live): six same-instant clicks cleared the selection and did
+        // nothing, twice, while move-wait-press-wait-release used the item first time, twice.
+        // The separate move is the difference; it costs ~120 ms and it is why this is not one write.
+        //
+        // BaK mouse globals use 4x screen coordinates (LoadMousePosition divides by 4).
         _emulator.Memory.UInt16[physX.Value] = (ushort)(x * 4);
         _emulator.Memory.UInt16[physY.Value] = (ushort)(y * 4);
-        _emulator.Memory.WriteRam(new[] { buttonBit }, physButton.Value);
-
-        // Let the emulator run so the game sees the click
         _emulator.PauseHandler.Resume();
-        Thread.Sleep(100);
+        Thread.Sleep(MoveSettleMs);
+
+        _emulator.Memory.WriteRam(new[] { buttonBit }, physButton.Value);
+        Thread.Sleep(PressHoldMs);
 
         // Button up
         _emulator.Memory.WriteRam(new byte[] { 0 }, physButton.Value);
+
+        // *** AND LET IT RUN AGAIN, WITH THE BUTTON UP. ***
+        // menupage_input_poll (canassa UI/MENUPAGE.C:418-523) fires an action on the RELEASE, not on
+        // the press: a poll with the button down only records `g_pMenuPressAnchor`, and the action id
+        // comes from the LATER poll where `input == 0` and the cursor is still over that same anchor
+        // (the `input_zero` arm). So a click that stops at the button-up WRITE has told the game half
+        // a click, and the widget does nothing at all.
+        //
+        // Measured 2026-09-12 on the inventory's Use button (REQ_INV action 22): six plain clicks
+        // cleared the selection and produced nothing, while the same click driven as a held press —
+        // move, wait, press, wait, release, wait — used the item first time. The sleep is what turns
+        // the second into the first.
+        Thread.Sleep(ReleaseRunMs);
 
         return new {
             success = true,
@@ -440,6 +461,18 @@ public sealed class BakMcpTools {
             message = $"Mouse {button}-clicked at ({x}, {y})"
         };
     }
+
+    /// <summary>How long the cursor sits at the new position, button up, before it is pressed.</summary>
+    private const int MoveSettleMs = 120;
+
+    /// <summary>How long the button is held down before it is released.</summary>
+    private const int PressHoldMs = 150;
+
+    /// <summary>
+    /// How long the emulator runs after the release, so the poll that actually fires the action gets
+    /// to happen inside this call rather than whenever something else next resumes.
+    /// </summary>
+    private const int ReleaseRunMs = 150;
 
     /// <summary>The game's display is mode 13h/mode X: 320x200, so the last addressable pixel is
     /// (319, 199).</summary>
