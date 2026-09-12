@@ -177,6 +177,34 @@ public class EncounterObjectStatesTests {
         Assert.Equal(0, e.Facing);
     }
 
+    [Fact]
+    public void THEWALKPHASESurvivesBeingStored() {
+        // *** The low bits are read back by the draw. *** rgnenc_draw_encounter_actor takes
+        // `state & 3` as the walk frame and `state & 4` as the rising/falling toggle
+        // (RGNENC.C:578-579), so a writer that keeps only the kind restarts every actor on frame 0
+        // walking the same way after a load.
+        var states = new EncounterObjectStates();
+        int fresh = GameData.Resources.World.EncounterActorSpawn.FreshlyPlacedState(
+            frameRoll: 2, directionRoll: 1);
+
+        states.SetStateWord(4, 1, 3, fresh);
+
+        EncounterObjectStates.Entry e = states[EncounterObjectStates.IndexOf(4, 1, 3)];
+        Assert.Equal(fresh, e.KindState);
+        Assert.Equal(EncounterObjectStates.KindRoaming, e.Kind);
+        Assert.NotEqual(0, e.KindState & 3);
+    }
+
+    [Fact]
+    public void SETKINDStillZeroesTheLowBits_WhichIsWhyItIsNotTheProductionWriter() {
+        var states = new EncounterObjectStates();
+        states.SetStateWord(4, 1, 3, GameData.Resources.World.EncounterActorSpawn.FreshlyPlacedState(2, 1));
+
+        states.SetKindForTest(4, 1, 3, EncounterObjectStates.KindRoaming);
+
+        Assert.Equal(0, states[EncounterObjectStates.IndexOf(4, 1, 3)].KindState & 7);
+    }
+
     // ---- the encounter reset sweep (rgnenc_reset_and_save, RGNENC.C:457) --------------------
 
     [Fact]

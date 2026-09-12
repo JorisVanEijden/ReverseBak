@@ -385,8 +385,33 @@ public sealed class EncounterObjectStates {
     }
 
     /// <summary>
-    /// Sets a slot's kind directly. For tests and for a loader replaying a state the game wrote —
-    /// the named Mark* methods cover the transitions the game itself performs.
+    /// Stores a slot's WHOLE state word — kind byte and the low bits both.
+    /// </summary>
+    /// <remarks>
+    /// <b>The low bits are not decoration.</b> A roaming actor's word is
+    /// <c>0x300 | RND(3)</c>, with bit 2 set on a second coin-flip (RGNENC.C:250-253), and
+    /// <c>rgnenc_draw_encounter_actor</c> reads both back — <c>animFrame = state &amp; 3</c> and
+    /// <c>animToggle = state &amp; 4</c> (RGNENC.C:578-579) — to pick the walk frame and whether the
+    /// stride is rising or falling. <see cref="SetKindForTest"/> and the private writer both shift a
+    /// kind into place and leave the rest zero, so persisting through either restarts every actor on
+    /// frame 0 walking the same way after a load: the lockstep
+    /// <see cref="EncounterActorSpawn.FreshlyPlacedState"/> exists to avoid.
+    /// </remarks>
+    public void SetStateWord(int refPair, int recordIndex, int slotIndex, int stateWord) {
+        int at = IndexOf(refPair, recordIndex, slotIndex);
+        Entry kept = _entries[at];
+        _entries[at] = new Entry {
+            WorldXOffset = kept.WorldXOffset,
+            WorldYOffset = kept.WorldYOffset,
+            Facing = kept.Facing,
+            KindState = (ushort)stateWord,
+        };
+    }
+
+    /// <summary>
+    /// Sets a slot's kind directly, zeroing the low bits. For tests and for a loader replaying a
+    /// state the game wrote — the named Mark* methods cover the transitions the game itself
+    /// performs, and <see cref="SetStateWord"/> is the one that keeps a walk phase.
     /// </summary>
     public void SetKindForTest(int refPair, int recordIndex, int slotIndex, int kind) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), kind);
