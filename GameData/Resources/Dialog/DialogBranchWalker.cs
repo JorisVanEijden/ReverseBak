@@ -307,6 +307,24 @@ public static class DialogBranchWalker {
             }
             return false;
         }
+        if (condition is PartyCondition p) {
+            return InRange(getGlobal(PartyCheckGlobalBase + p.Check) ?? 0, p.Min, p.Max);
+        }
+        if (condition is HasNoteCondition n) {
+            return (getGlobal(NoteGlobalBase + n.Note) ?? 0) != 0;
+        }
+        if (condition is SpellTimerActiveCondition t) {
+            return (getGlobal(SpellTimerGlobalBase + t.Timer) ?? 0) != 0;
+        }
+        if (condition is RandomCondition r) {
+            // *** THE ROLL BELONGS TO THE READER, NOT TO A PARAMETER HERE. *** `gstate_event_read`
+            // answers 53000+n with `RND(n)` (GSTATE.C:57) — a read WITH A SIDE EFFECT, a fresh roll
+            // every time it is asked. Giving Holds its own `roll` argument would make the walker
+            // decide when a die is thrown, which is the one thing this method has never done: every
+            // arm resolves to a key and asks. So the reader rolls, and asking twice rolls twice,
+            // exactly as the original does.
+            return InRange(getGlobal(RandomGlobalBase + r.Bound) ?? 0, r.Min, r.Max);
+        }
         if (condition is InChapters chapters) {
             return chapters.Chapters != null && chapters.Chapters.Contains(ChapterOf(getGlobal));
         }
@@ -331,6 +349,27 @@ public static class DialogBranchWalker {
 
     /// <summary>The global key range that answers "how many of object N does the party hold".</summary>
     public const int ItemCountGlobalBase = 50000;
+
+    /// <summary>
+    /// Base of the party-check range — <c>PartyCondition.Check</c> is key <c>40000 + Check</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>These are NOT one rule.</b> <c>gstate_event_read</c> sends the whole range to its
+    /// <c>default:</c> arm and <c>evtcond_range_d_read_handler</c> (EVTCOND.C:80-170) answers each
+    /// check with its own query — some read the party's affliction ranks, two share an inventory
+    /// repair scan that also writes the repair price, and three read a container at hard-coded world
+    /// coordinates. See TASK-410 for the table; this class only resolves the key.
+    /// </remarks>
+    public const int PartyCheckGlobalBase = 40000;
+
+    /// <summary>Base of the note range — a note is key <c>51000 + note</c>.</summary>
+    public const int NoteGlobalBase = 51000;
+
+    /// <summary>Base of the spell-timer range — key <c>52000 + timer</c>.</summary>
+    public const int SpellTimerGlobalBase = 52000;
+
+    /// <summary>Base of the random range — key <c>53000 + bound</c>, and reading it ROLLS.</summary>
+    public const int RandomGlobalBase = 53000;
 
     private static bool InRange(int value, int min, int? max) =>
         value >= min && value <= (max ?? int.MaxValue);
