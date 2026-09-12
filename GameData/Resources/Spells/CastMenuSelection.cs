@@ -83,6 +83,15 @@ public static class CastMenuSelection {
     /// is a SYMBOL5 reading, and the screen is sticky
     /// (<c>g_gameState.nSpellMenuPreselect</c>, SPELLFX.C:38) — a save that last browsed SYMBOL5
     /// reopens there. It says nothing about the value used when nothing is remembered.</para>
+    ///
+    /// <para><b>Confirmed live in both games, 2026-09-12, and this paragraph is why it did not become
+    /// a second wrong change.</b> Opening the cast screen from <c>dir.G01/SAVE01</c> names Scent of
+    /// Sarig in the original — the same observation, made again — and the sticky field explains it on
+    /// both sides: the original's live <c>nSpellMenuPreselect</c> reads <b>4</b>, the save's own byte
+    /// at body offset 1624 reads <b>4</b>, and our screen opens on <c>_school = 4</c>. The two agree,
+    /// SYMBOL5 is school index 4, and nothing here is a default. The trap is that the spell NAME on
+    /// screen invites you to match it against the spellbook's group order, which is INVSPELL.DAT's
+    /// and not the ring's.</para>
     /// </remarks>
     public const int DefaultSchool = SymbolFileSix - 1;
 
