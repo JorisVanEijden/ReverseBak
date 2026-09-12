@@ -453,6 +453,45 @@ public static class CombatAi {
         return chosen;
     }
 
+    /// <summary>
+    /// Where a monster walks to reach a target — the cell BESIDE it, never the target's own.
+    /// </summary>
+    /// <remarks>
+    /// <b>The original never walks at the target.</b> <c>combatai_*</c> target selection
+    /// (canassa <c>SRC/COMBAT/AI/CMBTAI.C:330-366</c>) computes an approach cell and stores it in
+    /// <c>inner-&gt;dest</c>:
+    /// <code>
+    /// approachX = target.gridX + (target.gridX &lt; actor.gridX ?  1 : -1);
+    /// approachY = target.gridY + (target.gridY &lt; actor.gridY ?  1 : -1);
+    /// dest = !blocked(approachX, target.gridY) ? (approachX, target.gridY)
+    ///                                          : (target.gridX, approachY);
+    /// </code>
+    /// The x-adjacent cell on the actor's own side is preferred; the y-adjacent one is the fallback.
+    /// A cell the ACTOR is already standing on counts as available — it reads as blocked only
+    /// because the actor occupies it.
+    ///
+    /// <para><b>Measured, both games, same fight, same save (2026-09-12).</b> A monster at (6,7),
+    /// speed 3, targeting the spellcaster at (4,1): the original reports <c>dest (5,1)</c> and lands
+    /// on <b>(5,4)</b>; walking at the target's own (4,1) instead lands on <b>(4,4)</b>, which is
+    /// where the port was. The arrival cell decides who is adjacent at the top of the next round,
+    /// so this is not a cosmetic step — see TASK-437.</para>
+    /// </remarks>
+    /// <param name="isBlocked">
+    /// The grid's blocked test. Null skips the fallback and always takes the x-adjacent cell, which
+    /// is what a caller with no grid gets rather than a silently different rule.
+    /// </param>
+    public static (int X, int Y) ApproachCell(int actorX, int actorY, int targetX, int targetY,
+        Func<int, int, bool> isBlocked = null) {
+        int approachX = targetX + (targetX < actorX ? 1 : -1);
+        int approachY = targetY + (targetY < actorY ? 1 : -1);
+
+        bool xUsable = isBlocked == null
+            || !isBlocked(approachX, targetY)
+            || (actorX == approachX && actorY == targetY);
+
+        return xUsable ? (approachX, targetY) : (targetX, approachY);
+    }
+
     private static bool MatchesRole(TargetCandidate candidate, TargetRole role) => role switch {
         TargetRole.Anyone => true,
         TargetRole.Spellcaster => candidate.CanCastSpells,
