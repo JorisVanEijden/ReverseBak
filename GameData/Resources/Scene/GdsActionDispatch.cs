@@ -79,6 +79,18 @@ public static class GdsActionDispatch {
     /// </remarks>
     public const int LeaveSceneActionId = 1;
 
+    /// <summary>
+    /// The code that opens the MENDER — the inventory screen in mode 2, not a buy list.
+    /// </summary>
+    /// <remarks>
+    /// <c>TOWNSCN.C</c>'s <c>di == 0x10</c> arm calls
+    /// <c>modalscreen_inventory_request(bInvreq_arg_x, bInvreq_arg_y)</c>, i.e. the shop block's
+    /// repair-category mask and its repair markup. Buying and selling is a CONTAINER arm (codes 5,
+    /// 6 and 8), which is why <see cref="ActionKind.ShopScreen"/> covers exactly one code and its
+    /// summary says "buy/repair" — the repair half is the one that reaches it.
+    /// </remarks>
+    public const int RepairActionCode = 16;
+
     public static ActionKind KindOf(int actionCode) {
         switch (actionCode) {
             case 2: return ActionKind.DialogOnly;
@@ -93,7 +105,7 @@ public static class GdsActionDispatch {
             case 8: return ActionKind.Container;
             case 7: return ActionKind.Inn;
             case 9: return ActionKind.Barding;
-            case 16: return ActionKind.ShopScreen;
+            case RepairActionCode: return ActionKind.ShopScreen;
             case 11: return ActionKind.Teleport;
             case 13: return ActionKind.ShopServices;
             case 15: return ActionKind.EndChapter;
