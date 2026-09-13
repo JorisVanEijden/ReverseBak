@@ -459,6 +459,11 @@ public class PolygonFace
     /// (<see cref="CullMode"/> next door predates that rule and IS emitted; changing it would
     /// rewrite every TBL file, so it is left alone rather than churned here.)</para>
     /// </remarks>
+    /// <remarks>
+    /// <b>Deliberately callerless.</b> Production calls the static
+    /// <see cref="StripSamplingFor"/> with a pen it already has; this instance form exists so the
+    /// rule reads as a property of the row. Triaged for TASK-448.
+    /// </remarks>
 #if JSON_SERIALIZE
     [JsonIgnore]
 #endif

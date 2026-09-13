@@ -34,7 +34,13 @@ public static class RangedExchange {
     public const int ShooterWearSeverity = 0x100;
 
     /// <summary>Wear severity applied to the target's armour per hit.</summary>
-    public const int TargetWearSeverity = 0x200;
+    /// <remarks>
+    /// <b>The same number as <see cref="CombatFormulas.ArmorWearOnRangedHit"/>, so it is that
+    /// number.</b> Both were written from `cbstat_damage_equipped_items(actor, 4, 0x200)`
+    /// (CBTAITRN.C:175) and they sat as separate literals until `make unconsumed` raised the
+    /// CombatFormulas one as callerless — which it was, because this copy had the caller.
+    /// </remarks>
+    public const int TargetWearSeverity = CombatFormulas.ArmorWearOnRangedHit;
 
     /// <summary>Base damage flags for a landed shot.</summary>
     public const int BaseDamageFlags = 0x540;

@@ -44,6 +44,11 @@ public static class InnScreenLayout {
 
     /// <summary>Height of the region the original repaints each hour — VGA 99. See
     /// <see cref="PanelHeight"/> for why it is two rows shorter.</summary>
+    /// <remarks>
+    /// <b>Deliberately callerless</b>, and <see cref="PanelHeight"/>'s own remark says why: a port
+    /// that redraws whole elements in z-order has no partial-repaint rect to size. Kept because
+    /// reading the shorter number as the panel's real height would crop it. Triaged for TASK-448.
+    /// </remarks>
     public const int PanelRefreshHeight = 99 * 6;
 
     // ---- the frame around it --------------------------------------------------------------------

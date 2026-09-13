@@ -77,6 +77,11 @@ public class InventoryLayout {
 
     /// <summary>How many items a shop shows before it has to page — the builder's <c>slot &lt; 6</c>
     /// bound, and the threshold the next-page control appears above.</summary>
+    /// <remarks>
+    /// <b>Deliberately callerless.</b> The runtime rule is <see cref="Shop.ShopPaging"/>'s, which
+    /// the shop screen calls for the first item and for a page turn; this is the same bound as a
+    /// LAYOUT value, overridable with the rest of the grid's geometry. Triaged for TASK-448.
+    /// </remarks>
     public int ShopPageSize { get; set; } = 6;
 
     /// <summary>Member/shop mode: every general (non-equipped) item is nudged this far right,
