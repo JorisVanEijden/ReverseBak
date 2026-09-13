@@ -283,14 +283,20 @@ public static class GdsActionDispatch {
     /// services in a visit without the location redrawing between them — a port that shows the
     /// dialog once makes every service a separate trip.
     ///
-    /// <para><b>This asks "did it name a service", where the original asks "was it not 3".</b> The
-    /// two agree on every result the shipped dialogs produce, which is 1, 2 or 3. They differ on
-    /// results the original never sees — and a port has one the original does not: a dialog that
-    /// resolves to nothing at all. Looping on that would re-show the dialog that just failed to
-    /// resolve, forever, with no way out.</para>
+    /// <para><b>The original's test is "was it not <see cref="ServiceMenuExitResult"/>", and the
+    /// difference is TALK.</b> This used to
+    /// ask "did it name a service", on the reasoning that the two agree on every result the shipped
+    /// dialogs produce — but the shipped temple dialog produces <b>0</b> as well, and 0 is Talk.
+    /// Ending the loop on it closed the service menu the moment a player asked the priest anything.
+    /// Measured at the Chapel of Ishap on 2026-09-13: the original plays the temple's own
+    /// conversation and then re-shows Talk / Cure / Bless / Done.</para>
+    ///
+    /// <para>The one result the original never sees is a port's own: a dialog that resolves to
+    /// nothing at all, which <c>ShowChoiceIndexById</c> answers with -1. Looping on that would
+    /// re-show the dialog that just failed to resolve, forever, so it ends the loop too.</para>
     /// </remarks>
     public static bool ServiceMenuContinues(int dialogResult) =>
-        dialogResult == HealingService || dialogResult == BlessingService;
+        dialogResult >= 0 && dialogResult != ServiceMenuExitResult;
 
     // ---------------------------------------------------------------- returning to the location
 

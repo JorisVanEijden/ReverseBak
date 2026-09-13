@@ -66,19 +66,30 @@ public class GdsActionDispatchTests {
     }
 
     [Fact]
-    public void TheServiceMenuLoopsWhileTheDialogKeepsNamingAService() {
+    public void TheServiceMenuLoopsUntilDone() {
         Assert.True(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.HealingService));
         Assert.True(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.BlessingService));
         Assert.False(GdsActionDispatch.ServiceMenuContinues(GdsActionDispatch.ServiceMenuExitResult));
     }
 
     [Fact]
+    public void TalkKeepsTheServiceMenuOpen() {
+        // *** THIS EXPECTATION USED TO BE False, AND IT WAS WRONG ABOUT THE ORIGINAL. *** The note
+        // it carried said the original's dialogs return only 1, 2 or 3; the shipped temple dialog
+        // also returns 0, which is Talk — its first branch leads into the temple's own conversation
+        // tree. `while ((dx = dialog_play_record(...)) != 3)` loops on it.
+        //
+        // Driven at the Chapel of Ishap, Malac's Cross, 2026-09-13: the original plays "The
+        // attendant priest looked nervous… I don't know where Abbot Graves might be" and then
+        // re-shows Talk / Cure / Bless / Done. Ours closed the menu and said nothing.
+        Assert.True(GdsActionDispatch.ServiceMenuContinues(0));
+    }
+
+    [Fact]
     public void ADialogThatResolvesToNothingEndsTheServiceMenu() {
-        // The original never sees this: its dialogs return 1, 2 or 3 and it loops on "not 3". A
-        // port has an answer the original has not — a dialog that resolved to nothing — and looping
-        // on it would re-show the dialog that just failed, forever, with no way out.
+        // The one answer the original has not: a dialog that resolved to nothing. Looping on it
+        // would re-show the dialog that just failed, forever, with no way out.
         Assert.False(GdsActionDispatch.ServiceMenuContinues(-1));
-        Assert.False(GdsActionDispatch.ServiceMenuContinues(0));
     }
 
     [Fact]
