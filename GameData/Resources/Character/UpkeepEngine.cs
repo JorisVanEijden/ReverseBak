@@ -27,6 +27,25 @@ public static class UpkeepEngine {
     /// </summary>
     public const long ExhaustionDrainTicks = 0x7e90;
 
+    /// <summary>
+    /// Whether one member's health+stamina pool is at or above <paramref name="percent"/> of its
+    /// maximum — the per-member half of <c>stat_party_all_above_pct</c> (STAT.C:451).
+    /// </summary>
+    /// <remarks>
+    /// <b>THE THRESHOLD IS TRUNCATED, NOT THE RATIO.</b> The original computes
+    /// <c>threshold = percent * max / 100</c> and fails the member on <c>current &lt; threshold</c>.
+    /// Asking the equivalent-looking <c>current * 100 / max &lt;= percent</c> rounds the other way
+    /// and can differ by two whole points: measured against the running original on 2026-09-13 with
+    /// the chapter-1 party (Owyn at 80/85), the original answers "above" at 94 and 95 percent where
+    /// the ratio form answers "no" from 94 up. At the shipped 80 they agree, which is why the camp
+    /// screen looked right.
+    ///
+    /// <para>A member with no pool at all (<paramref name="max"/> 0) is not counted — the original
+    /// divides by it, so a zero would fault; ours skips, and no shipped actor has one.</para>
+    /// </remarks>
+    public static bool IsAbovePercent(int current, int max, int percent) =>
+        max == 0 || current >= percent * max / 100;
+
     /// <summary>Health and Stamina maximums creep up once every this many days.</summary>
     public const int GrowthIntervalDays = 30;
 
