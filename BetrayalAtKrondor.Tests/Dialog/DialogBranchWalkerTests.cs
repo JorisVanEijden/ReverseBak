@@ -45,6 +45,53 @@ public class DialogBranchWalkerTests {
         }
     }
 
+    // ---- Northwarden's router: three conditionals that END, then the default that acts -----
+
+    [Fact]
+    public void ARouterWhoseConditionalsAllFailTakesTheDefaultAndRunsItsActions() {
+        // DIAL_Z15 offset 25808 (dialog 1500156) — the Great Hall hotspot's action dialog. Var 7 in
+        // 1..4 ends, Var 7 in 6..9 ends, flag 7633 CLEAR ends, and only the default reaches 25857,
+        // which is where SetReturnValue(-4) lives. Every "end" is a ConditionalBranch with a null
+        // target, so a walker that treated one as a dead end would look identical to a walker that
+        // took it — hence the leaf assertion rather than a "did not throw".
+        var router = EA(25808, new DialogActionBase[0],
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 4 }, TargetOffset = 0 },
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 6, Max = 9 }, TargetOffset = 0 },
+            new ConditionalBranch { Condition = new FlagCondition { Flag = 7633, Set = false }, TargetOffset = 0 },
+            new DefaultBranch { TargetOffset = 25857 });
+        var leaf = EA(25857, new DialogActionBase[] { new SetReturnValueAction { Value = -4 } });
+        Dialog d = Dlg(router, leaf);
+
+        int? Globals(int key) => key == 30007 ? 5 : key == 7633 ? 1 : (int?)0;
+
+        var visited = new List<int>();
+        DialogEntry got = DialogBranchWalker.WalkToLeaf(d, router, Globals,
+            onEntryVisited: e => visited.Add(e.Offset));
+
+        Assert.Equal(25857, got.Offset);
+        Assert.Equal(new[] { 25808, 25857 }, visited);
+    }
+
+    [Fact]
+    public void TheSameRouterInChapterFourStopsAtItselfWithNoReturnValue() {
+        // The control: in chapter 1..4 the FIRST branch wins and the dialog ends where it started,
+        // so the hotspot keeps its own action code. Without this the test above would pass for a
+        // walker that ignored conditions entirely.
+        var router = EA(25808, new DialogActionBase[0],
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 4 }, TargetOffset = 0 },
+            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 6, Max = 9 }, TargetOffset = 0 },
+            new ConditionalBranch { Condition = new FlagCondition { Flag = 7633, Set = false }, TargetOffset = 0 },
+            new DefaultBranch { TargetOffset = 25857 });
+        var leaf = EA(25857, new DialogActionBase[] { new SetReturnValueAction { Value = -4 } });
+        Dialog d = Dlg(router, leaf);
+
+        int? Globals(int key) => key == 30007 ? 4 : key == 7633 ? 1 : (int?)0;
+
+        DialogEntry got = DialogBranchWalker.WalkToLeaf(d, router, Globals);
+
+        Assert.Equal(25808, got.Offset);
+    }
+
     // ---- Id-addressed targets ------------------------------------------------------------
     //
     // A branch names its target by offset-in-this-file OR by global dialog id, and this walker can
