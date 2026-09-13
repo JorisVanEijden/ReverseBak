@@ -138,6 +138,27 @@ public static class FixedObjectClick {
     public static bool CanEnterTownScene(int lockKey) => lockKey == 0;
 
     /// <summary>
+    /// Whether what the object's dialog ANSWERED cancels the click.
+    /// </summary>
+    /// <remarks>
+    /// <b>A dialog can call the whole interaction off, and it does it with its return value.</b>
+    /// <c>wcursor_click_fixedobj_full</c> plays the interact message and then
+    /// <c>if (... == -1) goto cleanup;</c> (WCURSOR.C:355) — past that point there is no town
+    /// scene, no lock, no inventory. The earlier <c>bFlags &amp; 0x20</c> site does the same with
+    /// <c>&lt; 0</c> and additionally drops the hotspot; no shipped record carries that bit
+    /// (counted: 0 of 478 with a dialog), so the two sites agree in practice.
+    ///
+    /// <para>The armourer is the case it was found on: told "Go away! I am very, very busy", the
+    /// port walked into his shop because this answer was discarded. Both games, same save,
+    /// 2026-09-13 — see TASK-467.</para>
+    ///
+    /// <para><b>It only reads as -1 because the value is signed at extraction.</b> The word is
+    /// 0xFFFF on disk and arrived as 65535 until the same day, which is why no test could have
+    /// caught this from the data.</para>
+    /// </remarks>
+    public static bool AnswerCancelsClick(int dialogResult) => dialogResult < 0;
+
+    /// <summary>
     /// <b>The warp's two bytes are unpacked by <c>GdsSceneRules.UnpackScene</c>, not here.</b>
     /// </summary>
     /// <remarks>

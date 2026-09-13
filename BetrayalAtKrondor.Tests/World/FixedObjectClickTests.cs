@@ -117,4 +117,21 @@ public class FixedObjectClickTests {
             FixedObjectClick.Resolve(lockKey: 0, hasMessage: true, hasWarp: false,
                 flags: FixedObjectClick.OpensInventoryFlag, eventValue: 0));
     }
+
+    [Fact]
+    public void ANegativeDialogAnswerCancelsTheClick_AndZeroDoesNot() {
+        // *** A dialog can call the whole interaction off. *** WCURSOR.C:355 is
+        // `if (dialog_play_record(msgId, 0) == -1) goto cleanup;`, so the town scene below it never
+        // runs. The armourer's refusal is that -1, and the port entered his shop anyway until the
+        // answer was read (TASK-467).
+        Assert.True(FixedObjectClick.AnswerCancelsClick(-1));
+        Assert.True(FixedObjectClick.AnswerCancelsClick(-4));
+
+        // A dialog that merely said something answers 0 — the common case, and it must NOT cancel.
+        Assert.False(FixedObjectClick.AnswerCancelsClick(0));
+        Assert.False(FixedObjectClick.AnswerCancelsClick(1));
+
+        // And the trap this replaced: unsigned, the refusal reads as 65535 and cancels nothing.
+        Assert.False(FixedObjectClick.AnswerCancelsClick(0xFFFF));
+    }
 }

@@ -52,4 +52,24 @@ public class DialogActionFactoryTests {
         Assert.Null(action.OnExpiry);
         Assert.Equal(5, action.TimerTarget);
     }
+
+    [Fact]
+    public void SetReturnValue_KeepsTheSIGN_because0xFFFFIsMinusOne() {
+        // *** 84 of the corpus's 97 SetReturnValue actions are negative, and reading the word
+        // unsigned disabled every one. *** `nResult` is a 16-bit signed int: the armourer's refusal
+        // answers -1 and WCURSOR.C:355 cancels the whole click on it, while GdsSceneRules.OutcomeFor
+        // maps -1, -2, -3, -4 and -5 onto scene actions. As 65535 it matched nothing anywhere.
+        var refusal = Reader(0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        Assert.Equal(-1, Assert.IsType<SetReturnValueAction>(
+            DialogActionFactory.Build(21, refusal)).Value);
+
+        var minusFour = Reader(0xFC, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        Assert.Equal(-4, Assert.IsType<SetReturnValueAction>(
+            DialogActionFactory.Build(21, minusFour)).Value);
+
+        // Positives are untouched: 1 is the commonest non-negative answer in shipped data.
+        var one = Reader(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        Assert.Equal(1, Assert.IsType<SetReturnValueAction>(
+            DialogActionFactory.Build(21, one)).Value);
+    }
 }
