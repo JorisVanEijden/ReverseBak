@@ -187,6 +187,12 @@ public class SaveGameStateData {
             // The dialog's primary actor (nEvtArgActor0, TEMP.GAM +0x0596): text-variable kinds 10
             // and 30, and the actor a bare '@' names.
             30004 => MiscStateData.DialogPrimaryActorNumber,
+            // *** THESE THREE ARE THE SAVE'S OWN VIEW OF ITS PURSE, AND A LIVE SESSION OVERRIDES
+            // THEM. *** Both operands move during play: gold is spent, and 30014 is rewritten by
+            // whichever screen is quoting. A running game answers 30001/30002/30003 from live state
+            // before it ever reaches here (GameSession.GetGlobalValue); what is left below is the
+            // right answer for a save read on its own, which is what the extractor and the save
+            // tests ask for.
             30001 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold / 10)),
             30002 => Math.Min(ushort.MaxValue, Math.Max(0, PartyGold)),
             30003 => PartyGold >= MiscStateData.Global30014Money ? 1 : 0,

@@ -347,6 +347,25 @@ public static class DialogBranchWalker {
 
     private const int LastChapterBit = 8;
 
+    /// <summary>Global 30001 — the purse in SOVEREIGNS, which is Var 1.</summary>
+    public const int GoldSovereignsGlobalKey = 30001;
+
+    /// <summary>Global 30002 — the purse in ROYALS, which is Var 2.</summary>
+    public const int GoldRoyalsGlobalKey = 30002;
+
+    /// <summary>
+    /// Global 30003 — <c>party gold &gt;= the quoted price</c>, which is Var 3.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is where a priced offer's own refusal lives.</b> The inn, the temple, the shop and
+    /// the mender all reach a text-less router on their accept branch whose only test is this key;
+    /// its default arm is the line that turns a pauper away. Both operands are LIVE — the purse as
+    /// it stands and <c>lEvtArgGoldCost</c> as the quoting screen just wrote it — so an
+    /// implementation that answers from a loaded save's copy of either lets every one of those
+    /// gates pass.
+    /// </remarks>
+    public const int CanAffordQuoteGlobalKey = 30003;
+
     /// <summary>The global key range that answers "how many of object N does the party hold".</summary>
     public const int ItemCountGlobalBase = 50000;
 
