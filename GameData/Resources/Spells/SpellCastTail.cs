@@ -146,6 +146,12 @@ public static class SpellCastTail {
     /// <para>Which means "weak to this spell" is not a discount or a penalty on the cast: it is
     /// purely an effect multiplier, applied and then withdrawn inside one function.</para>
     /// </remarks>
+    /// <para><b>STRUCTURAL IN THIS PORT — expressed by keeping two variables apart, not by a
+    /// predicate (audited 2026-09-13).</b> The original doubles the cost against a weak target and
+    /// halves it back before delivery, so the bill never sees the doubling. We never put them in the
+    /// same variable: <c>CombatRuntime.ResolveCast</c> bills <c>power</c> and computes
+    /// <c>effectiveCost = SpellCostModifiers.Effective(power, surcharged, targetIsWeak)</c> for the
+    /// magnitude. Same outcome, different shape, and nothing to undo — do not wire this.</para>
     public static int UndoWeakness(int doubledCost) => doubledCost >> 1;
 
     /// <summary>What a spell does to itself once its animation has finished.</summary>
@@ -262,6 +268,12 @@ public static class SpellCastTail {
     /// that zero themselves deal nothing, and the animation test is why a cast whose visual is
     /// suppressed deals nothing either.
     /// </remarks>
+    /// <para><b>TWO OF THE THREE CLAUSES ARE STRUCTURAL HERE (audited 2026-09-13).</b> The
+    /// resistance gate is <c>CombatRuntime.TargetResists</c>, checked before the damage arms, and the
+    /// magnitude gate is <see cref="SpellEffectMagnitude"/> answering zero. The ANIMATION clause has
+    /// no counterpart, because we do not run the original's <c>cspell_invoke_effect</c> and so have
+    /// no out-parameter to report — that is a difference in shape rather than a missing rule, and
+    /// wiring this predicate would need an animation seam that does not exist.</para>
     public static bool DealsDamage(bool animationReported, int magnitude, bool targetResists) =>
         animationReported && magnitude != 0 && !targetResists;
 
@@ -277,6 +289,13 @@ public static class SpellCastTail {
     /// <para>The single exception is the type-2 delivery, which is handed the running cost instead,
     /// so it alone bills the surcharge.</para>
     /// </remarks>
+    /// <para><b>THE GENERAL CASE IS STRUCTURAL; THE TYPE-2 EXCEPTION IS A REAL GAP (audited
+    /// 2026-09-13).</b> <c>CombatRuntime.ResolveCast</c> bills <c>power</c> — the cost the player
+    /// chose — and keeps the surcharged and weakness-doubled figure in a separate
+    /// <c>effectiveCost</c>, so "billed the chosen cost" holds by construction for every delivery we
+    /// model. What is NOT modelled is the exception above: the type-2 delivery is handed the running
+    /// cost in the original and therefore alone bills the surcharge, while ours charges the same
+    /// <c>power</c> before the delivery switch. See TASK-465.</para>
     public static int AmountBilled(int originalCost, int runningCost, int targetingType) =>
         DeliveryFor(targetingType) == Delivery.Type2Routine ? runningCost : originalCost;
 
