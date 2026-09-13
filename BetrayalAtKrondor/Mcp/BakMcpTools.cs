@@ -451,11 +451,9 @@ public sealed class BakMcpTools {
     }
 
     [McpServerTool(Name = "bak_call_function")]
-    [Description("SPIKE — TREAT A CALL AS THE LAST THING YOU DO BEFORE RESTARTING THE EMULATOR. " +
-        "Only the FIRST call of a session reaches the routine (the CfgCpu honours a CS:IP change on " +
-        "its cold path only), and the cleanup afterwards is not reliable: the CPU can be left parked " +
-        "in the call stub, where a later resume kills the process. Call it, read the answer, restart. " +
-        "Call a function INSIDE the running game and return what it answers. Pushes the " +
+    [Description("Ask the running original what a routine ANSWERS. Repeatable: the call is made and " +
+        "unmade inside breakpoint callbacks, so the game carries on from exactly where it was and " +
+        "the emulator is left running. Check `trustworthy` on every answer. Pushes the " +
         "given 16-bit words right-to-left (Borland cdecl), pushes the CURRENT CS:IP as the far " +
         "return address, jumps to the target, runs until it returns, then restores every register. " +
         "Address MUST be seg:off (e.g. '3BEB:0430') — a far routine uses near jumps inside its own " +
@@ -509,43 +507,57 @@ public sealed class BakMcpTools {
         }
 
         State st = _emulator.State;
-        // *** SNAPSHOT EVERYTHING BEFORE TOUCHING ANY OF IT. *** The game is mid-frame; the whole
-        // safety of this tool is that it puts the CPU back exactly as it found it.
+
+        // *** THE BREAKPOINTS GO IN BEFORE THE PAUSE, BECAUSE A PAUSE ONLY LANDS IF ONE EXISTS. ***
+        // `CfgCpu.ExecuteOneNode` calls `WaitIfPaused()` inside `if (HasActiveBreakpoints)`. Request
+        // a pause with none registered and `IsPaused` goes true while the CPU keeps running — which
+        // is how the first version snapshotted registers off a moving machine.
+        bool enteredTarget = false;
+        var entryBp = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS, targetPhysical, _ => enteredTarget = true, false);
+        _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
+
+        bool wasPaused = _emulator.PauseHandler.IsPaused;
+        if (!wasPaused) {
+            _emulator.PauseHandler.RequestPause("bak_call_function is taking the CPU");
+        }
+        if (!WaitUntilCpuParked()) {
+            _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
+            if (!wasPaused) {
+                _emulator.PauseHandler.Resume();
+            }
+            return new { error = "the CPU would not stop: cycles kept advancing after a pause request." };
+        }
+
+        // Snapshot with the CPU genuinely parked. It is parked INSIDE ExecuteOneNode, about to run
+        // the node at CS:IP — which is the address the hijack below has to intercept.
         (ushort ax, ushort bx, ushort cx, ushort dx) = (st.AX, st.BX, st.CX, st.DX);
         (ushort si, ushort di, ushort bp, ushort sp) = (st.SI, st.DI, st.BP, st.SP);
         (ushort dsSaved, ushort es, ushort ss, ushort cs, ushort ip) = (st.DS, st.ES, st.SS, st.CS, st.IP);
+        var parked = new SegmentedAddress(cs, ip);
+        uint parkedPhysical = (uint)(cs << 4) + ip;
 
-        void Push(ushort value) {
-            st.SP -= 2;
-            _emulator.Memory.UInt16[(uint)(st.SS << 4) + st.SP] = value;
+        ushort? dsWanted = null;
+        if (!string.IsNullOrWhiteSpace(ds)) {
+            uint? dsValue = ds.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? AddressAndValueParser.ParseHex(ds)
+                : (uint.TryParse(ds, out uint dv) ? dv : null);
+            if (dsValue == null) {
+                _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
+                if (!wasPaused) {
+                    _emulator.PauseHandler.Resume();
+                }
+                return new { error = $"cannot parse ds '{ds}'" };
+            }
+            dsWanted = (ushort)dsValue.Value;
         }
 
-        // *** A SECOND BREAKPOINT ON THE TARGET, BECAUSE THE FIRST VERSION LIED. *** Without it the
-        // tool reported `returned: true` for an address that cannot possibly return — writing
-        // State.CS/IP does not redirect Spice86's CfgCpu, so the CPU stayed where it was, and the
-        // breakpoint on the RETURN address (which is where it still was) fired at once. The smoke
-        // test passed for that reason and meant nothing; what caught it was a target with a known
-        // answer returning the wrong one.
-        bool enteredTarget = false;
-        var entryBp = new AddressBreakPoint(
-            BreakPointType.CPU_EXECUTION_ADDRESS,
-            (uint)(target.Value.Segment << 4) + target.Value.Offset,
-            _ => enteredTarget = true,
-            false);
-        _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
-
-        // *** THE GUEST MAKES THE CALL, NOT US. *** Jumping straight at the routine and letting it
-        // RETF means Spice86's FunctionHandler sees a return it never saw a call for. Five bytes of
-        // `CALL FAR target` in the BIOS inter-application scratch at 0040:00F0 — sixteen bytes DOS
-        // reserves and never touches — and a jump THERE instead: the guest executes a real far call
-        // and the RETF balances it.
-        //
-        // *** AND THE BYTE AFTER THE CALL IS `JMP $`, NOT `HLT`. *** The first version parked an
-        // 0xF4 there on the reasoning that it is never reached. It is: the breakpoint only REQUESTS
-        // a pause, the CPU can run one more instruction before that lands, and Spice86 treats HLT as
-        // the machine exiting — "Exiting machine entry point but current function does not seem to
-        // be entry point" — and the emulator shuts down mid-session. `EB FE` costs a few harmless
-        // cycles instead of the process.
+        // *** THE GUEST MAKES THE CALL, NOT US. *** Five bytes of `CALL FAR target` in the BIOS
+        // inter-application scratch at 0040:00F0 — sixteen bytes DOS reserves and never touches — so
+        // Spice86's FunctionHandler sees a matching call/return pair instead of a RETF for a call it
+        // never saw. The byte after it is `JMP $` (EB FE) and NOT `HLT`: the return breakpoint below
+        // restores CS:IP before it can run, but if anything ever slips past, a HLT is read as the
+        // machine exiting and takes the whole emulator down mid-session.
         const uint stubSegment = 0x0040;
         const uint stubOffset = 0x00F0;
         uint stubPhysical = (stubSegment << 4) + stubOffset;
@@ -554,37 +566,83 @@ public sealed class BakMcpTools {
         _emulator.Memory.UInt16[stubPhysical + 3] = target.Value.Segment;
         _emulator.Memory.UInt8[stubPhysical + 5] = 0xEB;
         _emulator.Memory.UInt8[stubPhysical + 6] = 0xFE;
+        var stubAddress = new SegmentedAddress((ushort)stubSegment, (ushort)stubOffset);
 
-        bool returned = false;
-        uint returnPhysical = stubPhysical + 5;
-        var bp2 = new AddressBreakPoint(
-            BreakPointType.CPU_EXECUTION_ADDRESS, returnPhysical,
+        void Push(ushort value) {
+            st.SP -= 2;
+            _emulator.Memory.UInt16[(uint)(st.SS << 4) + st.SP] = value;
+        }
+
+        // *** BOTH SWITCHES HAPPEN IN A BREAKPOINT CALLBACK, AND THAT IS THE WHOLE TRICK. ***
+        // A parked CPU is sitting at `WaitIfPaused()` in the MIDDLE of ExecuteOneNode: the
+        // address check above it has already passed, so on resume it executes that node no matter
+        // what CS:IP now says — the previous version wrote CS:IP while parked and the stale node
+        // then ran with the new registers, leaving CS=0x40 and the old IP. That is a #UD at
+        // 0040:0C00 and a dead emulator, which is exactly what happened.
+        //
+        // A callback instead runs inside `CheckExecutionBreakPointsAt`, one line ABOVE the check:
+        //     CheckExecutionBreakPointsAt(node.Address);      <- we change CS:IP here
+        //     if (CS != node.Segment || IP != node.Offset) { NodeToExecuteNextAccordingToGraph = null; return false; }
+        //     WaitIfPaused();
+        // so the change is seen, the graph pointer is dropped, and nothing stale executes.
+        bool hijacked = false;
+        bool contextPushed = false;
+        var hijackBp = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS, parkedPhysical,
             _ => {
-                returned = true;
-                _emulator.PauseHandler.RequestPause("bak_call_function returned");
+                if (hijacked) {
+                    return;
+                }
+                hijacked = true;
+                for (int i = words.Count - 1; i >= 0; i--) {
+                    Push(words[i]);
+                }
+                if (dsWanted != null) {
+                    st.DS = dsWanted.Value;
+                }
+                st.CS = (ushort)stubSegment;
+                st.IP = (ushort)stubOffset;
+                // A fresh execution context rooted at the stub — the path an INTERRUPT takes into
+                // arbitrary code. Without it the CfgCpu's hot path (`ExecuteBlock`) walks a live
+                // block without ever comparing the node address to the registers, which is why only
+                // the FIRST call of a session used to reach the routine.
+                _emulator.CfgCpu.ExecutionContextManager.SignalNewExecutionContext(stubAddress, parked);
+                contextPushed = true;
             },
             false);
-        _emulator.BreakpointsManager.ToggleBreakPoint(bp2, true);
+
+        bool returned = false;
+        ushort resultAx = 0;
+        ushort resultDx = 0;
+        uint returnPhysical = stubPhysical + 5;
+        var returnBp = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS, returnPhysical,
+            _ => {
+                if (returned) {
+                    return;
+                }
+                resultAx = st.AX;
+                resultDx = st.DX;
+                // Put everything back HERE, for the same reason the hijack is here: this is the one
+                // moment a CS:IP write is honoured without a stale instruction running first. The
+                // game resumes from exactly where it was parked and never sees the detour.
+                st.AX = ax; st.BX = bx; st.CX = cx; st.DX = dx;
+                st.SI = si; st.DI = di; st.BP = bp;
+                st.DS = dsSaved; st.ES = es;
+                st.SS = ss; st.SP = sp;
+                st.CS = cs; st.IP = ip;
+                if (contextPushed) {
+                    _emulator.CfgCpu.ExecutionContextManager.RestoreExecutionContextIfNeeded(parked);
+                    contextPushed = false;
+                }
+                returned = true;
+            },
+            false);
+
+        _emulator.BreakpointsManager.ToggleBreakPoint(hijackBp, true);
+        _emulator.BreakpointsManager.ToggleBreakPoint(returnBp, true);
 
         try {
-            for (int i = words.Count - 1; i >= 0; i--) {
-                Push(words[i]);
-            }
-            // No return address is pushed here: the stub's own CALL FAR pushes it.
-
-            if (!string.IsNullOrWhiteSpace(ds)) {
-                uint? dsValue = ds.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-                    ? AddressAndValueParser.ParseHex(ds)
-                    : (uint.TryParse(ds, out uint dv) ? dv : null);
-                if (dsValue == null) {
-                    return new { error = $"cannot parse ds '{ds}'" };
-                }
-                st.DS = (ushort)dsValue.Value;
-            }
-
-            st.CS = (ushort)stubSegment;
-            st.IP = (ushort)stubOffset;
-
             _emulator.PauseHandler.Resume();
             int elapsed = 0;
             while (!returned && elapsed < timeoutMs) {
@@ -592,51 +650,68 @@ public sealed class BakMcpTools {
                 elapsed += 20;
             }
 
-            // *** WAIT FOR THE PAUSE TO LAND BEFORE TOUCHING ANYTHING. *** The breakpoint callback
-            // only REQUESTS a pause; the CPU thread is still running when this one wakes up. Reading
-            // AX there is a race, and restoring SP there is worse — it rewrites the stack pointer
-            // under a running instruction, which is how the second call in a row ended up doing a
-            // RETF into segment zero. bak_run_to_ida settles the same way after its own request.
             if (!returned) {
+                // Nothing came back. Park the CPU and put the registers back by hand; the callback
+                // that normally does it never ran.
                 _emulator.PauseHandler.RequestPause("bak_call_function timed out");
+                WaitUntilCpuParked();
+                st.AX = ax; st.BX = bx; st.CX = cx; st.DX = dx;
+                st.SI = si; st.DI = di; st.BP = bp;
+                st.DS = dsSaved; st.ES = es;
+                st.SS = ss; st.SP = sp;
+                st.CS = cs; st.IP = ip;
+                if (contextPushed) {
+                    _emulator.CfgCpu.ExecutionContextManager.RestoreExecutionContextIfNeeded(parked);
+                    contextPushed = false;
+                }
             }
-            Thread.Sleep(PauseSettleMs);
 
-            ushort resultAx = st.AX;
-            ushort resultDx = st.DX;
-
-            // *** ONE CALL PER SESSION IS ALL THIS GETS, AND THE FLAGS SAY WHICH ONE. *** Writing
-            // State.CS/IP only redirects on the CfgCpu's COLD path — ExecuteOneNode compares the
-            // node's address against the registers and drops NodeToExecuteNextAccordingToGraph when
-            // they differ, and that check is skipped once the surrounding block is discovered and
-            // live. Measured: the first call answers correctly, every later one answers a constant
-            // with entered_target false. TASK-449 has the way out —
-            // ExecutionContextManager.SignalNewExecutionContext, the path an interrupt takes.
             return new {
                 returned,
                 entered_target = enteredTarget,
                 trustworthy = enteredTarget && returned,
-                restart_advised = true,
                 ax = resultAx,
                 dx = resultDx,
                 signed_ax = (short)resultAx,
                 // A Borland `long` comes back in DX:AX.
                 dx_ax = ((uint)resultDx << 16) | resultAx,
                 called = $"{target.Value.Segment:X4}:{target.Value.Offset:X4}",
+                hijacked_at = $"{cs:X4}:{ip:X4}",
                 args = words.Count,
                 timeout_ms = returned ? (int?)null : timeoutMs
             };
         } finally {
             _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
-            _emulator.BreakpointsManager.ToggleBreakPoint(bp2, false);
-            // Restore in a fixed order; SS and SP together, so a half-restored stack can never be
-            // left behind even if the call timed out.
-            st.AX = ax; st.BX = bx; st.CX = cx; st.DX = dx;
-            st.SI = si; st.DI = di; st.BP = bp;
-            st.DS = dsSaved; st.ES = es;
-            st.SS = ss; st.SP = sp;
-            st.CS = cs; st.IP = ip;
+            _emulator.BreakpointsManager.ToggleBreakPoint(hijackBp, false);
+            _emulator.BreakpointsManager.ToggleBreakPoint(returnBp, false);
+            // Leave the emulator in the run state it was found in.
+            if (wasPaused) {
+                _emulator.PauseHandler.RequestPause("bak_call_function done; it was paused before");
+                WaitUntilCpuParked();
+            } else {
+                _emulator.PauseHandler.Resume();
+            }
         }
+    }
+
+    /// <summary>
+    /// Waits until the CPU thread has actually stopped, which <see cref="PauseHandler.IsPaused"/>
+    /// does NOT tell you — it reports that a pause was REQUESTED. The cycle counter is the only
+    /// honest signal: two reads apart in time that agree mean nothing is executing.
+    /// </summary>
+    private bool WaitUntilCpuParked(int timeoutMs = 3000) {
+        long previous = -1;
+        int elapsed = 0;
+        while (elapsed < timeoutMs) {
+            long cycles = _emulator.State.Cycles;
+            if (cycles == previous) {
+                return true;
+            }
+            previous = cycles;
+            Thread.Sleep(30);
+            elapsed += 30;
+        }
+        return false;
     }
 
     [McpServerTool(Name = "bak_mouse_click")]
