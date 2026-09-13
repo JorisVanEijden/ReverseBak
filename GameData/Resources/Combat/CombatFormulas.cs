@@ -196,6 +196,78 @@ public static class CombatFormulas {
     }
 
     /// <summary>
+    /// The damage-type flag a weapon's enchantment carries, or 0 for a plain weapon — the
+    /// <c>damage_type</c> <c>cbstat_armor_absorption_by_class</c> records beside the bonus.
+    /// </summary>
+    /// <remarks>Tested in the same ascending order as the bonus itself, so the highest bit present
+    /// wins and the pair always agree about which enchantment is in play.</remarks>
+    public static int EnchantmentDamageType(ItemFlags weaponFlags) {
+        var type = 0;
+        if ((weaponFlags & ItemFlags.Poisoned) != 0) {
+            type = (int)ItemFlags.Poisoned;
+        }
+        if ((weaponFlags & ItemFlags.Flaming) != 0) {
+            type = (int)ItemFlags.Flaming;
+        }
+        if ((weaponFlags & ItemFlags.SteelFired) != 0) {
+            type = (int)ItemFlags.SteelFired;
+        }
+        if ((weaponFlags & ItemFlags.Frosted) != 0) {
+            type = (int)ItemFlags.Frosted;
+        }
+        if ((weaponFlags & ItemFlags.Enhanced1) != 0) {
+            type = (int)ItemFlags.Enhanced1;
+        }
+        if ((weaponFlags & ItemFlags.Enhanced2) != 0) {
+            type = (int)ItemFlags.Enhanced2;
+        }
+        return type;
+    }
+
+    /// <summary>
+    /// What survives of an enchantment bonus after the defender's armour — all of it, or none.
+    /// </summary>
+    /// <remarks>
+    /// <c>cbstat_damage_apply_protection</c> (CBSTAT.C:284) walks the defender's equipped
+    /// <b>category-4 armour</b> and, when its flag matches the damage type, sets <c>pct = 100</c>,
+    /// which zeroes the bonus. All-or-nothing, and it touches <b>only the enchantment term</b> — the
+    /// base damage and the Strength term are never protected.
+    ///
+    /// <para>*** LINE TWO OF THE ORIGINAL'S TABLE IS A BUG, AND IT IS KEPT. ***
+    /// <c>if ((slot-&gt;flags &amp; 0x100) &amp;&amp; damage_type == 0x200)</c> compares the FLAMING
+    /// armour flag against STEEL-FIRED damage. So <b>nothing in the game protects against a flaming
+    /// weapon</b>, and steel-fired damage is stopped by either the flaming or the steel-fired flag.
+    /// Reproduced deliberately; "fixing" it would make fire armour work where the original gives the
+    /// wearer nothing.</para>
+    /// </remarks>
+    public static int EnchantmentAfterProtection(int bonus, int damageType, ItemFlags armorFlags) {
+        if (damageType == 0 || bonus == 0) {
+            return bonus;
+        }
+        var protects = false;
+        if ((armorFlags & ItemFlags.Poisoned) != 0 && damageType == (int)ItemFlags.Poisoned) {
+            protects = true;
+        }
+        // The original's own off-by-one: the FLAMING flag is tested against STEEL-FIRED damage.
+        if ((armorFlags & ItemFlags.Flaming) != 0 && damageType == (int)ItemFlags.SteelFired) {
+            protects = true;
+        }
+        if ((armorFlags & ItemFlags.SteelFired) != 0 && damageType == (int)ItemFlags.SteelFired) {
+            protects = true;
+        }
+        if ((armorFlags & ItemFlags.Frosted) != 0 && damageType == (int)ItemFlags.Frosted) {
+            protects = true;
+        }
+        if ((armorFlags & ItemFlags.Enhanced1) != 0 && damageType == (int)ItemFlags.Enhanced1) {
+            protects = true;
+        }
+        if ((armorFlags & ItemFlags.Enhanced2) != 0 && damageType == (int)ItemFlags.Enhanced2) {
+            protects = true;
+        }
+        return protects ? 0 : bonus;
+    }
+
+    /// <summary>
     /// Melee damage: Strength, plus the weapon's condition-scaled base, plus its enchantment.
     /// </summary>
     /// <param name="enchantmentBonus">From <see cref="WeaponEnchantmentBonus"/>, already reduced by

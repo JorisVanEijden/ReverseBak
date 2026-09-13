@@ -108,7 +108,8 @@ public static class MeleeExchange {
     public readonly struct Defender {
         public Defender(int defenseRating, int armorRating = 0, bool immune = false,
             bool applyArmor = true, int? absorbPool = null, bool negated = false,
-            bool weakToDamageType = false, bool resistsDamageType = false) {
+            bool weakToDamageType = false, bool resistsDamageType = false,
+            ItemFlags armorFlags = default) {
             DefenseRating = defenseRating;
             ArmorRating = armorRating;
             Immune = immune;
@@ -117,6 +118,7 @@ public static class MeleeExchange {
             Negated = negated;
             WeakToDamageType = weakToDamageType;
             ResistsDamageType = resistsDamageType;
+            ArmorFlags = armorFlags;
         }
 
         public int DefenseRating { get; }
@@ -142,6 +144,13 @@ public static class MeleeExchange {
         /// <inheritdoc cref="WeakToDamageType"/>
         /// <summary>This defender's class takes half from the type this blow carries.</summary>
         public bool ResistsDamageType { get; }
+
+        /// <summary>
+        /// Flags of the defender's equipped armour, for
+        /// <see cref="CombatFormulas.EnchantmentAfterProtection"/> — armour enchanted against an
+        /// element cancels that element's bonus outright (TASK-479).
+        /// </summary>
+        public ItemFlags ArmorFlags { get; }
     }
 
     /// <summary>
@@ -235,8 +244,15 @@ public static class MeleeExchange {
         CombatAdvancement.OnMeleeHit(advancement.AttackerMelee, advancement.AttackerStrength,
             advancement.AttackerStudy);
 
+        // *** THE DEFENDER'S ARMOUR CAN CANCEL THE ENCHANTMENT OUTRIGHT. ***
+        // cbstat_armor_absorption_by_class ends by running the bonus through
+        // cbstat_damage_apply_protection against the defender's equipped armour, which zeroes it on
+        // a match. Only the bonus — Strength and the weapon base are never protected.
         int enchantment = attackerStats.HasWeapon
-            ? CombatFormulas.WeaponEnchantmentBonus(attackerStats.WeaponFlags, attackerStats.WeaponBase)
+            ? CombatFormulas.EnchantmentAfterProtection(
+                CombatFormulas.WeaponEnchantmentBonus(attackerStats.WeaponFlags, attackerStats.WeaponBase),
+                CombatFormulas.EnchantmentDamageType(attackerStats.WeaponFlags),
+                defenderStats.ArmorFlags)
             : 0;
         int rolled = CombatFormulas.MeleeDamage(
             attackerStats.Strength, attackerStats.HasWeapon, attackerStats.WeaponBase,
