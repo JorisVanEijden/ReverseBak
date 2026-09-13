@@ -67,6 +67,26 @@ public static class RoadTravel {
     public static int CompassIndex(ushort heading) => (heading / CompassStep) & 7;
 
     /// <summary>
+    /// The nearest multiple of <paramref name="stride"/> to <paramref name="heading"/>, wrapping in
+    /// BaK angle space.
+    /// </summary>
+    /// <remarks>
+    /// <b>This exists because the remake can hold a heading the original never could.</b> The
+    /// original only ever turned by the player's turn-stride, so its heading was always a multiple
+    /// of it and every compass direction was reachable by turning. The remake's blocked-forward
+    /// pivot is deliberately finer (one degree — spec §10.1), so one bump leaves the party a few
+    /// units off that lattice and stride-sized turns can never bring it back: from 38002 with a
+    /// 2048 stride the reachable set is 38002 + 2048k, which contains no multiple of
+    /// <see cref="CompassStep"/> at all.
+    ///
+    /// <para>Only the road sweep needs this — it is the one place that must land on an exact
+    /// compass heading. Snapping there costs at most half a stride and is a no-op for a party that
+    /// never bumped, which is every party in the original.</para>
+    /// </remarks>
+    public static ushort SnapToStride(ushort heading, int stride) =>
+        stride <= 0 ? heading : unchecked((ushort)((heading + (stride / 2)) / stride * stride));
+
+    /// <summary>
     /// The offset a step of <paramref name="delta"/> in this direction applies.
     /// </summary>
     /// <remarks>
