@@ -8,7 +8,8 @@ namespace GameData.Resources.World;
 /// <b>A SECOND STEALTH ROLL, ON DIFFERENT TERMS FROM THE FIRST.</b> The same function has already
 /// rolled Stealth once to decide whether the party walks past
 /// (<see cref="CombatEncounterAvoidance"/>). This one decides who gets the drop, and it uses the
-/// RAW best Stealth — no thirty-percent bonus, no ceiling, no Dragon's Breath. Reusing the
+/// RAW party Stealth (its LOWEST member's — see <c>GameSession.PartyExtreme</c>) — no
+/// thirty-percent bonus, no ceiling, no Dragon's Breath. Reusing the
 /// avoidance chance here makes surprises far commoner than the game grants them.
 /// </remarks>
 public static class CombatEncounterOpening {
@@ -65,13 +66,13 @@ public static class CombatEncounterOpening {
     /// The opening, given the recency and a d100.
     /// </summary>
     /// <param name="rollUnder100">The roll; <b>inclusive</b>, so a roll equal to the stat succeeds.</param>
-    /// <param name="bestPartyStealth">The party's highest Stealth, used RAW.</param>
-    public static Opening Resolve(bool recentlyVisited, int rollUnder100, int bestPartyStealth) {
+    /// <param name="partyStealth">The party's Stealth — its LOWEST member's — used RAW.</param>
+    public static Opening Resolve(bool recentlyVisited, int rollUnder100, int partyStealth) {
         if (!recentlyVisited) {
             return Opening.NotRecent;
         }
 
-        return rollUnder100 <= bestPartyStealth ? Opening.PartySurprises : Opening.NoSurprise;
+        return rollUnder100 <= partyStealth ? Opening.PartySurprises : Opening.NoSurprise;
     }
 
     /// <summary>Whether the arena is told the party opened with the advantage.</summary>

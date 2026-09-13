@@ -34,7 +34,7 @@ public class CombatEncounterOpeningTests {
         // A roll that would easily have succeeded changes nothing when the party has not been here.
         Assert.Equal(CombatEncounterOpening.Opening.NotRecent,
             CombatEncounterOpening.Resolve(recentlyVisited: false, rollUnder100: 0,
-                bestPartyStealth: 99));
+                partyStealth: 99));
     }
 
     [Fact]
@@ -44,14 +44,14 @@ public class CombatEncounterOpeningTests {
         Assert.Equal(52, CombatEncounterAvoidance.Chance(40, avoidable: false, dragonsBreathActive: false));
         Assert.Equal(CombatEncounterOpening.Opening.NoSurprise,
             CombatEncounterOpening.Resolve(recentlyVisited: true, rollUnder100: 45,
-                bestPartyStealth: 40));
+                partyStealth: 40));
     }
 
     [Fact]
     public void ARollEqualToTheStatSurprises() {
         Assert.Equal(CombatEncounterOpening.Opening.PartySurprises,
             CombatEncounterOpening.Resolve(recentlyVisited: true, rollUnder100: 40,
-                bestPartyStealth: 40));
+                partyStealth: 40));
     }
 
     [Fact]

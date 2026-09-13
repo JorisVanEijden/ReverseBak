@@ -46,13 +46,15 @@ public static class CombatEncounterAvoidance {
     /// <summary>
     /// The chance of slipping past, as a percentage.
     /// </summary>
-    /// <param name="bestPartyStealth">The highest Stealth in the party.</param>
+    /// <param name="partyStealth">The party's Stealth — its LOWEST, not its highest: see
+    /// <c>GameSession.PartyExtreme</c>. The parameter said "best" until 2026-09-13 and the caller
+    /// obliged it (TASK-473).</param>
     /// <remarks>
     /// <b>Ninety caps the BONUS, not the chance.</b> The test is on the raw stat, so a party
     /// already at ninety or above gets no bonus at all and its chance is simply its stat — a
     /// Stealth of 95 gives 95. What is clamped is the bonused result of a stat BELOW ninety, which
     /// can therefore never be lifted past it. Treating ninety as a ceiling on the answer would
-    /// quietly cap the best sneaks in the game.
+    /// quietly cap the quietest parties in the game.
     ///
     /// <para><b>DRAGON'S BREATH ADDS ITS BONUS ONLY TO AN AVOIDABLE ENCOUNTER</b>, which is the
     /// mirror of the gate: on an unflagged encounter the fog is what lets the party roll, and it
@@ -62,8 +64,8 @@ public static class CombatEncounterAvoidance {
     /// <para>That bonus is half the distance left to certainty, so it is worth most to a poor
     /// sneak — and it is the only thing that can lift a sub-ninety stat past ninety.</para>
     /// </remarks>
-    public static int Chance(int bestPartyStealth, bool avoidable, bool dragonsBreathActive) {
-        int chance = bestPartyStealth;
+    public static int Chance(int partyStealth, bool avoidable, bool dragonsBreathActive) {
+        int chance = partyStealth;
         if (chance < BonusCeiling) {
             chance += chance * BonusPercent / 100;
             if (chance > BonusCeiling) {
