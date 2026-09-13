@@ -96,6 +96,12 @@ public static class StatEngine {
 
     // Skill-use advancement rate at value 0 and at value 100 (g_abStatRatioBase @ 0x3a666,
     // g_abStatRatioMax @ 0x3a677). 1.02 CD values — see the type remarks.
+    //
+    // *** ALL SIX TABLES IN THIS FILE WERE READ BACK OUT OF THE RUNNING 1.02 CD BINARY ON
+    // 2026-09-13 AND AGREE BYTE FOR BYTE *** — ReadMin, ReadMax (as words), StoredMin, StoredMax,
+    // HealthRatio and this pair, 0x3a600/0x3a611/0x3a633/0x3a644/0x3a655/0x3a666/0x3a677. So the
+    // "re-check if the project ever targets 1.00" caveat above applies to the FLOPPY build only;
+    // for the CD build these are confirmed against the shipped bytes rather than against canassa.
     private static readonly byte[] SkillRateAtZero =
         { 0x33, 0x33, 0x08, 0x08, 0x08, 0x33, 0x08, 0x33, 0x00, 0x80, 0x80, 0x80, 0x20, 0x40, 0x80, 0x40, 0x00 };
 
