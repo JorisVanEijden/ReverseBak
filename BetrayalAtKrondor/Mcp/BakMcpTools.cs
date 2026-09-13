@@ -508,26 +508,34 @@ public sealed class BakMcpTools {
 
         State st = _emulator.State;
 
-        // *** THE BREAKPOINTS GO IN BEFORE THE PAUSE, BECAUSE A PAUSE ONLY LANDS IF ONE EXISTS. ***
-        // `CfgCpu.ExecuteOneNode` calls `WaitIfPaused()` inside `if (HasActiveBreakpoints)`. Request
-        // a pause with none registered and `IsPaused` goes true while the CPU keeps running — which
-        // is how the first version snapshotted registers off a moving machine.
-        bool enteredTarget = false;
-        var entryBp = new AddressBreakPoint(
-            BreakPointType.CPU_EXECUTION_ADDRESS, targetPhysical, _ => enteredTarget = true, false);
-        _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
-
+        // *** PARK THE CPU BEFORE TOUCHING A BREAKPOINT LIST, NOT AFTER. ***
+        // `BreakPointHolder.TriggerBreakPointsFromList` walks a plain `List<BreakPoint>` by index
+        // while the CPU thread executes; toggling one from this thread at the wrong instant makes
+        // that indexer throw `ArgumentOutOfRangeException` and the emulator dies with it. Measured
+        // 2026-09-13: a 48-call sweep killed it on call two, in Spice86's own machinery rather than
+        // in the call. Registering and unregistering with the CPU parked keeps this tool out of that
+        // race (the race itself is upstream's, and any other tool that toggles a breakpoint on a
+        // running machine can still hit it).
+        //
+        // The pause lands with NO breakpoint registered: `EmulationLoop.RunLoop` calls
+        // `WaitIfPaused()` every iteration. (An earlier comment here claimed a pause only lands if a
+        // breakpoint exists, reading the SECOND `WaitIfPaused` inside `CfgCpu.ExecuteOneNode` as the
+        // only one. It is not.)
         bool wasPaused = _emulator.PauseHandler.IsPaused;
         if (!wasPaused) {
             _emulator.PauseHandler.RequestPause("bak_call_function is taking the CPU");
         }
         if (!WaitUntilCpuParked()) {
-            _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
             if (!wasPaused) {
                 _emulator.PauseHandler.Resume();
             }
             return new { error = "the CPU would not stop: cycles kept advancing after a pause request." };
         }
+
+        bool enteredTarget = false;
+        var entryBp = new AddressBreakPoint(
+            BreakPointType.CPU_EXECUTION_ADDRESS, targetPhysical, _ => enteredTarget = true, false);
+        _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, true);
 
         // Snapshot with the CPU genuinely parked. It is parked INSIDE ExecuteOneNode, about to run
         // the node at CS:IP — which is the address the hijack below has to intercept.
@@ -681,14 +689,17 @@ public sealed class BakMcpTools {
                 timeout_ms = returned ? (int?)null : timeoutMs
             };
         } finally {
+            // Park again before removing them, for the reason the registration is parked — see the
+            // note above. The game is running at this point: the return breakpoint put the registers
+            // back and let it carry on, so this is a live machine whose breakpoint list is about to
+            // lose three entries.
+            _emulator.PauseHandler.RequestPause("bak_call_function is clearing its breakpoints");
+            WaitUntilCpuParked();
             _emulator.BreakpointsManager.ToggleBreakPoint(entryBp, false);
             _emulator.BreakpointsManager.ToggleBreakPoint(hijackBp, false);
             _emulator.BreakpointsManager.ToggleBreakPoint(returnBp, false);
             // Leave the emulator in the run state it was found in.
-            if (wasPaused) {
-                _emulator.PauseHandler.RequestPause("bak_call_function done; it was paused before");
-                WaitUntilCpuParked();
-            } else {
+            if (!wasPaused) {
                 _emulator.PauseHandler.Resume();
             }
         }
