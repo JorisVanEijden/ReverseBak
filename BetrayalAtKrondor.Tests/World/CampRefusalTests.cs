@@ -8,14 +8,21 @@ using Xunit;
 /// </summary>
 public class CampRefusalTests {
     [Fact]
-    public void AROAMINGActorInTheOpenForbidsCamp_AtAnyDistanceTheScanListed() {
-        // PROXSCAN.C:264 applies no distance test above ground — being in the visible list is the
-        // whole condition, so a far-off roamer still stops you sleeping.
-        Assert.True(CampRefusal.Watches(roams: true, octagonalDistance: 60000, underground: false));
+    public void AROAMINGActorInTheOpenForbidsCampOnlyWithinTheVISIBLELISTSOwnReach() {
+        // *** THIS TEST USED TO ASSERT THE OPPOSITE, AT 60000. *** Being in the visible list IS the
+        // whole condition above ground — but that list is distance-filtered as it is BUILT
+        // (`metric < g_aFilterTable[kind]`), so "any distance the scan listed" has a limit and the
+        // old expectation read PROXSCAN.C:264's underground cap as the only one there is.
+        //
+        // Measured on the running original 2026-09-13 by parking the party at a series of distances
+        // from a placed shade and asking the game: in view at 18749, out of view at 18750.
+        Assert.True(CampRefusal.Watches(true, CampRefusal.VisibleListRange - 1, underground: false));
+        Assert.False(CampRefusal.Watches(true, CampRefusal.VisibleListRange, underground: false));
+        Assert.False(CampRefusal.Watches(true, 60000, underground: false));
     }
 
     [Fact]
-    public void UNDERGROUNDOnlyAnActorWithinTheSightRangeCounts() {
+    public void UNDERGROUNDTheCapAppliesONTOPOfTheListsReach() {
         Assert.True(CampRefusal.Watches(true, CampRefusal.UndergroundSightRange, underground: true));
         Assert.False(CampRefusal.Watches(true, CampRefusal.UndergroundSightRange + 1, underground: true));
     }
