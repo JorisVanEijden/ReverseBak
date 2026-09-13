@@ -86,8 +86,8 @@ public class DialogStyleTableTests {
         Assert.Equal(row2.ShadowPenColor, row5.ShadowPenColor);
         Assert.Equal(row2.BodyTextPenColor, row5.BodyTextPenColor);
         Assert.Equal(row2.TextShadowPenSource, row5.TextShadowPenSource);
-        Assert.Equal(row2.TextPadLeftPct, row5.TextPadLeftPct);
-        Assert.Equal(row2.TextPadRightPct, row5.TextPadRightPct);
+        Assert.Equal(row2.TextPadLeft, row5.TextPadLeft);
+        Assert.Equal(row2.TextPadRight, row5.TextPadRight);
     }
 
     /// <summary>
@@ -114,8 +114,8 @@ public class DialogStyleTableTests {
                 Width = LayoutLength.Percent(63.75f),
                 Height = LayoutLength.Percent(29.5f),
             },
-            TextPadLeftPct = 4.75f,
-            TextPadRightPct = 8.125f,
+            TextPadLeft = 4.75f,
+            TextPadRight = 8.125f,
         };
 
         DialogStyle restored =
@@ -131,8 +131,8 @@ public class DialogStyleTableTests {
         Assert.Equal(LayoutLength.Percent(11.25f), restored.DefaultArea.Top);
         Assert.Equal(LayoutLength.Percent(63.75f), restored.DefaultArea.Width);
         Assert.Equal(LayoutLength.Percent(29.5f), restored.DefaultArea.Height);
-        Assert.Equal(4.75f, restored.TextPadLeftPct);
-        Assert.Equal(8.125f, restored.TextPadRightPct);
+        Assert.Equal(4.75f, restored.TextPadLeft);
+        Assert.Equal(8.125f, restored.TextPadRight);
     }
 
     /// <summary>

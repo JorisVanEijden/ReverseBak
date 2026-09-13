@@ -153,8 +153,8 @@ public class DialogStyleTableResourceTests {
             Assert.Equal(expected.ShadowPenColor, actual.ShadowPenColor);
             Assert.Equal(expected.BodyTextPenColor, actual.BodyTextPenColor);
             Assert.Equal(expected.TextShadowPenSource, actual.TextShadowPenSource);
-            Assert.Equal(expected.TextPadLeftPct, actual.TextPadLeftPct);
-            Assert.Equal(expected.TextPadRightPct, actual.TextPadRightPct);
+            Assert.Equal(expected.TextPadLeft, actual.TextPadLeft);
+            Assert.Equal(expected.TextPadRight, actual.TextPadRight);
             // Unit-bearing: LayoutLength carries its unit, so these fail on "606%" as well as
             // on the wrong number.
             Assert.Equal(expected.DefaultArea.Left, actual.DefaultArea.Left);
@@ -221,7 +221,7 @@ public class DialogStyleTableResourceTests {
         Assert.Equal(0, row2.FillPenColor);
         Assert.Equal(0, row2.BorderPenColor);
         Assert.Equal(0, row2.ShadowPenColor);
-        Assert.Equal(0f, row2.TextPadLeftPct);
+        Assert.Equal(0f, row2.TextPadLeft);
         Assert.False(row2.UsesTexturedFill);
         Assert.False(row2.HasBorder);
         Assert.False(row2.HasDropShadow);

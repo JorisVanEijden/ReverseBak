@@ -89,31 +89,34 @@ public class DialogStyle {
     public LayoutHint DefaultArea { get; set; } = new();
 
     /// <summary>
-    /// Left text inset as a percentage (0..100) of the panel width. The original
-    /// <c>RenderDialogText</c> (0x48d7b) shrinks the panel rect into a text rect
-    /// before laying out / wrapping the body text: <c>X += field_9</c> and
-    /// <c>Width -= field_9 + field_A</c> at 0x49043‑0x4905f. <c>field_9</c> is the
-    /// left inset in VGA pixels; this field stores it normalised against the row's
-    /// shipped <c>DefaultArea</c> width. Without it, wrapped text runs flush to the
-    /// panel border.
-    ///
-    /// <para>The normalisation happened at authoring time against the row's <b>shipped px
-    /// width</b> — the numbers in the table's own comments. It stays a correct percentage of
-    /// whatever width <see cref="DefaultArea"/> ends up resolving to (that is the point of
-    /// storing a percentage), but once an override restates the area in percentages the stated
-    /// derivation is no longer checkable against the model: there is no px width left in the data
-    /// to divide by. The comments on each <see cref="DialogStyleTable"/> row record the divisor
-    /// that was used.</para>
+    /// Left text inset in design-frame px — the original's <c>field_9</c>.
+    /// <c>RenderDialogText</c> (0x48d7b) shrinks the panel rect into a text rect before laying
+    /// out / wrapping the body text: <c>X += field_9</c> and <c>Width -= field_9 + field_A</c>
+    /// at 0x49043‑0x4905f. Without it, wrapped text runs flush to the panel border.
     /// </summary>
-    public float TextPadLeftPct { get; set; }
+    /// <remarks>
+    /// <b>Absolute, not a fraction of the panel — and that is the whole point.</b> These were
+    /// once stored as a percentage of <see cref="DefaultArea"/>'s width, which is right for
+    /// exactly the panels that keep their shipped width and wrong for every other one. A DDX
+    /// entry carrying a <c>ResizeDialog</c> replaces the area wholesale (<c>dialog_getDialogArea</c>
+    /// @0x485bc), and the original then subtracts the SAME byte from the new width; a percentage
+    /// shrinks with the panel.
+    ///
+    /// <para>Measured 2026-09-13 on the item-inspect description (DIAL_Z18 offset 35699, resize
+    /// 1020×726): the original inset 10 VGA px and wrapped at 184, the port inset 7 and wrapped
+    /// at 190, and "…limbs and torso. He" stayed on line 5 where the original broke before "He".
+    /// 550 shipped entries carry a resize, so the wrap width was wrong for all of them.</para>
+    ///
+    /// <para>Stored in canonical px like <see cref="TextPadTop"/> (VGA ×5 horizontally, ×6
+    /// vertically), so the shipped rows read 40 / 50 / 5 for field_9 values of 8 / 10 / 1.</para>
+    /// </remarks>
+    public float TextPadLeft { get; set; }
 
     /// <summary>
-    /// Right text inset as a percentage (0..100) of the panel width — the original's
-    /// <c>field_A</c> (0x4905f), normalised against the row's shipped <c>DefaultArea</c> width
-    /// exactly as <see cref="TextPadLeftPct"/> was (see its remarks on the derivation). Bounds
-    /// the right edge of the wrap region.
+    /// Right text inset in design-frame px — the original's <c>field_A</c> (0x4905f). Bounds the
+    /// right edge of the wrap region; absolute for the reason <see cref="TextPadLeft"/> gives.
     /// </summary>
-    public float TextPadRightPct { get; set; }
+    public float TextPadRight { get; set; }
 
     /// <summary>
     /// Top text inset in design-frame px — the original's <c>field_7</c>.
@@ -123,11 +126,10 @@ public class DialogStyle {
     /// height by <c>field_7 + field_8</c>, exactly mirroring what it does horizontally with
     /// <c>field_9</c>/<c>field_A</c>.
     ///
-    /// <para><b>Stored as px, not a percentage, unlike the left/right pair.</b> Those are
-    /// normalised against the row's width because the wrap region has to stay proportional when an
-    /// override restates the area; a top inset is a fixed gap under the border and does not want to
-    /// grow with a taller panel. Row 6 is the case that shows why: 1 VGA px of inset on a
-    /// 160-VGA-px-tall panel is a hairline, and as a percentage it would round to nothing useful.</para>
+    /// <para><b>Stored as px, like the left/right pair.</b> All four are px now; the
+    /// left/right pair used to be percentages and that is the bug <see cref="TextPadLeft"/>
+    /// records. Row 6 shows why a percentage never worked: 1 VGA px of inset on a
+    /// 160-VGA-px-tall panel is a hairline, and as a percentage it rounds to nothing useful.</para>
     ///
     /// <para>Shipped values are small — 1 VGA px for the full-screen row, 5 for the narrative
     /// strips, 3 for the bordered boxes. A renderer that substitutes a larger "tuned" offset
