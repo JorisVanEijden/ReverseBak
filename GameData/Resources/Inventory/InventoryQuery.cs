@@ -112,8 +112,9 @@ public static class InventoryQuery {
     /// gear would hide the topic from a party carrying a sack of dented armour.
     ///
     /// <para>The same walk answers a second, unrelated question for a different caller (object 48
-    /// at condition 70 or better), which is why the original returns two counts. Only the repair
-    /// count is modelled here; the other has no consumer yet.</para>
+    /// at condition 70 or better), which is why the original returns two counts. That one is
+    /// <see cref="CountAtConditionAtLeast"/>, and it counts SLOTS where this counts pieces the
+    /// same way — see its remarks for why the two cannot share a total.</para>
     ///
     /// <para><b>Recorded, not modelled:</b> with its third argument set the routine also repairs —
     /// condition to 100 and the <see cref="ItemFlags.Repairable"/> bit cleared — and it multiplies
@@ -123,6 +124,39 @@ public static class InventoryQuery {
     public static int CountNeedingRepair(IEnumerable<RuntimeContainer> packs,
         Object.ObjectInfoSet objects) =>
         WalkArmourNeedingRepair(packs, objects, repair: false);
+
+    /// <summary>
+    /// How many SLOTS across these packs hold <paramref name="objectId"/> at
+    /// <paramref name="minCondition"/> or better — the SECOND count
+    /// <c>evtcond_pty_inv_repair_cnt</c> returns (EVTCOND.C:42-44).
+    /// </summary>
+    /// <remarks>
+    /// <b>Slots, not charges.</b> The original does <c>(*count_out)++</c> per matching slot while
+    /// <see cref="CountByKind"/> next door adds the condition byte — the same walk answers both
+    /// questions and they disagree on purpose. Counting charges here would make one dented
+    /// breastplate at condition 80 answer eighty.
+    ///
+    /// <para>No category test and no catalog: the original matches the object id alone
+    /// (<c>slot-&gt;item_id == '0'</c>), so this needs nothing but the packs.</para>
+    /// </remarks>
+    public static int CountAtConditionAtLeast(IEnumerable<RuntimeContainer> packs,
+        int objectId, int minCondition) {
+        if (packs == null) {
+            return 0;
+        }
+        var total = 0;
+        foreach (RuntimeContainer pack in packs) {
+            if (pack?.Items == null) {
+                continue;
+            }
+            foreach (RuntimeItem item in pack.Items) {
+                if (item != null && item.ObjectId == objectId && item.Variable >= minCondition) {
+                    total++;
+                }
+            }
+        }
+        return total;
+    }
 
     /// <summary>
     /// Mends every damaged piece of party armour, and answers how many that was.

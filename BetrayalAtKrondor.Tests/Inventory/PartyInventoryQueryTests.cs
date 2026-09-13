@@ -173,4 +173,20 @@ public class PartyInventoryQueryTests {
         Assert.Equal(InventoryQuery.PristineCondition, packs[0].Items[0].Variable);
         Assert.NotEqual(0, packs[0].Items[0].ItemFlags & (ushort)ItemFlags.Repairable);
     }
+
+    [Fact]
+    public void TheDeliverableCountIsPerSLOT_andHonoursTheConditionFloor() {
+        // *** The same walk as the repair count, and it must NOT agree with it. *** EVTCOND.C:42-44
+        // does `(*count_out)++` per matching slot, while CountByKind next door adds the condition
+        // byte — so three breastplates at condition 80 answer THREE here and 240 there. Dialog
+        // check 3 is `count > 5`, which counting charges would satisfy with a single piece.
+        var packs = new List<RuntimeContainer> {
+            Pack((Breastplate, 80, 0), (Breastplate, 70, 0)),  // 70 is the floor: it counts
+            Pack((Breastplate, 69, 0), (Helmet, 100, 0)),      // one short; wrong object
+        };
+
+        Assert.Equal(2, InventoryQuery.CountAtConditionAtLeast(packs, Breastplate, 70));
+        Assert.Equal(3, InventoryQuery.CountAtConditionAtLeast(packs, Breastplate, 0));
+        Assert.Equal(0, InventoryQuery.CountAtConditionAtLeast(null, Breastplate, 70));
+    }
 }
