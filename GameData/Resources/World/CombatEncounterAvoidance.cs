@@ -1,5 +1,7 @@
 namespace GameData.Resources.World;
 
+using System.Collections.Generic;
+
 /// <summary>
 /// Whether a combat encounter can be walked past — <c>combTrigger_phase2</c> (ovr187 @0x7409d),
 /// the block between loading the DEF_COMB record and starting the fight.
@@ -29,6 +31,8 @@ public static class CombatEncounterAvoidance {
     /// <param name="avoidable">The encounter's own flag.</param>
     /// <param name="scouted">Whether the party has spotted it.</param>
     /// <param name="dragonsBreathActive">Whether the fog spell is running.</param>
+    /// <param name="encounterIsWhitelisted">Whether the encounter number is on
+    /// <see cref="AvoidanceWhitelist"/>, which refuses the attempt outright.</param>
     /// <remarks>
     /// <b>AN AVOIDABLE ENCOUNTER STILL HAS TO HAVE BEEN SPOTTED.</b> Marked avoidable and unscouted,
     /// the party walks into it — the flag is permission to try, not a free pass. Reading it as
@@ -40,8 +44,9 @@ public static class CombatEncounterAvoidance {
     /// flagged encounters, the fog only on unflagged ones. Neither is a general "avoid" mechanic.
     /// </para>
     /// </remarks>
-    public static bool MayAttempt(bool avoidable, bool scouted, bool dragonsBreathActive) =>
-        avoidable ? scouted : dragonsBreathActive;
+    public static bool MayAttempt(bool avoidable, bool scouted, bool dragonsBreathActive,
+        bool encounterIsWhitelisted) =>
+        !AvoidanceIsSkipped(encounterIsWhitelisted) && (avoidable ? scouted : dragonsBreathActive);
 
     /// <summary>
     /// The chance of slipping past, as a percentage.
@@ -99,4 +104,38 @@ public static class CombatEncounterAvoidance {
     /// property of the record.
     /// </remarks>
     public static bool AvoidanceIsSkipped(bool encounterIsWhitelisted) => encounterIsWhitelisted;
+
+    /// <summary>
+    /// The encounter numbers <c>isEncounterIdWhitelisted</c> answers yes for — the ones no amount of
+    /// Stealth, scouting or fog gets past.
+    /// </summary>
+    /// <remarks>
+    /// A literal thirteen-case switch, HOTSPOT.C:1121-1143 in the byte-matched tree (canassa calls
+    /// it <c>hotspotevt_monst_dispatch_by_tag</c>, which dispatches nothing — it returns 1 or 0).
+    /// It is tested at the very top of the Comb handler, before the avoidable flag, before scouting
+    /// and before the fog, so a hit goes straight to the fight.
+    ///
+    /// <para><b>Not the same list as <c>EncounterCompletion.ReArmingEncounters</c></b>, which holds
+    /// eleven of these thirteen and is read for a different question. The two that only appear here
+    /// are <c>0x97</c> and <c>0x98</c>. Merging them would be wrong in both directions.</para>
+    ///
+    /// <para><b>What it is worth in shipped data:</b> six <c>Comb</c> triggers out of 506 name a
+    /// whitelisted encounter (three for 151, three for 152), and every whitelisted record in
+    /// DEF_COMB is <c>Avoidable = false</c>. So the list only bites under Dragon's Breath — the one
+    /// route into the roll that an unflagged encounter has — which is exactly where it is supposed
+    /// to bite, and why missing it went unnoticed.</para>
+    /// </remarks>
+    public static IReadOnlyList<long> AvoidanceWhitelist { get; } = new long[] {
+        0x97, 0x98, 0xeb, 0xf5, 0x123, 0x125, 0x14f, 0x151, 0x152, 0x177, 0x19a, 0x1ad, 0x1ae,
+    };
+
+    /// <inheritdoc cref="AvoidanceWhitelist"/>
+    public static bool IsWhitelisted(long encounter) {
+        for (var i = 0; i < AvoidanceWhitelist.Count; i++) {
+            if (AvoidanceWhitelist[i] == encounter) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

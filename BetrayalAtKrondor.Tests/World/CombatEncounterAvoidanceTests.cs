@@ -13,9 +13,9 @@ public class CombatEncounterAvoidanceTests {
         // The flag is permission to try, not a free pass. Reading it as "avoidable means you can
         // sneak past" makes 62 shipped encounters skippable that are not.
         Assert.True(CombatEncounterAvoidance.MayAttempt(
-            avoidable: true, scouted: true, dragonsBreathActive: false));
+            avoidable: true, scouted: true, dragonsBreathActive: false, encounterIsWhitelisted: false));
         Assert.False(CombatEncounterAvoidance.MayAttempt(
-            avoidable: true, scouted: false, dragonsBreathActive: false));
+            avoidable: true, scouted: false, dragonsBreathActive: false, encounterIsWhitelisted: false));
     }
 
     [Fact]
@@ -24,9 +24,40 @@ public class CombatEncounterAvoidanceTests {
         // general "avoid" mechanic, and a rule that ORs them together lets a scouted party sneak
         // past everything.
         Assert.False(CombatEncounterAvoidance.MayAttempt(
-            avoidable: false, scouted: true, dragonsBreathActive: false));
+            avoidable: false, scouted: true, dragonsBreathActive: false, encounterIsWhitelisted: false));
         Assert.True(CombatEncounterAvoidance.MayAttempt(
-            avoidable: false, scouted: false, dragonsBreathActive: true));
+            avoidable: false, scouted: false, dragonsBreathActive: true, encounterIsWhitelisted: false));
+    }
+
+    [Fact]
+    public void AWhitelistedEncounterRefusesTheAttemptEvenUnderDragonsBreath() {
+        // *** THE WHITELIST HAD NO CALLER UNTIL 2026-09-13. *** AvoidanceIsSkipped was written and
+        // tested and never asked, and the list of ids did not exist at all, so the fog let the party
+        // walk past six shipped triggers the original never lets anyone avoid.
+        Assert.False(CombatEncounterAvoidance.MayAttempt(
+            avoidable: false, scouted: false, dragonsBreathActive: true, encounterIsWhitelisted: true));
+        Assert.False(CombatEncounterAvoidance.MayAttempt(
+            avoidable: true, scouted: true, dragonsBreathActive: false, encounterIsWhitelisted: true));
+    }
+
+    [Fact]
+    public void TheWhitelistIsTheOriginalsThirteenIdsAndNotTheReArmingEleven() {
+        // HOTSPOT.C:1121-1143. EncounterCompletion.ReArmingEncounters holds eleven of these and is
+        // read for a different question; 0x97 and 0x98 appear only here, and they are the two the
+        // shipped tile triggers actually reach.
+        Assert.Equal(13, CombatEncounterAvoidance.AvoidanceWhitelist.Count);
+        foreach (long id in new long[] { 0x97, 0x98, 0xeb, 0xf5, 0x123, 0x125, 0x14f, 0x151, 0x152,
+                     0x177, 0x19a, 0x1ad, 0x1ae }) {
+            Assert.True(CombatEncounterAvoidance.IsWhitelisted(id), $"0x{id:x} should be whitelisted");
+        }
+
+        Assert.False(CombatEncounterAvoidance.IsWhitelisted(2), "the chapter-1 road ambush is not");
+        Assert.False(CombatEncounterAvoidance.IsWhitelisted(0x96));
+        Assert.False(CombatEncounterAvoidance.IsWhitelisted(0x1af));
+
+        foreach (long id in new long[] { 0x97, 0x98 }) {
+            Assert.DoesNotContain(id, EncounterCompletion.ReArmingEncounters);
+        }
     }
 
     [Fact]
