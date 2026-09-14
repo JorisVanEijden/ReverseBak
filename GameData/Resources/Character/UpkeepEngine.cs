@@ -28,6 +28,12 @@ public static class UpkeepEngine {
     public const long ExhaustionDrainTicks = 0x7e90;
 
     /// <summary>
+    /// "We need rest" — dialog 0x40, raised from the hourly tick once the party has been awake
+    /// <see cref="ExhaustionWarningTicks"/> (GSTATE.C:305).
+    /// </summary>
+    public const int RestPromptDialog = 0x40;
+
+    /// <summary>
     /// Whether one member's health+stamina pool is at or above <paramref name="percent"/> of its
     /// maximum — the per-member half of <c>stat_party_all_above_pct</c> (STAT.C:451).
     /// </summary>
