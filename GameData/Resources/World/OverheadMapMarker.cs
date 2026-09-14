@@ -28,6 +28,7 @@ namespace GameData.Resources.World;
 /// </remarks>
 public static class OverheadMapMarker {
     /// <summary>The icon sheet the marker comes from.</summary>
+    /// <remarks><b>Deliberately callerless.</b> OverheadMapScreen addresses the extracted sheet as MAPICONS.BMX#index.</remarks>
     public const string IconSheet = "MAPICONS.BMP";
 
     /// <summary>How many directions the north-up marker can point — a 16-point compass.</summary>
@@ -73,6 +74,7 @@ public static class OverheadMapMarker {
     /// <remarks>
     /// Exactly the inverse of what the render does with the yaw: north-up puts the heading in the
     /// icon, a turning map puts it in the camera. A port that did both would turn the party twice.
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen takes IconIndexFor for the icon and MapRendersWithYaw for the camera, so the heading lands in exactly one of them.</para>
     /// </remarks>
     public static bool IconCarriesTheHeading(bool northUp) => northUp;
 
@@ -100,6 +102,7 @@ public static class OverheadMapMarker {
     /// <para>Kept as a check on the sheet rather than as coordinates to reproduce: a port centres
     /// the icon it actually loaded (<see cref="TopLeftFor"/>), which is why being one off here never
     /// moved anything.</para>
+    /// <para><b>Deliberately callerless.</b> A check on the sheet; OverheadMapScreen centres the icon it actually loaded.</para>
     /// </remarks>
     public static (int Width, int Height) ImpliedIconSize => (8, 7);
 
@@ -112,6 +115,7 @@ public static class OverheadMapMarker {
     /// ROTATING one arrow sprite instead of picking from the sheet: screen rotation is clockwise, so
     /// that port needs the negated angle. Feeding it +yaw mirrors the marker about the north-south
     /// axis, which is correct at exactly N and S and wrong at the fourteen headings in between.
+    /// <para><b>Deliberately callerless.</b> The port picks from the sheet by IconIndexFor rather than rotating one arrow, so no correction is needed.</para>
     /// </remarks>
     public static bool SheetRunsAnticlockwise => true;
 }

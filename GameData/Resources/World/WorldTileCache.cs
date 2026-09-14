@@ -29,6 +29,7 @@ public static class WorldTileCache {
     /// <remarks>
     /// Nine of these are carved out of one allocation at startup, which is why the cache is a fixed
     /// nine and not a dictionary: the storage is pre-partitioned per slot.
+    /// <para><b>Deliberately callerless.</b> A DOS allocation fact; TileResidency keeps no pre-partitioned slots.</para>
     /// </remarks>
     public const int ItemBytesPerSlot = 6600;
 
@@ -38,6 +39,7 @@ public static class WorldTileCache {
     /// <remarks>
     /// <b>All nine start empty</b> — the initialiser zeroes every slot and then loads only the tile
     /// the party is in. So an unpopulated slot is the normal early state, not a fault.
+    /// <para><b>Deliberately callerless.</b> A DOS slot-cache fact; TileResidency tracks resident tiles in a dictionary, with no empty slot marker.</para>
     /// </remarks>
     public const int EmptyZone = 0;
 
@@ -110,6 +112,7 @@ public static class WorldTileCache {
     /// in advance, so by the time the party can reach a tile it is already resident. A port that
     /// streams lazily on the crossing instead will behave the same in the common case and diverge
     /// exactly where the original would have shown stale terrain.
+    /// <para><b>Deliberately callerless.</b> A DOS streaming fact; TileResidency keeps the ring around the party resident (IsResident) rather than loading on the crossing.</para>
     /// </remarks>
     public static bool LoadsOnCrossing => false;
 
@@ -146,6 +149,7 @@ public static class WorldTileCache {
         FirstClearedGlobal + SlotsPerTransientBlock + hotspotIndex;
 
     /// <summary>Whether a global is wiped by a tile crossing.</summary>
+    /// <remarks><b>Deliberately callerless.</b> HotspotService.ClearTransientHotspotFlags wipes both ten-slot blocks on a crossing.</remarks>
     public static bool ClearedOnCrossing(int key) =>
         key >= FirstClearedGlobal && key <= LastClearedGlobal;
 }
