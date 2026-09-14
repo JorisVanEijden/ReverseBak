@@ -76,12 +76,15 @@ public static class CastRingSigil {
     public const int RestingPen = 0x89;
 
     /// <summary>Pen the oldest copy in the morph trail is stroked in; each newer copy is one higher.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: CastScreen draws the resting figure only, with no morph trail.</remarks>
     public const int TrailFirstPen = 0x83;
 
     /// <summary>Copies drawn behind the leading edge while the figure morphs.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: no morph trail in CastScreen.</remarks>
     public const int TrailLength = 7;
 
     /// <summary>Frames the morph runs for; the vertices stop moving at 30 and it settles over the rest.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: CastScreen does not animate the morph.</remarks>
     public const int MorphSteps = 0x25;
 
     /// <summary>Whether <paramref name="school"/> has a figure.</summary>

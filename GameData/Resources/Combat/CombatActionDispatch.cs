@@ -130,7 +130,7 @@ public static class CombatActionDispatch {
     /// click-to-engage.</para>
     /// </remarks>
     /// <remarks>
-    /// <b>Deliberately without a production caller.</b> The rule is expressed structurally rather
+    /// <b>Deliberately callerless.</b> The rule is expressed structurally rather
     /// than through this predicate: <c>CombatRuntime.ResolveMeleeClick</c> refuses a non-adjacent
     /// SWING outright and, on the thrust arm, calls <c>StepIntoContact</c> before striking. So the
     /// behaviour is honoured and this states it in one line for a reader.
@@ -223,6 +223,7 @@ public static class CombatActionDispatch {
     /// The value stored on the actor as its chosen command, or -1 when the id is a menu control
     /// (like the page flip) rather than something the actor does.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> The port dispatches the HUD through CombatCommands.Command rather than storing a menu position on the actor.</remarks>
     public static int ActorCommandFor(int actionId) {
         int position = MenuPositionOf(actionId);
         return position >= 0 && position < ActorCommandCount ? position : -1;
@@ -260,6 +261,7 @@ public static class CombatActionDispatch {
     /// button either way and is not told which they got — so a port with separate Defend and Rest
     /// commands is offering a choice the original never gave, and one with only Defend silently
     /// removes the recovery a hurt character depends on.
+    /// <para><b>Deliberately callerless.</b> HotspotService.ResolveUnarmedClick applies it through DefendAction.LeftClickDefends: a primary self-click below the threshold rests, otherwise defends (COMBAT.C:2391; set_flag8 is CAF_PARRY, enter_defense heals).</para>
     /// </remarks>
     public static GuardAction GuardFor(int statPercent) =>
         statPercent >= DefendThresholdPercent ? GuardAction.Defend : GuardAction.Rest;

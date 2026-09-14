@@ -20,6 +20,7 @@ public static class SpellCostModifiers {
     public const int UntargetedTargetingType = 8;
 
     /// <summary>Whether this spell ignores whatever target it was handed.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Black Nimbus is the only type-8 spell: SpellTargetingRules.AimOf aims it at a crystal tile and SpellCastTail.DeliveryFor sends it down the charge-only path, so no actor target is ever used.</remarks>
     public static bool DiscardsTarget(int targetingType) =>
         targetingType == UntargetedTargetingType;
 
@@ -67,6 +68,7 @@ public static class SpellCostModifiers {
     /// (a negated cast never rolls), the caster's wind-up animation, and the armour wear billed to
     /// the caster. A restoring spell is one whose data is negative, not one that was paid for
     /// backwards.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ResolveCast uses IsNegated only to gate the caster steps and the to-hit roll.</para>
     /// </remarks>
     public static bool NegatedCostMeansHealed => false;
 
@@ -121,5 +123,6 @@ public static class SpellCostModifiers {
     }
 
     /// <summary>Bytes per record in the spell table.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A layout fact about SPELLS.DAT; the spell extractor reads records field by field.</remarks>
     public const int SpellRecordSize = 22;
 }

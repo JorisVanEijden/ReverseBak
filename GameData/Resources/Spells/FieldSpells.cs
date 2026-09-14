@@ -63,6 +63,7 @@ public static class FieldSpells {
     /// the martial flag says who may cast a spell in a fight
     /// (<c>MonsterSpellcasting.OnlyCastsMartialSpells</c>), not where it works — the field list is
     /// explicit and there is no field in <c>SPELLS.DAT</c> that derives it.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; FieldSpellCaster dispatches the explicit nine through IsFieldSpell.</para>
     /// </remarks>
     public static bool NonMartialImpliesFieldCastable => false;
 
@@ -79,6 +80,7 @@ public static class FieldSpells {
         spellId == EyesOfIshap || spellId == TheUnseen || spellId == NacreCicatrix;
 
     /// <summary>Whether the handler receives the record's duration.</summary>
+    /// <remarks><b>Deliberately callerless.</b> FieldSpellCaster routes the three locators to CastLocatorAsync, which takes no duration.</remarks>
     public static bool TakesDuration(int spellId) =>
         IsFieldSpell(spellId) && !IsInstantaneous(spellId);
 
@@ -94,6 +96,7 @@ public static class FieldSpells {
     /// <para>That ordering is the whole reason the duration is passed as an argument rather than
     /// looked up. A port holding the catalogue in memory permanently will not notice, but it must not
     /// invert the order and let a handler read the table itself.</para>
+    /// <para><b>Deliberately callerless.</b> The port keeps the catalogue loaded; the duration is still passed into FieldSpellCaster.CastAsync as an argument.</para>
     /// </remarks>
     public static bool CatalogueIsLoadedOnlyForTheCastScreen => true;
 
@@ -106,10 +109,12 @@ public static class FieldSpells {
     /// the party member the player actually settled on into a global, and it is that global the
     /// handlers are passed. Seeding and result are two different values, and using the seed would
     /// apply every overworld spell to the wrong character whenever the player switched caster.
+    /// <para><b>Deliberately callerless.</b> CastScreen hands on CasterId = roster[caster], the member the player settled on.</para>
     /// </remarks>
     public static bool SeedCasterIsNotTheActingCaster => true;
 
     /// <summary>The active party slot the cast screen is opened on.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port's CastScreen opens on its own remembered caster selection.</remarks>
     public const int SeedPartySlot = 0;
 
     /// <summary>
@@ -119,6 +124,7 @@ public static class FieldSpells {
     /// The scan runs off the end of its nine entries and falls through to the return with nothing
     /// done — no message, no refund path, and the cost has already been settled by the screen. The
     /// same shape as a cancelled cast, which returns -1 and also matches nothing.
+    /// <para><b>Deliberately callerless.</b> FieldSpellCaster only receives the nine field spells from the cast screen.</para>
     /// </remarks>
     public static bool UnknownSpellDoesNothing => true;
 
@@ -202,6 +208,7 @@ public static class FieldSpells {
     /// and "specifically designed for Moraeulf" — but the name invites the wrong grouping, so it is
     /// worth stating that it belongs with Scent of Sarig and Union rather than with the three that
     /// change what the world looks like.
+    /// <para><b>Deliberately callerless.</b> A naming note; DrivesWorldLighting is the rule FieldSpellCaster applies.</para>
     /// </remarks>
     public static bool NameSuggestsLightingButDoesNot(int spellId) =>
         spellId == AndTheLightShallLie;
@@ -213,6 +220,7 @@ public static class FieldSpells {
     /// The cost is applied outside the branch that sets the timers, so a computed time of zero means
     /// no timer, no light change — and the caster pays anyway. The two zone-gated spells are the
     /// exceptions, because in the wrong zone they return before reaching either.
+    /// <para><b>Deliberately callerless.</b> FieldSpellCaster.CastAsync calls ApplyCost outside the timer branch; RefusedInZone returns before it.</para>
     /// </remarks>
     public static bool ChargesEvenWithNoEffect(int spellId) =>
         !RequiresUnderground(spellId) && !RequiresAboveGround(spellId);
@@ -270,6 +278,7 @@ public static class FieldSpells {
     /// The cost is applied as the routine's first act, ahead of the random number. The same shape as
     /// Black Nimbus in combat, and the reason a run of bad luck on a locator is expensive rather
     /// than merely disappointing.
+    /// <para><b>Deliberately callerless.</b> FieldSpellCaster.CastLocatorAsync calls ApplyCost before LocatorSucceeds.</para>
     /// </remarks>
     public static bool LocatorChargesBeforeRolling => true;
 
@@ -286,6 +295,7 @@ public static class FieldSpells {
     /// <para>That last point matters: the equipped-flag requirement is exactly where this function
     /// and the power slider diverge, and both sides are now disassembly-verified rather than
     /// inherited.</para>
+    /// <para><b>Deliberately callerless.</b> A verification record for SpellCasting.ApplyCost.</para>
     /// </remarks>
     public static bool FieldCostMatchesTheDisassembly => true;
     // ---------------------------------------------------------------- the locator screen
@@ -332,6 +342,7 @@ public static class FieldSpells {
     /// height, draws the map into the clipped region and overlays <c>REQ_CMAP</c> — then puts the
     /// viewport and the camera back on the way out. So a port should treat this as a camera and
     /// clip-rect change over the live world, not as a separate screen with its own art.
+    /// <para><b>Deliberately callerless.</b> LocatorMapScreen moves the live world camera into the inset rather than drawing its own map.</para>
     /// </remarks>
     public static bool LocatorReusesTheWorldViewport => true;
 
@@ -419,6 +430,7 @@ public static class FieldSpells {
     /// three lighting spells share one, And the Light Shall Lie and Union share another, and Scent
     /// of Sarig has its own — so the audio grouping matches the duration formula for the first
     /// three and cuts across it for the rest.
+    /// <para><b>Deliberately callerless.</b> Superseded by SpellCastSound.ForCast, which FieldSpellCaster plays and which agrees for all six timed spells.</para>
     /// </remarks>
     public static int SoundFor(int spellId) {
         if (DrivesWorldLighting(spellId)) {

@@ -154,6 +154,7 @@ public static class LocatorMap {
     ///
     /// <para>The yaw it rotates by is the one <see cref="MarkersDrawnWithYaw"/> chooses, which is
     /// why the pass brackets itself with a save and restore of the camera's yaw.</para>
+    /// <para><b>Deliberately callerless.</b> LocatorMapScreen.TryProject uses the world camera's WorldToViewportPoint.</para>
     /// </remarks>
     public static bool MarkersUseTheCameraProjection => true;
 
