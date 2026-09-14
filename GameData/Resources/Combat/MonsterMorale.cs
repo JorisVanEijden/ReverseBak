@@ -31,6 +31,8 @@ public static class MonsterMorale {
     /// <para>Corroborated by the shipped data: MONST.DAT values run 0..8, and MONST19 and MONST28
     /// ship {0, 0} — creatures that can never rout, which is what the morale-0 guard below is for.
     /// </para>
+    ///
+    /// <para><b>Deliberately callerless.</b> Routs applies the polarity; this states it.</para>
     /// </remarks>
     public const bool HigherValueMeansMoreLikelyToRout = true;
 
@@ -108,6 +110,8 @@ public static class MonsterMorale {
     /// <remarks>
     /// True except for the two guards that return before rolling. A caller sharing an RNG with
     /// anything else needs this to stay in step with the original.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port's combat RNG is not kept in step with the original's, so there is no shared stream to keep aligned.</para>
     /// </remarks>
     public static bool ConsumesARoll(int morale, bool isUnderground) =>
         morale != NeverFleesMorale && !isUnderground;

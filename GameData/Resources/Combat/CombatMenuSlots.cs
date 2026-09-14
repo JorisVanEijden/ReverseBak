@@ -31,6 +31,7 @@ public static class CombatMenuSlots {
     public const int NeitherActionId = 0x0e;    // 14
 
     /// <summary>Nothing occupies the slot.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A named sentinel for the empty slot; the port's slot methods answer with a real id or false instead.</remarks>
     public const int NoAction = -1;
 
     /// <summary>
@@ -212,10 +213,12 @@ public static class CombatMenuSlots {
     public const int DistinctEnableGateActionId = 0x21;  // 33
 
     /// <summary>Whether the menu activates this entry on a turn.</summary>
+    /// <remarks><b>Deliberately callerless.</b> CombatMenu takes each entry's state from REQ data, where entry 22 already ships inactive; only the capability slot is rewritten (ApplyCapabilitySlot).</remarks>
     public static bool IsActivatedByTheMenu(int actionId) => actionId != NeverActivatedActionId;
 
     /// <summary>The enable-gate value the menu writes for an entry — 1 for all but one id.</summary>
     /// <inheritdoc cref="DistinctEnableGateActionId"/>
+    /// <remarks><b>Deliberately callerless.</b> See IsActivatedByTheMenu.</remarks>
     public static int EnableGateFor(int actionId) =>
         actionId == DistinctEnableGateActionId ? 0 : 1;
 
@@ -226,6 +229,8 @@ public static class CombatMenuSlots {
     /// <c>combat_arena_menu_entry_flags</c> is the first thing <c>combat_arena_turn_loop</c> calls,
     /// so anything that disabled an entry during a turn is undone before the next one. A port that
     /// set these once at construction would let a one-turn state leak into the rest of the fight.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatMenu.ApplyCapabilitySlot runs whenever the HUD is refreshed for the next actor, which is the per-turn rewrite this describes.</para>
     /// </remarks>
     public static bool EntryFlagsAreRewrittenEachTurn => true;
 }

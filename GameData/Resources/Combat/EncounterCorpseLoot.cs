@@ -26,6 +26,7 @@ public static class EncounterCorpseLoot {
     public static int RecordIndexOf(int hotspotSlot) => hotspotSlot / RosterSlots;
 
     /// <inheritdoc cref="RecordIndexOf"/>
+    /// <remarks><b>Deliberately callerless.</b> HotspotService.LootCorpse is handed the roster slot directly by the click, so there is no hotspot slot to reduce.</remarks>
     public static int RosterSlotOf(int hotspotSlot) => hotspotSlot % RosterSlots;
 
     /// <summary>Reach above ground, in world units.</summary>

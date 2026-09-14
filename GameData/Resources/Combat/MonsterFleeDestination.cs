@@ -95,6 +95,7 @@ public static class MonsterFleeDestination {
     }
 
     /// <summary>Whether routing this monster makes it move at all.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port carries no per-combatant morale. Ordinary routs go through MonsterMorale.Routs, which already rejects morale 0, and the one spell rout it ports (Thy Master's Will) sets morale 1 first in the original, so the guard never fires.</remarks>
     public static bool WillMove(int morale) => morale != WontMoveMorale;
 
     /// <summary><b>Fleeing clears the monster's stored target.</b></summary>

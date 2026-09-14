@@ -56,6 +56,7 @@ public static class SummonPlacement {
     public const int NoHighlight = -1;
 
     /// <summary>Which highlight a cell draws with.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port draws no placement highlight; Accepts gates the click, which is the rule that changes the game.</remarks>
     public static int HighlightFor(CombatGrid grid, int x, int y) =>
         Highlights(grid, x, y) ? LegalHighlight : NoHighlight;
 

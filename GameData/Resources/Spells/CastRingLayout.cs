@@ -110,6 +110,8 @@ public static class CastRingLayout {
     /// The loop calls the info panel every pass with the hovered power, and with a cost of zero when
     /// nothing is hovered — which is what puts the shipped "Cost: 5-15" template back. So the panel
     /// is a live readout of the slider rather than something shown once when the spell is picked.
+    ///
+    /// <para><b>Deliberately callerless.</b> CastScreen redraws its readout from PreviewPower(_hoveredPosition) on every hover change.</para>
     /// </remarks>
     public static bool InfoPanelFollowsTheCursor => true;
 
@@ -146,6 +148,7 @@ public static class CastRingLayout {
     /// The anchor position of a category — <b>the last of its five</b>, at <c>5c + 4</c>. Confirmed
     /// against the shipped RING.DAT, whose anchors sit at 4, 9, 14, 19, 24 and 29.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> CastScreen tells anchors from ordinary positions through IconFor; nothing needs a category's anchor index.</remarks>
     public static int AnchorPositionOf(int category) =>
         (category * PositionsPerCategory) + PositionsPerCategory - 1;
 
@@ -239,6 +242,8 @@ public static class CastRingLayout {
     /// selectable position, so clicking anywhere off the affordable band does nothing at all: not a
     /// cancel, not a clamp, just no effect. Together with the hit test refusing positions outside
     /// the band, that means the slider has no way to select an unaffordable power even momentarily.
+    ///
+    /// <para><b>Deliberately callerless.</b> CastScreen commits on the click, and its hit test only answers for positions on the band.</para>
     /// </remarks>
     public static bool ClickCommitsImmediately => true;
 
@@ -264,6 +269,8 @@ public static class CastRingLayout {
     /// Without that wait the same keypress would be seen again by the screen underneath and cancel
     /// that too. It is the sort of thing a port on event-driven input gets for free and a port
     /// polling a key table does not.
+    ///
+    /// <para><b>Deliberately callerless.</b> Its own remarks say why: the port's event-driven input delivers one Cancel per press, so there is no key table to wait out.</para>
     /// </remarks>
     public static bool CancelWaitsForKeyRelease => true;
 }
