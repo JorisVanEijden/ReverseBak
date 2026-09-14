@@ -115,6 +115,8 @@ public static class MonsterHealTurn {
     /// entirely. So a monster will happily stack Hocho's Haven on an ally who already has it, as
     /// long as the first actor in the list does not. Wiring the check to the recipient would be
     /// the sensible reading and the wrong one.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about where the ward test looks; the remark above says why it matters.</para>
     /// </remarks>
     public static bool WardChecksTheProbeNotTheRecipient => true;
 

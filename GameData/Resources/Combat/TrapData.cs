@@ -23,6 +23,7 @@ namespace GameData.Resources.Combat;
 /// </summary>
 public class TrapData : IResource {
     /// <summary>Number of fixed 62-byte encounter records in the file (47616 / 62).</summary>
+    /// <remarks><b>Deliberately callerless.</b> A file-layout fact; the parser reads the records the file holds.</remarks>
     public const int EncounterCount = 768;
 
     /// <summary>Element slots stored per record (only the first <c>count</c> are active).</summary>

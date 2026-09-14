@@ -201,6 +201,8 @@ public static class CombatTargetSelection {
     /// somebody: sliding off an enemy onto empty ground leaves the last one remembered rather than
     /// clearing it. A port that assigned the target on the click instead would face the wrong way
     /// for a frame and would clear a target the original keeps.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about when the target is assigned; the remark above says why it matters.</para>
     /// </remarks>
     public static bool HoverAssignsTheTarget => true;
 }

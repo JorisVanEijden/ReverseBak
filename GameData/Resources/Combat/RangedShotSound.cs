@@ -59,6 +59,8 @@ public static class RangedShotSound {
     /// Stated as a constant because the placement is the part a port gets wrong: it is tempting to
     /// play a "hit" sound on a hit, and <c>rockhit</c>'s name invites exactly that. It is the rock
     /// striking the ground, not the target.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ResolveShot plays the cue before its hit branch; this pins that placement.</para>
     /// </remarks>
     public static bool PlaysOnAMissToo => true;
 

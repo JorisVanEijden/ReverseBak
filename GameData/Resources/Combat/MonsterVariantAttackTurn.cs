@@ -59,6 +59,8 @@ public static class MonsterVariantAttackTurn {
     /// Unlike the flat damage in <see cref="MonsterTurnRoutines.ChooseRangedTurn"/>, these attacks scale with the
     /// creature, so the ranges above are the input to that scaling rather than the damage dealt.
     /// See <see cref="ScaleByHealth"/>.
+    ///
+    /// <para><b>Deliberately callerless.</b> The rule itself is ScaleByHealth, which CombatRuntime calls; this pins that it applies.</para>
     /// </remarks>
     public static bool DamageIsStatScaled => true;
 

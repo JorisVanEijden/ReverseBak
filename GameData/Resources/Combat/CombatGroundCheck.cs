@@ -93,6 +93,8 @@ public static class CombatGroundCheck {
     /// <remarks>
     /// Named because the whole difference between this check and the movement one is this single
     /// value, and a set-vs-set comparison is the only place that is visible.
+    ///
+    /// <para><b>Deliberately callerless.</b> Names the single value that separates this check from the movement one; the sets carry the rule.</para>
     /// </remarks>
     public const int WalkableOnlyKind = (int)World.WorldEntityType.Pit;
 

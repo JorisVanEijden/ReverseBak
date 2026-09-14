@@ -42,6 +42,7 @@ public class SetVarEffect : Effect {
     public const int VarRangeBase = 30000;
 
     /// <summary>How many named variables that range holds.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The size of the named-variable range, a layout fact; readers key off VarRangeBase.</remarks>
     public const int VarRangeCount = 30;
 
     /// <summary>The save-state key this write lands on.</summary>

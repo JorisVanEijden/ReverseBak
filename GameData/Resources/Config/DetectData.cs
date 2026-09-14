@@ -29,6 +29,7 @@ namespace GameData.Resources.Config;
 /// </summary>
 public class DetectData : IResource {
     /// <summary>Number of location blocks (0 = aboveground, 1 = underground).</summary>
+    /// <remarks><b>Deliberately callerless.</b> A file-layout fact (aboveground and underground blocks).</remarks>
     public const int LocationCount = 2;
 
     /// <summary>Number of entity-type tags per block (TableDatInfo.EntityType 0..42).</summary>
