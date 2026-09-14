@@ -47,6 +47,7 @@ public static class RoamingMovement {
     /// <see cref="EncounterActorPose.WalkingKind"/>. Standing actors are drawn and never updated, so
     /// a movement pattern set on one has no effect at all.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> EncounterActorPlacement sets Roams only for KindOf(EncounterActorSpawn.Roaming), which is this kind.</remarks>
     public const int RoamingKind = EncounterActorPose.WalkingKind;
 
     /// <summary>What an actor does with its waypoints.</summary>

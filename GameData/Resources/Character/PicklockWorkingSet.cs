@@ -93,6 +93,7 @@ public static class PicklockWorkingSet {
     public const int PanelVgaX = 13;
 
     /// <inheritdoc cref="PanelVgaX"/>
+    /// <remarks><b>Deliberately callerless.</b> InventoryMenu centres the lock horizontally in the panel and places it vertically from BodyVgaY.</remarks>
     public const int PanelVgaY = 11;
 
     /// <inheritdoc cref="PanelVgaX"/>

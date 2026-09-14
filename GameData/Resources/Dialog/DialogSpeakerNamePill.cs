@@ -157,6 +157,7 @@ public static class DialogSpeakerNamePill {
     public const int Height = Bottom - Top;
 
     /// <summary>Baseline the label is drawn from, in canonical px.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager.BuildNamePlate centres the label vertically in the plate (Top..Bottom), which lands on this row; verified against the original 2026-08-26.</remarks>
     public const int LabelTop = 0x6C * ScaleY;
 
     /// <summary>How far the drop shadow is offset, in canonical px.</summary>

@@ -25,6 +25,7 @@ public static class DynamicLighting {
     public const int Mode2FirstLitEntry = 16;
 
     /// <summary>Highest palette entry lit, in either mode.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Nothing lights above the top entry; the port's lit range is the TASK-372 decision (2026-09-08: leave it as is).</remarks>
     public const int LastLitEntry = 255;
 
     /// <summary>
@@ -120,6 +121,7 @@ public static class DynamicLighting {
     }
 
     /// <summary>Mode set while no zone palette is loaded; nothing is lit.</summary>
+    /// <remarks><b>Deliberately callerless.</b> WorldLightingService only runs with a zone loaded and always passes ModeZone.</remarks>
     public const int ModeOff = 0;
 
     /// <summary>Mode set whenever a zone palette is loaded.</summary>

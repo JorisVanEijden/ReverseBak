@@ -71,6 +71,7 @@ public class ZoneAppearance : IResource {
     public PenRemap[] Remaps { get; set; } = Array.Empty<PenRemap>();
 
     /// <summary>How many pens the remap changes — pairs that map a pen to itself do not count.</summary>
+    /// <remarks><b>Deliberately callerless.</b> An extraction diagnostic, asserted by ZoneAppearanceExtractorTests; the renderer applies Remaps directly.</remarks>
     [JsonIgnore]
     public int RemappedPenCount {
         get {

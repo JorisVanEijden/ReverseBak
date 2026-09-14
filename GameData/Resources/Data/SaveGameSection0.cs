@@ -141,10 +141,14 @@ public class SaveGameStateData {
     [JsonIgnore]
     public byte[] GlobalFlags2 { get; }
 
+    /// <remarks><b>Deliberately callerless.</b> Serialized into generated/*.savegame.json for inspection.</remarks>
     public int PartyActorDataLength { get => PartyActorData.Length; }
+    /// <remarks><b>Deliberately callerless.</b> Serialized into generated/*.savegame.json for inspection.</remarks>
     public int GlobalFlagsLength { get => GlobalFlags.Length; }
+    /// <remarks><b>Deliberately callerless.</b> Serialized into generated/*.savegame.json for inspection.</remarks>
     public int GlobalFlags2Length { get => GlobalFlags2.Length; }
 
+    /// <remarks><b>Deliberately callerless.</b> Serialized into generated/*.savegame.json for inspection.</remarks>
     public Dictionary<int, int> DocumentedGlobalValues {
         get {
             var values = new Dictionary<int, int>();
