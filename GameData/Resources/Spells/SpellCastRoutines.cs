@@ -25,6 +25,7 @@ public static class SpellCastRoutines {
     /// second half is invisible from the dispatcher, from the spell record, and from the spell's
     /// description, and it is the reason the spell is worth its 10-20 cost against a strong enemy
     /// rather than merely being a weakening effect.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ApplyDrainWithRecoil gives the caster CasterGain (party) or PermanentCasterGainPoints (monster).</para>
     /// </remarks>
     public static bool DrainTransfersToCaster => true;
 
@@ -75,6 +76,7 @@ public static class SpellCastRoutines {
     /// A fifth <c>check_spell_resistance</c> site, on top of the four in the dispatcher — and the
     /// strictest of them: it precedes even the sound, so a resisted drain is silent. See
     /// <see cref="SpellCastTail.ResistanceCheckSites"/>.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ApplyDrainWithRecoil returns on TargetResists before anything else.</para>
     /// </remarks>
     public static bool DrainIsResisted(bool targetResists) => targetResists;
 
@@ -85,6 +87,7 @@ public static class SpellCastRoutines {
     /// Recorded because it is the kind of detail a port silently "corrects". The routine plays the
     /// same cue a heal does — appropriate once you know the caster is being topped up, and
     /// misleading if you assume the sound describes what happens to the target.
+    /// <para><b>Deliberately callerless.</b> SpellCastSound maps Strength Drain to cue 63, sound_heal.</para>
     /// </remarks>
     public static bool DrainUsesTheHealSound => true;
 
@@ -114,6 +117,7 @@ public static class SpellCastRoutines {
     /// The dispatcher hands the routine the target actor, so this is a spell you cast <i>on</i> a
     /// party member. Assuming the caster buffs their own weapon puts the enchantment on the wrong
     /// character every time.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ApplySteelfire reads PackOf(target), not the caster's pack.</para>
     /// </remarks>
     public static bool SteelfireTargetsTheTargetsInventory => true;
 
@@ -149,6 +153,7 @@ public static class SpellCastRoutines {
     /// <remarks>
     /// The routine's failure is silent and the dispatcher never learns about it, so the delivery
     /// switch bills as usual. There is no refund and no message.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ApplySteelfire returns silently with no sword and the cast is still billed.</para>
     /// </remarks>
     public static bool SteelfireChargesEvenWhenItFindsNothing => true;
 
@@ -180,6 +185,7 @@ public static class SpellCastRoutines {
     /// The routine compares the counts and returns without animating if they match. The Glory Hand
     /// is destroyed either way, so backing out of the screen costs the caster the item and the cast
     /// for nothing.
+    /// <para><b>Deliberately callerless.</b> Presentation: the count only gates the stolen item's flight, which CombatRuntime.Steal does not play.</para>
     /// </remarks>
     public static bool NightfingersStoleSomething(int itemsBefore, int itemsAfter) =>
         itemsAfter != itemsBefore;
@@ -190,6 +196,7 @@ public static class SpellCastRoutines {
     /// <remarks>
     /// Every other cast animates from the caster to the target; this one passes the target as the
     /// origin and the caster as the destination, because what is travelling is the stolen item.
+    /// <para><b>Deliberately callerless.</b> Presentation not ported: CombatRuntime.Steal plays no flight (recorded there as a ponytail).</para>
     /// </remarks>
     public static bool NightfingersProjectileTravelsToTheCaster => true;
 
@@ -203,6 +210,7 @@ public static class SpellCastRoutines {
     /// It writes the caster's grid cell into the target's movement destination and hands it to the
     /// mover. The spell's name is the whole mechanic: the target is invited over, whether or not it
     /// wants to come.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.Invite walks the target toward the caster's cell for InvitationPull steps.</para>
     /// </remarks>
     public static bool InvitationSetsTheTargetsDestination => true;
 
@@ -306,6 +314,7 @@ public static class SpellCastRoutines {
     /// other), and they are exactly the two whose handler clears the continue flag. The clearing is
     /// not "this cast was cancelled"; it is "do not charge again". See
     /// <see cref="SpellCastTail.EndingEarlyIsFree"/>.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.RunWindsOfEortis calls PayFromCaster itself, and HandlerEndsTheCast skips the tail's charge.</para>
     /// </remarks>
     public static bool WindsOfEortisBillsItself => true;
 
@@ -316,6 +325,7 @@ public static class SpellCastRoutines {
     /// The routine takes the sweep's return value — the actor it struck — and runs the resistance
     /// check and the knockback on that, not on the actor the player aimed at. Same shape as Strength
     /// Drain's return leg: the sweep, not the targeting, decides who is affected.
+    /// <para><b>Deliberately callerless.</b> A recorded deviation: the port has no projectile sweep for this spell, so RunWindsOfEortis pushes the aimed target (ponytail noted there).</para>
     /// </remarks>
     public static bool WindsOfEortisAffectsTheActorStruck => true;
 
@@ -391,6 +401,7 @@ public static class SpellCastRoutines {
     /// compares the destination against the position; if they still differ the victim did not move,
     /// and the allowance is zeroed so the loop ends. So a wall two cells away caps a ten-point cast
     /// at one cell rather than shoving the victim into it.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.RunWindsOfEortis breaks on the first Grid.IsBlocked cell.</para>
     /// </remarks>
     public static bool KnockbackStopsWhenBlocked => true;
 
@@ -402,6 +413,7 @@ public static class SpellCastRoutines {
     /// and removed by slot once it finishes — so it is a transient marker for "currently being blown
     /// along" rather than an effect the victim keeps. The second spell in the catalogue found
     /// wearing another's identity, after The Fetters of Rime.
+    /// <para><b>Deliberately callerless.</b> Presentation: the transient River Song slot is not registered, and nothing in the port reads it during the push.</para>
     /// </remarks>
     public static bool KnockbackWearsRiverSong => true;
 
@@ -476,6 +488,7 @@ public static class SpellCastRoutines {
     /// this is the one case in which a targeting-type-2 delivery does not bill. Contrast
     /// <see cref="SpellCastTail.CasterPays"/>, which holds for every type-2 cast that gets past this
     /// gate, including a negative-cost one.
+    /// <para><b>Deliberately callerless.</b> Duplicate of SpellCastTail.Type2IsBlocked, which CombatRuntime.ResolveCast tests before the charge.</para>
     /// </remarks>
     public static bool HealIsBlockedForFree(bool casterHasThoughtsLikeClouds) =>
         casterHasThoughtsLikeClouds;
@@ -491,12 +504,14 @@ public static class SpellCastRoutines {
     ///
     /// <para>It is also computed on the blocked path, where the delta is zero, so a heal that an
     /// affliction refused still flashes a 0 over the target rather than nothing.</para>
+    /// <para><b>Deliberately callerless.</b> Presentation not ported: the port draws no floating combat numbers.</para>
     /// </remarks>
     public static int HealFloatingNumber(int healthBefore, int healthAfter,
         int staminaBefore, int staminaAfter) =>
         -((healthAfter - healthBefore) + (staminaAfter - staminaBefore));
 
     /// <summary>How many frames that number stays on screen.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: the port draws no floating combat numbers.</remarks>
     public const int HealFloatingNumberFrames = 8;
 
     // ---------------------------------------------------------------- casting with no caster
@@ -513,6 +528,7 @@ public static class SpellCastRoutines {
     ///
     /// <para>The fake caster is stamped with the same combat-status bit that marks an actor unable
     /// to act, so nothing downstream mistakes it for a participant.</para>
+    /// <para><b>Deliberately callerless.</b> The port passes a null caster to ResolveCast (ReflectCastFrom, the cannon), which skips exactly the caster-owned steps.</para>
     /// </remarks>
     public static bool SyntheticCasterIsFabricatedOnTheStack => true;
 
@@ -527,6 +543,7 @@ public static class SpellCastRoutines {
     ///
     /// <para>So the negative-cost path recorded earlier as "the surprising exemption" is not an edge
     /// case at all: this is the caller it was written for.</para>
+    /// <para><b>Deliberately callerless.</b> Inline at both caster-less call sites: ResolveCast(null, …, -cost) and -CannonLine.Intensity.</para>
     /// </remarks>
     public static int SyntheticCasterPower(int power) => -power;
 
@@ -537,10 +554,12 @@ public static class SpellCastRoutines {
     /// The only spell the entry point rejects by number, before it even plays a sound. It is also
     /// the one spell that <i>transfers to the caster</i> — and there is no caster to receive it, so
     /// half the spell would land nowhere. A refusal rather than a half-effect.
+    /// <para><b>Deliberately callerless.</b> ResolveCast runs ApplyDrainWithRecoil only with a caster, and no caster-less source casts Strength Drain.</para>
     /// </remarks>
     public static bool SyntheticCasterRefuses(int spellId) => spellId == SpellIds.StrengthDrain;
 
     /// <summary>The surcharge global is cleared on entry, before anything else.</summary>
+    /// <remarks><b>Deliberately callerless.</b> ReflectCastFrom clears SurchargeNextCast on entry, and ResolveCast clears it on every path.</remarks>
     public static bool SyntheticCastClearsTheSurcharge => true;
 
     // ---------------------------------------------------------------- Mad God's Rage
@@ -558,6 +577,7 @@ public static class SpellCastRoutines {
     /// <para>That is why its record's damage of 15 looks so modest: it is per actor per round, and
     /// the number of rounds is however many the caster survives. A port that resolves it once turns
     /// the game's most dangerous spell into a weak area attack.</para>
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.RunMadGodsRage loops on MadGodsRageGoesRoundAgain.</para>
     /// </remarks>
     public static bool MadGodsRageRepeatsUntilTheCasterIsSpent => true;
 
@@ -625,6 +645,7 @@ public static class SpellCastRoutines {
     /// Once before the strike roll and again immediately before the damage, on the same actor and
     /// the same spell with nothing in between that could change the answer. Harmless, and worth
     /// knowing so a port does not go looking for the difference between them.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; the second check cannot differ, so RunMadGodsRage checks once.</para>
     /// </remarks>
     public static bool MadGodsRageChecksResistanceTwice => true;
 
@@ -644,6 +665,7 @@ public static class SpellCastRoutines {
     /// So an entry in the active-effect pool is not proof that the named spell was cast: it may be
     /// another spell holding a presentation for a few frames. Anything that reads the pool to decide
     /// what is affecting an actor has to tolerate that.
+    /// <para><b>Deliberately callerless.</b> A recorded fact about the effect pool; the port registers no borrowed slots.</para>
     /// </remarks>
     public static bool SpellsBorrowEachOthersIdentities => true;
 }
