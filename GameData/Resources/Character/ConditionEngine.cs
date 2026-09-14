@@ -148,6 +148,9 @@ public static class ConditionEngine {
             && condition != ActorCondition.Drunk
             && (condition != ActorCondition.NearDeath || !inCombat);
         bool raisesEvent = announceable && (appeared || cleared);
+        if (raisesEvent) {
+            conditions.EventRaised?.Invoke(condition, appeared);
+        }
 
         bool collapsed = false;
         if (condition == ActorCondition.NearDeath && amount > 0) {

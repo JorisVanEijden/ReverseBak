@@ -23,6 +23,13 @@ public sealed class ActorConditions {
 
     public ActorConditions() { }
 
+    /// <summary>
+    /// Raised by <see cref="ConditionEngine.Apply"/> when an affliction is caught (true) or shaken off
+    /// (false) and the original writes its CONDITION global — see <see cref="ConditionAnnouncements"/>.
+    /// </summary>
+    /// <remarks>The ranks do not know whose they are, so whoever owns the actor wires this.</remarks>
+    public Action<ActorCondition, bool> EventRaised { get; set; }
+
     public ActorConditions(SaveGameActorStatusEffectsData saved) {
         if (saved == null) {
             return;
