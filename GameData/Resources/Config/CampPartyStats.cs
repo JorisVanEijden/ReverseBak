@@ -44,6 +44,7 @@ public static class CampPartyStats {
     public static int HeadingCentreX(int column) => ColumnX[column] + HeadingCentreOffsetX;
 
     /// <summary>Columns in the table: health-and-stamina, then rations.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A layout fact; the view lays out the two columns from ColumnX.</remarks>
     public const int ColumnCount = 2;
 
     /// <summary>
@@ -155,6 +156,8 @@ public static class CampPartyStats {
     /// That works because the current figure is the leading part of the string, so redrawing just
     /// it recolours the number and leaves " of M" in the plain ink. Recolouring the whole line would
     /// tint the maximum too, which the original never does.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the highlight; the remark above says why.</para>
     /// </remarks>
     public static bool HighlightOverprintsTheCurrentValueOnly => true;
 

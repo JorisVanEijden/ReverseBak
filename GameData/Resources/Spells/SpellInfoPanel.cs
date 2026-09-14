@@ -34,7 +34,8 @@ public static class SpellInfoPanel {
 
     /// <summary>Where the title starts, given its measured width.</summary>
     /// <remarks>The title is the only centred line; the rest are left-aligned at
-    /// <see cref="BodyX"/>.</remarks>
+    /// <see cref="BodyX"/>. <b>Deliberately callerless:</b> CastScreen centres a fixed-width title box
+    /// on <see cref="TitleCentreX"/> and lets the text centre inside it, which lands in the same place.</remarks>
     public static int TitleX(int measuredWidth) => TitleCentreX - (measuredWidth / 2);
 
     /// <summary>
@@ -130,6 +131,8 @@ public static class SpellInfoPanel {
     /// school, one per line; moving onto a symbol replaces the list with that spell's info. So the
     /// box has two modes and the list is the resting one — a port that leaves it empty until
     /// something is hovered gives the player nothing to read the ring against.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the panel's resting mode; the remark above says why.</para>
     /// </remarks>
     public static bool NameListIsTheRestingContent => true;
 

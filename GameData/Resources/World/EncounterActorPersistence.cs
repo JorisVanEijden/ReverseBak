@@ -113,6 +113,7 @@ public static class EncounterActorPersistence {
     /// anything reading state 0 as "removed" would be conflating two values the game keeps
     /// separate.</para>
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> The fresh-game fill the save already carries; EncounterActorSpawn's remark relies on it.</remarks>
     public static int InitialState(int slotWithinBlock) =>
         slotWithinBlock == 0 ? Untouched : Removed;
 
@@ -124,5 +125,6 @@ public static class EncounterActorPersistence {
     /// repositioned by whatever placed it. Same enclosed zone kind that gates doors, pits and the
     /// proximity encounter check.</para>
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> Production passes ZoneDefinition.IsUnderground (Z##DEF.DAT) as the underground flag, which is this same enclosed-zone test.</remarks>
     public static bool KeepsStoredPose(int zoneKind) => zoneKind == ProximityScan.AutomapZoneKind;
 }

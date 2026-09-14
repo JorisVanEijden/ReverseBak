@@ -87,6 +87,8 @@ public static class TempleHealMenu {
     /// and falling into it. So paying for one character advances to the next who needs something,
     /// and the screen closes on its own once the last of them is done — the player never has to
     /// press Next or Done in the ordinary case.
+    ///
+    /// <para><b>Deliberately callerless.</b> The screen advances through NextNeedy and ClosesAfter; this pins the behaviour.</para>
     /// </remarks>
     public static bool CureAdvances => true;
 
@@ -131,6 +133,7 @@ public static class TempleHealMenu {
     public const int FirstPortraitActionId = 2;
 
     /// <inheritdoc cref="ActiveParty.Slots"/>
+    /// <remarks><b>Deliberately callerless.</b> ActiveParty.Slots under the screen's name.</remarks>
     public const int MaxPortraits = ActiveParty.Slots;
 
     /// <summary>

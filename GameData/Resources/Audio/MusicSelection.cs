@@ -150,6 +150,8 @@ public static class MusicSelection {
     /// by eight to mean whole points — so one practice is worth between about a sixth and
     /// two-thirds of a point. Shifting it like the others would make the lute train Barding forty
     /// to a hundred and sixty times too fast.
+    ///
+    /// <para><b>Deliberately callerless.</b> InventoryUse banks the practice gain in eighths; this pins why.</para>
     /// </remarks>
     public static bool PracticeGainIsFractional => true;
 

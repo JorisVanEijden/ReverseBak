@@ -102,8 +102,6 @@ public static class CastMenuSelection {
     /// <inheritdoc cref="Character.ActiveParty.Slots"/>
     public const int PartySlots = Character.ActiveParty.Slots;
 
-    /// <summary>Dialog played when a face that cannot cast is clicked.</summary>
-    public const int CannotCastDialogId = 0xd8;
 
     /// <summary>
     /// Which party slot the screen opens as the caster.
@@ -189,6 +187,8 @@ public static class CastMenuSelection {
     /// <c>SYMBOL*.DAT</c> files are streamed one at a time rather than all held at once. A port is
     /// free to preload all six, but should know that the original's school switch is a load, which
     /// is why it plays a sound and redraws rather than swapping instantly.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the original's load; a port may preload.</para>
     /// </remarks>
     public static bool SchoolSwitchReloadsSymbolData => true;
 

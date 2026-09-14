@@ -413,6 +413,7 @@ public sealed class EncounterObjectStates {
     /// state the game wrote — the named Mark* methods cover the transitions the game itself
     /// performs, and <see cref="SetStateWord"/> is the one that keeps a walk phase.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> A test and replay hook; the game's own transitions go through the Mark* methods.</remarks>
     public void SetKindForTest(int refPair, int recordIndex, int slotIndex, int kind) =>
         Write(IndexOf(refPair, recordIndex, slotIndex), kind);
 
@@ -421,6 +422,7 @@ public sealed class EncounterObjectStates {
     }
 
     /// <summary>Entries carrying the given kind — for tests and diagnostics.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A diagnostic for tests; production has no reason to count.</remarks>
     public int CountOfKind(int kind) {
         var n = 0;
         for (var i = 0; i < EntryCount; i++) {
