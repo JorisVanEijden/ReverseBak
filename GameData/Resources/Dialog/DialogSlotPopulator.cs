@@ -115,6 +115,7 @@ public static class DialogSlotPopulator {
     /// <summary>Seed a table for this play and apply <paramref name="entry"/>'s own ops — the whole
     /// flow for the one-entry-per-play shape every caller has today. Returns the slot text for
     /// <see cref="TextVariableResolver"/>.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager and TempleHealScreen call <see cref="CreateForPlay"/> and <see cref="ApplyEntryActions"/> separately, because they seed extra slots in between; this is the one-entry flow the tests pin.</remarks>
     public static string[] BuildSlots(DialogEntry entry, DialogSlotContext context) {
         DialogSlotTable table = CreateForPlay(context);
         ApplyEntryActions(table, entry, context);

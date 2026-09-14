@@ -34,6 +34,7 @@ public static class DialogTextRuns {
     public const char RemapOnce = '⌡';
 
     /// <summary>Whether a character is one of the six control codes rather than text.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Production decodes through <see cref="Decode"/>, which switches on the six codes itself; this states the set for the tests.</remarks>
     public static bool IsControlCode(char c) =>
         c is Reset or ItalicHighlight or ItalicHighlightAlt or Italic or RemapTwice or RemapOnce;
 

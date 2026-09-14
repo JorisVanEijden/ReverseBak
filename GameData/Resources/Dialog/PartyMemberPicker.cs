@@ -30,6 +30,7 @@ public static class PartyMemberPicker {
     public static int ButtonCount(int activePartyMembers) => activePartyMembers + 1;
 
     /// <summary>Index of the cancel button, which is always last.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager builds the row from <see cref="ButtonCount"/> and names this rule in its remark; the cancel keeps its slot's action id.</remarks>
     public static int CancelIndex(int activePartyMembers) => ButtonCount(activePartyMembers) - 1;
 
     /// <summary>The action id a button reports.</summary>
