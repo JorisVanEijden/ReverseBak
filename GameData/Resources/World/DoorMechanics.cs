@@ -158,6 +158,7 @@ public static class DoorMechanics {
     /// Highest door id. <c>worlddoor_pref_slots_clear_all</c> clears flags for 0..255, which is
     /// exactly what the eight id bits in the state word can hold.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> worlddoor_pref_slots_clear_all has no caller in canassa, and the port never clears door flags wholesale.</remarks>
     public const int MaxDoorId = 0xff;
 
     /// <summary>Which shape a door of a given state should be drawn as.</summary>
@@ -225,6 +226,7 @@ public static class DoorMechanics {
         public int LockValue { get; }
 
         /// <summary>The global flag this door's open state is stored in.</summary>
+        /// <remarks><b>Deliberately callerless.</b> DoorInteractionHandler and ZoneSceneBuilder compute OpenFlagBase + variant inline.</remarks>
         public int OpenFlag => OpenFlagBase + DoorId;
     }
 

@@ -100,6 +100,7 @@ public static class PicklockWorkingSet {
     public const int PanelVgaWidth = 82;
 
     /// <inheritdoc cref="PanelVgaX"/>
+    /// <remarks><b>Deliberately callerless.</b> InventoryMenu places the lock from BodyVgaY and centres it on PanelVgaWidth; the height bounds nothing.</remarks>
     public const int PanelVgaHeight = 121;
 
     /// <summary>The latch's position in VGA px, and it is FIXED.</summary>

@@ -16,6 +16,7 @@ public static class EncampDial {
     public const int TicksPerHour = 1800;
 
     /// <summary>Stones on the dial, one per hour of the day.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The stone count comes from EncampData's clock entries, which CampMenu hit-tests.</remarks>
     public const int Stones = 24;
 
     /// <summary>
@@ -26,10 +27,12 @@ public static class EncampDial {
     /// straight by an hour, so stone 0 is midnight and stone 23 is 11pm. Worth stating because the
     /// dial's artwork starts its run at the lower right rather than at the top, which invites a
     /// rotation that is not there.
+    /// <para><b>Deliberately callerless.</b> CampMenu passes the stone index to RestAsync as the target hour.</para>
     /// </remarks>
     public static int HourFor(int stone) => stone;
 
     /// <summary>The time of day a stone selects, in the clock's own two-second units.</summary>
+    /// <remarks><b>Deliberately callerless.</b> CampMenu.RestAsync advances the clock by hours until HourOfDay reaches the stone, never computing ticks.</remarks>
     public static int TargetTicksFor(int stone) => stone * TicksPerHour;
 
     /// <summary>

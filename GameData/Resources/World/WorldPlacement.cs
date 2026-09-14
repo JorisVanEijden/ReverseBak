@@ -17,6 +17,7 @@ public static class WorldPlacement {
     public const int SubCellSize = 0x640;
 
     /// <summary>Sub-tile cells along a tile edge — 64000 / 1600.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Derived for documentation; TileOf and SubCellOf divide by TileSize and SubCellSize directly.</remarks>
     public const int SubCellsPerTile = TileSize / SubCellSize;
 
     /// <summary>

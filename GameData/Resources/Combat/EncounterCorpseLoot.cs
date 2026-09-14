@@ -96,6 +96,7 @@ public static class EncounterCorpseLoot {
     /// Including the failure path where the actor was not lootable. The body is materialised only
     /// for the duration of the interaction; what survives is the persisted state, which is what
     /// makes a looted corpse stay looted.
+    /// <para><b>Deliberately callerless.</b> The port spawns no actor to loot: HotspotService.LootCorpse reads the persisted corpse container (zone 100) directly.</para>
     /// </remarks>
     public static bool AlwaysDestroysAndPersists => true;
 }

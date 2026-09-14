@@ -65,6 +65,7 @@ public static class ChestTrap {
     ///
     /// <para>A failed attempt does not spring the trap either. It costs the attempt and nothing
     /// else, landing on exactly the prompt an undetected trap shows.</para>
+    /// <para><b>Deliberately callerless.</b> ContainerInteractionHandler.TryTrappedAsync falls through to the open prompt on a failed disarm, saying nothing.</para>
     /// </remarks>
     public static bool AnnouncesFailure => false;
 
@@ -74,6 +75,7 @@ public static class ChestTrap {
     /// <remarks>
     /// Success zeroes the record's trap damage, so the chest is permanently safe — the state lives in
     /// the container, not in a session flag. Leaving it set would re-arm the trap on the next visit.
+    /// <para><b>Deliberately callerless.</b> ContainerInteractionHandler sets RuntimeContainer.TrapDisarmed on success.</para>
     /// </remarks>
     public static bool DisarmIsPermanent => true;
 
@@ -152,6 +154,7 @@ public static class ChestTrap {
     /// <remarks>
     /// <c>ChangeAttributeValueForWholeParty</c>, and against
     /// <see cref="ActorAttribute.HealthStaminaCombo"/> — the combined pool, not Health alone.
+    /// <para><b>Deliberately callerless.</b> ContainerInteractionHandler.SpringTrapAsync loops over ActivePartyIndices.</para>
     /// </remarks>
     public static bool DamageHitsTheWholeParty => true;
 
@@ -162,6 +165,7 @@ public static class ChestTrap {
     /// Which is what finally gives <see cref="OpenExTrappedDialog"/> something to describe. Until a
     /// trap could spring, ddx 317 was reachable only for a chest authored with no trap at all — the
     /// prompt split was ported ahead of the mechanic that makes it mean anything.
+    /// <para><b>Deliberately callerless.</b> ContainerInteractionHandler.SpringTrapAsync sets TrapDisarmed after the damage.</para>
     /// </remarks>
     public static bool SpringingSpendsTheTrap => true;
 }
