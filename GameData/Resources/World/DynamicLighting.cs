@@ -237,6 +237,8 @@ public static class DynamicLighting {
     /// <remarks>
     /// It is not one of the tints and does not compete with them: its blend runs first, from the
     /// destination palette, whatever the zone or the time. A level of zero simply blends by nothing.
+    ///
+    /// <para><b>Deliberately callerless.</b> WorldLightingService drives Dragon's Breath as its own level and shader property, apart from the tints.</para>
     /// </remarks>
     public static bool DragonsBreathIsIndependent => true;
 }

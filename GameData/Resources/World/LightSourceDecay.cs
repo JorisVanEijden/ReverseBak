@@ -99,5 +99,6 @@ public static class LightSourceDecay {
     /// <summary>
     /// Every update raises the "recompute the palette" flag, whichever source moved.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> WorldLightingService recomputes the lighting from the timers on every update, so there is no flag to raise.</remarks>
     public static bool AlwaysRequestsRelight => true;
 }

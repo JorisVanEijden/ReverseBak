@@ -62,6 +62,8 @@ public static class CipherPuzzleLayout {
     ///
     /// <para>That is what makes the row grow outwards from the middle as the word gets longer,
     /// which is the whole visual point of the screen.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> PuzzleScreen lays the letters out itself, centred at RowTopVga, and never reads the file's column rects.</para>
     /// </remarks>
     public static bool AuthoredColumnRectsAreOverwritten => true;
 
@@ -291,6 +293,8 @@ public static class CipherPuzzleLayout {
     /// <para>Drawing straight in the readable font when legible skips that entirely, which is the
     /// obvious implementation and loses the only moment the alien script is ever seen by a party
     /// that could read it anyway.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> PuzzleScreen renders the alien script and then runs DissolveAsync to the legible one.</para>
     /// </remarks>
     public static bool AlienIsAlwaysDrawnFirst => true;
 
@@ -362,10 +366,13 @@ public static class CipherPuzzleLayout {
     /// wheel click and a solve attempt respectively, each refused with its own line. What that gate
     /// reads is not established, and a guess would either silence the screen or refuse input that
     /// should work. Named here so the ids are not rediscovered, and left unwired until the gate is.
+    ///
+    /// <para><b>Deliberately callerless.</b> Unwired until the gate is known: menupage_state_0e7c is g_wMenuDragState, and what sets it is still unread (see TASK-514).</para>
     /// </remarks>
     public const int RefusedTurnDialog = 0xcd;
 
     /// <inheritdoc cref="RefusedTurnDialog"/>
+    /// <remarks><b>Deliberately callerless.</b> See RefusedTurnDialog.</remarks>
     public const int RefusedSolveDialog = 0xce;
 
     /// <summary>

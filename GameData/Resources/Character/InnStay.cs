@@ -65,6 +65,8 @@ public static class InnStay {
     /// <para>Exact equality, not "at least" — the loop advances exactly one hour per pass, so it
     /// cannot step over the target. A <c>&gt;=</c> reading would behave identically here and break
     /// the moment the clock wraps past midnight, which every one of these stays does.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> InnService sleeps for HoursOfStay(now, wake hour), which ends exactly when this becomes true.</para>
     /// </remarks>
     public static bool StayComplete(int hourOfDay, int innWakeHour) =>
         hourOfDay == innWakeHour;
@@ -157,6 +159,8 @@ public static class InnStay {
     /// <para>So the port must not deduct unconditionally. Reading only the top-level record's
     /// branches finds a Var 0 test and no Var 3, which is exactly the false negative that produced
     /// the original mistake — the gate is on the ACCEPT path, not on the offer.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> InnService takes the price after StayTheNightAsync and cites this rule there.</para>
     /// </remarks>
     public const bool ChargedAfterTheStay = true;
 

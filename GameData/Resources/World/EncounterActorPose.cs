@@ -198,10 +198,12 @@ public static class EncounterActorPose {
     /// it: kind in the high byte, frame in the low two bits, the gait's direction at
     /// <see cref="AdvancingBit"/>.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> The port keeps kind, frame and gait as separate fields, and persistence goes through EncounterObjectStates; nothing packs this word.</remarks>
     public static ushort PackState(int kind, int frame, bool advancing) =>
         (ushort)(((kind & 0xff) << 8) | (frame & 3) | (advancing ? AdvancingBit : 0));
 
     /// <summary>Read the three fields back out of a state word.</summary>
+    /// <remarks><b>Deliberately callerless.</b> See PackState.</remarks>
     public static void UnpackState(ushort state, out int kind, out int frame, out bool advancing) {
         kind = (state >> 8) & 0xff;
         frame = state & 3;

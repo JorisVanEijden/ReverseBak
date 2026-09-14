@@ -232,13 +232,16 @@ public static class DoorMechanics {
     public static int DoorIdOf(int animationState) => (animationState & IdMask) >> IdShift;
 
     /// <summary>Whether the state word has the open bit set.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port keeps a door's open state and swing frame as fields (DoorVisualService), not in the packed animation word.</remarks>
     public static bool IsOpenState(int animationState) => (animationState & OpenBit) != 0;
 
     /// <summary>The state word with a swing frame written into its low bits.</summary>
+    /// <remarks><b>Deliberately callerless.</b> See IsOpenState: the packed animation word is not modelled.</remarks>
     public static int WithFrame(int animationState, int frame) =>
         (animationState & ~FrameMask) | (frame & FrameMask);
 
     /// <summary>The state word after the door has been opened or closed.</summary>
+    /// <remarks><b>Deliberately callerless.</b> See IsOpenState: the packed animation word is not modelled.</remarks>
     public static int WithOpen(int animationState, bool open) =>
         open ? animationState | OpenBit : animationState & ~OpenBit;
 

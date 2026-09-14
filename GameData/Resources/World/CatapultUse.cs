@@ -81,6 +81,8 @@ public static class CatapultUse {
     /// <para>It is also <b>loaded and unloaded around the sequence</b>
     /// (<c>audio_load_catapult_sound</c> / <c>audio_unload_catapult_sound</c>) rather than living in
     /// a resident bank — one of the per-context bank loads TASK-144 records as IDA-only.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> CatapultInteractionHandler plays FireSoundId after SwingAsync and cites this rule there.</para>
     /// </remarks>
     public static bool SoundFollowsTheAnimation => true;
 

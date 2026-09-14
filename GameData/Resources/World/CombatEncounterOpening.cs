@@ -127,6 +127,8 @@ public static class CombatEncounterOpening {
     /// published to the global the dialog reads. An encounter mixing creature types therefore
     /// announces itself by whichever one the data lists first — which is a property of the slot
     /// order, not of the fight.
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService publishes the first enemy's ClassId through SetDialogCreatureType before the opening dialog plays.</para>
     /// </remarks>
     public static bool DialogNamesTheFirstSlotsCreature => true;
 }

@@ -98,5 +98,6 @@ public static class MonsterFleeDestination {
     public static bool WillMove(int morale) => morale != WontMoveMorale;
 
     /// <summary><b>Fleeing clears the monster's stored target.</b></summary>
+    /// <remarks><b>Deliberately callerless.</b> Every rout in CombatRuntime sets Target to null alongside Fleeing.</remarks>
     public static bool ClearsTarget => true;
 }

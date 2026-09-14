@@ -61,6 +61,7 @@ public static class LockPicking {
     /// </summary>
     /// <param name="sharedItemCount">Items in the party's shared inventory.</param>
     /// <param name="lockpickCount">Lockpicks held across the party.</param>
+    /// <remarks><b>Deliberately callerless.</b> The door and container handlers ask InventoryMenu.SetLock, which refuses with NothingToTryDialog when the working set comes to nothing.</remarks>
     public static bool CanAttempt(int sharedItemCount, int lockpickCount) =>
         sharedItemCount + (lockpickCount > 0 ? 1 : 0) > 0;
 
@@ -68,5 +69,6 @@ public static class LockPicking {
     /// The attribute the picker is chosen by: the party's <b>best</b> LockPicking, not the leader
     /// and not the character whose screen is open.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> InventoryMenu.BestLockPicker asks PartyExtreme(ActorAttribute.LockPicking) directly.</remarks>
     public const ActorAttribute PickerAttribute = ActorAttribute.LockPicking;
 }

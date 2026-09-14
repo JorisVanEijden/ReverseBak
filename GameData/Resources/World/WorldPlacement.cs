@@ -43,6 +43,7 @@ public static class WorldPlacement {
     public static int TileOf(long worldCoordinate) => (int)(worldCoordinate / TileSize);
 
     /// <summary>The sub-tile cell a world coordinate falls in, within its tile.</summary>
+    /// <remarks><b>Deliberately callerless.</b> No port logic needs the sub-cell of a coordinate; arena placement works from SubCellSize directly.</remarks>
     public static int SubCellOf(long worldCoordinate) =>
         (int)(worldCoordinate % TileSize / SubCellSize);
 }
