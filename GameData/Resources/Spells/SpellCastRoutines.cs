@@ -587,6 +587,18 @@ public static class SpellCastRoutines {
         combatActorCount > 0 && rollUnderActorCount < (combatActorCount / 2) + 1;
 
     /// <summary>
+    /// Whether the storm goes round again: <b>somebody is still eligible, and the caster is not spent</b>.
+    /// </summary>
+    /// <remarks>
+    /// The test sits at the top of each round (CSPELL.C:941), so a round in progress always finishes,
+    /// and the caster keeps paying for every strike in it even after the pool has run dry. "Spent" is
+    /// <c>combat_actor_stat_percent(caster, 1)</c>: health plus stamina as an integer percentage of both
+    /// maxima. A caster with points left but under one percent has already stopped.
+    /// </remarks>
+    public static bool MadGodsRageGoesRoundAgain(bool anyoneEligible, int casterPool, int casterMaxPool) =>
+        anyoneEligible && casterMaxPool > 0 && casterPool * 100 / casterMaxPool != 0;
+
+    /// <summary>
     /// <b>Resistance is checked twice per actor per round, for one decision.</b>
     /// </summary>
     /// <remarks>

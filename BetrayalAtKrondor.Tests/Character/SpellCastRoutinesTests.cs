@@ -303,6 +303,16 @@ public class SpellCastRoutinesTests {
     }
 
     [Fact]
+    public void TheStormStopsWhenNobodyIsLeftOrTheCasterIsSpent() {
+        Assert.True(SpellCastRoutines.MadGodsRageGoesRoundAgain(anyoneEligible: true, 80, 198));
+        Assert.False(SpellCastRoutines.MadGodsRageGoesRoundAgain(anyoneEligible: false, 80, 198));
+        Assert.False(SpellCastRoutines.MadGodsRageGoesRoundAgain(anyoneEligible: true, 0, 198));
+        // One point in 198 is under one percent: the integer percentage is already 0.
+        Assert.False(SpellCastRoutines.MadGodsRageGoesRoundAgain(anyoneEligible: true, 1, 198));
+        Assert.True(SpellCastRoutines.MadGodsRageGoesRoundAgain(anyoneEligible: true, 2, 198));
+    }
+
+    [Fact]
     public void TheStrikeChanceIsNotACoinFlipAndShiftsWithTheFieldSize() {
         // count/2 + 1 out of count: four in six, but four in seven with one more actor present.
         int six = 0, seven = 0;
