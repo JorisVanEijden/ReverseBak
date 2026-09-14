@@ -38,8 +38,9 @@ public static class EncounterActorPlacement {
         public Placed(int rosterSlot, int creatureNumber, long worldX, long worldY, short facing,
             bool roams, RoamingMovement.Pattern pattern = RoamingMovement.Pattern.Stationary,
             long[] waypointX = null, long[] waypointY = null, bool downed = false,
-            bool partyMember = false) {
+            bool partyMember = false, long encounterNumber = -1) {
             Downed = downed;
+            EncounterNumber = encounterNumber;
             PartyMember = partyMember;
             RosterSlot = rosterSlot;
             CreatureNumber = creatureNumber;
@@ -62,6 +63,9 @@ public static class EncounterActorPlacement {
         /// <c>EncounterActorPose.DownedKind</c>.
         /// </remarks>
         public bool Downed { get; }
+
+        /// <summary>The encounter this body belongs to, or -1: the corpse container's y (zone 100, x = roster slot).</summary>
+        public long EncounterNumber { get; }
 
         /// <summary>Which route this actor walks, from its template slot.</summary>
         public RoamingMovement.Pattern Pattern { get; }
@@ -201,7 +205,7 @@ public static class EncounterActorPlacement {
     /// <inheritdoc cref="TryPlace(int, bool, EnemySlot, EncounterObjectStates.Entry, int, int, int, int, out Placed, out int)"/>
     public static bool TryPlace(int rosterSlot, int stateWord, bool standingOnly, EnemySlot slot,
         EncounterObjectStates.Entry stored, int partyTileX, int partyTileY,
-        int frameRoll, int directionRoll,
+        int frameRoll, int directionRoll, long encounterNumber,
         out Placed placed, out int stateWordAfter) {
         if (!TryPlace(stateWord, standingOnly, slot, stored, partyTileX, partyTileY,
                 frameRoll, directionRoll, out Placed bare, out stateWordAfter)) {
@@ -211,7 +215,11 @@ public static class EncounterActorPlacement {
 
         placed = new Placed(rosterSlot, bare.CreatureNumber, bare.WorldX, bare.WorldY, bare.Facing,
             bare.Roams, bare.Pattern, System.Linq.Enumerable.ToArray(bare.WaypointX),
-            System.Linq.Enumerable.ToArray(bare.WaypointY));
+            System.Linq.Enumerable.ToArray(bare.WaypointY),
+            // Kind 4 is a BODY: the only state the original writes it for (RGNENC.C:427, :498), and
+            // the world draw gives it the static four-direction pose (RGNENC.C:642-660).
+            downed: EncounterActorSpawn.KindOf(stateWordAfter) == EncounterActorSpawn.KindOf(EncounterActorSpawn.Standing),
+            encounterNumber: encounterNumber);
         return true;
     }
 }

@@ -29,7 +29,11 @@ public static class EncounterActorSpawn {
     /// <summary>Placed and walking. <b>The only kind that roams.</b></summary>
     public const int Roaming = 0x300;
 
-    /// <summary>Placed and stationary.</summary>
+    /// <summary>A BODY: what a fight leaves on the map. Misnamed; kept for its ~70 references.</summary>
+    /// <remarks>The original writes 0x400 only for the dead (<c>rgnenc_mark_defended</c> RGNENC.C:496-498,
+    /// <c>combat_actor_deploy_encounter</c> via <c>rgnenc_persist_actor_placed</c> :427) and draws it with the
+    /// static four-direction pose (:642-660). A living actor is never placed as 0x400: a pending one
+    /// becomes <see cref="Roaming"/> (:244-251). TASK-534.</remarks>
     public const int Standing = 0x400;
 
     /// <summary>The kind carried by a state word.</summary>
@@ -73,15 +77,15 @@ public static class EncounterActorSpawn {
     /// Whether an actor of this kind is placed at all, given the record's restriction flag.
     /// </summary>
     /// <param name="standingOnly">
-    /// The record's flag bit 0. When set, <b>only stationary actors appear</b> — a roaming group
-    /// authored on such a record simply does not show up.
+    /// The record's flag bit 0. When set, <b>only this record's BODIES appear</b> (kind 4,
+    /// <c>if (uKind == 4 || nFlags == 0)</c>, RGNENC.C:242) — its living actors are never drawn on the map.
     ///
     /// <para><b>It is the same bit as <see cref="Data.DefCombEntry.Avoidable"/>.</b> The placement
     /// loop reads <c>type1_rec.flags &amp; 1</c>, and that word sits at <c>0x3A + 0x153 = 0x18D</c> —
     /// the template starts at 0x3A and <see cref="Data.EncounterActorSetup"/> is 339 bytes — which is
-    /// exactly the offset the avoidable bit is read from. Two models, one bit, and they agree:
-    /// <b>an encounter you can slip past is one whose members stand still.</b> A roaming group comes
-    /// to you, so there is nothing to sneak around.</para>
+    /// exactly the offset the avoidable bit is read from. Two models, one bit: <b>an avoidable
+    /// encounter shows nobody on the map until it has been fought</b> — then only its bodies (TASK-534
+    /// corrected the earlier "members stand still" reading).</para>
     /// </param>
     /// <remarks>
     /// <see cref="Gone"/> and <see cref="Unseeded"/> are never placed: they fall to the switch's

@@ -179,10 +179,13 @@ public class EncounterActorPlacementTests {
     [Fact]
     public void TheSlotIndexOverloadCarriesItThrough() {
         Assert.True(EncounterActorPlacement.TryPlace(5, EncounterActorSpawn.Standing, false,
-            Template(), Pose(1, 2, 3), TileX, TileY, 0, 0,
+            Template(), Pose(1, 2, 3), TileX, TileY, 0, 0, 42,
             out EncounterActorPlacement.Placed p, out _));
 
         Assert.Equal(5, p.RosterSlot);
+        Assert.Equal(42, p.EncounterNumber);
+        // Kind 4 is a body (RGNENC.C:427, :498, drawn with the static pose at :642-660).
+        Assert.True(p.Downed);
         Assert.Equal((TileX * (long)WorldPlacement.TileSize) + 1, p.WorldX);
     }
 }
