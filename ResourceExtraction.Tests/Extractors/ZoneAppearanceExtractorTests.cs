@@ -15,10 +15,10 @@ public class ZoneAppearanceExtractorTests {
         // zeroes for the pens the file does not mention would paint the whole map in pen 0.
         ZoneAppearance zone = Read(sky: 215, ground: 231, unused: 0, (0, 230), (3, 214));
 
-        Assert.Equal(230, zone.MapPenFor(0));
-        Assert.Equal(214, zone.MapPenFor(3));
-        Assert.Equal(1, zone.MapPenFor(1));
-        Assert.Equal(255, zone.MapPenFor(255));
+        Assert.Equal(230, zone.ToPenTable()[0]);
+        Assert.Equal(214, zone.ToPenTable()[3]);
+        Assert.Equal(1, zone.ToPenTable()[1]);
+        Assert.Equal(255, zone.ToPenTable()[255]);
         Assert.Equal(2, zone.RemappedPenCount);
 
         // And the same through the 256-entry table the renderer wants.
@@ -36,7 +36,7 @@ public class ZoneAppearanceExtractorTests {
         ZoneAppearance zone = Read(sky: 0, ground: 0, unused: 0);
 
         Assert.Equal(0, zone.RemappedPenCount);
-        Assert.Equal(77, zone.MapPenFor(77));
+        Assert.Equal(77, zone.ToPenTable()[77]);
     }
 
     [Fact]

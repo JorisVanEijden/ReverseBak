@@ -113,6 +113,8 @@ public static class CannonLine {
     /// <para>Kept because the direction itself is measured and awkward to re-derive — the four
     /// terrain names do not agree with the grid's y direction — and because the collapse question
     /// will be asked again. The answer is here with its evidence rather than in a task note.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> The remark above is the finding: nothing in V102CD reads the direction.</para>
     /// </remarks>
     public static (int Dx, int Dy) FiringDirection(CombatTerrain cannon) {
         foreach ((int dx, int dy, CombatTerrain wanted) in Scans) {

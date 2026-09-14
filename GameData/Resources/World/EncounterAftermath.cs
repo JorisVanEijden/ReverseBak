@@ -67,6 +67,7 @@ public static class EncounterAftermath {
     }
 
     /// <summary>Whether the party is relocated.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Flight is carried out by HotspotService.RelocateAfterFlight from the flight branch, which never builds an Outcome.</remarks>
     public static bool RelocatesTheParty(Outcome outcome) => outcome == Outcome.PartyMoved;
 
     /// <summary>Whether the encounter's post event fires and it is marked as fought.</summary>

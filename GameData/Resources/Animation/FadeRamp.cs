@@ -84,6 +84,8 @@ public static class FadeRamp {
     /// the destination intensity once: 0 for a fade out, full for a fade in. A port that treats
     /// speed 0 as "ramp with step 0" hangs, and one that treats it as "ramp very fast" shows a
     /// flicker where the original shows a cut.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port times its fades instead of writing the DAC per step: PaletteWrites(0) is 0, so a speed-0 fade already takes no time.</para>
     /// </remarks>
     public static bool IsInstant(int speed) => StepFor(speed) == 0;
 
@@ -106,6 +108,8 @@ public static class FadeRamp {
     /// <remarks>
     /// The clamp is load-bearing at the top of the ramp: 640 / 10 is 64, one past VGA's maximum, so
     /// the first write of a fade-in — and the last of a fade-out — would be out of range without it.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port fades opacity over CutsceneTiming.FadeDurationSeconds, so no counter is ever turned into a VGA intensity.</para>
     /// </remarks>
     public static int IntensityAt(int counter) {
         int intensity = counter / CounterPerIntensity;

@@ -112,6 +112,8 @@ public static class SpellCastSound {
     /// <remarks>
     /// True for a spell with a cue AND for one confirmed silent. False means nobody has looked, which
     /// is a different thing from "it makes no sound" and is worth being able to ask.
+    ///
+    /// <para><b>Deliberately callerless.</b> A question about how far the tables have been checked, not a game rule.</para>
     /// </remarks>
     public static bool IsEstablished(int spellId) =>
         FieldSounds.ContainsKey(spellId) || CombatSounds.ContainsKey(spellId)

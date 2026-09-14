@@ -175,6 +175,7 @@ public static class KeywordAvailability {
     public const int SpellGateCharacter = 1;        // Owyn
 
     /// <summary>Whether this topic has a condition the data does not express.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Evaluate looks the table up itself; this and SpecialCaseFor serve the tests that pin the table.</remarks>
     public static bool HasSpecialCase(int globalKey) => SpecialCases.ContainsKey(globalKey);
 
     /// <summary>What an availability decision came out as, and how much of it was actually applied.</summary>
@@ -308,18 +309,7 @@ public static class KeywordAvailability {
     /// <summary>
     /// The condition for a topic, or <c>null</c> when the general rule is the whole story.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> Evaluate looks the table up itself; this serves the tests that pin the table.</remarks>
     public static SpecialCase? SpecialCaseFor(int globalKey) =>
         SpecialCases.TryGetValue(globalKey, out SpecialCase c) ? c : (SpecialCase?)null;
-
-    /// <summary>
-    /// Whether a special case runs its extra condition at all.
-    /// </summary>
-    /// <remarks>
-    /// <b>The topic's own flag is still the gate.</b> Twelve of the fifteen open with "if the own
-    /// flag is clear, unavailable" and only then test their extra condition — the hand-written part
-    /// narrows availability, it does not grant it. The two redirects are the exception: they
-    /// <i>replace</i> the value the general rule then tests.
-    /// </remarks>
-    public static bool ExtraConditionApplies(SpecialCase specialCase, int ownFlagValue) =>
-        specialCase.Requirement == Requirement.FlagRedirect || ownFlagValue != 0;
 }

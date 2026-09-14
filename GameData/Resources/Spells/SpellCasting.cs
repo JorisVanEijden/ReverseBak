@@ -265,6 +265,8 @@ public static class SpellCasting {
     /// <para><b>The flag it writes is inverted:</b> the routine stores 0 when a caster exists and 1
     /// when none does, so the stored value is "disabled" rather than "enabled". A port that reads it
     /// the natural way round greys the button out for exactly the parties that should have it.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> InGameScreen.PartyHasACaster applies the same any-member IsCaster(Max) rule, reading the stats straight off the session.</para>
     /// </remarks>
     public static bool CastButtonIsUsable(System.Collections.Generic.IReadOnlyList<int> activeCastingSkills) {
         if (activeCastingSkills == null) {
@@ -281,6 +283,7 @@ public static class SpellCasting {
     }
 
     /// <summary>The value stored for a usable cast button — zero, not one.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The inverted storage is the menu loader's enable gate: InGameScreen passes !caster to SetEntryGate.</remarks>
     public static int CastButtonFlag(bool usable) => usable ? 0 : 1;
 
     private static RuntimeItem FindPowerSource(SpellCastContext context, bool requireReadyFlag) {

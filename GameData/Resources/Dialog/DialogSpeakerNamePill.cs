@@ -108,6 +108,8 @@ public static class DialogSpeakerNamePill {
     ///
     /// <para>The name is thrown away again unless the entry sets <see cref="RequiredFlag"/>
     /// (DIALOG.C:968), which is what keeps most records uncaptioned.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> ShowsFor admits speakers up to 69, but no shipped DDX entry uses one from 54 to 69 (counted 2026-09-14), so the name lookup never meets an id this would refuse.</para>
     /// </remarks>
     public static bool ResolvesToAName(int speakerId) =>
         IsPartySpeaker(speakerId)
@@ -200,5 +202,6 @@ public static class DialogSpeakerNamePill {
     public static int Left(float labelWidth) => CentreX - (OuterWidth(labelWidth) / 2);
 
     /// <summary>Left edge of the label, in canonical px.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager centres the label and shifts it by LabelCentreX - CentreX, so no left edge is computed.</remarks>
     public static int LabelLeft(float labelWidth) => LabelCentreX - (int)(labelWidth / 2);
 }

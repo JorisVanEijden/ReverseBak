@@ -71,22 +71,12 @@ public class KeywordAvailabilityTests {
     }
 
     [Fact]
-    public void TheExtraConditionNarrowsAvailabilityRatherThanGrantingIt() {
-        // Twelve of the fifteen bail out first when the topic's own flag is clear.
-        KeywordAvailability.SpecialCase narrowing = KeywordAvailability.SpecialCaseFor(44)!.Value;
-
-        Assert.False(KeywordAvailability.ExtraConditionApplies(narrowing, 0));
-        Assert.True(KeywordAvailability.ExtraConditionApplies(narrowing, 1));
-    }
-
-    [Fact]
     public void TheTwoRedirectsAreTheExceptionAndRunRegardless() {
         // They replace the value the general rule then tests, rather than testing alongside it.
         foreach (int key in new[] { 130, 133 }) {
             KeywordAvailability.SpecialCase redirect = KeywordAvailability.SpecialCaseFor(key)!.Value;
 
             Assert.Equal(KeywordAvailability.Requirement.FlagRedirect, redirect.Requirement);
-            Assert.True(KeywordAvailability.ExtraConditionApplies(redirect, 0));
         }
     }
 

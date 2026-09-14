@@ -162,6 +162,8 @@ public static class DynamicLighting {
     /// <para>Which of the two it writes comes from a global flag rather than from the screen: set,
     /// and the screen turns lighting <i>off</i> for its duration; clear, and it uses
     /// <see cref="ModeExtended"/>. What that flag tracks is not established.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> WorldLightingService lights continuously while a zone is loaded; there is no pending-palette frame to gate.</para>
     /// </remarks>
     public static bool FrameIsLit(bool palettePending, int mode) => palettePending && ModeLights(mode);
 

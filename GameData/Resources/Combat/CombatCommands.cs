@@ -161,6 +161,8 @@ public static class CombatCommands {
     /// escape test, and the failure path is the one that keeps you in the fight. The name describes
     /// a side effect and hides the function's actual role, which is the usual hazard with these
     /// names.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned statement that the roll IS the escape test; the retreat arm branches on the roll itself.</para>
     /// </remarks>
     public static bool RetreatSucceeded(bool escapeRollPassed) => escapeRollPassed;
 

@@ -101,21 +101,6 @@ public class ZoneAppearance : IResource {
         return table;
     }
 
-    /// <summary>The pen <paramref name="pen"/> is drawn as while the overhead map is up.</summary>
-    public int MapPenFor(int pen) {
-        if (pen < 0 || pen >= PenCount) {
-            throw new ArgumentOutOfRangeException(nameof(pen));
-        }
-
-        foreach (PenRemap remap in Remaps) {
-            if (remap.Pen == pen) {
-                return remap.DrawnAs;
-            }
-        }
-
-        return pen;
-    }
-
     public ResourceType Type => ResourceType.DAT;
 
     public string Id { get; }
