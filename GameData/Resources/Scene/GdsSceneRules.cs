@@ -107,15 +107,16 @@ public static class GdsSceneRules {
     }
 
     /// <summary>
-    /// What an inn charges per night in the current chapter — <c>townscene_load</c>'s tail, which
-    /// stamps the figure onto the location's actor record once per chapter.
+    /// <b>Corrected 2026-09-14: this is the tavern's BARDING FUND restock, not an inn's price.</b>
+    /// <c>townscene_load</c>'s tail (TOWNSCN.C:146-161): once per chapter the fund is set to the base
+    /// unit scaled by <c>(chapter + 19) / 20</c>, capped at 250.
     ///
-    /// <para><b>Inns get dearer as the story advances</b>: the base unit is scaled by
-    /// <c>(chapter + 19) / 20</c> in the 1.02 CD build we target, so chapter 1 pays the base rate
-    /// and later chapters pay proportionally more. The floppy build used <c>(chapter + 9) / 10</c>,
-    /// which climbs twice as fast — do not take the floppy branch.</para>
+    /// <para>canassa calls the bytes <c>bRest_gold_unit</c> and <c>bPopup_retry_counter</c>, which is what
+    /// sent this model to the inn. By offset they are <c>SaveGameContainerShopData.BaseBardingReward</c>
+    /// (+8) into <c>BardingReward</c> (+7), gated on <c>LastRestockChapter</c> (+9). The inn's own price
+    /// (+11, <c>InnCostPerNight</c>) is untouched. The floppy build scales by <c>(chapter + 9) / 10</c>;
+    /// this is the V102CD formula. Not yet applied by the port — see TASK-527.</para>
     /// </summary>
-    /// <returns>The nightly rate, capped at 250 (<c>0xfa</c>).</returns>
     public static int InnNightlyRate(int baseUnit, int chapter) {
         long scaled = (long)baseUnit * (chapter + 19) / 20;
         return scaled > 0xfa ? 0xfa : (int)scaled;
@@ -155,6 +156,7 @@ public static class GdsSceneRules {
     /// The <c>-2</c> arm additionally clears the current-palette pointer, so whatever runs next has
     /// to reload it. None of the other four touch it. A port that treats the outcomes as
     /// interchangeable numbers loses the reload and keeps the scene's colours into whatever follows.
+    /// <para><b>Deliberately callerless.</b> The port converts palettes to RGBA at load (decision 0002), so there is no current-palette pointer to clear.</para>
     /// </remarks>
     public static bool InvalidatesPalette(int dialogResult) => dialogResult == -2;
 
@@ -173,11 +175,13 @@ public static class GdsSceneRules {
     ///
     /// <para>The zeroing matters as much as the cap: the global is scratch space for one visit, so
     /// carrying it between locations would pay a second innkeeper for the same performance.</para>
+    /// <para><b>Deliberately callerless.</b> LocationScreen.StoreEstablishmentFund clamps the fund to GameSession.EstablishmentFundMax before writing it back.</para>
     /// </remarks>
     public static int BankedBardingReward(int pendingReward) =>
         pendingReward > MaxBardingReward ? MaxBardingReward : pendingReward;
 
     /// <summary>The global is cleared after banking, so nothing carries to the next location.</summary>
+    /// <remarks><b>Deliberately callerless.</b> LocationScreen.StoreEstablishmentFund zeroes GameSession.EstablishmentFund after banking it.</remarks>
     public static bool BardingRewardGlobalIsScratch => true;
     // ---------------------------------------------------------------- what a scene actually draws
     // GDS_RunScene @0x4de9d, the entry sequence.
@@ -197,10 +201,12 @@ public static class GdsSceneRules {
     ///
     /// <para>So rendering a location means driving the cutscene engine and holding on its last
     /// frame. A port looking for a static image per scene will not find one.</para>
+    /// <para><b>Deliberately callerless.</b> LocationScenePlayer plays the scene's animation and holds on it.</para>
     /// </remarks>
     public static bool PictureComesFromTheAnimation => true;
 
     /// <summary>The single SCX the scene loop loads at entry, and what it is for.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager loads the dialogue frame itself.</remarks>
     public const string DialogueFrameResource = "Dialog.scr";
 
     /// <summary>
@@ -210,6 +216,7 @@ public static class GdsSceneRules {
     /// Guarded by a flag that is set the first time through, so re-entering a sub-scene does not
     /// reload it. Cheap to get wrong in a port built around per-scene setup, and the symptom would be
     /// a flicker on every hotspot that changes scene.
+    /// <para><b>Deliberately callerless.</b> DialogManager owns the frame; nothing reloads it per sub-scene.</para>
     /// </remarks>
     public static bool DialogueFrameLoadsOncePerRun => true;
 
@@ -221,6 +228,7 @@ public static class GdsSceneRules {
     /// text labels — the hotspot names are <i>pictures</i>, not strings rendered at runtime. Which
     /// hotspot shows which is data-driven by the scene, the same pattern REQ elements use, so a port
     /// cannot generate those labels from the hotspot's name text.
+    /// <para><b>Deliberately callerless.</b> CursorManager and UserInterfaceLoader address POINTERG.BMX directly.</para>
     /// </remarks>
     public const string CursorSetResource = "POINTERG.BMX";
     // ---------------------------------------------------------------- animation tags

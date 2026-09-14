@@ -24,6 +24,7 @@ public static class SpellCastTail {
     /// <para>This is the answer to the <c>xor si, si</c> that
     /// <see cref="SpellEffectApplication"/> recorded as an open question. It is not a redundant
     /// re-check and not a bug — it is how a spell says <i>"I am finished, run nothing else"</i>.</para>
+    /// <para><b>Deliberately callerless.</b> A recorded fact about the original's register; the port ends a cast by returning from the handler arm.</para>
     /// </remarks>
     public static bool RecordPointerDoublesAsContinueFlag => true;
 
@@ -35,6 +36,7 @@ public static class SpellCastTail {
     /// targeting-type delivery switch — which is where damage is dealt <i>and where the caster is
     /// billed</i>. The one thing that still happens is the surcharge flag being cleared, because
     /// that is done at the shared return.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; CombatRuntime.ResolveCast's handler arms return before the delivery.</para>
     /// </remarks>
     public static bool EndingEarlySkipsTheDeliverySwitch => true;
 
@@ -51,6 +53,7 @@ public static class SpellCastTail {
     ///
     /// <para>So the flag does not mean "this cast was cancelled". It means "the caster has already
     /// been dealt with". Reading it as the former makes two spells free and the wrong two.</para>
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ResolveCast skips ChargeCasterForCast only when HandlerEndsTheCast, which this negates.</para>
     /// </remarks>
     public static bool EndingEarlyIsFree(int spellId) => !HandlerEndsTheCast(spellId);
 
@@ -79,6 +82,7 @@ public static class SpellCastTail {
     /// <para>Worth noting the IDA comment on that arm records its own earlier correction — it had
     /// the Skyfire test backwards until 2026-08-13. This part of the switch has now misled two
     /// separate readings.</para>
+    /// <para><b>Deliberately callerless.</b> A restatement: SpellEffectMagnitude already yields zero for Skyfire against no metal.</para>
     /// </remarks>
     public static bool SkyfireEndsTheCast(int spellId, bool targetUsesMetal) =>
         spellId == SpellIds.Skyfire && !targetUsesMetal;
@@ -131,6 +135,7 @@ public static class SpellCastTail {
     /// A port that models resistance as one boolean applied once will get at least two of these
     /// wrong, because a resisted cast still animates, still bills the caster, and — for a duration
     /// spell that also deals damage — is stopped at two separate points for two separate reasons.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; CombatRuntime.TargetResists is consulted at each site that matters.</para>
     /// </remarks>
     public const int ResistanceCheckSites = 4;
 
@@ -151,6 +156,7 @@ public static class SpellCastTail {
     /// same variable: <c>CombatRuntime.ResolveCast</c> bills <c>power</c> and computes
     /// <c>effectiveCost = SpellCostModifiers.Effective(power, surcharged, targetIsWeak)</c> for the
     /// magnitude. Same outcome, different shape, and nothing to undo — do not wire this.</para>
+    /// <para><b>Deliberately callerless.</b> Structural in the port: CombatRuntime.ResolveCast keeps power and effectiveCost apart, so nothing is doubled to undo.</para>
     /// </remarks>
     public static int UndoWeakness(int doubledCost) => doubledCost >> 1;
 
@@ -273,6 +279,7 @@ public static class SpellCastTail {
     /// no counterpart, because we do not run the original's <c>cspell_invoke_effect</c> and so have
     /// no out-parameter to report — that is a difference in shape rather than a missing rule, and
     /// wiring this predicate would need an animation seam that does not exist.</para>
+    /// <para><b>Deliberately callerless.</b> Structural: TargetResists and SpellEffectMagnitude cover two clauses; the animation clause has no counterpart in the port.</para>
     /// </remarks>
     public static bool DealsDamage(bool animationReported, int magnitude, bool targetResists) =>
         animationReported && magnitude != 0 && !targetResists;
@@ -307,6 +314,7 @@ public static class SpellCastTail {
     /// records, so a cast that arrived with a negative cost skips the charge entirely — on top of
     /// already being exempt from the to-hit roll (see <see cref="SpellHitResolution.CanMiss"/>). The
     /// type-2 delivery does not consult the flag, so it charges the stripped magnitude regardless.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ResolveCast bills power and skips the charge for a negated cast; the type-2 exception was closed under TASK-465.</para>
     /// </remarks>
     public static bool CasterPays(bool costWasNegated, int targetingType) =>
         DeliveryFor(targetingType) == Delivery.Type2Routine || !costWasNegated;

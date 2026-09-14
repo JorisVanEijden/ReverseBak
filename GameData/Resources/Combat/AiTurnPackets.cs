@@ -50,6 +50,7 @@ public static class AiTurnPackets {
     };
 
     /// <summary>How many distinct turn packets exist.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Restates RoleByPacket's length.</remarks>
     public const int PacketCount = 6;
 
     /// <summary>The role a packet index selects.</summary>

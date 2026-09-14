@@ -203,6 +203,7 @@ public static class LocalMapScreen {
     }
 
     /// <summary>A full turn in the engine's angle unit — 0x10000, not 360.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A unit fact; BakCoordinateConverter owns the engine-angle conversion.</remarks>
     public const int AngleUnitsPerTurn = 0x10000;
 
     /// <summary>
@@ -217,6 +218,7 @@ public static class LocalMapScreen {
     /// Which is what the north-up option exists to undo — see
     /// <see cref="MapRendersWithYaw"/>. Entry saves the pitch and puts it back on exit; a port that
     /// leaves the camera looking down has broken the world view it returns to.
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen forces only the pitch and hands the camera back through SyncToCamera on exit.</para>
     /// </remarks>
     public static bool YawIsUntouchedOnEntry => true;
 
@@ -228,6 +230,7 @@ public static class LocalMapScreen {
     /// player's zoom survives closing the screen. <c>resource_loadZoneDataFiles</c> seeds it from
     /// <see cref="ZoneDefinition.CameraZPosition"/> when the zone changes — that field is the map's
     /// starting height, not a second travel-camera height.
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen keeps the height on GameSession.MapCameraZ between visits.</para>
     /// </remarks>
     public static bool ZoomIsRemembered => true;
 
@@ -256,6 +259,7 @@ public static class LocalMapScreen {
     /// <para>So a port needs a render mode of its own, not just a camera pose: flat background,
     /// items from above, and the synthetic <c>typeId 181</c> item the same function places at
     /// <c>z = 0</c>.</para>
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen.ApplyMapBackdrop switches ZoneEnvironment.SetOverheadMapMode on.</para>
     /// </remarks>
     public static bool HasItsOwnRenderMode => true;
 
@@ -273,6 +277,7 @@ public static class LocalMapScreen {
     /// <c>actorrender_entity</c> the world uses. What changes is WHICH entities are drawn and what
     /// they are drawn against — see <see cref="AutomapDrawsOnlyVisitedEntities"/> and the members
     /// below it.</para>
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen shows WorldRuntime.Automap, which exists only for an underground zone.</para>
     /// </remarks>
     public static bool DrawsDungeonAutomap(bool isUnderground) => isUnderground;
 
@@ -281,6 +286,7 @@ public static class LocalMapScreen {
     /// <see cref="EncounterVisitTable"/> for its tile. Everything else in the zone is simply absent,
     /// which is what makes an unexplored dungeon empty.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> DungeonAutomapView.Show activates only placements whose EncounterVisitTable bit is set.</remarks>
     public const bool AutomapDrawsOnlyVisitedEntities = true;
 
     /// <summary>
@@ -301,6 +307,7 @@ public static class LocalMapScreen {
     /// on the world side, and concluded a world-model automap would be near-empty. Those indices
     /// are never placed. The measurement above is over actual placements, which is the only version
     /// of the question that means anything.</para>
+    /// <para><b>Deliberately callerless.</b> DungeonAutomapView's placements are built from the map model table.</para>
     /// </summary>
     public const int AutomapModelTableSlot = 2;
 
@@ -319,6 +326,7 @@ public static class LocalMapScreen {
     /// Drawing without zeroing it would tilt the door by its lock. Harmless on the shipped data,
     /// where every door placement in Z10/Z11/Z12 has zero pitch, but a mod that authored one would
     /// expose it.</para>
+    /// <para><b>Deliberately callerless.</b> DungeonAutomapView has no door-specific path; doors are placements like any other.</para>
     /// </summary>
     public const bool AutomapTreatsDoorsLikeEveryOtherPassDoes = true;
 
@@ -327,6 +335,7 @@ public static class LocalMapScreen {
     /// drawn, in the zone's <b>green</b> sky pen with the blue one as the dither colour. Textured
     /// polygons stay enabled but texture mode is forced to 0 for the pass and restored after.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> ZoneEnvironment.SetOverheadMapMode owns the map's backdrop, and the world roots are hidden while the automap shows.</remarks>
     public const bool AutomapFillsAFlatBackground = true;
 
     /// <summary>
@@ -347,6 +356,7 @@ public static class LocalMapScreen {
     /// arrow — and otherwise the single centred icon. That is the same branch
     /// <see cref="OverheadMapMarker.IconIndexFor"/> already models, which is why nothing special is
     /// needed underground.</para>
+    /// <para><b>Deliberately callerless.</b> OverheadMapScreen draws the same OverheadMapMarker over the automap.</para>
     /// </remarks>
     public const bool AutomapHasACentredPartyIcon = true;
 }
