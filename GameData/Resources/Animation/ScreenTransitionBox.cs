@@ -78,6 +78,7 @@ public static class ScreenTransitionBox {
     public const int BoxOutFirstStep = 1;
 
     /// <summary>The step a box-in starts from — it shrinks inward from the edge.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The cutscene wipe reads <see cref="StepCount"/> directly; this names the box-in's starting step beside <see cref="BoxOutFirstStep"/>.</remarks>
     public static int BoxInFirstStep(int width, int height) => StepCount(width, height);
 
     // ---------------------------------------------------------------- what each step copies

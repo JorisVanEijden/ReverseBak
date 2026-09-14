@@ -94,6 +94,7 @@ public static class GameStateEventFields {
     }
 
     /// <summary>Whether an id is a bitmap flag rather than a field or an unmapped middle id.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Production reads ids through <see cref="FieldFor"/>, whose <c>Field.None</c> already means "a bitmap flag or unmapped"; this pins the boundary for the tests.</remarks>
     public static bool IsBitmapFlag(int eventId) =>
         eventId < LowBitmapLimit || eventId >= HighBitmapBase;
 

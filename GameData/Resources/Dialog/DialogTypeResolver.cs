@@ -76,6 +76,7 @@ public static class DialogTypeResolver {
     /// reaches for a static shipped table, because that would be a silent way to bypass an
     /// author's override.</para>
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager awaits the style table from the resource system between the two halves, so it calls <see cref="ResolveEffectiveStyleId"/> and <c>DialogStyleTable.Get</c> itself; this is the same chain for a caller that already holds the table.</remarks>
     public static DialogStyle ResolveStyle(DialogContext context, DialogEntry entry, DialogStyleTable table) {
         if (table is null) {
             throw new ArgumentNullException(nameof(table));

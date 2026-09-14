@@ -71,6 +71,7 @@ public static class DialogBackdropCamera {
     }
 
     /// <summary>Whether this speaker turns the camera at all.</summary>
+    /// <remarks><b>Deliberately callerless.</b> WorldRuntime takes <see cref="SpeakerSlot"/> and tests it against -1 itself, because it needs the slot for <see cref="YawFor"/>.</remarks>
     public static bool TurnsCamera(IReadOnlyList<byte> activeParty, int actorNumber) =>
         SpeakerSlot(activeParty, actorNumber) >= 0;
 

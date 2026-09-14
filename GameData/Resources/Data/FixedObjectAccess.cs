@@ -42,6 +42,7 @@ public static class FixedObjectAccess {
         container?.LockData?.Difficulty ?? 0;
 
     /// <summary>Whether anything guards this object.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Every handler needs the difficulty itself, so production reads <see cref="LockValue"/>; this is its zero test, pinned by the tests.</remarks>
     public static bool IsLocked(SaveGameContainerData? container) => LockValue(container) != 0;
 
     /// <summary>

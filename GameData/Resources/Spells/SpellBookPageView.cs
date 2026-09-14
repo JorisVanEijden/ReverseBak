@@ -76,6 +76,7 @@ public static class SpellBookPageView {
     /// caster drained to nothing still has a book. A non-caster's page is not drawn empty; it is not
     /// drawn.</para>
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> It is <see cref="SpellCasting.IsCaster"/> under the page's name; the book screen asks that directly.</remarks>
     public static bool HasPage(int castingSkillMaximum) =>
         SpellCasting.IsCaster(castingSkillMaximum);
 }

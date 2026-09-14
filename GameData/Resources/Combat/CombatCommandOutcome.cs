@@ -100,6 +100,7 @@ public static class CombatCommandOutcome {
     /// <summary>
     /// Whether a press needs a follow-up click before anything happens.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> HotspotService stores <see cref="ModeFor"/>'s mode directly; this is its != None test, pinned by the tests.</remarks>
     public static bool ArmsAPendingMode(CombatCommands.Command command) =>
         ModeFor(command) != PendingMode.None;
 }

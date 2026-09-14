@@ -89,6 +89,8 @@ public static class InspectAction {
     public static bool SpendsTheTurn(Result result) => result == Result.Inspected;
 
     /// <summary>Whether the result clears the armed mode.</summary>
-    /// <remarks>A misclick keeps the mode armed; only success or an explicit cancel clears it.</remarks>
+    /// <remarks>A misclick keeps the mode armed; only success or an explicit cancel clears it.
+    /// <b>Deliberately callerless:</b> HotspotService's inspect click can only produce Inspected or Ignored
+    /// and clears the mode on Inspected; the cancel is its own path.</remarks>
     public static bool ClearsTheMode(Result result) => result != Result.Ignored;
 }

@@ -29,6 +29,10 @@ public static class GdsSceneMenu {
     /// <remarks>
     /// Hidden hotspots are dropped from the result but <b>still consume their action id</b> — see
     /// <see cref="GdsSceneRules.ActionIdFor"/>.
+    ///
+    /// <para><b>Deliberately callerless.</b> The host (<c>GdsSceneLoader.VisibleHotspots</c>) runs the
+    /// same <see cref="GdsSceneRules.IsHotspotVisible"/> pass itself and calls <see cref="ElementFor"/>;
+    /// this keeps the two halves pinned together by the tests.</para>
     /// </remarks>
     public static UiElement[] BuildElements(GdsScene scene, UserInterface frame, int chapter,
         bool preserve, Func<Condition, bool> gatePasses) {
