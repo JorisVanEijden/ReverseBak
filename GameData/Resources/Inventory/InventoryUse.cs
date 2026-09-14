@@ -17,7 +17,9 @@ public sealed class ItemUseContext {
     public ItemUseContext(ActorStat[] stats, int partySlot,
         Func<int, int> readFlag, Action<int, int> writeFlag, Func<int, int> random,
         ActorConditions conditions = null, ushort[] knownSpells = null,
-        Character.ActorStatModifiers.Slot[] statModifiers = null, uint gameTime = 0) {
+        Character.ActorStatModifiers.Slot[] statModifiers = null, uint gameTime = 0,
+        Func<bool> itemLightBurning = null, Action<long> lightItem = null,
+        Action extinguishItemLight = null) {
         Stats = stats;
         PartySlot = partySlot;
         ReadFlag = readFlag;
@@ -27,6 +29,9 @@ public sealed class ItemUseContext {
         KnownSpells = knownSpells;
         StatModifiers = statModifiers;
         GameTime = gameTime;
+        ItemLightBurning = itemLightBurning;
+        LightItem = lightItem;
+        ExtinguishItemLight = extinguishItemLight;
     }
 
     /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
@@ -64,6 +69,15 @@ public sealed class ItemUseContext {
 
     /// <summary>Returns a value in <c>[0, n)</c>.</summary>
     public Func<int, int> Random { get; }
+
+    /// <summary>Whether a carried item's light timer is already running — <c>timerpool_contains(1, 0)</c>.</summary>
+    public Func<bool> ItemLightBurning { get; }
+
+    /// <summary>Starts the carried item's light timer for this many ticks.</summary>
+    public Action<long> LightItem { get; }
+
+    /// <summary>Zeroes the carried item's light timer, which runs its burn-down.</summary>
+    public Action ExtinguishItemLight { get; }
 
     /// <summary>Whether this context can actually be used.</summary>
     public bool IsUsable =>
@@ -307,6 +321,29 @@ public static class InventoryUse {
                 // unconditionally, so the read is spent — charge consumed, "used" record played —
                 // even when the repeat-read roll fails. You pay for the reading, not the learning.
                 outcome = ItemUseOutcome.Applied;
+                break;
+            case ObjectType.LightSource:       // 21 — ITEMUSE.C:356
+                if (context?.ItemLightBurning == null || context.LightItem == null
+                    || context.ExtinguishItemLight == null) {
+                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                }
+                // Using a LIT one puts it out: the timer is zeroed, and the burn-down that runs on
+                // the zero unlights it and spends the use. The original returns straight away.
+                if ((source.ItemFlags & (ushort)ItemFlags.Lit) != 0) {
+                    context.ExtinguishItemLight();
+                    return new ItemUseResult(ItemUseOutcome.Handled, 0, 0, false);
+                }
+                // One carried light at a time: with the item timer running, nothing happens — the
+                // outcome keeps its starting 0.
+                // ponytail: the chapter-4 zone-11 torch refusal (dialogs 0x1b776e, and 0x1b7770 in
+                // combat) is not ported; the context carries no chapter or zone.
+                if (context.ItemLightBurning()) {
+                    outcome = ItemUseOutcome.NoEffect;
+                    break;
+                }
+                source.ItemFlags |= (ushort)ItemFlags.Lit;
+                context.LightItem(ItemLight.DurationTicks(rec));
+                outcome = ItemUseOutcome.Silent;
                 break;
             case ObjectType.Note:              // 16 — ITEMUSE.C:267-299
                 if (context == null) {
