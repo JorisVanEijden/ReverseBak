@@ -100,6 +100,8 @@ public static class RiftMachineUse {
     /// <remarks>
     /// <c>audio_sound_play</c>'s return is kept and tested before <c>audio_unload_soundEffect</c>.
     /// Unloading unconditionally would release a bank the play never took.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port has no sound banks to release; ChestTrap cites the same rule.</para>
     /// </remarks>
     public static bool UnloadsOnlyWhatItLoaded => true;
 

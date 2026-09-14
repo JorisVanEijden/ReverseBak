@@ -24,6 +24,8 @@ public static class CharacterSheetLayout {
     /// draw only. Leaving does none of that: the loop ends, the saved palette is put back and the
     /// caller redraws. A port that pairs the fade-in with a matching fade-out on close adds a
     /// half-second of black the original never shows — the sheet simply vanishes.
+    ///
+    /// <para><b>Deliberately callerless.</b> CharacterSheetScreen fades in over FadeFrames on show only; this pins why there is no fade-out.</para>
     /// </remarks>
     public static bool FadesInOnEntryOnly => true;
 
@@ -41,9 +43,11 @@ public static class CharacterSheetLayout {
     public const int FadeFrames = 8;
 
     /// <summary>The palette intensity a fade starts from — 63, VGA's full scale.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port fades opacity over FadeFrames rather than stepping VGA palette intensity.</remarks>
     public const int FadeStartIntensity = 0x3f;
 
     /// <summary>The intensity step per frame.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port fades opacity over FadeFrames rather than stepping VGA palette intensity.</remarks>
     public const int FadeIntensityStep = 8;
 
     // ---- the ratings panel ----------------------------------------------------------------
@@ -240,6 +244,8 @@ public static class CharacterSheetLayout {
     /// that draws them tests the caller's flag before its first iteration (0x58369), so the compact
     /// form is the panel's four rows and the condition list, and nothing else. A port that drew the
     /// lower half regardless would spill skills across the temple healer's buttons.
+    ///
+    /// <para><b>Deliberately callerless.</b> CharacterSheetView renders its one form directly, as its remark says; this pins the compact rule.</para>
     /// </remarks>
     public static bool DrawsLowerHalf(int fullSheetFlag) => IsFullSheet(fullSheetFlag);
 

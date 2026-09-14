@@ -13,6 +13,7 @@ using System;
 /// </summary>
 public static class PicklockAttempt {
     /// <summary>Object id of a lockpick, and the item kind that means "picks" rather than a key.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Production picks through WithLockpicks and WithKey, which carry the distinction.</remarks>
     public const int LockpickKind = 0;
 
     /// <summary>

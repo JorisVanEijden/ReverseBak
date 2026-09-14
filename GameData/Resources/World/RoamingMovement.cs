@@ -146,6 +146,8 @@ public static class RoamingMovement {
     /// lattice, so a port that moves these actors in floating point, or with any other step size,
     /// gets monsters that miss every waypoint and walk off in a straight line forever. It is the
     /// single most breakable thing in this whole update.
+    ///
+    /// <para><b>Deliberately callerless.</b> Tick's ArrivedAt compares the long lattice positions directly; this states the exact-equality rule.</para>
     /// </remarks>
     public static bool IsAtWaypoint(int x, int y, int waypointX, int waypointY) =>
         x == waypointX && y == waypointY;
@@ -295,7 +297,7 @@ public static class RoamingMovement {
             return pose;
         }
 
-        if (pattern != Pattern.RoadFollowing) {
+        if (!StepCanBeBlocked(pattern)) {
             (int dx, int dy) = Step(pose.Heading);
             var moved = new Pose(pose.X + dx, pose.Y + dy, pose.Heading);
             return ArrivedAt(moved, waypointX, waypointY, WaypointCount(pattern))

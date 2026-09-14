@@ -100,8 +100,10 @@ public static class DaylightLevel {
     }
 
     /// <summary>Whether the world is at its brightest.</summary>
+    /// <remarks><b>Deliberately callerless.</b> WorldLightingService reads the level through At(); nothing needs the extreme as a test.</remarks>
     public static bool IsFullDaylight(long gameTimeIn2Seconds) => At(gameTimeIn2Seconds) == Day;
 
     /// <summary>Whether the world is at its darkest.</summary>
+    /// <remarks><b>Deliberately callerless.</b> WorldLightingService reads the level through At(); nothing needs the extreme as a test.</remarks>
     public static bool IsFullNight(long gameTimeIn2Seconds) => At(gameTimeIn2Seconds) == Night;
 }

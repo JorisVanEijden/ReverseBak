@@ -70,6 +70,7 @@ public static class StatEngine {
     public const int TableSize = 17;
 
     /// <summary>The pseudo-attribute index that addresses Health and Stamina as one pool.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The pool is addressed through ModifyHealthPool and HealthPoolMax; this names the row.</remarks>
     public const int ComboIndex = (int)ActorAttribute.HealthStaminaCombo;
 
     // Floor a READ may return, per attribute (g_abStatMin @ 0x3a600).
