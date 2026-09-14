@@ -44,6 +44,7 @@ public static class DialogChoiceMenu {
     public static bool DismissalPressesLastEntry(int pollResult) => pollResult == DismissedResult;
 
     /// <summary>The entry index an action id names, or -1 when the value is not an entry.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The port's choice buttons carry their index directly, so no action id is decoded.</remarks>
     public static int EntryIndexOf(int actionId) =>
         actionId >= EntryActionIdBase ? actionId - EntryActionIdBase : -1;
 
@@ -75,6 +76,7 @@ public static class DialogChoiceMenu {
     /// <para>The keys are transient latches, reset when the menu's entries are rebuilt — they are not
     /// durable story flags, even though they live in the same global space. Treating them as
     /// persistent would leave a conversation permanently answered.</para>
+    /// <para><b>Deliberately callerless.</b> DialogManager.LatchChoice writes ChosenValue to the chosen branch's key.</para>
     /// </remarks>
     public static int ValueWrittenForChoice() => ChosenValue;
 

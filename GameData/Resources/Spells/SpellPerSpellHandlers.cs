@@ -116,6 +116,7 @@ public static class SpellPerSpellHandlers {
     /// from whatever actor the first sweep actually struck, which need not be the intended target —
     /// back to the caster, with that actor flinching in between. So the visual encodes the transfer,
     /// and the return leg's origin is decided by the outbound hit rather than by the targeting.
+    /// <para><b>Deliberately callerless.</b> Presentation not ported: CombatRuntime applies the drain without a projectile.</para>
     /// </remarks>
     public static bool DrainProjectileReturnsToCaster => true;
 
@@ -157,6 +158,7 @@ public static class SpellPerSpellHandlers {
     /// exactly as long as the game has been running. Either the field is not an expiry or this is a
     /// genuine quirk; nothing in <c>Cast_Spell</c> settles it, and guessing would put a wrong
     /// duration on a real debuff.
+    /// <para><b>Deliberately callerless.</b> Recorded as read, not modelled — nothing settles what the field means.</para>
     /// </remarks>
     public static bool ModifierExpiryIsGameTimeDoubled => true;
 
@@ -219,6 +221,7 @@ public static class SpellPerSpellHandlers {
     /// <see cref="SpellEffectApplication.NegativeDurationDivides"/> is not a defensive branch kept
     /// for mods — it is live game behaviour, halving Thoughts Like Clouds' effect against the cost
     /// while Skin of the Dragon's divisor of 1 leaves it equal to the cost.
+    /// <para><b>Deliberately callerless.</b> A corpus fact backing SpellEffectApplication.NegativeDurationDivides, which is live.</para>
     /// </remarks>
     public static bool NegativeDurationIsUsedByShippedSpells => true;
 }

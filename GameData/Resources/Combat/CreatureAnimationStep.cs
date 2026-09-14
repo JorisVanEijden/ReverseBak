@@ -42,6 +42,7 @@ public static class CreatureAnimationStep {
     public const int GaitDelayMinimum = 8;
 
     /// <summary>The inclusive top of the re-rolled delay — <c>(rand &amp; 7) + 8</c>.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Implied by NextGaitDelay's (roll & 7) + 8, which ArenaIdleAnimator uses.</remarks>
     public const int GaitDelayMaximum = 15;
 
     /// <summary>The delay slot 0 takes for its next frame.</summary>
@@ -79,6 +80,7 @@ public static class CreatureAnimationStep {
     /// animation from slot 0 — so the cycle is forward, bounce, back, restart, and the shrink lasts
     /// exactly one pass. The <c>-1</c> is the direction argument and means "keep the current
     /// facing", which is why a creature does not spin when its idle loops.</para>
+    /// <para><b>Deliberately callerless.</b> EncounterActorPose.Advance ping-pongs the idle gait, while AttackSwing and DeathCollapse play once.</para>
     /// </remarks>
     public static bool PingPongs(int animSlotIndex) => animSlotIndex == 0;
 
@@ -90,6 +92,7 @@ public static class CreatureAnimationStep {
     /// <c>facingDirection &gt; 4</c> and clearing it otherwise. So the sheet holds five columns and
     /// the other three are the same art reversed — which is why a creature's left and right poses
     /// are exact mirrors and cannot carry asymmetric detail.
+    /// <para><b>Deliberately callerless.</b> The port takes the column and mirror flag from EncounterActorPose.SpriteColumn and mirrors with a negative X scale.</para>
     /// </remarks>
     public static bool DrawnMirrored(int facingDirection) => facingDirection > 4;
 
@@ -102,6 +105,7 @@ public static class CreatureAnimationStep {
     /// its first byte to <c>Combat_AnimateProjectileToTarget</c> as the sprite parameter, so the
     /// creature is drawn mid-stride while it slides between cells. A port that stepped the
     /// animation and the slide independently would show a static pose gliding across the grid.
+    /// <para><b>Deliberately callerless.</b> The port has no per-slot buffer; ArenaIdleAnimator publishes the stepped frame on Combatant.GaitFrame.</para>
     /// </remarks>
     public static int PublishOffset(int animSlotIndex) => animSlotIndex;
 }

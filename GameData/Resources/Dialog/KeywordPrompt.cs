@@ -27,6 +27,7 @@ public static class KeywordPrompt {
     /// <b>It builds the grid first and gives up if there is nothing to ask about.</b> The prompt is
     /// never drawn for an empty grid — so an NPC with no available topics shows no "asked about:"
     /// line at all, rather than an empty box under a heading.
+    /// <para><b>Deliberately callerless.</b> DialogManager.AddKeywordGrid tests KeywordMenu.Opens, which this delegates to.</para>
     /// </remarks>
     public static bool Appears(int availableKeywords) => KeywordMenu.Opens(availableKeywords);
 
@@ -39,6 +40,7 @@ public static class KeywordPrompt {
     /// exits on a raw 1 — which the farewell's id already is — leaving the index at
     /// <see cref="NothingChosen"/>. Giving the farewell an id of its own would take it off the
     /// dismiss path and require a second exit branch that the original does not have.
+    /// <para><b>Deliberately callerless.</b> The port's farewell button ends the conversation directly.</para>
     /// </remarks>
     public static bool EndsTheConversation(int pollResult) =>
         pollResult == DialogChoiceMenu.DismissedResult;
@@ -80,6 +82,7 @@ public static class KeywordPrompt {
     /// <para>Implementing keywords by latching, on the strength of the menus sharing their builders
     /// and their action ids, produces a conversation that goes nowhere: nothing is watching those
     /// keys on this path.</para>
+    /// <para><b>Deliberately callerless.</b> The port reads the branch's target from the parsed DialogEntry, not from a byte offset.</para>
     /// </remarks>
     public static int BranchTargetOffsetFor(int branchIndex) =>
         DialogChoiceMenu.BranchOffset(branchIndex) + BranchTargetOffset;
@@ -91,10 +94,12 @@ public static class KeywordPrompt {
     /// It is the same <c>7500 + key</c> flag the grid reads back to grey a topic out — see
     /// <see cref="KeywordMenu.AskedFlag"/>. So asking about something is recorded for the next time
     /// the grid is built, and that is the <i>only</i> flag the keyword path writes.
+    /// <para><b>Deliberately callerless.</b> DialogManager.AddKeywordGrid sets KeywordMenu.AskedFlag(key) on the chosen topic.</para>
     /// </remarks>
     public static int FlagWrittenFor(int branchGlobalKey) => KeywordMenu.AskedFlag(branchGlobalKey);
 
     /// <summary>What the conversation continues with when the player says goodbye.</summary>
-    /// <remarks>Zero — the dialog ends rather than falling through to a branch.</remarks>
+    /// <remarks>Zero — the dialog ends rather than falling through to a branch.
+    /// <para><b>Deliberately callerless.</b> The port's farewell ends the conversation without a target lookup.</para></remarks>
     public static int TargetWhenDismissed() => ConversationOver;
 }

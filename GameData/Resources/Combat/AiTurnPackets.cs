@@ -27,6 +27,7 @@ public static class AiTurnPackets {
     /// <para><b>It is not the grid's reach.</b> The arena is 8 x 13, so a monster simply cannot see a
     /// target on the far side — a port that passed the grid diagonal instead would have monsters
     /// engaging across the whole field.</para>
+    /// <para><b>Deliberately callerless.</b> Superseded by CombatAi.SearchRadiusFor, which knows all three radii.</para>
     /// </remarks>
     public const int TargetSearchRadius = 6;
 
@@ -58,6 +59,7 @@ public static class AiTurnPackets {
     /// <summary>
     /// Whether a role is reachable through the ordinary turn packets.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> A check on RoleByPacket, used by tests to show Disengaged is reached by no packet.</remarks>
     public static bool IsReachableFromAPacket(TargetRole role) {
         for (var i = 0; i < RoleByPacket.Count; i++) {
             if (RoleByPacket[i] == role) {

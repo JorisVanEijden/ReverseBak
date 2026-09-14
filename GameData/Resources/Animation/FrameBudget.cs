@@ -49,6 +49,7 @@ public static class FrameBudget {
     /// argument it passes is a multiple of the BIOS tick rather than a frequency. The clock runs at
     /// about 59.17 Hz, so a duration in ticks is a real duration and the two rates no longer have to
     /// be guessed independently.</para>
+    /// <para><b>Deliberately callerless.</b> CutsceneTiming derives both the frame duration and PaletteCycleStepSeconds from GameTick.</para>
     /// </remarks>
     public static bool FramesAndPaletteCyclesShareOneClock => true;
 }

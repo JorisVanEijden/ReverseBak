@@ -69,6 +69,7 @@ public static class InventoryDragGesture {
     /// <c>invui_cur_spr_paint_ctrd(invui_item_sprite_select(item_ptr), 0)</c> — the item's own
     /// sprite, no scale argument, centred. So "ghost sizing" is not a choice: it is the icon at 1:1
     /// with its centre under the pointer.
+    /// <para><b>Deliberately callerless.</b> InventoryMenu.PositionGhost centres the icon-sized ghost on the pointer.</para>
     /// </remarks>
     public static bool GhostIsTheIconAtNaturalSizeCentredOnTheCursor => true;
 
@@ -94,9 +95,11 @@ public static class InventoryDragGesture {
     public const int OutlineWidthVga = 1;
 
     /// <summary>INVENTOR.PAL pen for the selected cell's outline. Fixed.</summary>
+    /// <remarks><b>Deliberately callerless.</b> InventoryMenu hard-codes this pen's INVENTOR.PAL value as OutlineRed (124,16,8; the palette gives 125,16,8).</remarks>
     public const int SelectedCellOutlinePen = 0x8b;
 
     /// <summary>INVENTOR.PAL pen the selected cell is filled with.</summary>
+    /// <remarks><b>Deliberately callerless.</b> InventoryMenu hard-codes this pen's INVENTOR.PAL value as SelectFill (64,4,8).</remarks>
     public const int SelectedCellFillPen = 0x8f;
 
     /// <summary>
