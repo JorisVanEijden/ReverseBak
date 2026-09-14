@@ -131,6 +131,7 @@ public static class GdsActionDispatch {
     /// <para>Recorded rather than repaired: <see cref="KindOf"/> maps 10 to
     /// <see cref="ActionKind.Unhandled"/>, matching what the original does rather than what it reads
     /// as having meant.</para>
+    /// <para><b>Deliberately callerless.</b> A recorded fact: KindOf maps 10 to Unhandled, and no shipped hotspot carries it.</para>
     /// </remarks>
     public static bool ActionCode10IsDead => true;
 
@@ -178,6 +179,7 @@ public static class GdsActionDispatch {
     /// Codes 3 and 4 play the scene's transition animation and then clear the current palette
     /// <i>and</i> the animation palette — two separate pointers, both zeroed, so whatever draws next
     /// must establish its own.
+    /// <para><b>Deliberately callerless.</b> Presentation not ported: LocationScenePlayer moves to the next sub-scene without playing GdsScene.TransitionAnimationTag, and palettes are RGBA at load (decision 0002).</para>
     /// </remarks>
     public static bool TransitionPlaysTheTransitionAnimation => true;
 
@@ -209,6 +211,7 @@ public static class GdsActionDispatch {
     /// Written sign-extended into the same global the shop arm later overwrites with the shop type,
     /// so its lifetime is one action. A port that sets it late, or not at all, changes which branch
     /// the hotspot's dialog takes.
+    /// <para><b>Deliberately callerless.</b> LocationScreen.Act calls PublishVisitCount before the hotspot's dialog.</para>
     /// </remarks>
     public static bool VisitCountIsPublishedBeforeTheDialog => true;
 
@@ -323,6 +326,7 @@ public static class GdsActionDispatch {
     /// Only the arms that took over the display fade and clear before the location is redrawn;
     /// something that merely spoke redraws straight over itself. Fading unconditionally puts a black
     /// flash after every click.
+    /// <para><b>Deliberately callerless.</b> LocationScreen.RaiseOverLocationAsync pushes screen arms through the navigator (which fades) and redraws the location after; speaking arms do not go through it.</para>
     /// </remarks>
     public static bool FadesBeforeRedraw(bool showedAFullScreen) => showedAFullScreen;
 }

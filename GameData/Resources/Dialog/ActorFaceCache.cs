@@ -77,6 +77,7 @@ public static class ActorFaceCache {
         string.Format(BitmapFormat, actorNumber, alternate ? "A" : string.Empty);
 
     /// <summary>The palette a portrait loads from — shared by both variants.</summary>
+    /// <remarks><b>Deliberately callerless.</b> ActorFaceView resolves the portrait through PaletteMapping.WithHostPalette; palettes are converted at load.</remarks>
     public static string PaletteNameFor(int actorNumber) =>
         string.Format(PaletteFormat, actorNumber);
 
@@ -88,6 +89,7 @@ public static class ActorFaceCache {
     /// <c>ShowDialogWithFace</c> tests for exactly that before using it — so the marker is a
     /// handshake between the two, not a colour. Writing the palette through faithfully means
     /// preserving a byte that is not really colour data.
+    /// <para><b>Deliberately callerless.</b> A handshake byte between two DOS routines; the port has no raw palette buffer to stamp.</para>
     /// </remarks>
     public static bool PaletteIsPrepared(int firstPaletteByte) =>
         firstPaletteByte == PreparedPaletteMarker;
@@ -134,6 +136,7 @@ public static class ActorFaceCache {
     /// the slot stays free and the lookup is repeated on every request. Caching the negative result
     /// would be the obvious improvement and would leave a slot permanently occupied by an actor with
     /// nothing in it.
+    /// <para><b>Deliberately callerless.</b> The port keeps no six-slot face cache; ActorFaceView loads through the resource cache.</para>
     /// </remarks>
     public static bool IsRemembered(int actorNumber) => HasFace(actorNumber);
 
