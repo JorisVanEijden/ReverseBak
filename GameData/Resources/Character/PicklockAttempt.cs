@@ -17,12 +17,6 @@ public static class PicklockAttempt {
     public const int LockpickKind = 0;
 
     /// <summary>
-    /// Global flag base recording that a lock was opened with a given key kind
-    /// (<c>LOCK_PICKED_WITH</c>): flag <c>7260 + kind</c>.
-    /// </summary>
-    public const int PickedWithFlagBase = 7260;
-
-    /// <summary>
     /// Above this, a lock cannot be opened with picks at all — no matter the skill — and only its
     /// exact key will do.
     /// </summary>
@@ -131,7 +125,4 @@ public static class PicklockAttempt {
     /// </summary>
     public static int KeyBreakThreshold(int keyKind, int skill) =>
         (100 - LockScoreForKeyKind(keyKind) - (skill / 3)) * 2 / 3;
-
-    /// <summary>The flag recording that this key kind has opened its lock.</summary>
-    public static int PickedWithFlag(int itemKind) => PickedWithFlagBase + itemKind;
 }

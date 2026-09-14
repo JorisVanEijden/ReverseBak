@@ -115,10 +115,4 @@ public class PicklockAttemptTests {
         Assert.Equal(PicklockAttempt.AttemptResult.ToolBroke,
             PicklockAttempt.WithKey(20, lockScore: 200, skill: 30, rnd: Always(0)));
     }
-
-    [Fact]
-    public void OpeningWithAKeyIsRecordedPerKeyKind() {
-        Assert.Equal(7260, PicklockAttempt.PickedWithFlag(0));
-        Assert.Equal(7265, PicklockAttempt.PickedWithFlag(5));
-    }
 }
