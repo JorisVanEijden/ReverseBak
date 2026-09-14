@@ -21,9 +21,8 @@ namespace GameData.Resources.GameState;
 /// rather than a type. Moving them here removed the second copy and gave the first its tests.
 ///
 /// <para>The rest — <see cref="ArmFor"/>, <see cref="IsCleared"/>,
-/// <see cref="RecordsFinishingGold"/> — is <b>AWAITING ITS FEATURE (TASK-145)</b>: only chapter 1 is
-/// wired and nothing transitions yet. <c>GameSession.ChapterTransitionPending</c> already
-/// round-trips through the save with no code acting on it, which is the seam they belong behind.
+/// <see cref="RecordsFinishingGold"/> — are consumed by <c>GameFlow</c>'s chapter-start step
+/// (<c>savegame_chapter_start_dispatch</c>, TASK-524), through <see cref="ChapterFinishingGold"/>.
 /// Note the type now reads as "consumed" to <c>scripts/audit-unconsumed-models.py</c>, which works
 /// at type level — this paragraph is the member-level truth it cannot see.</para></para>
 /// </remarks>
@@ -170,7 +169,7 @@ public static class ChapterTransition {
     public static ChapterSetupArm ArmFor(int chapterNumber) => chapterNumber switch {
         2 => ChapterSetupArm.LocklearInventoryToZone15,
         4 => ChapterSetupArm.OwynAndGorathInventoryToZone12,
-        5 => ChapterSetupArm.DisposeZoneZeroContainer,
+        5 => ChapterSetupArm.ZoneZeroContainerIntoLocklearsPack,
         6 => ChapterSetupArm.TwoZoneZeroContainersToZone15,
         7 or 8 => ChapterSetupArm.ReadFromTempGam,
         _ => ChapterSetupArm.Default,
@@ -179,19 +178,26 @@ public static class ChapterTransition {
 
 /// <summary>The per-chapter setup arms of <c>go_to_chapter_impl</c>'s switch.</summary>
 public enum ChapterSetupArm {
-    /// <summary>Chapter 3 and anything unmapped: two global writes, heal the party, show a dialog.</summary>
+    /// <summary>Chapter 3 and anything unmapped: no arm of its own.</summary>
+    /// <remarks><b>Corrected 2026-09-14:</b> the party heal (<c>stat_party_heal_all(100)</c>), the setup dialog (0x1e8497)
+    /// and the dirty-flag clear run AFTER the switch for EVERY chapter, not on this arm (SAVEGAME.C tail). The two
+    /// global writes are chapter 3's 0x1fbc = 0 and chapter 7's 0x1ab1 = 1, also after the switch.</remarks>
     Default,
 
     /// <summary>Chapter 2 — Locklear's inventory into a container in zone 15 at (2,2).</summary>
     LocklearInventoryToZone15,
 
-    /// <summary>Chapter 4 — Owyn's and Gorath's inventories into zone 12; light timer and sources.</summary>
+    /// <summary>Chapter 4 — Owyn's and Gorath's inventories cloned into zone 12, each given ONE torch (object 0x54,
+    /// condition 6; Gorath's lit), a palette fade, party gold zeroed (SAVEGAME.C). Not a light timer.</summary>
     OwynAndGorathInventoryToZone12,
 
-    /// <summary>Chapter 5 — take the container at zone 0 and dispose it.</summary>
-    DisposeZoneZeroContainer,
+    /// <summary>Chapter 5 — Locklear's pack becomes a copy of the zone-0 container at (10,0). The container keeps
+    /// its items: <c>actorspawn_destroy_and_persist</c> only frees the loaded copy (SAVEGAME.C, ACTSPAWN.C:163).
+    /// Falls through to the chapter 7/8 gold read-back.</summary>
+    ZoneZeroContainerIntoLocklearsPack,
 
-    /// <summary>Chapter 6 — two zone-0 containers copied into zone 15, both disposed, two globals set.</summary>
+    /// <summary>Chapter 6 — two zone-0 containers cloned into zone 15 (the sources keep their items), globals 0x1959
+    /// and 0x195a cleared (1.02 CD). Falls through to the chapter 7/8 gold read-back.</summary>
     TwoZoneZeroContainersToZone15,
 
     /// <summary>Chapters 7 and 8 — read from the TEMP.GAM stream.</summary>

@@ -95,7 +95,7 @@ public class ChapterTransitionTests {
     public void TheMappedChaptersEachGetTheirOwnArm() {
         Assert.Equal(ChapterSetupArm.LocklearInventoryToZone15, ChapterTransition.ArmFor(2));
         Assert.Equal(ChapterSetupArm.OwynAndGorathInventoryToZone12, ChapterTransition.ArmFor(4));
-        Assert.Equal(ChapterSetupArm.DisposeZoneZeroContainer, ChapterTransition.ArmFor(5));
+        Assert.Equal(ChapterSetupArm.ZoneZeroContainerIntoLocklearsPack, ChapterTransition.ArmFor(5));
         Assert.Equal(ChapterSetupArm.TwoZoneZeroContainersToZone15, ChapterTransition.ArmFor(6));
     }
 

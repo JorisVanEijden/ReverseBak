@@ -34,7 +34,8 @@ public static class SaveGameWriter {
         short? lastSeenGridStride = null,
         IReadOnlyDictionary<int, int> globalFlagEdits = null,
         IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null,
-        EncounterFoughtTimes encounterFoughtTimes = null) {
+        EncounterFoughtTimes encounterFoughtTimes = null,
+        GameData.Resources.GameState.ChapterFinishingGold chapterFinishingGold = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -145,6 +146,13 @@ public static class SaveGameWriter {
         // fixed table, not a field with an address of its own.
         if (encounterFoughtTimes != null && encounterFoughtTimes.Save(body)) {
             coverage.Add(EncounterFoughtTimes.BodyOffset, EncounterFoughtTimes.SaveSize);
+        }
+
+        // The purse at the start of each chapter, which chapters 6-8 restore on the way in (TASK-524).
+        // Written whole: nine four-byte entries at 0x12f7.
+        if (chapterFinishingGold != null && chapterFinishingGold.Save(body)) {
+            coverage.Add(GameData.Resources.GameState.ChapterFinishingGold.BodyOffset,
+                GameData.Resources.GameState.ChapterFinishingGold.SaveSize);
         }
 
         // The eight timed stat modifiers per party member. Written whole, like the two blocks

@@ -194,40 +194,56 @@ public class DialogBranchWalkerTests {
         Assert.Same(root, DialogBranchWalker.WalkToLeaf(Dlg(root, ch1), root, k => k == 30007 ? 2 : 0));
     }
 
-    // Mirrors the chapter-setup dialog DIAL_Z20 #2000023: entry pushes a branch node (Var-7 chapter
-    // switch) whose selected chapter leaf carries the ChangeParty action. The default branch targets a
-    // cross-file id (unresolvable in-file), so traversal must fall back to the PushDialogEntry.
-    [Fact] public void ExecuteActions_FollowsPushThenChapterBranch_AppliesLeafActions() {
-        var change = new ChangePartyAction { PartySize = 3, Member1 = 0, Member2 = 2, Member3 = 1 };
-        var leaf = EA(671, new DialogActionBase[] { change });
+    // Mirrors the chapter-setup dialog DIAL_Z20 #2000023: the entry pushes the Var-7 chapter node (223)
+    // and its default branch targets id 2000026, an entry in the SAME file that clears story flags.
+    // DIALOG.C:1441-1475 follows the branch first and pops the push when that tree ends.
+    private static (Dialog dialog, DialogEntry root) ChapterSetupDialog() {
+        var leaf = EA(671, new DialogActionBase[] { new ChangePartyAction { PartySize = 3, Member1 = 0, Member2 = 2, Member3 = 1 } });
         var branchNode = E(223,
             null,
             new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 1 }, TargetOffset = 671 });
+        var clears = EA(322, new DialogActionBase[] {
+            new GlobalEffectAction { Effect = new SetFlagEffect { Flag = 7812, Set = false } },
+            new GlobalEffectAction { Effect = new SetFlagEffect { Flag = 7865, Set = false } },
+        });
+        clears.Id = 2000026;
         var root = EA(194,
             new DialogActionBase[] { new PushDialogEntryAction { Offset = 223 } },
-            new DefaultBranch { TargetOffset = null }); // cross-file return in the real data
-
-        var applied = new List<DialogActionBase>();
-        DialogBranchWalker.ExecuteActions(
-            Dlg(root, branchNode, leaf), root, k => k == 30007 ? 1 : 0, applied.Add);
-
-        var change2 = applied.OfType<ChangePartyAction>().Single();
-        Assert.Equal(3, change2.PartySize);
-        Assert.Equal(new[] { 0, 2, 1 }, new[] { change2.Member1, change2.Member2, change2.Member3 });
+            new DefaultBranch { TargetId = 2000026 });
+        return (Dlg(root, branchNode, leaf, clears), root);
     }
 
-    [Fact] public void ExecuteActions_WrongChapterBranch_DoesNotReachLeaf() {
-        var leaf = EA(671, new DialogActionBase[] { new ChangePartyAction { PartySize = 3 } });
-        var branchNode = E(223,
-            null,
-            new ConditionalBranch { Condition = new VarCondition { Var = 7, Min = 1, Max = 1 }, TargetOffset = 671 });
-        var root = EA(194,
-            new DialogActionBase[] { new PushDialogEntryAction { Offset = 223 } },
-            new DefaultBranch { TargetOffset = null });
+    [Fact] public void ExecuteActions_FollowsTheIdBranchThenPopsThePush() {
+        var (dialog, root) = ChapterSetupDialog();
 
         var applied = new List<DialogActionBase>();
-        DialogBranchWalker.ExecuteActions(
-            Dlg(root, branchNode, leaf), root, k => k == 30007 ? 2 : 0, applied.Add); // chapter 2
+        DialogBranchWalker.ExecuteActions(dialog, root, k => k == 30007 ? 1 : 0, applied.Add);
+
+        var flags = applied.OfType<GlobalEffectAction>().Select(g => ((SetFlagEffect)g.Effect).Flag).ToArray();
+        Assert.Equal(new[] { 7812, 7865 }, flags);
+        var change = applied.OfType<ChangePartyAction>().Single();
+        Assert.Equal(new[] { 0, 2, 1 }, new[] { change.Member1, change.Member2, change.Member3 });
+        // The clears come before the party change: the branch tree runs, then the push pops.
+        Assert.True(applied.FindIndex(a => a is GlobalEffectAction) < applied.FindIndex(a => a is ChangePartyAction));
+    }
+
+    [Fact] public void ExecuteActions_WrongChapterBranch_StillClearsButDoesNotReachLeaf() {
+        var (dialog, root) = ChapterSetupDialog();
+
+        var applied = new List<DialogActionBase>();
+        DialogBranchWalker.ExecuteActions(dialog, root, k => k == 30007 ? 2 : 0, applied.Add); // chapter 2
+
+        Assert.Equal(2, applied.OfType<GlobalEffectAction>().Count());
+        Assert.Empty(applied.OfType<ChangePartyAction>());
+    }
+
+    [Fact] public void ExecuteActions_APushOnAnEntryWithNoBranchIsNotFollowed() {
+        // op 0x10 is stacked only while record_key != 0 — an entry that ends its tree pushes nothing.
+        var leaf = EA(671, new DialogActionBase[] { new ChangePartyAction { PartySize = 3 } });
+        var root = EA(194, new DialogActionBase[] { new PushDialogEntryAction { Offset = 671 } });
+
+        var applied = new List<DialogActionBase>();
+        DialogBranchWalker.ExecuteActions(Dlg(root, leaf), root, _ => 0, applied.Add);
 
         Assert.Empty(applied.OfType<ChangePartyAction>());
     }
