@@ -57,6 +57,9 @@ public sealed class RuntimeContainer {
             if (value && TouchClock != null) {
                 GroundContainerPool.Touch(this, TouchClock());
             }
+            if (value) {
+                ContentChanged?.Invoke();
+            }
         }
     }
 
@@ -70,6 +73,13 @@ public sealed class RuntimeContainer {
     /// call sites that have no business knowing about time.</para>
     /// </summary>
     public System.Func<int> TouchClock;
+
+    /// <summary>
+    /// Raised whenever <see cref="Dirty"/> is set, i.e. on every content change. The session attaches
+    /// it to party packs to rebuild the owner's carried-item modifiers, which the original does in
+    /// <c>cmbinv_actor_pickup_item</c> for every item that reaches a party member (TASK-510).
+    /// </summary>
+    public System.Action ContentChanged;
 
     /// <summary>
     /// The record's placement, mutable because claiming a ground bag rewrites it in place —
