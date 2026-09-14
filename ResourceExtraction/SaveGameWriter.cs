@@ -33,7 +33,8 @@ public static class SaveGameWriter {
         short? lastSeenStepSpeed = null,
         short? lastSeenGridStride = null,
         IReadOnlyDictionary<int, int> globalFlagEdits = null,
-        IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null) {
+        IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null,
+        EncounterFoughtTimes encounterFoughtTimes = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }
@@ -137,6 +138,13 @@ public static class SaveGameWriter {
         if (encounterActorStates != null
             && encounterActorStates.Save(body, EncounterObjectStates.BodyOffset)) {
             coverage.Add(EncounterObjectStates.BodyOffset, EncounterObjectStates.SaveSize);
+        }
+
+        // When each encounter was last fought, which the next visit heals its survivors from
+        // (TASK-517). Written whole like the two blocks above: a stamp is a four-byte entry in a
+        // fixed table, not a field with an address of its own.
+        if (encounterFoughtTimes != null && encounterFoughtTimes.Save(body)) {
+            coverage.Add(EncounterFoughtTimes.BodyOffset, EncounterFoughtTimes.SaveSize);
         }
 
         // The eight timed stat modifiers per party member. Written whole, like the two blocks

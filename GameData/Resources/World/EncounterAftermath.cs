@@ -37,6 +37,8 @@ public static class EncounterAftermath {
     ///
     /// <para>Note this is the FOUGHT stamp, not the visit stamp
     /// <see cref="CombatEncounterOpening.WasRecentlyVisited"/> reads — they are separate tables.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService.ForgetFight stamps EncounterFoughtTimes at the end of every fight, won or fled; this is the rule it follows (TASK-517).</para>
     /// </remarks>
     public static bool FoughtTimeIsStampedRegardless => true;
 
