@@ -120,6 +120,13 @@ public static class ProximityScan {
     /// one kind <c>proxscan_run</c> drops. It had tests and no production caller, so nothing was
     /// broken by it — but it was about to be wired into rendering (TASK-436) when the two functions
     /// were read side by side.
+    ///
+    /// <para><b>Deliberately callerless.</b> Its only caller is <c>proxscan_all_zones_for_encounter</c>,
+    /// called only from <c>worldframe_render_chapter_full</c> (the dungeon automap, WORLDFRM.C:232). That
+    /// render sorts the list and then draws every zone entry gated on its visited bit, never reading the
+    /// list, and nothing reads it before the next <c>proxscan_full</c>. Its one side effect, the underground
+    /// automap-visit record, is made identically by <c>proxscan_run</c>, which the port follows
+    /// (<c>ProximityWorld.RecordAutomapVisits</c>); <c>DungeonAutomapView.Show</c> is the visited-gated draw.</para>
     /// </remarks>
     public static bool JoinsEncounterScan(int kind, long octagonalDistance, int radius, int shift,
         long threshold, int visibleSoFar) {
