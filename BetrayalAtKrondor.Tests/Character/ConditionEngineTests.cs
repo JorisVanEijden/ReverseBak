@@ -258,4 +258,18 @@ public class ConditionEngineTests {
         Assert.Equal(80, sober);
         Assert.Equal(32, drunk); // 80 -> 40%
     }
+
+    [Fact]
+    public void EveryNearDeathWriteAsksForThePartyDownRecompute_AndNothingElseDoes() {
+        // TASK-505: STAT.C:382 recomputes the party-down byte on every condition-6 write.
+        var asked = 0;
+        var conditions = new ActorConditions { NearDeathChanged = () => asked++ };
+
+        ConditionEngine.Apply(conditions, ActorCondition.NearDeath, 50);
+        ConditionEngine.Apply(conditions, ActorCondition.NearDeath, -10);
+        ConditionEngine.Apply(conditions, ActorCondition.Poisoned, 20);
+        ConditionEngine.Apply(conditions, ActorCondition.NearDeath, 0);
+
+        Assert.Equal(2, asked);
+    }
 }

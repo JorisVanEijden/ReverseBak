@@ -151,6 +151,12 @@ public static class ConditionEngine {
         if (raisesEvent) {
             conditions.EventRaised?.Invoke(condition, appeared);
         }
+        // *** EVERY Near-death write, not only the edge. *** stat_combatant_apply_condition
+        // recomputes bCombatExitRequest whenever condition 6 changes by a non-zero amount, in or out
+        // of combat, before the collapse below clears the others (which it does not read).
+        if (condition == ActorCondition.NearDeath) {
+            conditions.NearDeathChanged?.Invoke();
+        }
 
         bool collapsed = false;
         if (condition == ActorCondition.NearDeath && amount > 0) {
