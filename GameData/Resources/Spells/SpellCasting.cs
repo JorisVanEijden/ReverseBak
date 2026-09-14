@@ -218,6 +218,8 @@ public static class SpellCasting {
     /// <para>The immunity tests at the top of that routine are <b>not</b> gated by those flags,
     /// though — see <see cref="CombatCostIsWaived"/>. That is the real difference between the two
     /// cost paths, and it is easy to miss because it sits above everything the flags control.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ChargeCasterForCast bills with applyArmor false and no absorb pool.</para>
     /// </remarks>
     public static bool CombatCostBypassesArmourAndShields => true;
 
@@ -250,6 +252,8 @@ public static class SpellCasting {
     /// <see cref="ApplyCost"/> goes straight to the health pool, so none of the combat immunities
     /// apply to a spell cast outside an encounter. Sharing one cost function between the two would
     /// make overworld casting free in states where the original still charges.
+    ///
+    /// <para><b>Deliberately callerless.</b> FieldSpellCaster bills through SpellCasting.ApplyCost, which has no waivers.</para>
     /// </remarks>
     public static bool FieldCostIsAlwaysCharged => true;
 

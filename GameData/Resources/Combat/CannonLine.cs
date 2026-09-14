@@ -185,6 +185,8 @@ public static class CannonLine {
     /// either — all four terrains draw one model at four yaws — so the names remain the
     /// interpretation this task already flagged them as, and code should switch on the terrain
     /// value rather than trust the word.
+    ///
+    /// <para><b>Deliberately callerless.</b> A warning about the CombatTerrain names, not a rule anything could apply.</para>
     /// </remarks>
     public static bool CompassNamesAreReliable => false;
 }

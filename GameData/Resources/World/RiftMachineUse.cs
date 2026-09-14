@@ -82,6 +82,7 @@ public static class RiftMachineUse {
     public const int ScrambleSlot0Range = 4;
 
     /// <summary>The scramble value written to render slot 1 — <c>rand() % 5</c>, so 0..4.</summary>
+    /// <remarks><b>Deliberately callerless.</b> RiftMachineInteractionHandler scrambles every animated mesh with ScrambleSlot0Range; the second render slot is presentation.</remarks>
     public const int ScrambleSlot1Range = 5;
 
     /// <summary>The sound the machine makes — <c>push 0x2e</c> at <c>handle_RiftMachine</c> +0x102.

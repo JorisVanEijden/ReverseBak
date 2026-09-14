@@ -51,6 +51,7 @@ public static class MonsterMeleeTurn {
     public const int KnockbackFrames = 4;
 
     /// <summary>Knockback timer set on each frame.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A per-frame animation timer; the port plays the landing cue and has no frame timer to set.</remarks>
     public const int KnockbackTimer = 0x64;
 
     /// <summary>
@@ -59,6 +60,8 @@ public static class MonsterMeleeTurn {
     /// <remarks>
     /// The floppy build has no such guard and would dereference it. Second such difference found in
     /// these routines; we target the CD build.
+    ///
+    /// <para><b>Deliberately callerless.</b> A build difference worth knowing; the port never hands the routine a null target.</para>
     /// </remarks>
     public static bool NullTargetIsGuarded => true;
 

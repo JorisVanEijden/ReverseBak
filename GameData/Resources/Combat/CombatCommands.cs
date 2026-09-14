@@ -246,6 +246,7 @@ public static class CombatCommands {
         anyPartyMemberDown ? RetreatRefusedMismatchDialog : RetreatRefusedDialog;
 
     /// <summary><b>A failed retreat still costs the turn.</b></summary>
+    /// <remarks><b>Deliberately callerless.</b> HotspotService.ResolveRetreat hands the HUD on after a failed retreat, since the turn is spent either way.</remarks>
     public static bool FailedRetreatSpendsTheTurn => true;
 
     /// <summary>Which screen the suspend button opens.</summary>

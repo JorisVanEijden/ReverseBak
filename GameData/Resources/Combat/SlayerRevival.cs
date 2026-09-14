@@ -65,9 +65,11 @@ public static class SlayerRevival {
     }
 
     /// <summary>Terrain effect left on the tile a creature rises from.</summary>
+    /// <remarks><b>Deliberately callerless.</b> CombatRuntime.TickSlayerRevivals explains why the tile flourish is presentation and not ported: 400 handed to the round sweep would leave the effect for the rest of the fight.</remarks>
     public const int RisenTileEffect = 9;
 
     /// <summary>How long that effect is set to run for.</summary>
+    /// <remarks><b>Deliberately callerless.</b> See RisenTileEffect: the flourish is presentation and not ported.</remarks>
     public const int RisenTileEffectDuration = 400;
 
     /// <summary>
@@ -191,5 +193,6 @@ public static class SlayerRevival {
 
     /// <summary>Whether the rise leaves the revival countdown cleared.</summary>
     /// <inheritdoc cref="FlagsAfterRising"/>
+    /// <remarks><b>Deliberately callerless.</b> CombatRuntime.Revive sets RevivalCountdown to NoCountdown.</remarks>
     public static bool ClearsItsOwnCountdown => true;
 }

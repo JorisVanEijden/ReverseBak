@@ -196,6 +196,8 @@ public static class CrystalChain {
     /// but <b>do not treat its absence in play as a bug, and do not spend effort making a port
     /// reproduce it faithfully.</b> TASK-270's earlier trace lists it as step 4 of the push, which
     /// is where the expectation would otherwise come from.</para></para>
+    ///
+    /// <para><b>Deliberately callerless.</b> TrapPuzzleBuilder documents it as deliberately absent from the push.</para>
     /// </remarks>
     public static int NeighboursTakenWhenBoxedIn => 1;
 }
