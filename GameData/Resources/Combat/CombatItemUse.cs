@@ -159,6 +159,7 @@ public static class CombatItemUse {
     /// mid-fight, use something, and the screen hands back the object id it used. A port that adds a
     /// Use command to the combat HUD builds a control the original does not have, and one that
     /// treats <see cref="All"/> as menu actions never finds the caller.
+    /// <para><b>Deliberately callerless.</b> HotspotService.OpenCombatInventory raises the screen from the CharacterScreen command; its PendingCombatCommandId feeds ResolveCombatItem.</para>
     /// </remarks>
     public static bool EnteredFromTheInventoryScreen => true;
 
@@ -184,6 +185,7 @@ public static class CombatItemUse {
     /// copies them back while <b>restoring each saved <c>inner</c> pointer</b>. So an item consumed
     /// or a stat changed in the screen survives into the rest of the fight, and the combat state does
     /// not. Skipping either half loses the consumption or resets the turn's flags.
+    /// <para><b>Deliberately callerless.</b> HotspotService.RunCombatInventoryAsync calls RefreshPartyStatsFromSession when the screen closes.</para>
     /// </remarks>
     public static bool PartyStateRoundTripsThroughTheScreen => true;
 
@@ -238,6 +240,7 @@ public static class CombatItemUse {
     /// <b>Yes, and nothing is consumed.</b> Every targeted arm is <c>if (target == 0) return;</c>
     /// before the tail, so backing out of the pick costs nothing — which is what makes the picker
     /// safe to open on a misclick.
+    /// <para><b>Deliberately callerless.</b> HotspotService.ResolveArmedCombatItem clears the pending item on a miss and consumes nothing.</para>
     /// </remarks>
     public static bool CancellingTheTargetPickCostsNothing => true;
 
@@ -288,6 +291,7 @@ public static class CombatItemUse {
     /// because this dispatch's shared tail runs <c>itemtbl_inv_consume_one_by_kind</c>. So the
     /// natural reading — "the screen used it, so mark it used" — <b>eats two of the item</b> for
     /// exactly the ten arms this class exists for.
+    /// <para><b>Deliberately callerless.</b> InventoryMenu.TakeCombatCommand hands the id back without consuming it.</para>
     /// </remarks>
     public static bool TheScreenConsumesOnlyWhatItKeeps => true;
 }

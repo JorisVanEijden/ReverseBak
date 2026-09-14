@@ -61,5 +61,6 @@ public static class SummonPlacement {
         Highlights(grid, x, y) ? LegalHighlight : NoHighlight;
 
     /// <summary><b>The picker cannot be cancelled.</b></summary>
+    /// <remarks><b>Deliberately callerless.</b> HotspotService keeps the placement armed until Accepts passes; no cancel path exists.</remarks>
     public static bool CanCancel => false;
 }

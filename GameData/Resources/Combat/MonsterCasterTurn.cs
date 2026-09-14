@@ -16,7 +16,7 @@ public static class MonsterCasterTurn {
     /// will not. Inverting this — treating skill as needing MORE room — would make skilled casters
     /// the timid ones.
     /// </remarks>
-    public static int ClearanceFor(int castingSkill) => 4 - castingSkill / 25;
+    public static int ClearanceFor(int castingSkill) => 4 - castingSkill / ClearancePerSkillStep;
 
     /// <summary>The divisor in <see cref="ClearanceFor"/>.</summary>
     public const int ClearancePerSkillStep = 25;
@@ -67,5 +67,6 @@ public static class MonsterCasterTurn {
     public static bool FirstPassNeedsLineOfSight => true;
 
     /// <inheritdoc cref="FirstPassNeedsLineOfSight"/>
+    /// <remarks><b>Deliberately callerless.</b> MonsterTurnResolver's retry pass picks with RetryClearance and runs no line-of-sight test.</remarks>
     public static bool RetryNeedsLineOfSight => false;
 }

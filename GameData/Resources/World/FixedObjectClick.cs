@@ -57,6 +57,7 @@ public static class FixedObjectClick {
     public const int EntryEventKey = 0x753a;
 
     /// <summary>The hotspot event kind a fixed object dispatches.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Documents the original's dispatch kind; BuildingInteractionHandler calls Resolve directly.</remarks>
     public const int HotspotEventKind = 7;
 
     // ---- the three flag bits on the interact-message subrecord --------------------------------
@@ -78,6 +79,7 @@ public static class FixedObjectClick {
     /// <b>And a refusal there cancels the rest of the click.</b> The early message is the only one
     /// whose return value is acted on: a negative answer drops the hotspot and stops everything
     /// after it. So this bit changes both when the line is heard and whether the player can decline.
+    /// <para><b>Deliberately callerless.</b> No shipped record carries the bit (0 of 478 with a dialog), so AnswerCancelsClick after the message covers every case.</para>
     /// </remarks>
     public const int MessageFirstFlag = 0x20;
 
@@ -166,6 +168,7 @@ public static class FixedObjectClick {
     /// and that is the same rule <c>GDS_RunScene</c> applies to every scene reference, already
     /// owned by the GDS layer. Restating it here would give the game two copies of one packing
     /// convention, free to drift.
+    /// <para><b>Deliberately callerless.</b> A statement of ownership; GdsSceneRules.UnpackScene is the caller.</para>
     /// </remarks>
     public static bool WarpIsUnpackedByTheGdsLayer => true;
 
