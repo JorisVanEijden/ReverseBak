@@ -73,7 +73,7 @@ public static class PitDescent {
     /// camera is moved to the next type-0x0f entity in the SAME zone and dropped. "Exits to the
     /// level below" was in the collision spec and in this comment, and both were wrong.</para>
     /// </remarks>
-    public const int PartyDeathStateOnFall = 2;
+    public const int PartyDeathStateOnFall = GameState.PartyDownState.Asserted;
 
     /// <summary>
     /// What the fall does to the party.

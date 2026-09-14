@@ -128,6 +128,7 @@ public static class GraveDigging {
     /// tells you that you cannot — and <see cref="NoShovelDialog"/>'s text is written for exactly
     /// that moment ("Besides, we need a shovel"). Checking first would be tidier and would skip a
     /// line the game means you to read.
+    /// <para><b>Deliberately callerless.</b> GraveInteractionHandler asks the grave's confirm before InventoryQuery.AnyHolds(Shovel).</para>
     /// </remarks>
     public static bool ShovelIsCheckedAfterTheConfirm => true;
 
@@ -137,6 +138,7 @@ public static class GraveDigging {
     /// <remarks>
     /// <c>dialog_Show(dialogId, 1)</c>'s non-zero return jumps to the exit. The grave's own dialog
     /// is therefore a question, not a description.
+    /// <para><b>Deliberately callerless.</b> GraveInteractionHandler returns when ShowConfirmById answers no.</para>
     /// </remarks>
     public static bool ConfirmCanBeDeclined => true;
 
@@ -146,6 +148,7 @@ public static class GraveDigging {
     /// <remarks>
     /// <c>useItem(Shovel)</c> runs before the outcome branch, so an empty coffin costs the same as a
     /// full one. It is a use, not a check: digging consumes a charge of the tool.
+    /// <para><b>Deliberately callerless.</b> GraveInteractionHandler consumes one shovel before GraveDigging.OutcomeFor.</para>
     /// </remarks>
     public static bool DiggingSpendsTheShovel => true;
 

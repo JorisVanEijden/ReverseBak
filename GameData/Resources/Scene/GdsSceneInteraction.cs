@@ -106,6 +106,7 @@ public static class GdsSceneInteraction {
     /// and the text goes on top of it. A port that only draws text — or that hands the description to
     /// a full-screen dialog — loses the picture for as long as the description is up, which is not
     /// what the original shows.
+    /// <para><b>Deliberately callerless.</b> LocationScreen.Examine renders the in-scene description without blocking, so the held picture stays up underneath.</para>
     /// </remarks>
     public static bool InSceneExamineRedrawsTheScene => true;
 
@@ -234,6 +235,7 @@ public static class GdsSceneInteraction {
     /// Sign-extended on load (<c>cbw</c>), so a code above 127 would arrive negative and match none
     /// of the dispatch arms. No shipped scene relies on it — the codes in use are 2..16 — but it
     /// fixes the width, which is what a port needs to agree on.
+    /// <para><b>Deliberately callerless.</b> GdsSceneExtractor reads the byte unsigned; the shipped codes are 2..16, so no value reaches the sign bit.</para>
     /// </remarks>
     public static int NormalizeActionCode(int rawByte) {
         int b = rawByte & 0xFF;

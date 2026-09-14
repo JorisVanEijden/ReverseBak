@@ -96,6 +96,7 @@ public static class PartyDownState {
     /// <c>EVTCOND.C:332</c> returns immediately when the byte is set — so a downed party raises no
     /// "skill improved" or condition notices. Worth having: a port that keeps sweeping would pop
     /// advancement dialogs over a party that has just been wiped out.
+    /// <para><b>Deliberately callerless.</b> PartyUpkeepService.QueueAnnouncements returns when EveryoneIsNearDeath, the same byte recomputed.</para>
     /// </remarks>
     public static bool ConditionEventsSweep(int state) => state == Standing;
 
@@ -133,6 +134,7 @@ public static class PartyDownState {
     /// The original's loop runs <c>partySize</c> times from an initial 1, so zero members leaves the
     /// 1 standing. Not obviously intentional, and reproduced rather than special-cased — it is only
     /// reachable in a state the game does not otherwise allow.
+    /// <para><b>Deliberately callerless.</b> Applied through Recompute, which GameSession.RecomputePartyDeathState calls.</para>
     /// </remarks>
     public static bool AnEmptyPartyReadsAsDown => Recompute(new int[0]) == Noticed;
 }

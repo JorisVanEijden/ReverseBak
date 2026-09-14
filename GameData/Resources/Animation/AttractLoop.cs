@@ -17,6 +17,7 @@ public static class AttractLoop {
     /// The animation loop polls the keyboard and then both buttons — left and right are checked
     /// separately and treated identically. There is no "press the correct key"; a right-click during
     /// the intro is as good as Enter. Every interruptible point in the sequence uses the same test.
+    /// <para><b>Deliberately callerless.</b> GameFlow's attract layers use anyIntentActivates, so every intent ends the loop.</para>
     /// </remarks>
     public static bool EndsOnAnyKeyOrEitherMouseButton => true;
 
@@ -63,6 +64,7 @@ public static class AttractLoop {
     /// The fade is outside the interruptible section — it runs on the way round the loop whether the
     /// pass ended by itself or not, so leaving for the menu still goes through black rather than
     /// cutting from a half-lit credits roll.
+    /// <para><b>Deliberately callerless.</b> GameFlow pops the cutscene and credits screens through the navigator, whose transition fades.</para>
     /// </remarks>
     public static bool EachPassEndsWithAFadeToBlack => true;
 }
