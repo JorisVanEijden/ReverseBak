@@ -63,6 +63,7 @@ public static class SpellTargetingRules {
     /// and 8 — are exactly the three the cursor refuses to point at an actor. So "this spell delivers
     /// nothing" and "this spell is not aimed at anybody" are the same fact seen from the two ends of
     /// the cast.
+    /// <para><b>Deliberately callerless.</b> A cross-check that SpellCastTail.DeliveryFor and AimOf agree; both are live.</para>
     /// </remarks>
     public static bool ChargeOnlyTypesAimAtGround(int targetingType) =>
         SpellCastTail.DeliveryFor(targetingType) != SpellCastTail.Delivery.ChargeOnly
@@ -142,6 +143,7 @@ public static class SpellTargetingRules {
     /// index. Recorded rather than modelled: whether that is slack in the check or a grid that is
     /// really nine by fourteen has not been established here, and the cell lookups that follow would
     /// decide it.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; the port's targeting tests CombatGrid.InBounds.</para>
     /// </remarks>
     public static bool CursorBoundsAreOneWiderThanTheGrid => true;
 
@@ -169,6 +171,7 @@ public static class SpellTargetingRules {
     /// <remarks>
     /// Every path that reaches <c>Cast_Spell</c> clears the caster's ready bit immediately
     /// afterwards, the same bit the move and melee actions clear. There is no cast-and-then-move.
+    /// <para><b>Deliberately callerless.</b> HotspotService clears the caster's Ready flag after a cast resolves.</para>
     /// </remarks>
     public static bool CastingEndsTheTurn => true;
 

@@ -43,6 +43,7 @@ public static class SpellEffectApplication {
     /// So the sign of a record field flips the arithmetic from scaling up to scaling down, in two
     /// separate calculations, with no flag to say so. Reading either field as a plain magnitude
     /// inverts the spell.
+    /// <para><b>Deliberately callerless.</b> A restatement of DurationMagnitude, which CombatRuntime uses.</para>
     /// </remarks>
     public static bool NegativeDurationDivides => true;
 
@@ -54,6 +55,7 @@ public static class SpellEffectApplication {
     /// negated value" — and zero falls into the second, dividing by nothing. No shipped spell pairs
     /// this calculation with a zero duration, so it never fires; this port answers 0 rather than
     /// reproducing a divide fault.
+    /// <para><b>Deliberately callerless.</b> A recorded fact; DurationMagnitude answers 0 instead of faulting.</para>
     /// </remarks>
     public static bool ZeroDurationWouldFault => true;
 
@@ -74,6 +76,7 @@ public static class SpellEffectApplication {
     /// <remarks>
     /// The field the pool calls a flag is fed the record's colour, so a value that reads as
     /// presentation is doing duty as effect data.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.RegisterLingeringEffect passes 0 for the flag: the spell record carries no colour yet, and no port handler reads the flag.</para>
     /// </remarks>
     public static bool EffectFlagIsTheSpellColour => true;
 
@@ -110,9 +113,11 @@ public static class SpellEffectApplication {
     public static int GridElementStrength(int cost, int duration) => cost * duration;
 
     /// <summary>Delivery categories that play the ranged wind-up before the effect.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate of SpellCastSound.RangedKinds ({0, 2, 3, 7, 8}), which ForCombatCast uses.</remarks>
     public static readonly int[] RangedWindupCategories = { 0, 2, 3, 7, 8 };
 
     /// <summary>Delivery categories that play a melee swing instead.</summary>
+    /// <remarks><b>Deliberately callerless.</b> SpellCastSound.ForCombatCast plays the swing for every kind outside RangedKinds.</remarks>
     public static readonly int[] MeleeSwingCategories = { 1, 4 };
 
     /// <summary>
@@ -140,7 +145,8 @@ public static class SpellEffectApplication {
         && deliveryCategory != 6;
 
     /// <summary>
-    /// <b>Skyfire is tested a second time here, and the second test aborts the cast.</b>
+    /// <b>STALE — CORRECTED 2026-09-14: the second test does NOT abort the cast.</b> See <see cref="SpellCastTail.SkyfireEndsTheCast"/>,
+    /// corrected 2026-09-08 against both sources: the fixed-amount arm returns zero damage and the cast still reaches the charge. Superseded reading below.
     /// </summary>
     /// <remarks>
     /// The fixed-amount arm exists only to re-check whether the target is using metal, and on a
@@ -148,6 +154,7 @@ public static class SpellEffectApplication {
     /// tail's continue flag — see <see cref="SpellCastTail.RecordPointerDoublesAsContinueFlag"/> — so
     /// the second test is not redundant with the magnitude rule: the first makes Skyfire's damage
     /// zero, the second stops the cast before it animates, bills or lands.
+    /// <para><b>Deliberately callerless.</b> Superseded by SpellCastTail.SkyfireEndsTheCast: SpellEffectMagnitude already yields zero and nothing aborts.</para>
     /// </remarks>
     public static bool SkyfireIsRecheckedAtApplication => true;
 }
