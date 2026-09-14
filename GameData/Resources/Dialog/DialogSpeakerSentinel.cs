@@ -137,6 +137,11 @@ public sealed class DialogSpeakerSentinel {
 
         if (id > 0 && id <= LastPartyActorNumber) {
             PartySpeaker = id;
+            // *** A LITERAL PARTY SPEAKER MOVES THE PRIMARY ACTOR TOO. *** DIALOG.C:895-897 is
+            // `partySpeaker = wSpeaker_id; nEvtArgActor0 = partySpeaker - 1;`, so a later bare '@'
+            // names whoever last spoke — "Locklear motioned up the road" makes the mender's "@
+            // rummaged around" say Locklear (TASK-493). 0xfe reaches this branch too, as it does there.
+            NewPrimaryActor = id - 1;
         } else if (id > 0) {
             NpcSpeaker = id;
         }

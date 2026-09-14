@@ -152,4 +152,23 @@ public class DialogSpeakerSentinelTests {
         Assert.Equal(1, DialogBackdropCamera.SpeakerSlot(party, resolved));
         Assert.Equal(-1, DialogBackdropCamera.SpeakerSlot(party, 0xFF));
     }
+
+    [Fact]
+    public void ALiteralPartySpeakerBecomesThePrimaryActor_ButTheRunningOneAndAnNpcDoNot() {
+        // TASK-493, DIALOG.C:895-897: nEvtArgActor0 = partySpeaker - 1 for a literal 1..6.
+        var speakers = new DialogSpeakerSentinel();
+        speakers.Begin(ChapterSpeaker);
+
+        speakers.Resolve(1, ChapterSpeaker);
+        Assert.Equal(0, speakers.NewPrimaryActor);
+
+        speakers.Resolve(0xFF, ChapterSpeaker);
+        Assert.Null(speakers.NewPrimaryActor);
+
+        speakers.Resolve(0x46, ChapterSpeaker);
+        Assert.Null(speakers.NewPrimaryActor);
+
+        speakers.Resolve(0xFE, ChapterSpeaker);
+        Assert.Equal(ChapterSpeaker, speakers.NewPrimaryActor);
+    }
 }
