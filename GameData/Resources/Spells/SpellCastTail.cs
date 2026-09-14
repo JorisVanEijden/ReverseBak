@@ -227,6 +227,7 @@ public static class SpellCastTail {
     /// The animation routine takes an out-parameter, and the whole six-spell lookup is skipped when
     /// it comes back zero. So Final Rest does not kill and Flamecast does not fire unless the
     /// animation says so — the visual is a gate on the mechanic, not a decoration over it.
+    /// <para><b>Deliberately callerless.</b> A shape difference: the port runs no cspell_invoke_effect, so there is no animation result to gate the hooks on (see DealsDamage).</para>
     /// </remarks>
     public static bool HooksRequireAnimationResult => true;
 
@@ -328,6 +329,7 @@ public static class SpellCastTail {
     /// It is not a separate "mana" pool with its own rules; the spell price and a sword blow arrive
     /// through the same door, differing only in the flags word (0 for the caster's own cost, 0x200
     /// for spell damage dealt to a target).
+    /// <para><b>Deliberately callerless.</b> CombatRuntime charges the caster through StatEngine.ModifyHealthPool, the same pool a blow drains.</para>
     /// </remarks>
     public static bool CostIsPaidInHealth => true;
 
@@ -371,6 +373,7 @@ public static class SpellCastTail {
     /// The global that adds half the cost is cleared at the dispatcher's shared return, on every path
     /// including the early ones. So whatever sets it buys exactly one boosted cast, and a port that
     /// treats it as a persistent state flag will boost every spell after the first.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime clears SurchargeNextCast on every cast path after HotspotService sets it for the Infinity Pool.</para>
     /// </remarks>
     public static bool SurchargeIsConsumedByOneCast => true;
 }

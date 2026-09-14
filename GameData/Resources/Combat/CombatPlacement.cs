@@ -20,6 +20,7 @@ public static class CombatPlacement {
     /// The routine's first test: on a grid with <b>no</b> exit, a downed actor is not moved at all.
     /// With an exit it is placed like anyone else. So corpses stay put in a closed arena and are
     /// tidied away in an open one, which is a visible difference in where bodies end up.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime calls FindTile only while setting up an encounter, when no combatant is down.</para>
     /// </remarks>
     public static bool LeavesDownedActorInPlace(bool gridHasExit, bool actorIsDown) =>
         !gridHasExit && actorIsDown;
@@ -44,6 +45,7 @@ public static class CombatPlacement {
     /// <remarks>
     /// It walks from the actor's row down to zero. Rows <i>below</i> the actor are never examined by
     /// this pass — that was the fallback's job.
+    /// <para><b>Deliberately callerless.</b> FindTile's first loop walks y from actorY down to 0, which is this rule inline.</para>
     /// </remarks>
     public static bool FirstPassCoversRow(int row, int actorY) => row >= 0 && row <= actorY;
 
@@ -72,6 +74,7 @@ public static class CombatPlacement {
     /// actor's row up to row zero is unusable, which needs heavy terrain blocking rather than merely
     /// a crowded field. Our port sweeps the grid properly rather than reproducing a walk off the top
     /// of it, and this records why that is a deviation rather than an oversight.</para>
+    /// <para><b>Deliberately callerless.</b> A recorded deviation: FindTile's second loop sweeps the grid properly instead.</para>
     /// </remarks>
     public static bool FallbackPassIsBroken => true;
 
@@ -120,6 +123,7 @@ public static class CombatPlacement {
     /// registration routine before returning. A live actor is simply written to its new tile. So
     /// moving a body is not the same operation as moving a fighter, even though one function does
     /// both.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime calls FindTile only while setting up an encounter, when no combatant is down.</para>
     /// </remarks>
     public static bool DownedActorIsReRegistered(bool actorIsDown) => actorIsDown;
 }

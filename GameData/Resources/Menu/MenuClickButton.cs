@@ -10,6 +10,9 @@ namespace GameData.Resources.Menu;
 /// nothing more than the button.</b> It reads as a mode because the call sites test it against a
 /// bare 1 or 2 far from where it is set, and because it is polled once per frame into a global
 /// rather than passed along with the click.
+///
+/// <para><b>Deliberately callerless as a type.</b> The port's input layer carries the button as a bool
+/// (isPrimary) from the pointer event, so nothing needs the 0/1/2 state.</para>
 /// </remarks>
 public static class MenuClickButton {
     /// <summary>Nothing is held.</summary>
@@ -31,7 +34,7 @@ public static class MenuClickButton {
     /// that.
     /// </remarks>
     /// <remarks>
-    /// <b>NO PRODUCTION CONSUMER BY DESIGN for these two arrays.</b> They are DOS scan codes, and
+    /// <b>Deliberately callerless — NO PRODUCTION CONSUMER BY DESIGN for these two arrays.</b> They are DOS scan codes, and
     /// Unity's input system addresses keys by its own <c>Key</c> enum — there is no scan-code path
     /// to read them through, so <c>SystemInputSource</c> binds <c>numpad5Key</c>, <c>numpad0Key</c>
     /// and <c>numpadPlusKey</c> directly and cannot consume this data.
@@ -44,6 +47,7 @@ public static class MenuClickButton {
     public static readonly int[] PrimaryScanCodes = { 0x4c, 0x52 };
 
     /// <inheritdoc cref="PrimaryScanCodes"/>
+    /// <remarks><b>Deliberately callerless.</b> SystemInputSource binds numpadPlusKey directly; the scan code is the evidence for which key.</remarks>
     public static readonly int[] SecondaryScanCodes = { 0x4e };
 
     /// <summary>
@@ -66,6 +70,7 @@ public static class MenuClickButton {
     /// <c>state != 1</c> lump the two together — which is right for them, because a fixed-object
     /// click is only reached with a button down. A caller that can be reached with none held must
     /// not copy that shape.
+    /// <para><b>Deliberately callerless.</b> The port's interaction handlers are handed an isPrimary flag rather than the raw state.</para>
     /// </remarks>
     public static bool IsActing(int state) => state == Primary;
 }
