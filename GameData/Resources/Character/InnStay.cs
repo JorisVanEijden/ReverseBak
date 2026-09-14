@@ -166,6 +166,7 @@ public static class InnStay {
     /// <remarks>
     /// <c>Min = 1</c> on that branch, and 30003 is computed as <c>PartyGold &gt;= price</c>, so a
     /// party holding exactly the asking price CAN stay. Both figures are in royals.
+    /// <para>Callerless since TASK-496: the offer's own Var 3 router decides now; kept as the pinned meaning of global 30003.</para>
     /// </remarks>
     public static bool CanAfford(int partyGoldRoyals, int priceRoyals) =>
         partyGoldRoyals >= priceRoyals;
@@ -174,6 +175,7 @@ public static class InnStay {
     /// <remarks>
     /// "The innkeeper frowned. 'Let me guess,' he said, reading @4's distressed face as he searched
     /// his pack for the money…". It carries no branches, so the conversation ends there.
+    /// <para>Callerless since TASK-496: the refusal plays through the offer's own chain now.</para>
     /// </remarks>
     public const string RefusedDialogKey = "base:ddx:dial_z13:16267";
 }

@@ -201,6 +201,7 @@ public static class PitDescent {
     /// <see cref="NoTarget"/> territory, and the conditions, sound and dialog happen either way.
     /// Modelled rather than folded into the caller because it is the one input that makes an
     /// otherwise-valid target not be used.
+    /// <para>Callerless on purpose: the port has no pending full-redraw state to suppress a descent with.</para>
     /// </remarks>
     public static bool DescentIsAnimated(bool fullRedrawPending, int target) =>
         !fullRedrawPending && target != NoTarget;

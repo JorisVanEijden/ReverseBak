@@ -79,6 +79,7 @@ public static class AmbientSound {
     /// <para>So the sound sets are recorded as what they are and the flag is left unnamed. Calling
     /// it a day/night flag would be a guess dressed as a finding, and a port that wired it to a clock
     /// would change when NPCs can be interacted with.</para>
+    /// <para>Callerless on purpose: it records an open question, not a rule anything should branch on.</para>
     /// </remarks>
     public static bool MoodFlagMeaningIsKnown => false;
 

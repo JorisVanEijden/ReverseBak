@@ -175,6 +175,7 @@ public static class PitRopeCrossing {
     /// <c>useItem(Rope)</c> — <c>party_consumeOneOfKindFromAnyMember</c> — and only then re-counts.
     /// So crossings are limited by the ropes carried, and a port that omits this gives unlimited
     /// crossings from one rope.
+    /// <para>Callerless on purpose: a pinned fact; the rule itself is PitInteractionHandler.SpendARope().</para>
     /// </remarks>
     public static bool CrossingConsumesARope => true;
 

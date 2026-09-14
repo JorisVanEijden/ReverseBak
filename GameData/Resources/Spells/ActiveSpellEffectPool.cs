@@ -344,6 +344,7 @@ public sealed class ActiveSpellEffectPool {
     }
 
     /// <summary>How many slots are currently in use — for diagnosing the leak above.</summary>
+    /// <remarks>Callerless on purpose: a diagnostic for the slot leak described above, read from a debugger or a test.</remarks>
     public int InUse {
         get {
             var count = 0;

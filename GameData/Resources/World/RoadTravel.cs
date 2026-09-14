@@ -339,6 +339,7 @@ public static class RoadTravel {
     /// Ticks between travel steps: <c>CellSize / stepSize</c>. Raising the step-size preference
     /// mid-travel resets the counter, so the caller must re-snap when it changes.
     /// </summary>
+    /// <remarks>Callerless on purpose: PartyMovement paces travel its own way (see its remark on the step tick), so the original's counter has no consumer.</remarks>
     public static int TicksPerStep(int stepSize) => stepSize <= 0 ? 0 : CellSize / stepSize;
 
     private static (int X, int Y) DiagonalSample(int index) {

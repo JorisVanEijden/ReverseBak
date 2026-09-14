@@ -69,6 +69,7 @@ public static class NoteMapView {
     /// The write sits outside the test on the map id, so reading a note whose map has no image
     /// still records that map as seen. Nothing reads it back for those ids, but a port that only
     /// sets the flag on a successful display would diverge from the save's contents.
+    /// <para>Callerless on purpose: a pinned fact; InventoryUse.UseNote writes the flag unconditionally.</para>
     /// </remarks>
     public static bool MarksViewedEvenWithNoImage => true;
 

@@ -177,5 +177,6 @@ public class CreatureAffinity {
     public int ResistanceFlags { get; set; }
 
     /// <summary>Whether this class has any affinity at all. Most classes have none.</summary>
+    /// <remarks>Callerless in code on purpose: it is serialized into generated/EXE/combat-affinity.json for readers of the data.</remarks>
     public bool IsPlain => WeaknessFlags == 0 && ResistanceFlags == 0;
 }

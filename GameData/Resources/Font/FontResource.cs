@@ -131,5 +131,6 @@ public class FontGlyph {
     }
 
     /// <summary>Whether anything is drawn at a pixel.</summary>
+    /// <remarks>Callerless in production on purpose: the font extractor's tests read glyph pixels through it.</remarks>
     public bool IsSet(int x, int y) => PixelAt(x, y) != 0;
 }

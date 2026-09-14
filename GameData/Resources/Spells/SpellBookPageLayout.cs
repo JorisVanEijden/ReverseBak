@@ -77,6 +77,7 @@ public static class SpellBookPageLayout {
     public const int TextWidth = 0x109 * 5;
 
     /// <summary>Height the list is laid out in — VGA 0x1e.</summary>
+    /// <remarks>Callerless on purpose: the port's list flows within TextWidth and needs no fixed height.</remarks>
     public const int TextHeight = 0x1e * 6;
 
     /// <summary>The pen the spell list is written in.</summary>

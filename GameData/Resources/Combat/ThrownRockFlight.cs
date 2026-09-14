@@ -54,6 +54,7 @@ public static class ThrownRockFlight {
     public const int SkipCue = 0x48;
 
     /// <summary>The step count a MISS uses: it flies until it leaves the screen.</summary>
+    /// <remarks>Callerless on purpose: the miss overshoot is not drawn — see Launch's remark.</remarks>
     public const int MissStepCount = 10000;
 
     /// <summary>One step of the flight.</summary>

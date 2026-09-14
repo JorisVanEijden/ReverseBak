@@ -270,6 +270,7 @@ public sealed class TrapPuzzle {
     ///
     /// <para>The walk is: find the axis the run lies on, back up to its start, advance to the first
     /// tile holding an element, then collect consecutive crystal tiles from there.</para>
+    /// <para>Callerless on purpose for now: it drives the crystal light sweep, which the port does not animate (a feedback gap, not a rule — see the remarks).</para>
     /// </remarks>
     public IReadOnlyList<(int X, int Y)> TraceCrystalLine(int x, int y) {
         var run = new List<(int X, int Y)>();
