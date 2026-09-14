@@ -147,6 +147,7 @@ public static class ActorFaceCache {
     /// Every slot's bitmap and palette are freed, the table itself is released and the pointer
     /// cleared. There is no per-actor eviction anywhere — which is why a scene transition is the
     /// only thing that reclaims a portrait.
+    /// <para><b>Deliberately callerless.</b> The port keeps no face cache to evict from.</para>
     /// </remarks>
     public static bool EvictsIndividually => false;
 }

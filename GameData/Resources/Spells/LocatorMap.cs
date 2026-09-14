@@ -43,6 +43,7 @@ public static class LocatorMap {
     /// <c>CastLocatorSpell</c> overwrites the height with <c>mapMaxZ</c> after the map-mode snap, so
     /// the locator always shows the widest view whatever the player left the overhead map at — and
     /// the player's own zoom survives, because the spell saves and restores it.
+    /// <para><b>Deliberately callerless.</b> LocatorMapScreen.CameraHeight returns the zone's MapMaxZ.</para>
     /// </remarks>
     public static bool OpensAtMaximumZoom => true;
 
@@ -135,6 +136,7 @@ public static class LocatorMap {
     /// The bounds test is widened by <see cref="MarkerRadius"/> on all four sides before the circle
     /// is drawn, so a thing just off the edge shows as a half dot rather than vanishing. Testing the
     /// centre alone would pop markers out a full radius early.
+    /// <para><b>Deliberately callerless.</b> LocatorMapScreen.TryProject widens its bounds by half a dot, the same slack in canonical pixels.</para>
     /// </remarks>
     public const int MarkerClipSlack = MarkerRadius;
 
@@ -176,6 +178,7 @@ public static class LocatorMap {
     /// asks NO question about the entity type and does NOT subtract the object's extent — it is a
     /// plain centre-to-centre range test, and then the contents check. Both list scans do the
     /// opposite on both counts (see <see cref="Marks"/>).
+    /// <para><b>Deliberately callerless.</b> Known divergence, documented on LocatorMapScreen.OnInsetLaidOut: the port has no separate fixed-object list, so only the list-scan rule (Marks) runs.</para>
     /// </remarks>
     /// <param name="target">Which of the three searches is running.</param>
     /// <param name="groundDistance">Distance across the ground from the party to the object.</param>
@@ -278,6 +281,7 @@ public static class LocatorMap {
     /// Each pass saves the camera's yaw and zeroes it for the duration when the north-up option is
     /// set, exactly as the overhead map's own render does — so the markers and the terrain under
     /// them always agree about which way is up.
+    /// <para><b>Deliberately callerless.</b> LocatorMapScreen.ApplyCamera takes LocalMapScreen.MapRendersWithYaw, the same rule, and places markers through that camera.</para>
     /// </remarks>
     public static int MarkersDrawnWithYaw(int partyYaw, bool northUp) => northUp ? 0 : partyYaw;
 }

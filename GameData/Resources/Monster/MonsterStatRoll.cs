@@ -146,6 +146,7 @@ public static class MonsterStatRoll {
     /// that makes <see cref="Combat.MonsterSummon.Morale"/> stick: the summon routine zeroes morale
     /// before calling the roll, so the template's own nerve is skipped and the creature never routs.
     /// Rolling unconditionally hands every summon a morale and undoes that.
+    /// <para><b>Deliberately callerless.</b> Summons are the only roll in the port; HotspotService's profile gives a summon MonsterSummon.Morale instead of the template's.</para>
     /// </remarks>
     public static bool RollsMorale(int currentMorale) => currentMorale != 0;
 
@@ -156,6 +157,7 @@ public static class MonsterStatRoll {
     /// Fields 9, 10 and 11 go straight into <c>aiTurnProfile</c>, <c>aiEncounterProfile</c> and
     /// <c>aiPathProfile</c>. That is why <see cref="Combat.MonsterSummon"/>'s profile assignment is
     /// dead code — it happens three lines before this roll runs over it.
+    /// <para><b>Deliberately callerless.</b> The port never pins a summon's AI profiles; its profile is built from the creature's own MONST stats.</para>
     /// </remarks>
     public static bool AiProfilesSurviveTheRoll => false;
 }

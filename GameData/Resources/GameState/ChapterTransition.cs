@@ -147,6 +147,7 @@ public static class ChapterTransition {
     public const int ClearedGlobalsEnd = 5200;
 
     /// <summary>Whether a global is wiped by the transition. Half-open: <c>[First, End)</c>.</summary>
+    /// <remarks><b>Deliberately callerless.</b> GameSession loops ClearedGlobalsFirst..ClearedGlobalsEnd directly.</remarks>
     public static bool IsCleared(int globalKey) =>
         globalKey >= ClearedGlobalsFirst && globalKey < ClearedGlobalsEnd;
 

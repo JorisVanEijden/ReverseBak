@@ -24,6 +24,7 @@ public static class MonsterSummon {
     /// The roster add is the first thing tried; a full field shows <see cref="NoRoomDialog"/> and the
     /// routine gives up before anything else happens. Nothing refunds the cast — a port that checks
     /// for room before charging is being kinder than the game.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.Summon shows NoRoomDialog and returns null after the cast is paid; nothing refunds it.</para>
     /// </remarks>
     public static bool Succeeds(bool rosterHadRoom) => rosterHadRoom;
 
@@ -74,6 +75,7 @@ public static class MonsterSummon {
     /// All three spell words are zeroed at spawn. So conjuring a creature whose kind is a caster
     /// gets you its body and not its book — a port that copies the template's spell lists produces a
     /// summon far stronger than the game's.
+    /// <para><b>Deliberately callerless.</b> HotspotService's monster profile sets canCastSpells only when the combatant is not summoned.</para>
     /// </remarks>
     public static bool KnowsSpells => false;
 
@@ -126,6 +128,7 @@ public static class MonsterSummon {
 
     /// <summary><b>Overwritten by the stat roll, so nothing downstream sees it.</b></summary>
     /// <inheritdoc cref="Pattern"/>
+    /// <remarks><b>Deliberately callerless.</b> The port never assigns Pattern, so there is nothing to overwrite.</remarks>
     public static bool PatternSurvivesTheStatRoll => false;
 
     /// <summary>
@@ -141,6 +144,7 @@ public static class MonsterSummon {
     public const CombatantFlags InitialFlags = CombatantFlags.AiSummon;
 
     /// <summary>No spell effect is attached at spawn.</summary>
+    /// <remarks><b>Deliberately callerless.</b> CombatRuntime.Summon registers no effect; only SummonDecoy does.</remarks>
     public const int NoEffectSlot = -1;
 
     /// <summary>

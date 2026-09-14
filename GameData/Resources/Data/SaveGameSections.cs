@@ -43,8 +43,12 @@ public class SaveGameData {
     [JsonIgnore]
     public byte[] ZoneContainerData { get; }
 
+    /// <remarks><b>Deliberately callerless.</b> Serialized into the generated save JSON for inspection.</remarks>
     public int WorldDataLength { get => WorldData.Length; }
+    /// <remarks><b>Deliberately callerless.</b> Serialized into the generated save JSON for inspection.</remarks>
     public int ActorDataLength { get => ActorData.Length; }
+    /// <remarks><b>Deliberately callerless.</b> Serialized into the generated save JSON for inspection.</remarks>
     public int CombatDataLength { get => CombatData.Length; }
+    /// <remarks><b>Deliberately callerless.</b> Serialized into the generated save JSON for inspection.</remarks>
     public int ZoneContainerDataLength { get => ZoneContainerData.Length; }
 }
