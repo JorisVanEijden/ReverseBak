@@ -58,9 +58,23 @@ public static class MonsterVariantAttackTurn {
     /// <remarks>
     /// Unlike the flat damage in <see cref="MonsterTurnRoutines.ChooseRangedTurn"/>, these attacks scale with the
     /// creature, so the ranges above are the input to that scaling rather than the damage dealt.
-    /// The scaling function itself is not ported here.
+    /// See <see cref="ScaleByHealth"/>.
     /// </remarks>
     public static bool DamageIsStatScaled => true;
+
+    /// <summary>
+    /// The rolled damage scaled by the attacker's health — <c>cbstat_scale_base_stat_pct</c>
+    /// (CBSTAT.C:222), <c>(damage * healthPercent + 90) / 100</c>.
+    /// </summary>
+    /// <param name="damage">The <c>RNDR</c> roll from the chosen <see cref="Variant"/>.</param>
+    /// <param name="healthPercent">Health as a percentage of its maximum, stamina NOT included —
+    /// <c>combat_actor_stat_percent(actor, 0)</c>.</param>
+    /// <remarks>
+    /// <b>The +90 rounds almost everything up</b>, so a creature at half health deals 15 from a roll
+    /// of 29, not 14.
+    /// </remarks>
+    public static int ScaleByHealth(int damage, int healthPercent) =>
+        (damage * healthPercent + 90) / 100;
 
     /// <summary>Whether the routine attacks at all.</summary>
     public static bool Attacks(bool hasLineOfSight, int distance) =>

@@ -27,6 +27,15 @@ public static class MonsterMeleeTurn {
     /// <summary>Damage flags.</summary>
     public const int DamageFlags = 0x200;
 
+    /// <summary>The launch cue — <c>audio_play(0x51)</c>, before the projectile flies.</summary>
+    public const int LaunchCue = 0x51;
+
+    /// <summary>
+    /// The landing cue — <c>audio_play(0x1d)</c>, played AFTER the damage and the four knockback
+    /// frames rather than on impact.
+    /// </summary>
+    public const int LandingCue = 0x1d;
+
     /// <summary>Knockback applied by the hit.</summary>
     public const int Knockback = 1;
 

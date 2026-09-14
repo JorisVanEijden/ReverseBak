@@ -194,6 +194,18 @@ public static class MonsterTurnRoutines {
     /// <summary>Tiles beyond which the volley routine shoots rather than closing.</summary>
     public const int VolleyMinimumDistance = 2;
 
+    /// <summary>The heavy shot's launch cue — <c>audio_play(0x12)</c>, before the projectile flies.</summary>
+    public const int HeavyShotLaunchCue = 0x12;
+
+    /// <summary>The heavy shot's impact cue — <c>audio_play(0x15)</c>, once it lands.</summary>
+    /// <remarks>
+    /// <b>The light shot plays neither</b>: its branch (CBTAIACT.C:126-130) has no audio call at all.
+    /// </remarks>
+    public const int HeavyShotImpactCue = 0x15;
+
+    /// <summary>Damage flags both shots pass — <c>combat_arena_apply_damage(..., 0x200, 0)</c>.</summary>
+    public const int RangedTurnDamageFlags = 0x200;
+
     /// <summary>What the ranged routine settles on.</summary>
     public enum RangedChoice {
         /// <summary>No shot this turn — hand the turn to the generic move/attack picker.</summary>

@@ -38,6 +38,9 @@ public static class MonsterHeavyRangedTurn {
     /// <summary>Damage flags.</summary>
     public const int DamageFlags = 0x200;
 
+    /// <summary>The impact cue — <c>audio_play(0x15)</c>. The routine has no launch cue.</summary>
+    public const int ImpactCue = 0x15;
+
     /// <summary>Whether the routine attacks, rather than deferring to pathing.</summary>
     public static bool Attacks(bool hasLineOfSight, int distance) => hasLineOfSight && distance > 1;
 }

@@ -32,6 +32,14 @@ public class MonsterVariantAndHeavyTurnTests {
     }
 
     [Fact]
+    public void TheHealthScaleRoundsUp_AndFullHealthIsTheRoll() {
+        // (damage * pct + 90) / 100: half health from a roll of 29 is 15, not 14.
+        Assert.Equal(15, MonsterVariantAttackTurn.ScaleByHealth(29, 50));
+        Assert.Equal(29, MonsterVariantAttackTurn.ScaleByHealth(29, 100));
+        Assert.Equal(0, MonsterVariantAttackTurn.ScaleByHealth(29, 0));
+    }
+
+    [Fact]
     public void TheHeavyRoutineRestoresSTRENGTHEveryTurn() {
         // *** The first statement of the routine, before it even looks for a target. *** Draining
         // this creature's Strength is pointless - it undoes the damage itself each turn, whether or
