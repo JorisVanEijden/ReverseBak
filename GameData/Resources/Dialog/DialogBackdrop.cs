@@ -96,8 +96,12 @@ public static class DialogBackdrop {
     /// field while the party is standing beside a corpse on a road: the shot is of a DIFFERENT
     /// camera. Matching the original here means re-pointing the camera, not painting a fill.</para>
     ///
-    /// <para><b>Not yet applied</b> — our backdrop renders the live camera. Tracked on the task; the
-    /// rule is recorded here so the reason the two differ is not rediscovered from scratch.</para>
+    /// <para><b>Applied</b> by <c>WorldRuntime.TurnCameraToSpeaker</c>, handed to DialogManager as its
+    /// backdrop camera seam, which turns the view with <see cref="DialogBackdropCamera.YawFor"/>.
+    /// This line said "not yet applied" long after it was.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact; the rule lives in
+    /// <see cref="DialogBackdropCamera"/>.</para>
     /// </remarks>
     public const bool RepointsCameraForSpeaker = true;
 
