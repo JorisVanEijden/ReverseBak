@@ -21,6 +21,8 @@ public static class SpellPerSpellHandlers {
     /// Twenty-nine of the forty-five spells fall through to the shared tail untouched. The switch is
     /// large but mostly empty, which is why reading the jump table rather than the case list is the
     /// only honest way to know who is special.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ResolveCast dispatches each handler by spell id; CombatSpellHandlerSetTests pins that this set and the arms agree with the original.</para>
     /// </remarks>
     public static bool HasHandler(int spellId) {
         switch (spellId) {
@@ -54,6 +56,8 @@ public static class SpellPerSpellHandlers {
     /// CostTimesDuration spells that registered a lingering effect before ever reaching here. Worth
     /// knowing before someone goes looking for the code that makes Skin of the Dragon work: there
     /// isn't any, beyond the duration arithmetic and a sound cue.
+    ///
+    /// <para><b>Deliberately callerless.</b> The three cues come from SpellCastSound.ForCombatSpell, and the effect is the duration arithmetic, so there is nothing to call.</para>
     /// </remarks>
     public static bool HandlerIsSoundOnly(int spellId) =>
         spellId == SpellIds.HochosHaven
@@ -77,17 +81,6 @@ public static class SpellPerSpellHandlers {
 
         return spellId == SpellIds.BaneOfBlackSlayers && !targetIsBlackSlayer;
     }
-
-    /// <summary>
-    /// <b>Bane of Black Slayers does nothing to anything else.</b>
-    /// </summary>
-    /// <remarks>
-    /// The handler calls <c>IsBlackSlayer</c> on the target and, if it says no, jumps to the same
-    /// magnitude-zeroing tail Strength Drain uses. Its record's damage of 5 against a cost of 10-15
-    /// is therefore 50-75 against exactly one creature and nothing at all against everything else —
-    /// a restriction with no field to express it.
-    /// </remarks>
-    public static bool BaneAppliesTo(bool targetIsBlackSlayer) => targetIsBlackSlayer;
 
     /// <summary>
     /// The strength Strength Drain takes: <b>the cost divided by the record's damage field</b>.
@@ -150,6 +143,8 @@ public static class SpellPerSpellHandlers {
     /// timed one is passed -20, because the permanent path works in the 8.8 fixed point
     /// <c>StatEngine.Modify</c> already models. Copying one number into the other path is out by a
     /// factor of 256.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.TryAddStatusEffect makes the same choice on Combatant.IsPartyMember for every timed stat change, Despair Thy Eyes included.</para>
     /// </remarks>
     public static bool DespairIsPermanentFor(int targetActorNumber) => targetActorNumber == 0;
 
