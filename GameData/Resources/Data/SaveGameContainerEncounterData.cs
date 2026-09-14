@@ -68,6 +68,7 @@ public class SaveGameContainerEncounterData {
         get => HasHotspot != 0;
     }
 
+    /// <remarks><b>Deliberately callerless.</b> Serialized into the generated savegame JSON for readers of that output; no C# caller needs it.</remarks>
     public string? GdsFilename {
         get {
             if (GdsNumber == 0 || GdsLetter == 0) {

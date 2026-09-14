@@ -131,6 +131,7 @@ public sealed class EncounterVisitTable {
     }
 
     /// <summary>Slots currently holding a tile.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A diagnostic for the slot-claiming rule; the tests read it, production has no reason to.</remarks>
     public int UsedSlots {
         get {
             var used = 0;

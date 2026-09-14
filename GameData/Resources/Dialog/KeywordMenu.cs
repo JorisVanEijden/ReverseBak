@@ -24,6 +24,7 @@ public static class KeywordMenu {
     public const int AskedFlagBase = 7500;
 
     /// <summary>Action id the farewell reports. Every keyword reports its own, well above this.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DialogManager's farewell reports the negative choice result (-1), which is what the original's caller tests; this records the widget's own action id.</remarks>
     public const int FarewellActionId = 1;
 
     /// <summary>Action ids for keywords start here and count up by branch index.</summary>

@@ -50,6 +50,9 @@ public static class RestAction {
     /// <remarks>
     /// <c>stat_combatant_modify(actor, 0x10, ...)</c> — attribute 16, the combined health/stamina
     /// entry rather than either one alone.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime applies the heal to that combined pool through
+    /// <c>StatEngine.ModifyHealthPool</c>; this names which attribute it is.</para>
     /// </remarks>
     public const ActorAttribute HealedAttribute = ActorAttribute.HealthStaminaCombo;
 
