@@ -268,13 +268,17 @@ public static class CombatActionDispatch {
         statPercent >= DefendThresholdPercent ? GuardAction.Defend : GuardAction.Rest;
 
     /// <summary>
-    /// <b>Clicking a party member switches who is acting.</b>
+    /// <b>Corrected 2026-09-14: this is the Inspect arm, and it does NOT hand the turn to anyone.</b>
     /// </summary>
     /// <remarks>
-    /// A separate action kind from anything on the field: it takes the actor under the cursor,
-    /// checks it is in the roster, clears the current actor's ready bit and hands the turn over. So
-    /// the party's turn order is not fixed once a round starts — the player can pass control around,
-    /// and doing so spends the previous actor's readiness.
+    /// The only call of <c>combat_arena_switch_active_actor</c> is menu state 3 (COMBAT.C:2311), and it
+    /// fires only when the clicked combatant passes <c>combatenc_is_encounter_actor</c>: it clears the
+    /// current actor's ready bit and animates the clicked combatant's stat rolls. The routine itself
+    /// (COMBAT.C:1476) never assigns the current actor. This remark used to say that clicking a party
+    /// member passes control — there is no such arm.
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService.ResolveInspectClick clears Ready and shows
+    /// the CombatAssessment reveal (TASK-241), which is this rule.</para>
     /// </remarks>
     public static bool SwitchingActorSpendsTheCurrentTurn => true;
 
