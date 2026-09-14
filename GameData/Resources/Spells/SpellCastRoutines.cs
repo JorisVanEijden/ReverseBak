@@ -363,6 +363,26 @@ public static class SpellCastRoutines {
         KnockbackDx(direction) == 0 && KnockbackDy(direction) == 0;
 
     /// <summary>
+    /// The direction a caster-to-victim grid offset names, 0-7, or -1 for the same cell —
+    /// <c>combat_actor_heading_from_dxdy</c>, whose result <c>cspell_actor_walk_steps</c> divides back
+    /// down by 0x1000.
+    /// </summary>
+    /// <remarks>
+    /// 0 is -Y, 2 is +X, 4 is +Y, 6 is -X, with the diagonals between: the numbering
+    /// <see cref="KnockbackDx"/> and <see cref="KnockbackDy"/> take. These are GRID deltas — not
+    /// <c>ArenaFacing.OctantToward</c>, which numbers from the camera's point of view.
+    /// </remarks>
+    public static int KnockbackDirection(int dx, int dy) {
+        if (dx > 0) {
+            return dy == 0 ? 2 : dy > 0 ? 3 : 1;
+        }
+        if (dx < 0) {
+            return dy == 0 ? 6 : dy > 0 ? 5 : 7;
+        }
+        return dy > 0 ? 4 : dy < 0 ? 0 : -1;
+    }
+
+    /// <summary>
     /// <b>The push stops at the first cell the victim cannot enter.</b>
     /// </summary>
     /// <remarks>

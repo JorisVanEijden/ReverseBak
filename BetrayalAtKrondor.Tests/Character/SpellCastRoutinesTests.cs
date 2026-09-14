@@ -173,6 +173,19 @@ public class SpellCastRoutinesTests {
     }
 
     [Fact]
+    public void TheKnockbackDirectionIsTheOriginalsOctantOfTheGridOffset() {
+        Assert.Equal(0, SpellCastRoutines.KnockbackDirection(0, -2));
+        Assert.Equal(1, SpellCastRoutines.KnockbackDirection(3, -1));
+        Assert.Equal(2, SpellCastRoutines.KnockbackDirection(1, 0));
+        Assert.Equal(3, SpellCastRoutines.KnockbackDirection(1, 5));
+        Assert.Equal(4, SpellCastRoutines.KnockbackDirection(0, 1));
+        Assert.Equal(5, SpellCastRoutines.KnockbackDirection(-1, 1));
+        Assert.Equal(6, SpellCastRoutines.KnockbackDirection(-4, 0));
+        Assert.Equal(7, SpellCastRoutines.KnockbackDirection(-1, -1));
+        Assert.Equal(-1, SpellCastRoutines.KnockbackDirection(0, 0));
+    }
+
+    [Fact]
     public void TheKnockbackRunsOneCellPerPointOfCost() {
         Assert.Equal(14, SpellCastRoutines.KnockbackCells(14));
     }
