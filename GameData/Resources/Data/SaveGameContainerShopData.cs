@@ -70,6 +70,12 @@ public class SaveGameContainerShopData {
     public byte LastRestockChapter { get; }
     public byte InnRestHours { get; }
     public byte InnCostPerNight { get; }
+
+    /// <summary>This block with a different nightly rate — the rest arm's <c>bRest_gold_cost</c> write (TOWNSCN.C:553-555).</summary>
+    public SaveGameContainerShopData WithInnCostPerNight(byte cost) =>
+        new SaveGameContainerShopData(ShopType, MarkupPercentage, MaxHagglingDiscount, MarkDownPercentage,
+            ShopkeeperSkill, TeleportParam, BardingDifficulty, BardingReward, BaseBardingReward,
+            LastRestockChapter, InnRestHours, cost, RepairCategories, RepairCostMarkup, ShopCategories);
     public byte RepairCategories { get; }
     public byte RepairCostMarkup { get; }
     /// <summary>+0xE. Overloaded: traded item-category flags (shops) <b>or</b> the base teleport cost
