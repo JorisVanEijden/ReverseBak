@@ -80,6 +80,7 @@ public static class MonsterStatRoll {
     /// <summary>
     /// The equipment category the substitution tests — <c>cbstat_find_intact_equip_cat(actor, 2)</c>.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> The roll's only caller is cspell_summon_monster (CSPELL.C:737), and no shipped summon conjures creature 0x12 (spells: 44, 56, 57; items: 0x2e, 0x38). The original's test would also read a stale slot record, since combat_actor_party_add assigns no actor record. CombatRuntime.Summon passes hasIntactCrossbow false.</remarks>
     public const ObjectType SubstitutionCategory = ObjectType.Crossbow;
 
     /// <summary>
