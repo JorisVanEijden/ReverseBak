@@ -65,6 +65,8 @@ public static class CatapultUse {
     /// <remarks>
     /// <c>ax = (current &amp; 0xFF00) | frame</c>. The high byte carries something else and is
     /// preserved across every step; writing the whole word would clear it.
+    ///
+    /// <para><b>Deliberately callerless.</b> CatapultInteractionHandler steps FrameSequence as presentation and writes no frame word back into an item.</para>
     /// </remarks>
     public static int FrameWord(int currentWord, int frame) => (currentWord & 0xFF00) | (frame & 0xFF);
 

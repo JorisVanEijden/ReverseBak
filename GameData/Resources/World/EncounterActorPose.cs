@@ -145,6 +145,7 @@ public static class EncounterActorPose {
     /// Whether this kind of actor is drawn at all. Anything that is not
     /// <see cref="WalkingKind"/> or <see cref="DownedKind"/> is skipped outright.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> EncounterActorSpriteBuilder only ever builds WalkingKind or DownedKind actors, so there is nothing to skip.</remarks>
     public static bool IsDrawn(int kind) => kind == WalkingKind || kind == DownedKind;
 
     /// <summary>

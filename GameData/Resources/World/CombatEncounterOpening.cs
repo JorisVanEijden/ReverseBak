@@ -110,6 +110,8 @@ public static class CombatEncounterOpening {
     /// shape — run the AI when clear, clear <c>CAF_READY</c> when set. Nothing about it concerns
     /// firing; it is "the party got the drop". Naming a port after it would leave the surprise
     /// mechanic looking like ammunition bookkeeping.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime reads PartyHasTheDrop directly for the forfeit and cites this rule there.</para>
     /// </remarks>
     public static bool EnemiesForfeitTheirOpeningTurn(Opening opening) => PartyHasTheDrop(opening);
 

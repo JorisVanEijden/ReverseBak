@@ -80,6 +80,8 @@ public static class SpellTargetingRules {
     ///
     /// <para>It also explains why no monster can cast it: the caster AI only ever asks for types 0
     /// and 1 (see <c>MonsterSpellcasting</c>), so type 7 is out of its reach by construction.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService.SpellTargetIsValid applies it for Aim.DownedActor.</para>
     /// </remarks>
     public static bool RequiresADownedTarget(int targetingType) =>
         AimOf(targetingType) == Aim.DownedActor;
@@ -92,6 +94,8 @@ public static class SpellTargetingRules {
     /// monsters carry. So the spells that route to the heal delivery or hang a lingering effect can
     /// only be aimed at the party, and the cursor enforces it before the dispatcher ever sees the
     /// cast.
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService.SpellTargetIsValid applies it for Aim.NamedCharacter: a live party member.</para>
     /// </remarks>
     public static bool PartyOnly(int targetingType) => AimOf(targetingType) == Aim.NamedCharacter;
 
@@ -102,6 +106,8 @@ public static class SpellTargetingRules {
     /// Red or green, and nothing else — a cell with any other trap element is refused, as is a cell
     /// with none. Its counterpart is the clear-ground rule for types 5 and 6, which refuses a cell
     /// that <i>has</i> a crystal: between them the two rules partition the floor.
+    ///
+    /// <para><b>Deliberately callerless.</b> The crystal-aimed path tests CrystalChain.IsCrystalElement, elements 7-8, which are exactly the red and green crystals.</para>
     /// </remarks>
     public static bool CrystalIsTargetable(bool isRedCrystal, bool isGreenCrystal) =>
         isRedCrystal || isGreenCrystal;
@@ -121,6 +127,8 @@ public static class SpellTargetingRules {
     /// Types 0, 1, 2, 3 and 4 all test the same status bit and reject it when set; type 7 tests it
     /// and rejects when <i>clear</i>. So the same bit reads as "not a valid target" for eight spells
     /// and "the only valid target" for one.
+    ///
+    /// <para><b>Deliberately callerless.</b> HotspotService.SpellTargetIsValid applies it for Aim.DownedActor, the one aim that accepts a downed target.</para>
     /// </remarks>
     public static bool AcceptsIncapacitated(int targetingType) =>
         AimOf(targetingType) == Aim.DownedActor;
@@ -174,6 +182,8 @@ public static class SpellTargetingRules {
     /// <see cref="FieldBottomY"/> is in the menu bar rather than the field, and a distance of
     /// <see cref="OffGridDistance"/> is the sentinel for a cursor that is not over a cell. Both leave
     /// the action pending rather than cancelling it.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port's menu is a separate UI layer that consumes its own clicks and its pick returns a cell or nothing, so both DOS-space gates hold by construction; see CombatTargetSelection.ResolveOnField.</para>
     /// </remarks>
     public static bool ClickCommitsTheCast(int mouseY, int cursorDistance) =>
         mouseY < FieldBottomY && cursorDistance != OffGridDistance;
@@ -192,6 +202,8 @@ public static class SpellTargetingRules {
     /// The empty-cell branch lets type 8 through to the same call the actor path uses, passing the
     /// null it found. Every other type falls to the ground-cast test instead, so an empty cell and a
     /// type that wants an actor simply does not commit.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatTargetSelection.ResolveOnField commits a crystal-aimed cast on an empty cell, and ground clicks go straight to ResolveCellCast.</para>
     /// </remarks>
     public static bool EmptyCellStillCasts(int targetingType) =>
         AimOf(targetingType) == Aim.Crystal || AimOf(targetingType) == Aim.ClearGround;

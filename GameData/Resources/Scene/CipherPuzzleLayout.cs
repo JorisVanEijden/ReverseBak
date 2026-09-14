@@ -41,6 +41,7 @@ public static class CipherPuzzleLayout {
     public const int DistinctColumns = 15;
 
     /// <summary>Whether a target of this length can be shown without stacking letters.</summary>
+    /// <remarks><b>Deliberately callerless.</b> PuzzleScreen lays out MaxColumns wheels directly; this states why the target never outgrows them.</remarks>
     public static bool FitsWithoutOverlap(int width) => width <= DistinctColumns;
 
     /// <summary>The action id of a column, or -1 when it is past what the screen can show.</summary>
@@ -236,6 +237,7 @@ public static class CipherPuzzleLayout {
     /// <summary>
     /// Where the incoming letter sits relative to the outgoing one at the start of a roll.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> PuzzleScreen animates the roll from RollTravel directly; this is its negation, kept as the stated rule.</remarks>
     public static int IncomingLetterOffset(int fontHeight) => -RollTravel(fontHeight);
 
     // ------------------------------------------------------------------ reading it at all

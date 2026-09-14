@@ -113,6 +113,7 @@ public static class ZoneTransition {
     /// What <see cref="SkipsTheMove"/> was evidently meant to be: already there in every component.
     /// Deliberately uncalled — see that method's remarks.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> Its own summary says why: SkipsTheMove is the rule the original actually runs.</remarks>
     public static bool SkipsTheMoveAsIntended(Location destination,
         int currentZone, int currentX, int currentY, int currentRotation) =>
         NormalizeZone(destination.ZoneNumber) == currentZone
@@ -135,6 +136,8 @@ public static class ZoneTransition {
     /// leaves eye altitude and pitch exactly as they were. Facing is reset either way — only the
     /// vertical pair is conditional. Modelled as a parameter rather than assumed, because a teleport
     /// that silently levelled the camera would undo whatever set that flag.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port has no camera-override flag (word_dseg_1A76), so there is nothing to test; arrival lays the camera out afresh.</para>
     /// </remarks>
     public static bool ResetsCameraHeightAndPitch(bool cameraOverrideActive) => !cameraOverrideActive;
 }

@@ -122,6 +122,8 @@ public static class PicklockWorkingSet {
     /// <c>13 + (82 - bodyWidth) / 2</c> (0x5bd10). The four difficulty images are different widths,
     /// so a fixed x would step the lock sideways as the difficulty changed. Placing it at the panel
     /// origin — the obvious guess, since that is where the box is drawn — puts it in the corner.
+    ///
+    /// <para><b>Deliberately callerless.</b> InventoryMenu centres the body in canonical space directly from PanelVgaX and PanelVgaWidth, because going through VGA would round twice.</para>
     /// </remarks>
     public static int BodyVgaX(int bodyWidthVga) =>
         PanelVgaX + ((PanelVgaWidth - bodyWidthVga) / 2);
