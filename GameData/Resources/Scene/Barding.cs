@@ -134,13 +134,4 @@ public static class Barding {
     /// try again.
     /// </remarks>
     public static bool SpendsTheFund(int reward) => reward > 0;
-
-    /// <summary>The song that plays, by how good the player is.</summary>
-    /// <remarks>Four bands, and the best one is a DIFFERENT tune rather than the same one played
-    /// better — the skill picks the piece, not the performance.</remarks>
-    public static int SongFor(int partyBestBarding) =>
-        partyBestBarding < 45 ? 1008
-        : partyBestBarding < 65 ? 1040
-        : partyBestBarding < 85 ? 1039
-        : 1007;
 }

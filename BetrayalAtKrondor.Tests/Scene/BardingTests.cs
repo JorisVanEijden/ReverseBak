@@ -60,14 +60,6 @@ public class BardingTests {
     }
 
     [Fact]
-    public void TheBestPlayerGetsADifferentTuneRatherThanTheSameOneBetter() {
-        Assert.Equal(1008, Barding.SongFor(44));
-        Assert.Equal(1040, Barding.SongFor(45));
-        Assert.Equal(1039, Barding.SongFor(65));
-        Assert.Equal(1007, Barding.SongFor(85));
-    }
-
-    [Fact]
     public void TheTiersAreNotCleanFractionsOfEachOther() {
         // The fund is multiplied by ten FIRST and the divisions truncate, so a port that reasoned
         // in halves and quarters of the payout would drift on odd funds.
