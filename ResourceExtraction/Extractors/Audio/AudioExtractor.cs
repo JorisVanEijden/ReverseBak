@@ -23,7 +23,9 @@ public class AudioExtractor : ExtractorBase<AudioResource> {
         }
         uint dataBlockSize = resourceReader.ReadUInt32();
         ushort soundId = resourceReader.ReadUInt16();
-        audioResource.AudioType = soundId >= 1000 ? AudioType.Music : AudioType.SoundEffect;
+        // The original's split is audio_play's `sound_id >= 0x3e9` (AUDIO.C:388); this read `>= 1000`,
+        // which differs only at id 1000, and no sound 1000 ships.
+        audioResource.AudioType = MusicPlayback.IsMusic(soundId) ? AudioType.Music : AudioType.SoundEffect;
         // Log($"Sound ID: {soundId} (0x{soundId:X4})");
         byte fieldC = resourceReader.ReadByte();
         // Per-sound flags (RE audio_playSound_sub_seg067_D @0x35e6d): 0x01 = music, 0x02 = looping,

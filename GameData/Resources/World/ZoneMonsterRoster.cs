@@ -76,6 +76,7 @@ public static class ZoneMonsterRoster {
     /// Whether a creature is on the zone's roster for a chapter — the membership test an encounter
     /// placement does before deciding it needs the extra residency slot.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> A DOS creature-art residency rule; the port loads creature art per placement, so no roster membership test is needed.</remarks>
     public static bool Offers(ZoneShape zone, int chapter, CreatureType creature) =>
         creature != CreatureType.None && TypesIn(zone, chapter).Contains(creature);
 
@@ -86,6 +87,7 @@ public static class ZoneMonsterRoster {
     /// <b>Most rows are empty</b> — 46 of the shipped 108 carry anything — so this is the common
     /// case rather than an edge one. A zone with an empty row is not broken; the party either cannot
     /// reach it in that chapter or meets nothing there.
+    /// <para><b>Deliberately callerless.</b> An empty roster is ordinary data; nothing in the port branches on it.</para>
     /// </remarks>
     public static bool HasAny(ZoneShape zone, int chapter) => TypesIn(zone, chapter).Count > 0;
 

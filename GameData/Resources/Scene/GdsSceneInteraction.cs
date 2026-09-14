@@ -33,6 +33,7 @@ public static class GdsSceneInteraction {
     ///
     /// <para>Ids below <see cref="GdsSceneRules.HotspotActionIdBase"/> are not hotspots at all;
     /// they leave this loop.</para>
+    /// <para><b>Deliberately callerless.</b> LocationScreen splits the buttons upstream: PrimaryAction acts, SecondaryAction examines.</para>
     /// </remarks>
     public static Click ClickFor(int actionId, bool rightButton) {
         if (actionId < GdsSceneRules.HotspotActionIdBase) {
@@ -90,6 +91,7 @@ public static class GdsSceneInteraction {
     /// Only the in-scene arm clears the current-palette pointer, so whatever draws next must reload
     /// it. Distinct from <see cref="GdsSceneRules.InvalidatesPalette"/>, which is the same effect
     /// reached through a dialog <i>result</i> — two independent routes to the same reload.
+    /// <para><b>Deliberately callerless.</b> The port converts palettes to RGBA at load (decision 0002), so there is no current-palette pointer to clear.</para>
     /// </remarks>
     public static bool ExamineInvalidatesPalette(ExamineStyle style) => style == ExamineStyle.InScene;
 

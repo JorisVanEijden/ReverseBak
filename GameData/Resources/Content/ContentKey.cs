@@ -11,8 +11,10 @@ public static class ContentKey {
 
     public static string ForBase(string catalog, int index) => $"{BaseNamespace}:{catalog}:{index}";
 
+    /// <remarks><b>Deliberately callerless.</b> The mod-key API: no source keys content outside the base namespace yet (see TASK-259's notes).</remarks>
     public static string ForMod(string mod, string key) => $"{mod}:{key}";
 
+    /// <remarks><b>Deliberately callerless.</b> The mod-key API: no source keys content outside the base namespace yet (see TASK-259's notes).</remarks>
     public static string NamespaceOf(string? key) {
         if (string.IsNullOrEmpty(key)) return string.Empty;
         int i = key!.IndexOf(':');

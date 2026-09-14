@@ -46,12 +46,14 @@ public static class MusicPlayback {
     public static bool IsMusic(int soundId) => soundId >= FirstMusicId;
 
     /// <summary>Fade rate passed to the fade-out before a switch.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A DOS driver rate; MidiPlaybackManager.FadeOutAsync reproduces the observable FadeSeconds instead.</remarks>
     public const int FadeRate = 0x32;
 
     /// <summary>Ticks the original waits for the fade to finish before stopping the driver.</summary>
     public const int FadeWaitTicks = 0x15e;
 
     /// <summary>Volume a freshly started track is set to.</summary>
+    /// <remarks><b>Deliberately callerless.</b> MidiPlaybackManager restores the player's own volume after a fade, so a new track starts at full.</remarks>
     public const int FullVolume = 0x7f;
 
     /// <summary>
@@ -147,5 +149,6 @@ public static class MusicPlayback {
     /// playing. So the track a later query reports is the one that <i>would</i> be playing, and
     /// turning music back on mid-game does not resync it.</para>
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> MidiPlaybackManager.PlaySong records the track before its GameMusic preference gate.</remarks>
     public static bool IsAudible(bool musicEnabledInPreferences) => musicEnabledInPreferences;
 }

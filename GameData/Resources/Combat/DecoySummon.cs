@@ -97,6 +97,7 @@ public static class DecoySummon {
     /// from the caster to the chosen tile, with the caster's own creature type as the projectile —
     /// so the illusion visibly travels there. A port that makes it appear instantly loses the tell
     /// that says which caster it came from.
+    /// <para><b>Deliberately callerless.</b> Presentation not ported: CombatRuntime.SummonDecoy places the decoy at once (cspell_summon_actor flies it in with world_rndr_ranged_attack_anim). WorldRuntime's ProjectileFlight is where a flight would go.</para>
     /// </remarks>
     public static bool ArrivesOnAProjectile => true;
 
@@ -107,6 +108,7 @@ public static class DecoySummon {
     /// The decoy takes an active spell-effect slot carrying <see cref="Spell"/> and the cast's
     /// duration — unlike <see cref="MonsterSummon"/>, which sets no slot at all
     /// (<see cref="MonsterSummon.NoEffectSlot"/>) and therefore lasts until killed.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.SummonDecoy registers the decoy's effect slot with the cast duration.</para>
     /// </remarks>
     public static bool ExpiresWithItsSpell => true;
 
@@ -117,6 +119,7 @@ public static class DecoySummon {
     /// The placement click is consumed by <see cref="SummonPlacement"/>'s loop, and this spins until
     /// the button comes back up before creating the actor. Without it the same press would carry
     /// through into whatever the new grid state offers next.
+    /// <para><b>Deliberately callerless.</b> The port's placement is one pointer event per click, so no press can carry through.</para>
     /// </remarks>
     public static bool WaitsForButtonRelease => true;
 
