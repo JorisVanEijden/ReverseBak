@@ -42,7 +42,8 @@ public static class HitReaction {
     public const int BlowRemap = 1;
 
     /// <summary>The remap a storm effect flashes through — <c>markActorHit(actor, 3)</c>.</summary>
-    /// <remarks><c>Spell_PlayStormSequence</c> @0x6741b, before its lightning loop.</remarks>
+    /// <remarks><c>Spell_PlayStormSequence</c> @0x6741b, before its lightning loop.
+    /// <para><b>Deliberately callerless.</b> Presentation: nothing draws the remap tint yet (TASK-103), and spells are left to BlowRemap until each is read.</para></remarks>
     public const int StormRemap = 3;
 
     /// <summary>The remap a HEAL flashes through — <c>markActorHit(target, 4)</c>.</summary>
@@ -50,6 +51,7 @@ public static class HitReaction {
     /// <b>Proof that the index is per-effect rather than "struck".</b> <c>Spell_HealTarget</c>
     /// @0x682f3 passes 4, deeper into the fade ramp than a blow's 1 — so the same mechanism marks a
     /// mending as well as a wounding, and a port that hard-coded one value would tint them alike.
+    /// <para><b>Deliberately callerless.</b> Presentation: nothing draws the remap tint yet (TASK-103).</para>
     /// </remarks>
     public const int HealRemap = 4;
 
@@ -83,6 +85,7 @@ public static class HitReaction {
     /// <para><b>The faithful port is to advance this from the attack animation's own step</b>, so
     /// the recoil ends two steps after the hit whatever that animation costs. Recorded here rather
     /// than decided, because it is a rendering decision and the renderer does not exist yet.</para>
+    /// <para><b>Deliberately callerless.</b> WorldRuntime calls CombatRuntime.TickHitReactions after each arena redraw.</para>
     /// </remarks>
     public static bool TicksPerCombatViewRedraw => true;
 

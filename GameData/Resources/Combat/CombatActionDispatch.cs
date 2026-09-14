@@ -237,6 +237,7 @@ public static class CombatActionDispatch {
     /// plays the help record and returns, and left-click writes <c>selectedMenuCmd</c> and returns.
     /// The choice is acted on after the dispatcher, not inside it — so a port that performs the
     /// action in the click handler runs it a step too early.
+    /// <para><b>Deliberately callerless.</b> The port resolves a HUD command in HotspotService's command handler; no step between storing the choice and acting on it is modelled.</para>
     /// </remarks>
     public static bool LeftClickOnlyRecordsTheChoice => true;
 
@@ -283,6 +284,7 @@ public static class CombatActionDispatch {
     /// <remarks>
     /// The same screen-Y test the cast action uses, so the rule is shared across every action rather
     /// than being a property of casting.
+    /// <para><b>Deliberately callerless.</b> The port's HUD and arena are separate UI regions, so a menu-bar click never reaches the field pick.</para>
     /// </remarks>
     public static bool ClickIsOnTheField(int mouseY) => mouseY < FieldBottomY;
 
@@ -315,6 +317,7 @@ public static class CombatActionDispatch {
     /// The reset clears any target whose cannot-act bit is set. Within a round an actor can still be
     /// pointed at somebody who has just gone down — the engine only tidies up between rounds, which
     /// is visible if anything reads the target during the round it happens.
+    /// <para><b>Deliberately callerless.</b> CombatEncounter.BeginRound drops a dead target, as combatenc_refresh_actor_flags does (CBENC.C:745 tests CAF_DEAD).</para>
     /// </remarks>
     public static bool KeepsTargetIntoNextRound(bool targetCanStillAct) => targetCanStillAct;
 
@@ -325,6 +328,7 @@ public static class CombatActionDispatch {
     /// The turn advance turns the outgoing actor toward its target (or the nearest enemy if it has
     /// none) and only then clears its ready flag. So a combatant's final facing is a property of the
     /// turn it just took, not of whatever happens next.
+    /// <para><b>Deliberately callerless.</b> DirectionalSprite turns each arena sprite toward its target through ArenaFacing.HeadingTo.</para>
     /// </remarks>
     public static bool TurnEndFacesBeforeSpending => true;
 
@@ -335,6 +339,7 @@ public static class CombatActionDispatch {
     /// After picking the next actor the advance re-tests its cannot-act bit and, if set, picks again
     /// — a loop, not a single retry. So a round in which several combatants are incapacitated
     /// advances straight past all of them to the first one that can move.
+    /// <para><b>Deliberately callerless.</b> CombatEncounter picks the next actor only from those that can act.</para>
     /// </remarks>
     public static bool AdvanceSkipsIncapacitatedActors => true;
 }

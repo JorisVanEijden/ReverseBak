@@ -18,10 +18,12 @@ public static class RangedExchange {
     /// <c>(target, 4, 0x200)</c> is inside it. So missing still costs the shooter condition on their
     /// weapon, which is the kind of asymmetry a port silently drops by putting both inside
     /// <c>if (hit)</c>.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime's shot wears the crossbow before the hit test and the armour only after a hit.</para>
     /// </remarks>
     public static bool WeaponWearsEvenOnAMiss => true;
 
     /// <inheritdoc cref="WeaponWearsEvenOnAMiss"/>
+    /// <remarks><b>Deliberately callerless.</b> CombatRuntime's shot calls WearEquipped for the target's armour only after the hit.</remarks>
     public static bool ArmourWearsOnlyOnAHit => true;
 
     /// <summary>Equipment category worn by shooting — the crossbow.</summary>
@@ -60,6 +62,7 @@ public static class RangedExchange {
     /// <remarks>
     /// Base <see cref="BaseDamageFlags"/>, plus bit 0 for the heavier kinds, plus bit 3 for
     /// <see cref="StatusEffectQuarrelKind"/>.
+    /// <para><b>Deliberately callerless.</b> The knockback term only sets the recoil flag (COMBAT.C:377), which CombatRuntime.MarkHit applies on a hit; the other flag bits are not modelled.</para>
     /// </remarks>
     public static int DamageFlagsFor(int quarrelKind) {
         int flags = BaseDamageFlags;
@@ -95,6 +98,7 @@ public static class RangedExchange {
     public const int StatusEffectQuarrelKind = 3;
 
     /// <summary>Whether this kind applies the status effect.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A rendering hack: status effect type 4 is never queried, so there is nothing to apply.</remarks>
     public static bool AppliesStatusEffect(int quarrelKind) => quarrelKind == StatusEffectQuarrelKind;
 
     /// <summary>
@@ -105,6 +109,7 @@ public static class RangedExchange {
     /// — so a shot that connects advances the stat twice. Awarding only on a hit would halve the
     /// shooter's progression; awarding only once would halve it differently. Mirrors
     /// <see cref="CombatAdvancement.OnMeleeDeclared"/> and <see cref="CombatAdvancement.OnMeleeHit"/>.
+    /// <para><b>Deliberately callerless.</b> CombatRuntime calls CombatAdvancement.OnShotDeclared before the roll and OnShotHit on a hit.</para>
     /// </remarks>
     public static int SkillAwards(bool hit) => hit ? 2 : 1;
 

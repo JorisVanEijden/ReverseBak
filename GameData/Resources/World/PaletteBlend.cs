@@ -45,6 +45,7 @@ public static class PaletteBlend {
     /// <c>source + (target − source) × (64 − light) / 64</c>, and the division <b>truncates toward
     /// zero</b>: the original precomputes the magnitude and negates it, so a channel moving down
     /// rounds the same way as one moving up.
+    /// <para><b>Deliberately callerless.</b> WorldLightingService lerps in a shader from EffectOf / Scale, so no per-channel integer table is built.</para>
     /// </remarks>
     public static int Channel(int source, int target, int lightLevel) {
         if (IsPassThrough(lightLevel)) {
@@ -68,6 +69,7 @@ public static class PaletteBlend {
     /// deliberate and is what lets one index serve both signs. A port that keeps two arrays with
     /// bounds checks does not reproduce it; a port that keeps two arrays and indexes the wrong one
     /// gets the sign backwards.
+    /// <para><b>Deliberately callerless.</b> A DOS table-layout fact; the port builds no lookup table.</para>
     /// </remarks>
     public static bool TablesAreContiguous => true;
 
@@ -75,5 +77,6 @@ public static class PaletteBlend {
     /// The table is rebuilt only when the light level changes from the previous call — the original
     /// caches on exactly that.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> A DOS caching fact; the port builds no lookup table.</remarks>
     public static bool TableIsCachedByLevel => true;
 }

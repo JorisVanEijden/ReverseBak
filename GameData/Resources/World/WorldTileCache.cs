@@ -85,6 +85,7 @@ public static class WorldTileCache {
     }
 
     /// <summary>Whether the party has left the tile in slot 0.</summary>
+    /// <remarks><b>Deliberately callerless.</b> DOS slot-cache bookkeeping; TileResidency uses IsResident and keeps no slot 0.</remarks>
     public static bool HasCrossed(int currentTileX, int currentTileY, int slotZeroX, int slotZeroY) =>
         currentTileX != slotZeroX || currentTileY != slotZeroY;
 
@@ -96,6 +97,7 @@ public static class WorldTileCache {
     /// 1..8, so a lookup for the tile already current answers "not found" — which is safe only
     /// because the caller has already compared against slot 0 and returned. A port that searches
     /// from 0 finds the current tile and swaps it with itself.
+    /// <para><b>Deliberately callerless.</b> DOS slot-cache bookkeeping; the port has no nine-slot tile cache to search.</para>
     /// </remarks>
     public static bool IsSearchable(int slot) => slot > CurrentSlot && slot < Slots;
 
