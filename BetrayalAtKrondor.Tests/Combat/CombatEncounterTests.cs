@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.Combat;
 
+using GameData.Resources.Spells;
 using GameData.Resources.Combat;
 using Xunit;
 
@@ -421,5 +422,32 @@ public class CombatEncounterTests {
 
         Assert.Equal(DeathOutcome.RemovedFromField,
             new CombatEncounter().Kill(fleeing, playAnimation: false));
+    }
+
+    /// <summary>An expired Dannon's Delusions decoy leaves the field when the round begins.</summary>
+    /// <remarks>
+    /// cspell_actor_tick_status_effects (CSPELL.C:2458) fires Final Rest on an actor whose decoy slot
+    /// runs out, clears its tile and removes it with no corpse. The pool always reported the verdict;
+    /// BeginRound now acts on it, and an ordinary actor beside it is untouched.
+    /// </remarks>
+    [Fact]
+    public void AnExpiredDecoyIsRemovedAtTheStartOfTheRound() {
+        var encounter = new CombatEncounter();
+        var grid = new CombatGrid();
+        var hero = new Combatant { PartySlot = 1, Health = 30, Stamina = 30, Speed = 6, X = 1, Y = 1 };
+        var decoy = new Combatant { PartySlot = 0, Health = 1, Stamina = 1, Speed = 0, X = 2, Y = 1 };
+        encounter.Party.Add(hero);
+        encounter.Party.Add(decoy);
+        grid.SetOccupied(2, 1, true);
+        encounter.Effects.Register(decoy, SpellIds.DannonsDelusions, 0, duration: 2);
+
+        encounter.BeginRound(grid);
+        Assert.False(decoy.IsDead, "one round left on the slot");
+        Assert.True(grid.IsOccupied(2, 1));
+
+        encounter.BeginRound(grid);
+        Assert.True(decoy.IsDead, "the slot ran out");
+        Assert.False(grid.IsOccupied(2, 1), "its tile is cleared, as the original clears it");
+        Assert.False(hero.IsDead);
     }
 }

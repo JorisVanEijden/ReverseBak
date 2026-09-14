@@ -167,13 +167,20 @@ public sealed class CombatEncounter {
     /// </remarks>
     public Spells.ActiveSpellEffectPool Effects { get; } = new Spells.ActiveSpellEffectPool();
 
-    public void BeginRound() {
+    public void BeginRound(CombatGrid grid = null) {
         foreach (Combatant c in AllCombatants()) {
             // *** THE EFFECTS AGE ONCE PER ROUND, BEFORE READY IS RESTORED. *** Ticking after would
             // hand a turn to an actor whose incapacitation is about to lapse and take it away again
             // the same round; ticking here means an effect that expires this round frees the actor
             // for it.
-            Effects.TickActor(c);
+            // *** AN EXPIRED DECOY LEAVES THE FIELD. *** cspell_actor_tick_status_effects (CSPELL.C:2458)
+            // fires Final Rest on an actor whose Dannon's Delusions slot runs out, clears its tile and
+            // removes it with no death animation or corpse. TickActor has reported that verdict all
+            // along and nothing acted on it, so a decoy would have stood for the rest of the fight.
+            if (Effects.TickActor(c) && !c.IsDead) {
+                Kill(c, playAnimation: false, grid);
+                continue;
+            }
             c.Flags |= CombatantFlags.Ready;
             // combatenc_refresh_actor_flags clears CAF_DEFEND_CMD and nothing else. This used to
             // clear "Defending", which was numbered 0x10 — the FLEE bit — so a routing monster had
