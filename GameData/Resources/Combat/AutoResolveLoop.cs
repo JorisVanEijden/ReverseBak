@@ -23,6 +23,7 @@ public static class AutoResolveLoop {
     /// swaps back — so the monster AI runs with the party as its own side and the enemies as its
     /// targets. There is no separate "player AI": the same routine plays both, which is why an
     /// auto-resolved party fights exactly like a monster would.
+    /// <para><b>Deliberately callerless.</b> HotspotService's auto-resolve loop plays the party member through RunEnemyTurn with the same AI.</para>
     /// </remarks>
     public static bool PartyTurnsUseTheMonsterAiWithSidesSwapped => true;
 
@@ -41,6 +42,7 @@ public static class AutoResolveLoop {
     /// whether the player has asked to <see cref="Bails"/>. So the fight keeps playing at full
     /// speed and a press interrupts it — which is what the type summary says and what the wording
     /// contradicted. Corrected 2026-08-29 against COMBAT.C:1620.</para>
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.AdvanceToPartyTurn runs enemy turns back to back and returns on the first party member.</para>
     /// </remarks>
     public static bool StopsOnlyOnAPartyTurn => true;
 
@@ -57,6 +59,7 @@ public static class AutoResolveLoop {
     public const int CancelMenuResult = 1;
 
     /// <summary>Whether a menu result stops the loop.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A deliberate deviation: the port's auto-resolve bails on ANY press (HotspotService._autoResolveBail), not only Back and Cancel.</remarks>
     public static bool Bails(int menuResult) =>
         menuResult == BackMenuResult || menuResult == CancelMenuResult;
 

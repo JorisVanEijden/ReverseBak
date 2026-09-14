@@ -39,6 +39,7 @@ public static class TraversalClick {
     /// It is published as the dialog argument before the picklock prompt plays, so the prompt can
     /// say something different for a ladder than for a chest. Passing the building's 2 would give a
     /// ladder a chest's wording.
+    /// <para><b>Deliberately callerless.</b> TraversalInteractionHandler asks through LockPicking.LockContext.Traversal, which is 3.</para>
     /// </remarks>
     public const int LockMode = 3;
 
@@ -55,6 +56,7 @@ public static class TraversalClick {
     /// </para>
     ///
     /// <para><b>The value, not the subrecord</b> — see <see cref="HasLockToRun"/>.</para>
+    /// <para><b>Deliberately callerless.</b> TraversalInteractionHandler calls LockOpensAsync with no lockKey != 0 test.</para>
     /// </remarks>
     public static bool LockFlowAlwaysRuns => true;
 
@@ -88,6 +90,7 @@ public static class TraversalClick {
     /// <para>With no message the click answers <see cref="NothingToDoDialog"/> instead, so a
     /// traversal object whose dialog is missing says "nothing happens" rather than silently
     /// failing to move the party.</para>
+    /// <para><b>Deliberately callerless.</b> TraversalInteractionHandler plays the interact message and never moves the party itself.</para>
     /// </remarks>
     public static bool TraversalLivesInTheDialog => true;
 
@@ -99,6 +102,7 @@ public static class TraversalClick {
     /// (<see cref="FixedObjectClick.IsWithinReach"/>). This one has no such guard: whatever the
     /// pick returns is acted on. Copying the building's guard here would make distant ladders
     /// silently unclickable.
+    /// <para><b>Deliberately callerless.</b> TraversalInteractionHandler has no reach test.</para>
     /// </remarks>
     public static bool HasNoReachGuard => true;
 

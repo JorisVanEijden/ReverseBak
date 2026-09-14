@@ -112,6 +112,7 @@ public static class CombatArenaPlacement {
     /// <remarks>
     /// Stated so the discrepancy is a value a test can pin rather than a sentence someone has to
     /// notice. Exactly half a cell, and only in the forward direction — the sideways terms agree.
+    /// <para><b>Deliberately callerless.</b> A value pinned for tests; placement uses CellOffset.</para>
     /// </remarks>
     public static int ForwardDifferenceFromGroundSweep(int cellSize) => cellSize / 2;
 
@@ -122,6 +123,7 @@ public static class CombatArenaPlacement {
     /// Row 0 is nearest the party and rows increase away from them, which is what
     /// <see cref="CombatGroundCheck.ForwardOffset"/> being added to <c>row * cellSize</c> means. A
     /// port that read row 0 as the far edge would stand the party behind the monsters.
+    /// <para><b>Deliberately callerless.</b> A layout fact; CellOffset adds the forward offset to row * cellSize from row 0.</para>
     /// </remarks>
     public const int NearRow = 0;
 
@@ -130,6 +132,7 @@ public static class CombatArenaPlacement {
     /// Underground fights use fewer rows than the grid has
     /// (<see cref="CombatGrid.UndergroundPlayableRows"/>) — the grid keeps its full height, so the
     /// bound is a property of the FIGHT, not of the array.
+    /// <para><b>Deliberately callerless.</b> CombatGrid blocks the rows from UndergroundPlayableRows up for an underground fight, so no cell test is needed.</para>
     /// </remarks>
     public static bool IsPlayable(int column, int row, bool underground) =>
         CombatGrid.InBounds(column, row)

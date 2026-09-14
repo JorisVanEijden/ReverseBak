@@ -321,9 +321,11 @@ public static class MonsterTurnRoutines {
     public const int VolleyMinDamage = 0xf;
 
     /// <summary>Damage band of that volley, inclusive at both ends.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate model: CombatRuntime takes this volley's damage from MonsterMeleeTurn.Damage.</remarks>
     public const int VolleyMaxDamage = 0x22;
 
     /// <summary>Knockback frames the volley steps through, one render apart.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate model of MonsterMeleeTurn's volley; the recoil is HitReaction's, ticked per redraw.</remarks>
     public const int VolleyKnockbackFrames = 4;
 
     /// <summary>
@@ -347,6 +349,7 @@ public static class MonsterTurnRoutines {
     public const int MixedRoutineMinimumRange = 3;
 
     /// <summary>Exclusive bound of the roll choosing among the three attacks.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate model: CombatRuntime rolls roll(MonsterVariantAttackTurn.Variants.Length).</remarks>
     public const int MixedAttackRollBound = 3;
 
     /// <summary>Minimum range at which the heavy-bolt routine will shoot.</summary>
@@ -425,6 +428,7 @@ public static class MonsterTurnRoutines {
     /// It is a single assignment buried at the top of the routine and trivially missed, but it means
     /// this creature cannot be worn down through that stat at all — whatever drains it is undone
     /// each turn. A port without it has a materially weaker monster.
+    /// <para><b>Deliberately callerless.</b> Duplicate of MonsterHeavyRangedTurn.RestoresStrengthEachTurn; CombatRuntime restores the Strength at the head of that creature's turn.</para>
     /// </remarks>
     public static bool RefillsStatEachTurn => true;
 }

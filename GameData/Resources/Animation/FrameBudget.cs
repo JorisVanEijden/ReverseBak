@@ -28,6 +28,7 @@ public static class FrameBudget {
     }
 
     /// <summary>Whether the frame overran and should simply yield.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A restatement of RemainingWait, which the cutscene scheduler uses.</remarks>
     public static bool Overran(double budget, double alreadySpent) =>
         RemainingWait(budget, alreadySpent) <= 0;
 

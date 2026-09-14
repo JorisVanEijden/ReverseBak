@@ -16,9 +16,11 @@ public static class EncounterActorSpawn {
     // ---- the four kinds, as the high byte of the state word --------------------------------------
 
     /// <summary>Never touched — the block has not been seeded yet.</summary>
+    /// <remarks><b>Deliberately callerless.</b> NeedsSeeding tests KindOf(stateWord) == 0 directly.</remarks>
     public const int Unseeded = 0x000;
 
     /// <summary>Dealt with: killed, or consumed. Not placed.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate of EncounterActorPersistence.Removed, which the port reads and writes.</remarks>
     public const int Gone = 0x100;
 
     /// <summary>Alive and owed a placement, but not yet placed.</summary>
@@ -139,23 +141,27 @@ public static class EncounterActorSpawn {
     /// <para>Recorded because it looks like a bug and a port is likely to "fix" it by preserving the
     /// kind. That would put monsters back on patrol in a game that leaves them standing, which is a
     /// visible behaviour change, so it is a decision to take deliberately rather than by accident.</para>
+    /// <para><b>Deliberately callerless.</b> Duplicate of EncounterActorPersistence.Placed (0x400), which the port persists.</para>
     /// </remarks>
     public static int StateAfterPersisting => Standing;
 
     // ---- the caps --------------------------------------------------------------------------------
 
     /// <summary>Encounter records a zone can have live at once.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate of EncounterActorPersistence.RecordsPerRefPair.</remarks>
     public const int MaxRecords = 5;
 
     /// <summary>Actors per record.</summary>
     public const int SlotsPerRecord = EncounterActorPersistence.SlotsPerRecord;
 
     /// <summary>Placed objects across the whole zone — <see cref="MaxRecords"/> x seven.</summary>
+    /// <remarks><b>Deliberately callerless.</b> An alias of EncounterActorPersistence.SlotsPerRefPair, which the port uses.</remarks>
     public const int MaxPlacedObjects = EncounterActorPersistence.SlotsPerRefPair;
 
     /// <summary>
     /// Where an actor's state lives within the zone's block.
     /// </summary>
+    /// <remarks><b>Deliberately callerless.</b> Duplicate of EncounterActorPersistence's index (refPair * SlotsPerRefPair + record * SlotsPerRecord + slot).</remarks>
     public static int StateSlot(int recordIndex, int slotIndex) =>
         recordIndex * SlotsPerRecord + slotIndex;
 
@@ -167,6 +173,7 @@ public static class EncounterActorSpawn {
     /// <c>pActors[0].kind</c>, not a separate length — the extractor calls the same byte
     /// <c>SlotCount</c>. Capped at seven regardless of what the byte says, so a corrupt record cannot
     /// walk off the end of the roster.
+    /// <para><b>Deliberately callerless.</b> The port bounds a record by its roster: EncounterObjectStates.Seed marks only slots whose roster entry names an actor, and placement skips every other slot.</para>
     /// </remarks>
     public static int ActorCount(int firstSlotCountByte) =>
         firstSlotCountByte < 0 ? 0
@@ -184,6 +191,7 @@ public static class EncounterActorSpawn {
     /// time by adding the party's current tile origin. A port that treats them as world coordinates
     /// drops the whole group near the origin, and one that converts the spawn but forgets the
     /// waypoints gets actors that walk off toward the corner of the map.
+    /// <para><b>Deliberately callerless.</b> EncounterActorPlacement adds the party tile's origin to the spawn point and all four waypoints (RGNENC.C:280-283).</para>
     /// </remarks>
     public static long ToWorld(int tileIndex, long tileRelative) =>
         tileIndex * TileWorldSize + tileRelative;
