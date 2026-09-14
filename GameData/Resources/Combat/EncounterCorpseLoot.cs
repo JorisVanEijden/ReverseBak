@@ -62,7 +62,8 @@ public static class EncounterCorpseLoot {
     /// </remarks>
     public const int ClickSoundId = 0x30;
 
-    /// <summary>Played when the menu state forbids looting right now.</summary>
+    /// <summary>Played when the body is clicked with any button but the primary one.</summary>
+    /// <remarks><c>menupage_state_0e7c</c> returns <c>g_wMenuDragState</c>, the button that pressed (MENUPAGE.C:475-492); anything but 1 refuses.</remarks>
     public const int RefusedDialog = 0x5f;
 
     /// <summary>Played when the slot yields no lootable body.</summary>
