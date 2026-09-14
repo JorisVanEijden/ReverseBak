@@ -13,12 +13,10 @@ using GameData.Resources.Spells;
 /// would give the decoy a monster's body or the monster an expiry.
 /// </remarks>
 /// <remarks>
-/// <b>AWAITING ITS FEATURE (TASK-112).</b> Dannon's Delusions puts no actor on the grid yet — the spell resolves and the decoy is
-/// the part that is missing.
-///
-/// <para>Read by <c>scripts/audit-unconsumed-models.py</c>: it separates a rule ported ahead
-/// of its feature from an orphan nobody owns, so the audit stays a signal instead of a list
-/// to re-triage every run.</para>
+/// <b>Consumed by <c>CombatRuntime.SummonDecoy</c></b>, which <c>HotspotService</c> calls on the
+/// placement click after a Dannon's Delusions cast; <see cref="CombatEncounter.BeginRound"/> removes the
+/// decoy when its slot expires. Compared against the original on 2026-09-14 (TASK-112): same creature
+/// class, 1/1/0 stats, ready, and the caster billed the cast.
 /// </remarks>
 public static class DecoySummon {
     /// <summary>The spell the decoy's effect slot is stamped with.</summary>
