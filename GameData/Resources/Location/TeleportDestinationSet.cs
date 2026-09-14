@@ -24,6 +24,7 @@ public class TeleportDestinationSet : IResource {
     public List<TeleportDestination> Destinations { get; set; } = new List<TeleportDestination>();
 
     /// <summary>Highest id the temple screen offers; above this the destinations are dialog-only.</summary>
+    /// <remarks><b>Deliberately callerless.</b> The temple screen walks TeleportMenu.TempleCount (12) through DestinationIdForTemple (temple - 1), whose last id is this 11.</remarks>
     public const int LastTempleDestinationId = 11;
 
     /// <summary>A destination by id, or null when the id is outside the table.</summary>

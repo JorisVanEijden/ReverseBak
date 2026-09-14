@@ -107,6 +107,8 @@ public static class EncampShadow {
     /// The original's comparison is strictly "less than", so a later candidate at the same distance
     /// does not displace an earlier one. With a palette that repeats colours — and the interface
     /// range does — a "less than or equal" test picks a different entry for the same input.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the strict comparison; the remark above says why it matters.</para>
     /// </remarks>
     public static bool TiesKeepTheEarlierEntry => true;
 

@@ -36,6 +36,8 @@ public static class ItemUseSound {
     /// play" — reading it as a count silences 27 of the 30 items that carry a sound. The Armorer's
     /// Hammer stores 2 (three strikes) and the Whetstone 1 (two passes), which is the whole reason
     /// the field is not a bool.
+    ///
+    /// <para><b>Deliberately callerless.</b> MenuSoundService.Play(id, extraRepeats) plays once and then repeats while the counter is below the stored value, which gives exactly this count, a negative included.</para>
     /// </remarks>
     public static int TimesHeard(int soundRepeat) => soundRepeat < 0 ? 1 : soundRepeat + 1;
 }

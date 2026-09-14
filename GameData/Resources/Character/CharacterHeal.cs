@@ -24,6 +24,7 @@ public static class CharacterHeal {
     public const int FullHealAmount = 100;
 
     /// <summary>What a partial heal leaves behind, as a percentage of the maximum pool.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Apply fills the pool and gives a fifth back (TakeBackPercent); this names where that lands.</remarks>
     public const int PartialHealPercent = 80;
 
     /// <summary>Delta large enough to fill the pool to its target in one go (the original's 0x7fff).</summary>

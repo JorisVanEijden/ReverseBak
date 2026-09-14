@@ -29,6 +29,8 @@ public static class CombatArenaCamera {
     /// <remarks>
     /// A world z. Stated as a constant rather than left to a comment because the explore camera's
     /// neighbouring value is the opposite and the two have been confused before.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact; the remark above says which neighbouring value is the opposite.</para>
     /// </remarks>
     public const bool HeightIsAbsolute = true;
 

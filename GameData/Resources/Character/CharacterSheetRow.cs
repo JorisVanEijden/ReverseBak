@@ -53,6 +53,7 @@ public static class CharacterSheetRow {
     public const int TextOffsetY = -6;
 
     /// <summary>Name entries in the attribute-name table are this wide.</summary>
+    /// <remarks><b>Deliberately callerless.</b> A layout fact about the executable's table; the names come from the catalog.</remarks>
     public const int NameStride = 15;
 
     // ---- ink -----------------------------------------------------------------------------------
@@ -114,6 +115,8 @@ public static class CharacterSheetRow {
     /// The original indexes a 15-byte-stride table in the executable with the same number; the
     /// extractor lifted that table into the catalog under these keys, so the ordering is shared
     /// rather than restated.
+    ///
+    /// <para><b>Deliberately callerless.</b> The sheet reads names through ActorLabels.AttributeKey, which builds the same key from the attribute number.</para>
     /// </remarks>
     public static string NameKey(string attributeName) => "base:uistring:attribute." + attributeName;
 

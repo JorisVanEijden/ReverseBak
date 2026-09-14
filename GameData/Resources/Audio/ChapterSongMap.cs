@@ -9,6 +9,7 @@ namespace GameData.Resources.Audio;
 // that means "leave the current song playing" — see `audio_song_sub_1505A` at
 // 0x15072 which short-circuits and returns the currently-playing song id.
 public class ChapterSongMap : IResource {
+    /// <remarks><b>Deliberately callerless.</b> Production compares against MusicPlayback.QueryOnly, the same -999 sentinel; this names it on the data side.</remarks>
     public const short NoChange = -999;
 
     public ChapterSongMap(string id) {

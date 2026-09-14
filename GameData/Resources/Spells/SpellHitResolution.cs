@@ -46,6 +46,8 @@ public static class SpellHitResolution {
     /// term that is zero for spells — but keyed on the caster's casting skill rather than a weapon
     /// skill. So a spell's chance to land falls off with distance exactly as a bolt's does, which no
     /// part of the spell data hints at.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact; the remark above says why a spell's chance falls off with distance.</para>
     /// </remarks>
     public static bool UsesRangedAccuracyFormula => true;
 

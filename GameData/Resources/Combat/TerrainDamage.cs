@@ -24,6 +24,8 @@ public static class TerrainDamage {
     /// <remarks>
     /// <c>0x13</c> — Wrath of Killian itself, the spell that paints the field. So resisting the
     /// spell resists its residue, which is the only sense in which a floor has an element.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact; the remark above names the spell whose resistance applies.</para>
     /// </remarks>
     public const int ResistedAsSpell = 0x13;
 

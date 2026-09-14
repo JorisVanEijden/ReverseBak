@@ -47,6 +47,8 @@ public static class TownApproach {
     /// The routine writes the record's heading straight into the camera rotation and only then runs
     /// the travel loop, so the approach is a walk in a fixed direction rather than a turn-as-you-go.
     /// The heading is also what the party is left facing when the location closes.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the approach's order; the remark above says what it decides.</para>
     /// </remarks>
     public static bool HeadingIsSetBeforeWalking => true;
 

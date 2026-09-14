@@ -33,6 +33,8 @@ public static class DialogChoiceEntries {
     /// <para><b>Scoped to this menu's branches only.</b> There is no global clear of choice keys, so
     /// a latch for a key this menu does not offer survives untouched — which is what lets the same
     /// key mean something durable elsewhere.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact about the menu's clear; the remark above says why it is scoped.</para>
     /// </remarks>
     public static bool ClearsEveryCandidateFirst => true;
 

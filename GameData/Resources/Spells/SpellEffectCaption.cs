@@ -80,6 +80,8 @@ public static class SpellEffectCaption {
     /// <b>Yes — the plaque is unconditional.</b> The blit happens before the bits are walked, so
     /// with nothing running the strip is still there and simply empty. A port that hides the whole
     /// widget when no effect is active loses a piece of the frame, not just its contents.
+    ///
+    /// <para><b>Deliberately callerless.</b> A pinned fact; the remark above says why a port must keep the empty plaque.</para>
     /// </remarks>
     public static bool PlaqueDrawsWhenNothingIsActive => true;
 }

@@ -32,6 +32,7 @@ namespace GameData.Resources.Config;
 /// </summary>
 public class FilterData : IResource {
     /// <summary>Number of graphics detail-level presets (one 172-byte block each).</summary>
+    /// <remarks><b>Deliberately callerless.</b> A file-layout fact (four 172-byte preset blocks).</remarks>
     public const int DetailLevelCount = 4;
 
     /// <summary>Number of entity-type tags addressed by each block (TableDatInfo.EntityType 0..42).</summary>

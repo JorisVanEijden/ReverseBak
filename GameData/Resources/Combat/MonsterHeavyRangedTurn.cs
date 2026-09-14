@@ -19,6 +19,8 @@ public static class MonsterHeavyRangedTurn {
     ///
     /// <para>It is the first statement of the routine, easy to skim past as bookkeeping, and a port
     /// that drops it makes the creature meaningfully weaker over a long fight.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime restores the strength at the head of the 0x36 turn; this pins the rule.</para>
     /// </remarks>
     public static bool RestoresStrengthEachTurn => true;
 
