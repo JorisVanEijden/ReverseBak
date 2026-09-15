@@ -27,7 +27,7 @@ public static class DialogBranchWalker {
     /// meant.</param>
     public static DialogEntry WalkToLeaf(Dialog dialog, DialogEntry start, Func<int, int?> getGlobal,
         Action<Effect> applyEffect = null, Action<DialogEntry> onEntryVisited = null,
-        Func<int> roll = null) {
+        Func<int> roll = null, Stack<string> pushed = null) {
         if (dialog == null || start == null) {
             return start;
         }
@@ -45,9 +45,27 @@ public static class DialogBranchWalker {
                 // IdAddressedTargetOf, which the caller resolves by loading that dialog.
                 return current;
             }
+            if (pushed != null) {
+                PushTargets(current, pushed);
+            }
             current = next;
         }
         return current;
+    }
+
+    /// <summary>
+    /// Push an entry's <see cref="PushDialogEntryAction"/> targets — call it only for an entry that has
+    /// a next record, because op 0x10 is stacked only while <c>record_key != 0</c> (DIALOG.C:1441).
+    /// </summary>
+    public static void PushTargets(DialogEntry entry, Stack<string> pushed) {
+        if (entry == null || pushed == null) {
+            return;
+        }
+        foreach (PushDialogEntryAction push in entry.Actions.OfType<PushDialogEntryAction>()) {
+            if (push.TargetKey != null) {
+                pushed.Push(push.TargetKey);
+            }
+        }
     }
 
     /// <summary>
@@ -147,11 +165,7 @@ public static class DialogBranchWalker {
         Dictionary<string, DialogEntry> byKey, Stack<string> pushed) {
         string next = ChooseBranch(entry, getGlobal)?.TargetKey;
         if (next != null) {
-            foreach (PushDialogEntryAction push in entry.Actions.OfType<PushDialogEntryAction>()) {
-                if (push.TargetKey != null) {
-                    pushed.Push(push.TargetKey);
-                }
-            }
+            PushTargets(entry, pushed);
         }
         DialogEntry resolved = next != null && byKey.TryGetValue(next, out DialogEntry viaBranch) ? viaBranch : null;
         while (resolved == null && pushed.Count > 0) {

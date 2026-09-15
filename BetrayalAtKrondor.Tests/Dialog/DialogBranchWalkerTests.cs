@@ -45,6 +45,25 @@ public class DialogBranchWalkerTests {
         }
     }
 
+    // ---- TASK-543: the push stack a conversation carries ------------------------------------
+
+    [Fact]
+    public void AWalkPushesOnlyForARecordThatHasANextRecord() {
+        // DIAL_Z30 @133248's shape: a text-less router pushes its farewell (@133277) and defaults on to
+        // the next record. Op 0x10 is stacked only while record_key != 0 (DIALOG.C:1441), so the router
+        // pushes and the leaf it lands on - which has no branch - pushes nothing.
+        var router = EA(100, new DialogActionBase[] { new PushDialogEntryAction { Offset = 300 } },
+            new DefaultBranch { TargetOffset = 200 });
+        var leaf = EA(200, new DialogActionBase[] { new PushDialogEntryAction { Offset = 400 } });
+        leaf.Text = "Your will, lord?";
+        var pushed = new Stack<string>();
+
+        DialogEntry reached = DialogBranchWalker.WalkToLeaf(Dlg(router, leaf), router, _ => null, pushed: pushed);
+
+        Assert.Same(leaf, reached);
+        Assert.Equal(new[] { "base:ddx:t:300" }, pushed.ToArray());
+    }
+
     // ---- Northwarden's router: three conditionals that END, then the default that acts -----
 
     [Fact]

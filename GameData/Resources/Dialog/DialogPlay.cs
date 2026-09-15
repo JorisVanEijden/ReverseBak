@@ -12,7 +12,8 @@ namespace GameData.Resources.Dialog;
 /// </summary>
 public sealed class DialogPlay {
     public DialogPlay(DialogEntry entry, DialogSlotTable slots, DialogSlotContext context,
-        Dialog dialog = null) {
+        Dialog dialog = null, System.Collections.Generic.Stack<string> pushed = null) {
+        Pushed = pushed ?? new System.Collections.Generic.Stack<string>();
         Entry = entry;
         Slots = slots;
         Context = context;
@@ -39,4 +40,13 @@ public sealed class DialogPlay {
     /// accumulating. Null for plays built before the chain existed, which simply cannot continue.
     /// </remarks>
     public Dialog Dialog { get; }
+
+    /// <summary>
+    /// The records entries pushed on the way (op 0x10), newest on top — played when a tree ends.
+    /// </summary>
+    /// <remarks>
+    /// <c>dialog_play_record</c> keeps this stack for the whole conversation (DIALOG.C:1441-1475), so
+    /// it travels with the play like the slots do (TASK-543).
+    /// </remarks>
+    public System.Collections.Generic.Stack<string> Pushed { get; }
 }
