@@ -21,6 +21,21 @@ public class EncampClockHitTestTests {
     }
 
     [Fact]
+    public void TheHitBoundsHoldEveryStonesBoxAndNothingOutside() {
+        // TASK-547: the camp dial's pickable area. Two stones: (355,636) spans x 340..385, y 618..672;
+        // (80,360) spans x 65..110, y 342..396 (edges inclusive), so the union starts at 65,342 and ends
+        // one past 385,672.
+        EncampData dial = Dial((355, 636), (80, 360));
+
+        (int x, int y, int width, int height) = dial.ClockHitBounds();
+
+        Assert.Equal((65, 342, 321, 331), (x, y, width, height));
+        Assert.Equal(1, dial.ClockEntryAt(x, y));
+        Assert.Equal(0, dial.ClockEntryAt(x + width - 1, y + height - 1));
+        Assert.Equal(EncampData.NoEntry, dial.ClockEntryAt(x + width, y + height - 1));
+    }
+
+    [Fact]
     public void ThePositionItselfHits() =>
         Assert.Equal(0, Dial((355, 636)).ClockEntryAt(355, 636));
 

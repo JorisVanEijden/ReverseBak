@@ -1,3 +1,4 @@
+using System;
 namespace GameData.Resources.Config;
 
 /// <summary>
@@ -82,6 +83,29 @@ public class EncampData : IResource {
         }
 
         return NoEntry;
+    }
+
+    /// <summary>
+    /// The smallest canonical rectangle holding every hour stone's hit box from
+    /// <see cref="ClockEntryAt"/>, with its inclusive edges: the area a pointer must reach for the dial
+    /// to answer. Empty when there are no clock entries.
+    /// </summary>
+    public (int X, int Y, int Width, int Height) ClockHitBounds() {
+        if (ClockEntries.Count == 0) {
+            return (0, 0, 0, 0);
+        }
+
+        int halfWidth = (IconWidth - IconAnchorX) / 2;
+        int halfHeight = (IconHeight - IconAnchorY) / 2;
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+        foreach (EncampPoint point in ClockEntries) {
+            minX = Math.Min(minX, point.X - halfWidth);
+            minY = Math.Min(minY, point.Y - halfHeight);
+            maxX = Math.Max(maxX, point.X - halfWidth + IconWidth + 1);
+            maxY = Math.Max(maxY, point.Y - halfHeight + IconHeight + 1);
+        }
+
+        return (minX, minY, maxX - minX, maxY - minY);
     }
 }
 
