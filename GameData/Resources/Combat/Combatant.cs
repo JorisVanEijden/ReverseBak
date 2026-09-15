@@ -254,6 +254,17 @@ public sealed class Combatant {
     public Combatant Target { get; set; }
 
     /// <summary>
+    /// The three AI priority rows this actor walks — <c>aiTurnProfile</c> (spellcast),
+    /// <c>aiEncounterProfile</c> (crossbow) and <c>aiPathProfile</c> (melee/move), CombatantState +15..+17.
+    /// </summary>
+    /// <remarks>
+    /// Rolled per actor inside the MONST range (MONSTAT.C:72-80), so three rogues of one kind can walk
+    /// three different rows — measured live on entry 306: (0,6,5), (0,2,2), (0,4,5). Null when nothing
+    /// supplied them; the resolver's profile then falls back to the template's minimum (TASK-528).
+    /// </remarks>
+    public (int Spellcast, int Crossbow, int MeleeMove)? AiPatterns { get; set; }
+
+    /// <summary>
     /// The tile a routed monster is running for — the original's
     /// <c>combatData.target_x_on_grid_</c>/<c>target_y_on_grid_</c>, as written by
     /// <c>combatenc_pick_flee_destination</c> (@0x63ea1).

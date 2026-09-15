@@ -45,7 +45,11 @@ public sealed class TargetCandidate {
     /// <summary>Whether this candidate could take a ranged shot.</summary>
     public bool CanShoot { get; set; }
 
-    /// <summary>Stamina as a percentage of its maximum.</summary>
+    /// <summary>
+    /// The health+stamina POOL as a percentage of its maximum — <c>combat_actor_stat_percent(actor, 1)</c>
+    /// (CACTOR.C:721), which is what the Wounded role tests. Named for stamina before that was read;
+    /// a stamina-only value made a fresh-but-winded member "wounded" (TASK-528).
+    /// </summary>
     public int StaminaPercent { get; set; }
 
     /// <summary>Whether this candidate currently has a target at all.</summary>
@@ -130,6 +134,12 @@ public enum AiAction {
     /// falls through to ordinary melee. Same fact, opposite handling.</para>
     /// </remarks>
     Retreat,
+
+    /// <summary>
+    /// Rest a round — <c>combatenc_actor_enter_defense</c>, the party's REST command, which the
+    /// melee/move and crossbow row walks take as an outcome of their own (TASK-528).
+    /// </summary>
+    Rest,
 }
 
 /// <summary>

@@ -89,4 +89,34 @@ public class MonsterActionPatternsTests {
                     MonsterActionPatterns.CrossbowFirstAttempt));
         }
     }
+
+    [Fact]
+    public void ThePatternTwoRowsDecodeToTheShippedWalks() {
+        // Shooters start at attempt 1: 8, 3, 7, 4, 5, 6, 1 (CBTAITRN.C:331 reads the table from index 1).
+        var shooter = new List<MonsterActionPatterns.Slot>();
+        for (int a = MonsterActionPatterns.CrossbowFirstAttempt; a < MonsterActionPatterns.SlotCount; a++) {
+            shooter.Add(MonsterActionPatterns.CrossbowSlot(MonsterActionPatterns.CrossbowSlotFor(2, a)));
+        }
+        Assert.Equal(MonsterActionPatterns.SlotKind.Engage, shooter[0].Kind);
+        Assert.Equal((10, TargetRole.Spellcaster), (shooter[1].Radius, shooter[1].Role));
+        Assert.Equal((10, TargetRole.MissileCapable), (shooter[2].Radius, shooter[2].Role));
+        Assert.Equal((MonsterActionPatterns.SlotKind.Follow, 6, TargetRole.Anyone),
+            (shooter[6].Kind, shooter[6].Radius, shooter[6].Role));
+
+        // Melee walks from attempt 0: follow anyone within 6 first, then role searches, rest last.
+        MonsterActionPatterns.Slot first = MonsterActionPatterns.MeleeMoveSlot(MonsterActionPatterns.MeleeMoveSlotFor(2, 0));
+        MonsterActionPatterns.Slot last = MonsterActionPatterns.MeleeMoveSlot(MonsterActionPatterns.MeleeMoveSlotFor(2, 7));
+        Assert.Equal((MonsterActionPatterns.SlotKind.Follow, 6, TargetRole.Anyone), (first.Kind, first.Radius, first.Role));
+        Assert.Equal(MonsterActionPatterns.SlotKind.RestWhenWorn, last.Kind);
+        Assert.Equal(MonsterActionPatterns.SlotKind.None, MonsterActionPatterns.CrossbowSlot(0).Kind);
+    }
+
+    [Fact]
+    public void TheFallbacksRollAgainstTheirOwnThresholds() {
+        Assert.True(MonsterActionPatterns.CrossbowFallbackAdvances(74, 50));
+        Assert.False(MonsterActionPatterns.CrossbowFallbackAdvances(75, 99));
+        Assert.True(MonsterActionPatterns.CrossbowFallbackAdvances(99, 100));
+        Assert.True(MonsterActionPatterns.LowHealthRests(74, 3, 79));
+        Assert.False(MonsterActionPatterns.LowHealthRests(74, 2, 0));
+    }
 }

@@ -88,6 +88,100 @@ public static class MonsterActionPatterns {
     public static bool Fights(int meleeMovePattern) =>
         meleeMovePattern > 0 && meleeMovePattern <= MaxPattern;
 
+    /// <summary>What a row slot does once its number is looked up.</summary>
+    public enum SlotKind {
+        None,
+        /// <summary><c>combataipath_follow_tgt_check(actor, Radius, Role)</c>: keep an orthogonally
+        /// adjacent target, else choose one by role and close on it.</summary>
+        Follow,
+        /// <summary><c>combataiturn_action_disp_base(actor, Radius, Role)</c>: choose by role, shoot down a
+        /// clear line of fire.</summary>
+        Shot,
+        /// <summary><c>combataiturn_select_and_engage</c>: raise a guard, else the (Radius, Role) shot.</summary>
+        Engage,
+        /// <summary><c>combataipath_low_health_action</c>: rest when worn and nobody is close.</summary>
+        RestWhenWorn,
+    }
+
+    /// <summary>One decoded slot.</summary>
+    public readonly struct Slot {
+        public readonly SlotKind Kind;
+        public readonly int Radius;
+        public readonly TargetRole Role;
+
+        public Slot(SlotKind kind, int radius = 0, TargetRole role = TargetRole.Anyone) {
+            Kind = kind;
+            Radius = radius;
+            Role = role;
+        }
+    }
+
+    /// <summary><c>g_encounter_ai_action_table</c> (CBTAITRN.C:18), slots 1-8.</summary>
+    /// <remarks>Six of the eight are one shot routine with a different (radius, mode) pair; mode is the
+    /// <see cref="TargetRole"/> number. Note the 4000a/5000a/3000a names are not in mode order.</remarks>
+    private static readonly Slot[] CrossbowSlots = {
+        new Slot(SlotKind.Follow, 6, TargetRole.Anyone),              // 1 combataipath_action_6
+        new Slot(SlotKind.Shot, 6, TargetRole.Anyone),                // 2 action_kind6
+        new Slot(SlotKind.Shot, 10, TargetRole.Spellcaster),          // 3 action_1000a
+        new Slot(SlotKind.Shot, 10, TargetRole.Wounded),              // 4 action_2000a
+        new Slot(SlotKind.Shot, 10, TargetRole.Engaged),              // 5 action_4000a
+        new Slot(SlotKind.Shot, 10, TargetRole.TargetingTheLeader),   // 6 action_5000a
+        new Slot(SlotKind.Shot, 10, TargetRole.MissileCapable),       // 7 action_3000a
+        new Slot(SlotKind.Engage, 10, TargetRole.Engaged),            // 8 select_and_engage → action_4000a
+    };
+
+    /// <summary><c>g_combat_ai_action_table</c> (CMBTAI.C), slots 1-8.</summary>
+    private static readonly Slot[] MeleeMoveSlots = {
+        new Slot(SlotKind.RestWhenWorn),                              // 1 low_health_action
+        new Slot(SlotKind.Follow, 6, TargetRole.Anyone),              // 2 action_6
+        new Slot(SlotKind.Follow, 100, TargetRole.Spellcaster),       // 3 action_100_1
+        new Slot(SlotKind.Follow, 100, TargetRole.Wounded),           // 4 action_100_2
+        new Slot(SlotKind.Follow, 100, TargetRole.Disengaged),        // 5 action_60064
+        new Slot(SlotKind.Follow, 100, TargetRole.TargetingTheLeader),// 6 action_50064
+        new Slot(SlotKind.Follow, 100, TargetRole.MissileCapable),    // 7 action_30064
+        new Slot(SlotKind.Follow, 100, TargetRole.Engaged),           // 8 action_40064
+    };
+
+    /// <summary>What crossbow slot 1-8 does; <see cref="SlotKind.None"/> out of range.</summary>
+    public static Slot CrossbowSlot(int slot) =>
+        slot >= 1 && slot <= SlotCount ? CrossbowSlots[slot - 1] : default;
+
+    /// <summary>What melee/move slot 1-8 does; <see cref="SlotKind.None"/> out of range.</summary>
+    public static Slot MeleeMoveSlot(int slot) =>
+        slot >= 1 && slot <= SlotCount ? MeleeMoveSlots[slot - 1] : default;
+
+    /// <summary><c>combataiturn_take_actor_turn</c>: under this much health no crossbow attempt is tried.</summary>
+    public const int CrossbowAttemptsMinHealth = 5;
+
+    /// <summary>The crossbow turn's fallback when nothing acted: advance on a roll under 75, or always at
+    /// full stamina; otherwise rest (CBTAITRN.C:361-367).</summary>
+    public static bool CrossbowFallbackAdvances(int roll100, int staminaPercent) =>
+        roll100 < 75 || staminaPercent == 100;
+
+    /// <summary><c>combataipath_low_health_action</c> (CMBTAI.C:437): under 75% stamina, nobody within
+    /// two, and a roll under 80.</summary>
+    public static bool LowHealthRests(int staminaPercent, int nearestDistance, int roll100) =>
+        staminaPercent < 75 && nearestDistance > 2 && roll100 < 80;
+
+    /// <summary>The melee/move fallback's exhaustion test: under this stamina percentage…</summary>
+    public const int ExhaustedStaminaPercent = 10;
+
+    /// <summary>…a roll under this rests…</summary>
+    public const int ExhaustedRestPercent = 25;
+
+    /// <summary>…and a second roll at or under this backs off first when engaged (CMBTAI.C:507-514).</summary>
+    public const int ExhaustedBackOffPercent = 20;
+
+    /// <summary><c>select_and_engage</c>: anyone within (speed − this) is in reach.</summary>
+    public const int EngageReachMargin = 3;
+
+    /// <summary><c>select_and_engage</c>: a roll at or over this raises a guard against someone in reach.</summary>
+    public const int EngageNearGuardPercent = 50;
+
+    /// <summary><c>select_and_engage</c>: a roll at or over this raises a guard against a spellcaster in
+    /// the line of fire.</summary>
+    public const int EngageFarGuardPercent = 75;
+
     /// <summary>The action slot the crossbow turn tries on the given attempt.</summary>
     /// <returns>A slot in 1-8, or 0 when the pattern never shoots or the attempt is out of range.</returns>
     public static int CrossbowSlotFor(int crossbowPattern, int attempt) =>
