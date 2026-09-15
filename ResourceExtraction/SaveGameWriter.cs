@@ -77,6 +77,14 @@ public static class SaveGameWriter {
             // Slots past the party's size are LEFT ALONE, not zeroed: the engine reads only the
             // first `size` of them, and zeroing would claim character 0 sits in the spare slots.
         }
+        // ...unless the caller hands over the slot image itself, which is what the original stores:
+        // its ChangeParty writes all three slots from the action (DIALOG.C:1216-1218). TASK-532.
+        if (fields.ActivePartySlots != null) {
+            int slots = Math.Min(fields.ActivePartySlots.Length, SaveGameOffsets.ActivePartySlots);
+            for (var slot = 0; slot < slots; slot++) {
+                PatchU8(SaveGameOffsets.ActivePartyMembers + slot, fields.ActivePartySlots[slot]);
+            }
+        }
 
         PatchI16(SaveGameOffsets.Chapter, fields.Chapter);
         PatchI32(SaveGameOffsets.PartyGold, fields.PartyGold);

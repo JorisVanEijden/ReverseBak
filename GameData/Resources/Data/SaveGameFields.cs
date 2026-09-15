@@ -128,4 +128,15 @@ public readonly record struct SaveGameFields(
 
     /// <summary>The cast screen's remembered school — body offset 1624, <c>nSpellMenuPreselect</c>.</summary>
     /// <inheritdoc cref="CastMenuCasterSlot"/>
-    short? CastMenuSchool = null);
+    short? CastMenuSchool = null,
+
+    /// <summary>
+    /// All three active-party slot bytes as the game holds them, or null to leave the body's own.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ActiveParty"/> is the party (its length is the size); this is the slot image
+    /// behind it. The original's ChangeParty writes all three slots from the action unconditionally
+    /// (DIALOG.C:1216-1218), so a party shrinking to two stores the action's 0 in slot three, while
+    /// a save that never changed party keeps whatever the loaded file held. TASK-532.
+    /// </remarks>
+    byte[] ActivePartySlots = null);

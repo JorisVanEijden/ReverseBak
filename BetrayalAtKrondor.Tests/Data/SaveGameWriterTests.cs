@@ -69,6 +69,26 @@ public class SaveGameWriterTests {
     }
 
     [Fact]
+    public void AShrunkPartysSlotImageOverwritesTheStaleThirdSlot_AndTheIndicesAloneDoNot() {
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+        body[SaveGameOffsets.ActivePartySize] = 3;
+        body[SaveGameOffsets.ActivePartyMembers] = 0;
+        body[SaveGameOffsets.ActivePartyMembers + 1] = 2;
+        body[SaveGameOffsets.ActivePartyMembers + 2] = 1;
+        int third = SaveGameOffsets.HeaderSize + SaveGameOffsets.ActivePartyMembers + 2;
+
+        // Chapter 8's ChangeParty: size 2, members 2 and 1, and a 0 in the third slot.
+        var shrunk = FieldsFrom(body) with { ActiveParty = new byte[] { 2, 1 }, ActivePartySlots = new byte[] { 2, 1, 0 } };
+        SaveGameWriteResult written = SaveGameWriter.Write(body, shrunk, "Ch8", 40, 41, 3);
+        Assert.Equal(2, written.Bytes[SaveGameOffsets.HeaderSize + SaveGameOffsets.ActivePartySize]);
+        Assert.Equal(0, written.Bytes[third]);
+        Assert.True(IsAuthored(written.Coverage, SaveGameOffsets.ActivePartyMembers + 2));
+
+        var indicesOnly = FieldsFrom(body) with { ActiveParty = new byte[] { 2, 1 } };
+        Assert.Equal(1, SaveGameWriter.Write(body, indicesOnly, "Old", 40, 41, 3).Bytes[third]);
+    }
+
+    [Fact]
     public void Header_IsWrittenExactly() {
         byte[] body = PatternBody();
         var fields = FieldsFrom(body) with { Chapter = 5 };
