@@ -236,6 +236,20 @@ public static class SpellCastRoutines {
     /// </remarks>
     public static bool InvitationRerollsAFleeingTargetsDestination => true;
 
+    // ---------------------------------------------------------------- Flamecast
+    // combat_arena_splash_dmg_near (COMBAT.C:417), called from cspell_resolve_cast's post-effect
+    // switch, case 4 (CSPELL.C:1487).
+
+    /// <summary>How far Flamecast's splash reaches from the target, in Chebyshev cells.</summary>
+    /// <remarks>
+    /// Everyone within it except the target is splashed — the CASTER included, which is why a Brak
+    /// Nurr two cells from its victim pays 20 for the cast and loses 13 more to its own fire.
+    /// </remarks>
+    public const int FlamecastSplashRadius = 2;
+
+    /// <summary>What the splash deals at a distance: a quarter of the magnitude, less one per cell.</summary>
+    public static int FlamecastSplashDamage(int magnitude, int distance) => (magnitude >> 2) - distance;
+
     // ---------------------------------------------------------------- Evil Seek
     // Cast_Evil_Seek @0x6734d.
 
