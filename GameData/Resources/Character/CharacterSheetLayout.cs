@@ -97,6 +97,19 @@ public static class CharacterSheetLayout {
 
     public const string FrameIconSet = "INVSHP2.BMX";
 
+    /// <summary>
+    /// The parchment the whole sheet sits on — edge to edge, under the panel, the portrait and the
+    /// vines.
+    /// </summary>
+    /// <remarks>
+    /// <c>charscreen_info_draw</c> opens with <c>gfx_present_dispatch(0, 0, 320, 200)</c> from page 1
+    /// to page 2 (<c>CHARSCRN.C:199-201</c>): a full-frame copy of whatever page 1 holds, and every
+    /// caller leaves <c>DIALOG.SCR</c> there — the info screen loads it itself (<c>:274</c>), the
+    /// temple healer inherits it from the priest's dialog. It is not the quote's styled box: the two
+    /// <c>dialog_render_text_with_tokens</c> calls after the sheet are the text's shadow and face.
+    /// </remarks>
+    public const string Parchment = Resources.Dialog.DialogBackdrop.Resource;
+
     /// <summary>The vertical dotted rule, drawn down both sides.</summary>
     public const int VerticalRuleIcon = 25;
 
