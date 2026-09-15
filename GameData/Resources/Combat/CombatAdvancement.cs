@@ -87,8 +87,9 @@ public static class CombatAdvancement {
     /// AccuracyCasting.
     /// </summary>
     /// <remarks>
-    /// Unconditional, exactly as the attacker's award in <see cref="OnMeleeDeclared"/> is. A cast
-    /// that misses still teaches you something.
+    /// Paid whether or not the cast then hits, as the attacker's award in
+    /// <see cref="OnMeleeDeclared"/> is. It is NOT unconditional: only the wind-up kinds reach it,
+    /// and never on a negated cast (<c>SpellEffectApplication.AwardsCastingSkill</c>, CSPELL.C:1305).
     /// </remarks>
     public static void OnSpellCast(ActorStat casterCasting,
         Func<ActorAttribute, int> casterStudy = null) {

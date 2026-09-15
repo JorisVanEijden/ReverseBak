@@ -112,8 +112,8 @@ public static class SpellEffectApplication {
     /// </remarks>
     public static int GridElementStrength(int cost, int duration) => cost * duration;
 
-    /// <summary>Delivery categories that play the ranged wind-up before the effect.</summary>
-    /// <remarks><b>Deliberately callerless.</b> Duplicate of SpellCastSound.RangedKinds ({0, 2, 3, 7, 8}), which ForCombatCast uses.</remarks>
+    /// <summary>Delivery categories that play the ranged wind-up before the effect, and the only ones that
+    /// earn casting skill (<see cref="AwardsCastingSkill"/>).</summary>
     public static readonly int[] RangedWindupCategories = { 0, 2, 3, 7, 8 };
 
     /// <summary>Delivery categories that play a melee swing instead.</summary>
@@ -135,14 +135,13 @@ public static class SpellEffectApplication {
     /// Whether the caster is paid casting skill for this delivery category.
     /// </summary>
     /// <remarks>
-    /// Only the wind-up categories reach the award pair — see
-    /// <c>CombatAdvancement.OnSpellCast</c>. The melee-swing and grid categories are cast without
-    /// teaching the caster anything.
+    /// Only the wind-up categories reach the award pair (CSPELL.C:1305) — see
+    /// <c>CombatAdvancement.OnSpellCast</c>. The swing arm is also the switch's <c>default</c>, so
+    /// any kind outside {0, 2, 3, 7, 8} — the grid kinds 5/6 and the field-only -1 included — teaches
+    /// the caster nothing.
     /// </remarks>
     public static bool AwardsCastingSkill(int deliveryCategory) =>
-        !SwingsInsteadOfCasting(deliveryCategory)
-        && deliveryCategory != 5
-        && deliveryCategory != 6;
+        System.Array.IndexOf(RangedWindupCategories, deliveryCategory) >= 0;
 
     /// <summary>
     /// <b>STALE — CORRECTED 2026-09-14: the second test does NOT abort the cast.</b> See <see cref="SpellCastTail.SkyfireEndsTheCast"/>,
