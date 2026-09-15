@@ -107,7 +107,8 @@ public static class GdsSceneRules {
     }
 
     /// <summary>
-    /// <b>Corrected 2026-09-14: this is the tavern's BARDING FUND restock, not an inn's price.</b>
+    /// <b>The tavern's BARDING FUND restock, not an inn's price</b> (this was <c>InnNightlyRate</c>
+    /// until 2026-09-15).
     /// <c>townscene_load</c>'s tail (TOWNSCN.C:146-161): once per chapter the fund is set to the base
     /// unit scaled by <c>(chapter + 19) / 20</c>, capped at 250.
     ///
@@ -115,9 +116,10 @@ public static class GdsSceneRules {
     /// sent this model to the inn. By offset they are <c>SaveGameContainerShopData.BaseBardingReward</c>
     /// (+8) into <c>BardingReward</c> (+7), gated on <c>LastRestockChapter</c> (+9). The inn's own price
     /// (+11, <c>InnCostPerNight</c>) is untouched. The floppy build scales by <c>(chapter + 9) / 10</c>;
-    /// this is the V102CD formula. Not yet applied by the port — see TASK-527.</para>
+    /// this is the V102CD formula. Applied on scene entry through
+    /// <c>SaveGameContainerShopData.WithBardingFundRestockedFor</c>.</para>
     /// </summary>
-    public static int InnNightlyRate(int baseUnit, int chapter) {
+    public static int RestockedBardingFund(int baseUnit, int chapter) {
         long scaled = (long)baseUnit * (chapter + 19) / 20;
         return scaled > 0xfa ? 0xfa : (int)scaled;
     }

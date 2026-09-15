@@ -91,6 +91,24 @@ public class SaveGameContainerShopData {
     /// Returned as a new record rather than written in place: the parsed save is the immutable
     /// account of what was loaded, and what gameplay spends belongs to the runtime copy.
     /// </remarks>
+    /// <summary>
+    /// The record as a town scene finds it on entry: once per chapter the fund is refilled from the
+    /// base, scaled and capped (<see cref="Scene.GdsSceneRules.RestockedBardingFund"/>).
+    /// </summary>
+    /// <remarks>
+    /// TOWNSCN.C:146-161 runs this for the scene's own container on every load, guarded by
+    /// <c>LastRestockChapter &lt; chapter</c>, so a tavern played dry pays again in the next chapter.
+    /// Returns this same instance when nothing is due, so a caller can tell whether to flush.
+    /// </remarks>
+    public SaveGameContainerShopData WithBardingFundRestockedFor(int chapter) =>
+        LastRestockChapter >= chapter
+            ? this
+            : new SaveGameContainerShopData(ShopType, MarkupPercentage, MaxHagglingDiscount,
+                MarkDownPercentage, ShopkeeperSkill, TeleportParam, BardingDifficulty,
+                (byte)Scene.GdsSceneRules.RestockedBardingFund(BaseBardingReward, chapter),
+                BaseBardingReward, (byte)chapter, InnRestHours, InnCostPerNight, RepairCategories,
+                RepairCostMarkup, ShopCategories);
+
     public SaveGameContainerShopData WithBardingReward(byte reward) =>
         new SaveGameContainerShopData(ShopType, MarkupPercentage, MaxHagglingDiscount,
             MarkDownPercentage, ShopkeeperSkill, TeleportParam, BardingDifficulty, reward,

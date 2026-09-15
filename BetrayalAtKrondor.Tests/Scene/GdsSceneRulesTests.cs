@@ -92,23 +92,35 @@ public class GdsSceneRulesTests {
     [InlineData(10, 1, 10)]    // chapter 1 pays the base rate: 10*20/20
     [InlineData(10, 5, 12)]    // 10*24/20
     [InlineData(10, 9, 14)]    // 10*28/20
-    public void InnsGetDearerAsTheStoryAdvances(int baseUnit, int chapter, int expected) {
-        Assert.Equal(expected, GdsSceneRules.InnNightlyRate(baseUnit, chapter));
+    public void TheBardingFundGrowsAsTheStoryAdvances(int baseUnit, int chapter, int expected) {
+        Assert.Equal(expected, GdsSceneRules.RestockedBardingFund(baseUnit, chapter));
     }
 
     [Fact]
-    public void TheNightlyRateIsCapped() {
-        Assert.Equal(0xfa, GdsSceneRules.InnNightlyRate(baseUnit: 250, chapter: 9));
+    public void TheRestockedFundIsCapped() {
+        Assert.Equal(0xfa, GdsSceneRules.RestockedBardingFund(baseUnit: 250, chapter: 9));
     }
 
     [Fact]
     public void TheCdBuildClimbsHalfAsFastAsTheFloppy() {
         // Floppy is (chapter + 9)/10; we target the CD's (chapter + 19)/20. At chapter 9 the floppy
         // would charge 18 against our 14 for the same base — taking the wrong branch overcharges.
-        int ours = GdsSceneRules.InnNightlyRate(10, 9);
+        int ours = GdsSceneRules.RestockedBardingFund(10, 9);
         int floppy = 10 * (9 + 9) / 10;
 
         Assert.Equal(14, ours);
         Assert.Equal(18, floppy);
+    }
+
+    [Fact]
+    public void ATappedOutFundRefillsOncePerChapter() {
+        var dry = new GameData.Resources.Data.SaveGameContainerShopData(0, 0, 0, 0, 0, 0, 60,
+            bardingReward: 0, baseBardingReward: 105, lastRestockChapter: 1, 0, 0, 0, 0, 0);
+
+        var chapterTwo = dry.WithBardingFundRestockedFor(2);
+        Assert.Equal(110, chapterTwo.BardingReward);                   // 105 * 21 / 20
+        Assert.Equal(2, chapterTwo.LastRestockChapter);
+        Assert.Same(chapterTwo, chapterTwo.WithBardingFundRestockedFor(2)); // once per chapter
+        Assert.Same(dry, dry.WithBardingFundRestockedFor(1));               // same chapter: stays dry
     }
 }
