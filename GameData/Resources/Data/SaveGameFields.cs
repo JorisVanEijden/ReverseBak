@@ -113,4 +113,19 @@ public readonly record struct SaveGameFields(
 
     /// <summary>The cell-boundary flag — body offset 53, <c>world_step_tick</c>.</summary>
     /// <inheritdoc cref="SubTileStepCount"/>
-    short? TileBoundaryCrossed = null);
+    short? TileBoundaryCrossed = null,
+
+    /// <summary>
+    /// The cast screen's remembered caster slot — body offset 1622, <c>nSpellMenuCasterSlot</c>.
+    /// </summary>
+    /// <remarks>
+    /// The screen reopens on whoever cast last, and a chapter start resets it to -1
+    /// (SAVEGAME.C:175-177). Unwritten, a save kept the LOADED save's pair whatever the player had
+    /// picked since, and a reset never persisted. Nullable and appended for the same reasons as the
+    /// fields above. TASK-531.
+    /// </remarks>
+    short? CastMenuCasterSlot = null,
+
+    /// <summary>The cast screen's remembered school — body offset 1624, <c>nSpellMenuPreselect</c>.</summary>
+    /// <inheritdoc cref="CastMenuCasterSlot"/>
+    short? CastMenuSchool = null);

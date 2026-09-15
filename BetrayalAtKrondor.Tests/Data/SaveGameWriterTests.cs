@@ -49,6 +49,26 @@ public class SaveGameWriterTests {
     }
 
     [Fact]
+    public void TheCastScreensSelectionIsWrittenWhenSupplied_AndLeftAloneWhenNot() {
+        byte[] body = new byte[SaveGameOffsets.BodySize];
+        BitConverter.GetBytes((short)1).CopyTo(body, SaveGameOffsets.CastMenuCasterSlot);
+        BitConverter.GetBytes((short)4).CopyTo(body, SaveGameOffsets.CastMenuSchool);
+
+        // A chapter start resets the pair to -1; the save must carry that, not the loaded 1/4.
+        var fields = FieldsFrom(body) with { CastMenuCasterSlot = -1, CastMenuSchool = -1 };
+        SaveGameWriteResult written = SaveGameWriter.Write(body, fields, "Reset", 40, 41, 3);
+        byte[] outBody = written.Bytes[SaveGameOffsets.HeaderSize..];
+        Assert.Equal((short)-1, BitConverter.ToInt16(outBody, SaveGameOffsets.CastMenuCasterSlot));
+        Assert.Equal((short)-1, BitConverter.ToInt16(outBody, SaveGameOffsets.CastMenuSchool));
+        Assert.True(IsAuthored(written.Coverage, SaveGameOffsets.CastMenuCasterSlot + 1));
+        Assert.True(IsAuthored(written.Coverage, SaveGameOffsets.CastMenuSchool + 1));
+
+        SaveGameWriteResult untouched = SaveGameWriter.Write(body, FieldsFrom(body), "Keep", 40, 41, 3);
+        Assert.Equal((short)4, BitConverter.ToInt16(untouched.Bytes, SaveGameOffsets.HeaderSize + SaveGameOffsets.CastMenuSchool));
+        Assert.False(IsAuthored(untouched.Coverage, SaveGameOffsets.CastMenuSchool));
+    }
+
+    [Fact]
     public void Header_IsWrittenExactly() {
         byte[] body = PatternBody();
         var fields = FieldsFrom(body) with { Chapter = 5 };

@@ -86,6 +86,13 @@ public static class SaveGameWriter {
         // original stores it too — so a save restored mid-effect shows it at once instead of waiting
         // for the clock to move, which on a stationary party is a long time.
         PatchI16(SaveGameOffsets.PaletteEventMask, fields.PaletteEventMask);
+        // The two words after it are the cast screen's memory: who cast last and in which school.
+        if (fields.CastMenuCasterSlot.HasValue) {
+            PatchI16(SaveGameOffsets.CastMenuCasterSlot, fields.CastMenuCasterSlot.Value);
+        }
+        if (fields.CastMenuSchool.HasValue) {
+            PatchI16(SaveGameOffsets.CastMenuSchool, fields.CastMenuSchool.Value);
+        }
         // Offsets 14, 15 and 17 — cross-checked against canassa's gstate.inc. Offset 16 between
         // them is rsvd_10, a genuine reserved byte, so it stays in passthrough rather than being
         // written as a zero we cannot justify.

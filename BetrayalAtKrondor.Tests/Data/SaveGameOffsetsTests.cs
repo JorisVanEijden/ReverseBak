@@ -51,4 +51,21 @@ public class SaveGameOffsetsTests {
         Assert.Equal(33, s.PositionZ);
         Assert.Equal((short)512, s.CurrentZRotation);
     }
+
+    [Fact]
+    public void TheCastScreensCasterAndSchoolAreTheTwoWordsAfterThePaletteMask() {
+        // gstate.inc: wPalEventMask, nSpellMenuCasterSlot, nSpellMenuPreselect. The reader has
+        // called the pair PartyMember and LastSpellSymbolFile; these offsets are what binds the
+        // writer's names to it.
+        byte[] body = MakeBody();
+        BitConverter.GetBytes((short)2).CopyTo(body, SaveGameOffsets.CastMenuCasterSlot);
+        BitConverter.GetBytes((short)5).CopyTo(body, SaveGameOffsets.CastMenuSchool);
+
+        using var stream = new MemoryStream(body);
+        SaveGameLightingStateData l = new SaveGameExtractor().Extract("test", stream).Data!.StateData.LightingStateData;
+
+        Assert.Equal(SaveGameOffsets.PaletteEventMask + 2, SaveGameOffsets.CastMenuCasterSlot);
+        Assert.Equal((short)2, l.PartyMember);
+        Assert.Equal((short)5, l.LastSpellSymbolFile);
+    }
 }

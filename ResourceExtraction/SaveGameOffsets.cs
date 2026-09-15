@@ -148,6 +148,14 @@ public static class SaveGameOffsets {
     /// <c>SaveGameLightingStateData.ActiveSpellTimerFlags</c>; this constant is for the writer.</para>
     /// </remarks>
     public const int PaletteEventMask = 1620;
+
+    /// <summary>The cast screen's remembered caster slot, Int16 — gstate.inc <c>nSpellMenuCasterSlot</c>.</summary>
+    /// <remarks>Read back as <c>SaveGameLightingStateData.PartyMember</c>; -1 is "none".</remarks>
+    public const int CastMenuCasterSlot = 1622;
+
+    /// <summary>The cast screen's remembered school, Int16 — gstate.inc <c>nSpellMenuPreselect</c>.</summary>
+    /// <remarks>Read back as <c>SaveGameLightingStateData.LastSpellSymbolFile</c>; -1 is "none".</remarks>
+    public const int CastMenuSchool = 1624;
     public const int TimerStride = 8;
     public const int TimerSlots = 20;
 
