@@ -28,6 +28,11 @@ public class ImageScaleConventionTests {
 
     private const double CanonicalHeight = 1200;
 
+    /// <summary>The corrected book page: BOOK.BMX is EGA art on a 640x350 page, drawn 1280x960.</summary>
+    private const double BookWidth = 1280;
+
+    private const double BookHeight = 960;
+
     private static IEnumerable<string> ImageJson(string root) =>
         Directory.EnumerateFiles(Path.Combine(root, "BMX"), "*.json", SearchOption.AllDirectories)
             .Where(f => char.IsDigit(Path.GetFileNameWithoutExtension(f)[0]));
@@ -50,8 +55,11 @@ public class ImageScaleConventionTests {
                 continue;
             }
 
-            Assert.Equal(w.GetInt32() / CanonicalWidth, sx.GetDouble(), 6);
-            Assert.Equal(h.GetInt32() / CanonicalHeight, sy.GetDouble(), 6);
+            // The same family test the extractor's aspect correction uses.
+            bool book = e.TryGetProperty("Id", out JsonElement id)
+                && (id.GetString() ?? "").StartsWith("BOOK", System.StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(w.GetInt32() / (book ? BookWidth : CanonicalWidth), sx.GetDouble(), 6);
+            Assert.Equal(h.GetInt32() / (book ? BookHeight : CanonicalHeight), sy.GetDouble(), 6);
             checkedCount++;
         }
 

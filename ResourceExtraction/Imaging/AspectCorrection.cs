@@ -29,12 +29,22 @@ public static class AspectCorrection {
     /// <summary>Height of the original VGA mode 13h framebuffer.</summary>
     public const int VgaHeight = 200;
 
+    public const int EgaWidth = 640;
+
+    public const int EgaHeight = 350;
+
     /// <summary>Canonical frame width — derived from the mode and the aspect factor, never
     /// written as a literal, so changing a factor changes every consumer coherently.</summary>
     public static int CanonicalWidth => VgaWidth * VgaScaleX;
 
     /// <summary>Canonical frame height. See <see cref="CanonicalWidth"/>.</summary>
     public static int CanonicalHeight => VgaHeight * VgaScaleY;
+
+    /// <summary>The book page's frame once corrected — 1280 wide.</summary>
+    public static int BookWidth => ScaleEgaX(EgaWidth);
+
+    /// <summary>The book page's frame once corrected — 960 high.</summary>
+    public static int BookHeight => ScaleEgaY(EgaHeight);
 
     /// <summary>
     /// A fresh <see cref="DesignFrame"/> for the canonical space, at the faithful <see

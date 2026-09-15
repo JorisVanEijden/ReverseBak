@@ -15,8 +15,6 @@ using System.Linq;
 using System.Text;
 
 public class BitmapExtractor : ExtractorBase<ImageSet> {
-    private const double NormalScreenWidth = 320.0;
-    private const double NormalScreenHeight = 200.0;
 
     public override ImageSet Extract(string id, Stream resourceStream) {
         var imageSet = new ImageSet(id);
@@ -62,10 +60,6 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
         }
         for (var i = 0; i < nrOfImages; i++) {
             images[i].Height = resourceReader.ReadUInt16();
-        }
-        for (var i = 0; i < nrOfImages; i++) {
-            images[i].ScaleX = images[i].Width / NormalScreenWidth;
-            images[i].ScaleY = images[i].Height / NormalScreenHeight;
         }
         string binTag = resourceReader.ReadTag();
         if (!binTag.Equals("BIN")) {
@@ -115,8 +109,6 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
                 Width = resourceReader.ReadUInt16(),
                 Height = resourceReader.ReadUInt16()
             };
-            images[i].ScaleX = images[i].Width / NormalScreenWidth;
-            images[i].ScaleY = images[i].Height / NormalScreenHeight;
         }
         Stream imageStream;
         switch (alsoCompressionType) {
@@ -198,6 +190,12 @@ public class BitmapExtractor : ExtractorBase<ImageSet> {
                 : AspectCorrection.CorrectVga(image.BitMapData!, image.Width, image.Height, columnMajor, out w, out h);
             image.Width = w;
             image.Height = h;
+            // A fraction of the frame the image is drawn in — the book's page for BOOK.BMX, the
+            // screen for everything else — from the corrected size. It was the raw size over 320x200,
+            // which reads the book's EGA art as mode-13h pixels: BOOK/16 came out 0.15 wide where it
+            // is 96/1280 = 0.075. TASK-519.
+            image.ScaleX = (double)w / (isBook ? AspectCorrection.BookWidth : AspectCorrection.CanonicalWidth);
+            image.ScaleY = (double)h / (isBook ? AspectCorrection.BookHeight : AspectCorrection.CanonicalHeight);
         }
     }
 

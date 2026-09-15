@@ -21,11 +21,11 @@ public abstract class ImageResource(string id) : IResource {
     /// failing run on 2026-09-02, where a 16x16 synthetic image given <c>ScaleX = 1</c> painted the
     /// entire cutscene buffer.
     ///
-    /// <para><b>Computed by the extractor, not read from the file.</b>
-    /// <c>BitmapExtractor</c> sets it to <c>rawWidth / 320.0</c> the moment the width is read, i.e.
-    /// against the mode-13h screen and BEFORE <see cref="Width"/> is scaled into canonical space.
-    /// The fraction is scale-invariant, so in the extracted data it equals <see cref="Width"/> / 1600
-    /// as well — checked across 4000 shipped BMX images with zero mismatches.</para>
+    /// <para><b>Computed by the extractor, not read from the file.</b> <c>BitmapExtractor</c>
+    /// divides the corrected <see cref="Width"/> by the frame the image is drawn in: 1600 for the
+    /// screen, 1280 for a <c>BOOK.BMX</c> page, whose EGA art is corrected by 2 rather than 5. Until
+    /// 2026-09-15 it was the raw width over 320 — the same number for VGA art and wrong for the book's
+    /// (TASK-519).</para>
     ///
     /// <para>So it is derivable and kept for convenience. A consumer that wants a size in canonical
     /// pixels should use <see cref="Width"/>; one that wants a proportion of the screen should use
@@ -35,8 +35,8 @@ public abstract class ImageResource(string id) : IResource {
 
     /// <inheritdoc cref="ScaleX"/>
     /// <remarks>
-    /// The vertical twin — <c>rawHeight / 200.0</c>, equal to <see cref="Height"/> / 1200 in the
-    /// extracted data. See <see cref="ScaleX"/> for why the name misleads.
+    /// The vertical twin — <see cref="Height"/> / 1200, or / 960 for a book page. See
+    /// <see cref="ScaleX"/> for why the name misleads.
     /// </remarks>
     public virtual double ScaleY { get; set; }
     public abstract ResourceType Type { get; }
