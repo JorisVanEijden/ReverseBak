@@ -92,6 +92,23 @@ public class FixedObjectClickTests {
     }
 
     [Fact]
+    public void AMessageWithNowhereFurtherToGoIsSpoken_NotNothingToDo() {
+        // TASK-550. WCURSOR.C plays an unlocked object's message before it looks for a warp or the
+        // inventory bit, so a message-only door (Brother Jeremy's, gated on the day) speaks once its
+        // gate passes. Answering NothingToDo skipped the message and said "This must not be very
+        // important" instead, and Jeremy could never be met.
+        Assert.Equal(FixedObjectClick.Outcome.MessageOnly,
+            FixedObjectClick.Resolve(lockKey: 0, hasMessage: true, hasWarp: false,
+                flags: FixedObjectClick.GatedOnEventFlag, eventValue: 1));
+        Assert.Equal(FixedObjectClick.Outcome.MessageOnly,
+            FixedObjectClick.Resolve(lockKey: 0, hasMessage: true, hasWarp: false,
+                flags: 0, eventValue: 0));
+        Assert.Equal(FixedObjectClick.Outcome.Refused,
+            FixedObjectClick.Resolve(lockKey: 0, hasMessage: true, hasWarp: false,
+                flags: FixedObjectClick.GatedOnEventFlag, eventValue: 0));
+    }
+
+    [Fact]
     public void NoMessageIsNothingToDoWhateverElseItCarries() {
         Assert.Equal(FixedObjectClick.Outcome.NothingToDo,
             FixedObjectClick.Resolve(lockKey: 0, hasMessage: false, hasWarp: true,

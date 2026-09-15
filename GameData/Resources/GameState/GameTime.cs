@@ -29,4 +29,13 @@ public static class GameTime {
     /// <summary>Whole days elapsed since time zero.</summary>
     public static int DayOf(long gameTimeIn2Seconds) =>
         (int)(Math.Max(0, gameTimeIn2Seconds) / UnitsPerDay);
+
+    /// <summary>
+    /// Night in the dialog's sense: before 04:00 or from 20:00 (globals 30009 / 30010). One rule for a
+    /// save read on its own and a live session, which must ask it of the LIVE clock (TASK-549).
+    /// </summary>
+    public static bool IsNight(long gameTimeIn2Seconds) {
+        int hour = HourOfDay(gameTimeIn2Seconds);
+        return hour < 4 || hour >= 20;
+    }
 }

@@ -19,6 +19,13 @@ public static class FixedObjectClick {
         /// <summary>"Nothing happens" — the object has no interaction to offer.</summary>
         NothingToDo,
 
+        /// <summary>
+        /// The object's message played and there is nowhere further to go: no warp, no inventory.
+        /// WCURSOR.C plays the message first on every unlocked object that has one, and only then
+        /// looks for a warp or the inventory bit (TASK-550).
+        /// </summary>
+        MessageOnly,
+
         /// <summary>Refused for now, with its own dialog.</summary>
         Refused,
 
@@ -200,6 +207,6 @@ public static class FixedObjectClick {
             return Outcome.EntersTownScene;
         }
 
-        return (flags & OpensInventoryFlag) != 0 ? Outcome.OpensInventory : Outcome.NothingToDo;
+        return (flags & OpensInventoryFlag) != 0 ? Outcome.OpensInventory : Outcome.MessageOnly;
     }
 }

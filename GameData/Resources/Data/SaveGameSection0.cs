@@ -237,10 +237,7 @@ public class SaveGameStateData {
 
     private int GetCurrentHourOfDay() => GameState.GameTime.HourOfDay(GameTimeIn2Seconds);
 
-    private bool IsNightTime() {
-        int hour = GetCurrentHourOfDay();
-        return hour < 4 || hour >= 20;
-    }
+    private bool IsNightTime() => GameState.GameTime.IsNight(GameTimeIn2Seconds);
 
     private static bool TryReadFlag(byte[] bitfield, int bitIndex, out int value) {
         value = 0;
