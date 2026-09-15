@@ -24,6 +24,16 @@ public class MeleeExchangeTests {
         new MeleeExchange.Defender(defenseRating: 0, armorRating: 0, applyArmor: false);
 
     [Fact]
+    public void AFixedBlowReplacesTheWeaponRoll() {
+        // COMBAT.C:534-535: a non-zero damage argument IS the blow (the 0x13/0x31 RNDR(25, 49)).
+        var brakNurr = new MeleeExchange.Attacker(accuracyMelee: 90, strength: 12, fixedDamage: 37);
+        MeleeExchange.Result r = MeleeExchange.Resolve(Fighter(), Fighter(), brakNurr, Unarmoured, AlwaysHits);
+
+        Assert.True(r.Hit);
+        Assert.Equal(37, r.Damage);
+    }
+
+    [Fact]
     public void ALandedSwingTakesHealthAndStaminaOffTheDefender() {
         Combatant target = Fighter();
         MeleeExchange.Result r = MeleeExchange.Resolve(Fighter(), target, Bruiser, Unarmoured, AlwaysHits);

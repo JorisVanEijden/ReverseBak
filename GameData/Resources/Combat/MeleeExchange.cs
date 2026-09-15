@@ -83,7 +83,8 @@ public static class MeleeExchange {
     public readonly struct Attacker {
         public Attacker(int accuracyMelee, int strength, bool hasWeapon = false, int weaponAccuracy = 0,
             int weaponBase = 0, int classGroupModifier = 0, int weaponConditionPercent = 100,
-            ItemFlags weaponFlags = default) {
+            ItemFlags weaponFlags = default, int fixedDamage = 0) {
+            FixedDamage = fixedDamage;
             AccuracyMelee = accuracyMelee;
             Strength = strength;
             HasWeapon = hasWeapon;
@@ -102,6 +103,16 @@ public static class MeleeExchange {
         public int ClassGroupModifier { get; }
         public int WeaponConditionPercent { get; }
         public ItemFlags WeaponFlags { get; }
+
+        /// <summary>
+        /// The blow's damage when the caller supplies it, or 0 to roll the weapon's.
+        /// </summary>
+        /// <remarks>
+        /// <c>combat_arena_melee_attack(attacker, defender, damage)</c> rolls weapon damage only
+        /// <c>if (damage == 0)</c> (COMBAT.C:534-535). The to-hit roll and the weapon's wear still use the
+        /// held weapon. Creatures 0x13 and 0x31 pass <c>RNDR(0x19, 0x31)</c> (CBTAIACT.C:29, :62).
+        /// </remarks>
+        public int FixedDamage { get; }
     }
 
     /// <summary>What the defender brings.</summary>
@@ -254,9 +265,11 @@ public static class MeleeExchange {
                 CombatFormulas.EnchantmentDamageType(attackerStats.WeaponFlags),
                 defenderStats.ArmorFlags)
             : 0;
-        int rolled = CombatFormulas.MeleeDamage(
-            attackerStats.Strength, attackerStats.HasWeapon, attackerStats.WeaponBase,
-            attackerStats.WeaponConditionPercent, enchantment, doubled: false);
+        int rolled = attackerStats.FixedDamage != 0
+            ? attackerStats.FixedDamage
+            : CombatFormulas.MeleeDamage(
+                attackerStats.Strength, attackerStats.HasWeapon, attackerStats.WeaponBase,
+                attackerStats.WeaponConditionPercent, enchantment, doubled: false);
 
         DamageOutcome outcome = CombatFormulas.ApplyDamage(
             rolled, defender.Stamina, defender.Health, defenderStats.Immune,
