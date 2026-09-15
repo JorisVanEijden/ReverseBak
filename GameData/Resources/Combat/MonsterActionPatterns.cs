@@ -158,6 +158,19 @@ public static class MonsterActionPatterns {
     public static bool CrossbowFallbackAdvances(int roll100, int staminaPercent) =>
         roll100 < 75 || staminaPercent == 100;
 
+    /// <summary>The caster turn's fallback when no slot acted (<c>combat_ai_take_turn</c>, CBTAI.C:373-381):
+    /// a creature above this share of its pool advances, on a roll over <see cref="CasterAdvanceRollAbove"/>;
+    /// anything else, and every party member, raises its guard.</summary>
+    public const int CasterAdvancePoolPercent = 40;
+
+    /// <inheritdoc cref="CasterAdvancePoolPercent"/>
+    public const int CasterAdvanceRollAbove = 10;
+
+    /// <summary>The caster's advance is capped at its nearest opponent's distance less six, never under
+    /// one step (CBTAI.C:376-379): a caster closes slowly and stays at range.</summary>
+    public static int CasterAdvanceSteps(int speed, int nearestDistance) =>
+        System.Math.Min(speed, System.Math.Max(nearestDistance, 7) - 6);
+
     /// <summary><c>combataipath_low_health_action</c> (CMBTAI.C:437): under 75% stamina, nobody within
     /// two, and a roll under 80.</summary>
     public static bool LowHealthRests(int staminaPercent, int nearestDistance, int roll100) =>

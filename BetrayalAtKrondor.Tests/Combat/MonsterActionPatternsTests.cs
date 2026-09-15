@@ -118,5 +118,8 @@ public class MonsterActionPatternsTests {
         Assert.True(MonsterActionPatterns.CrossbowFallbackAdvances(99, 100));
         Assert.True(MonsterActionPatterns.LowHealthRests(74, 3, 79));
         Assert.False(MonsterActionPatterns.LowHealthRests(74, 2, 0));
+        Assert.Equal(1, MonsterActionPatterns.CasterAdvanceSteps(4, 2));
+        Assert.Equal(3, MonsterActionPatterns.CasterAdvanceSteps(4, 9));
+        Assert.Equal(4, MonsterActionPatterns.CasterAdvanceSteps(4, 100));
     }
 }
