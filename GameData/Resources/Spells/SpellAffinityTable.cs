@@ -3,31 +3,28 @@ namespace GameData.Resources.Spells;
 using System.Collections.Generic;
 
 /// <summary>
-/// A per-spell creature-type affinity bitmask table — the shared format of
-/// <b>SPELLWEA.DAT</b> (creature weaknesses) and <b>SPELLRES.DAT</b> (creature
-/// resistances). For each spell it records which creature types are extra-vulnerable to
-/// (weakness) or shrug off (resistance) that spell.
+/// The creature × spell affinity tables — the shared format of <b>SPELLWEA.DAT</b> (creature
+/// weaknesses) and <b>SPELLRES.DAT</b> (creature resistances), regrouped per spell: for each spell,
+/// which creature types are extra-vulnerable to it (weakness) or shrug it off (resistance).
 ///
-/// On-disk layout: <c>u16 spellCount</c> (64), then <c>spellCount × (3 × u16)</c> — a
-/// 48-bit creature-type bitmask per spell.
-///
-/// NOTE — the <c>spellCount</c> here is 64, but the real spell count is <b>45</b> (SPELLS.DAT).
-/// The 64 is over-allocation from the dev spell editor; slots 45..63 are dead authoring leftover and
-/// are <b>never read at runtime</b> (<c>Cast_Spell</c> @0x6850c indexes both the 45-record spell-data
-/// array and this table with the same spellNumber, so spellNumber is always 0..44). Records 0..44 are
-/// the real per-spell affinity data. Resolved 2026-07-24; see docs/work-todo.md and the IDA anchor
-/// comment on <c>Load_spell_weakness_and_resistance</c>.
-///
-/// Reversed from <c>Load_spell_weakness_and_resistance</c> (ovr177 @ 0x6b4dc) and the
-/// lookups <c>check_spell_weakness</c> (0x6b5db) / <c>check_spell_resistance</c> (0x6b595):
-/// the test is <c>array[spell*3 + creatureType/16] &amp; (1 &lt;&lt; (creatureType%16))</c>,
-/// i.e. bit <c>N</c> across the three words = creature type <c>N</c> (0..47). The extractor
-/// decodes the masks into the explicit list of affected creature-type indices. See
-/// <c>docs/FileFormats/SPELLWEA_SPELLRES.DAT.md</c>.
+/// On-disk layout: <c>u16 rowCount</c> (64), then <c>rowCount × (3 × u16)</c>. <b>Each row is a
+/// creature type (the 64 mnames entries) and each of its 48 bits is a spell.</b> The lookups
+/// <c>check_spell_weakness</c> (0x6b5db) / <c>check_spell_resistance</c> (0x6b595) compute
+/// <c>array[arg1*3 + arg2/16] &amp; (1 &lt;&lt; (arg2%16))</c>, and every caller passes the creature
+/// type as <c>arg1</c> — <c>Cast_Evil_Seek</c> @0x673bc pushes the spell number, then
+/// <c>combatData.creatureType</c>; canassa's byte-matched CSPELL.C does the same at every site.
+/// IDA's parameter NAMES on the two lookups are swapped, and this model once followed them: it read
+/// rows as spells, so "spell 58" appeared to affect all 48 creatures. Row 58 is the Nethermander,
+/// which resists every spell; rows 15-17 (Gorath, Owyn, Locklear) and the rogues resist Evil Seek.
+/// Confirmed live 2026-09-15: the original's Evil Seek on an entry-306 rogue paid its cost and dealt
+/// nothing (TASK-541). See <c>docs/FileFormats/SPELLWEA_SPELLRES.DAT.md</c>.
 /// </summary>
 public class SpellAffinityTable : IResource {
-    /// <summary>Creature types addressed by the 3-word mask (3 × 16).</summary>
-    public const int CreatureTypeCount = 48;
+    /// <summary>Creature-type rows in both files (the mnames id space).</summary>
+    public const int CreatureTypeCount = 64;
+
+    /// <summary>Spells addressed by one row's 3-word mask (3 × 16).</summary>
+    public const int SpellCount = 48;
 
     public SpellAffinityTable(string id) {
         Id = id;
@@ -50,8 +47,8 @@ public class SpellAffinityTable : IResource {
     /// consumer to index <see cref="Spells"/> itself invites an out-of-range spell number becoming
     /// an exception where the original reads a zero bit.
     ///
-    /// <para><b>Out of range reads false</b>, matching the original: it indexes the allocation it
-    /// made from the file's own count, so a spell number past the end simply never matches.</para>
+    /// <para><b>Out of range reads false</b> rather than throwing: the original has no bounds check at
+    /// all, so a number outside the table is a data question, not a crash.</para>
     /// </remarks>
     public bool Lists(int spellNumber, int creatureType) {
         if (spellNumber < 0 || spellNumber >= Spells.Count) {
@@ -66,10 +63,10 @@ public class SpellAffinityTable : IResource {
 
 /// <summary>The creature types a single spell is weak/resistant against.</summary>
 public class SpellAffinity {
-    /// <summary>Spell number (this entry's index in the file).</summary>
+    /// <summary>Spell number: the bit position within a creature row (0..47).</summary>
     public int SpellNumber { get; set; }
 
-    /// <summary>Creature-type indices (0..47) whose bit is set in this spell's mask.</summary>
+    /// <summary>Creature-type rows (0..63) that carry this spell's bit.</summary>
     public List<int> CreatureTypes { get; set; } = new();
 
     /// <summary>De-indexed <see cref="CreatureTypes"/>: <c>base:mnames:&lt;type&gt;</c> per affected

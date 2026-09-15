@@ -9,8 +9,8 @@ using GameData.Resources.Content;
 /// RESOLVED 2026-07-25 (IDA): the mnames number is the <b>single</b> canonical creature id, held at
 /// runtime as <c>combatData.creatureType</c>. It also names the MonsterStats file
 /// (<c>MONST{n}.DAT</c>) and indexes the SPELLWEA/SPELLRES affinity mask — i.e. MonsterStats.CreatureId
-/// and SpellAffinity CreatureTypes are the <b>same</b> space, not separate (the affinity "0..47" is just
-/// the 48-bit mask width). So SpellAffinity.CreatureTypes[] (#10) also keys to <c>base:mnames:&lt;n&gt;</c>.
+/// and SpellAffinity CreatureTypes are the <b>same</b> space, not separate: the affinity files hold one
+/// row per mnames creature (64). So SpellAffinity.CreatureTypes[] (#10) also keys to <c>base:mnames:&lt;n&gt;</c>.
 /// See docs/re-notes/reference-inventory.md caveat 1 and the IDA anchor @0x6a3b2.</summary>
 public class CreatureNames : IResource {
     public CreatureNames(string id) {

@@ -67,12 +67,10 @@ public class CatalogReferenceTests {
     }
 
     /// <summary>#9 (affinity tables) — SPELLWEA (weaknesses) and SPELLRES (resistances) are parallel
-    /// positional tables. Both self-declare 64 records while the real spell count is 45. RESOLVED (IDA,
-    /// docs/work-todo.md): the spell keyspace is <b>45</b>; the 64 is over-allocation and slots 45..63
-    /// are never read at runtime (dead authoring data — <c>Cast_Spell</c> indexes the 45-record
-    /// spell-data array with the same spellNumber, so spellNumber is always 0..44). Records 0..44 are
-    /// the real per-spell affinity data; only their alignment is worth enforcing here — the two tables
-    /// must stay structurally aligned (same 64-count, same spell-number set).</summary>
+    /// tables: 64 creature-type rows, each a 48-bit spell mask, regrouped per spell by the extractor
+    /// (TASK-541 — the rows were once read as spells, which is where a "64 records but 45 spells"
+    /// puzzle came from). Only their alignment is enforced here: the two tables must expose the same
+    /// spell-number set.</summary>
     [Fact]
     public void SpellAffinityTables_ShareTheSameSpellKeyspace() {
         string? gen = GeneratedCorpus.FindDir("SPELLWEA.json", "SPELLRES.json");
