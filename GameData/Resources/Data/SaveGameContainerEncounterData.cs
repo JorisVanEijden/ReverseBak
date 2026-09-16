@@ -34,7 +34,26 @@ public class SaveGameContainerEncounterData {
     /// </remarks>
     public int GlobalDataKey1 { get; }
 
-    /// <inheritdoc cref="GlobalDataKey1"/>
+    /// <summary>
+    /// The global this container WRITES when it is opened — <c>wGame_state_event_id</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>*** NOT A GATE, AND THIS USED TO INHERIT Key1'S DOC SAYING IT WAS. ***</b>
+    /// <c>cmbinv_inventory_screen_run</c> (canassa <c>SRC/SCREENS/CMBINV.C</c>) writes it as the
+    /// container screen comes up, before the screen's loop:
+    /// <code>
+    /// pSub08 = actorrec_get_subrecord(actor, SUBREC_HOTSPOT);
+    /// if (pSub08 != 0 &amp;&amp; pSub08->wGame_state_event_id != 0)
+    ///     gstate_event_write(pSub08->wGame_state_event_id, 1);
+    /// </code>
+    /// In the 9-byte <c>ActorSubrec08_HotspotAction</c> (<c>wPad_0, wGame_state_event_id,
+    /// bWarp_kind, bWarp_dest, bHas_hotspot, bHotspot_x, bHotspot_y</c>) this is the second word,
+    /// which is why it is Key2 and not Key1.
+    ///
+    /// <para>The inherited wording cost a session: it reads as "something reads this", so the
+    /// search for what sets Brother Jeremy's flag 56012 went to the hotspot post-key path instead
+    /// of to the container screen. Six shipped containers carry one. TASK-560.</para>
+    /// </remarks>
     public int GlobalDataKey2 { get; }
     public byte GdsNumber { get; }
     public byte GdsLetter { get; }
