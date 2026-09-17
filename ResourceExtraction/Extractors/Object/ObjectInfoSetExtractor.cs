@@ -16,6 +16,16 @@ using System.Text;
 public class ObjectInfoSetExtractor : ExtractorBase<ObjectInfoSet> {
     private const int RecordCount = 138;
 
+    /// <summary>
+    /// Scroll prices follow the records — 45 shorts, one per spell, which is exactly the 90 bytes
+    /// OBJINFO.DAT carries past 138 x 80 = 11040 = 0x2b20, and exactly the number of spells
+    /// SPELLDOC ships. See <see cref="ObjectInfoSet.SpellPrices"/>.
+    /// </summary>
+    private const int SpellPriceCount = 45;
+
+    /// <summary>Bytes per item record — the stride that puts the spell table at 0x2b20.</summary>
+    private const int RecordSize = 80;
+
     public override ObjectInfoSet Extract(string id, Stream resourceStream) {
         using var reader = new BinaryReader(resourceStream, Encoding.GetEncoding(DosCodePage));
 
@@ -56,6 +66,18 @@ public class ObjectInfoSetExtractor : ExtractorBase<ObjectInfoSet> {
             items.Add(objectInfo);
         }
 
-        return new ObjectInfoSet(id, items);
+        // *** SEEK, DO NOT TRUST THE POSITION. *** The original addresses this table absolutely as
+        // g_pItemDefTable + 0x2b20, and 138 * 80 = 11040 = 0x2b20 puts it immediately after the
+        // records. Seeking says exactly that, and cannot drift if a field read ever over-reads.
+        // A file that stops after the records (an override) simply yields no prices.
+        var spellPrices = new List<int>(SpellPriceCount);
+        if (resourceStream.CanSeek) {
+            resourceStream.Seek((long)RecordCount * RecordSize, SeekOrigin.Begin);
+            for (int i = 0; i < SpellPriceCount && resourceStream.Position + sizeof(short) <= resourceStream.Length; i++) {
+                spellPrices.Add(reader.ReadInt16());
+            }
+        }
+
+        return new ObjectInfoSet(id, items, spellPrices);
     }
 }
