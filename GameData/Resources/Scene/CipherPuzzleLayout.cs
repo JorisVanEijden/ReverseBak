@@ -363,11 +363,18 @@ public static class CipherPuzzleLayout {
     /// </summary>
     /// <remarks>
     /// <b>CIPHER.C:165 and :174 play 0xcd and 0xce when <c>menupage_state_0e7c() != 1</c></b> — a
-    /// wheel click and a solve attempt respectively, each refused with its own line. What that gate
-    /// reads is not established, and a guess would either silence the screen or refuse input that
-    /// should work. Named here so the ids are not rediscovered, and left unwired until the gate is.
+    /// wheel click and a solve attempt respectively, each refused with its own line.
     ///
-    /// <para><b>Deliberately callerless.</b> Unwired until the gate is known: menupage_state_0e7c is g_wMenuDragState, and what sets it is still unread (see TASK-514).</para>
+    /// <para><b>The gate IS established: it is the mouse button, not a mode.</b>
+    /// <c>menupage_state_0e7c</c> returns <c>g_wMenuDragState</c>, which
+    /// <see cref="GameData.Resources.Menu.MenuClickButton"/> documents as 1 = primary, 2 = secondary,
+    /// 0 = nothing held. So <c>!= 1</c> refuses anything that is not a left click — and note
+    /// MenuClickButton's own warning that <c>!= 1</c> lumps "nothing held" in with the secondary
+    /// button, which is right only where a click cannot be reached with no button down.
+    /// The earlier note here cited TASK-514 as leaving this unread; that task is Done.</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> Still unwired — the cipher screen does not yet route a
+    /// secondary click to these refusals; the ids and the rule are recorded so it can.</para>
     /// </remarks>
     public const int RefusedTurnDialog = 0xcd;
 
