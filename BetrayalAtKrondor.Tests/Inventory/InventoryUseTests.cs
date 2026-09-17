@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.Inventory;
 using GameData;
+using GameData.Resources.Character;
 using GameData.Resources.Data;
 using GameData.Resources.Inventory;
 using GameData.Resources.Object;
@@ -90,6 +91,22 @@ public class InventoryUseTests {
 
     private static ItemUseResult Use(RuntimeContainer c, int source, int target) =>
         InventoryUse.Use(c, source, target, Objs());
+
+    /// <summary>A character with the two craft skills the repair kits read.</summary>
+    private static ActorStat[] Stats(byte weaponCraft = 0, byte armorCraft = 0) {
+        var stats = new ActorStat[17];
+        for (var i = 0; i < stats.Length; i++) {
+            stats[i] = new ActorStat { Base = 0, Max = 99 };
+        }
+        stats[(int)ActorAttribute.Health] = new ActorStat { Base = 40, Max = 40 };
+        stats[(int)ActorAttribute.Stamina] = new ActorStat { Base = 40, Max = 40 };
+        stats[(int)ActorAttribute.WeaponCraft] = new ActorStat { Base = weaponCraft, Max = 99 };
+        stats[(int)ActorAttribute.ArmorCraft] = new ActorStat { Base = armorCraft, Max = 99 };
+        return stats;
+    }
+
+    private static ItemUseContext Ctx(ActorStat[] stats) =>
+        new ItemUseContext(stats, 1, _ => 0, (_, __) => { }, _ => 0);
 
     // --- category 9, poisons (ITEMUSE.C:169-186) ---
 
@@ -224,15 +241,60 @@ public class InventoryUseTests {
         Assert.Equal(20, c.Items[0].Variable); // refusal returns before the tail: no charge spent
     }
 
-    // The actual repair reads the member's ArmorCraft/WeaponCraft through the stat runtime
-    // (base + permanent + timed modifiers), which the remake has no model for yet.
+    // *** WITHOUT A CONTEXT there is no member to read a craft skill from, so the repair reports
+    // NotPorted — the same shape every character-touching category takes when the caller has no
+    // character to hand. The repair ITSELF is ported; see TheRepairRaisesConditionByTheCraftSkill.
     [Fact]
-    public void RepairingSomethingRepairable_IsNotPortedYet() {
+    public void RepairingWithNoCharacterContext_IsNotPorted() {
         RuntimeContainer c = Member(It(Whetstone, 20), It(Broadsword, 40, Repairable));
         ItemUseResult r = Use(c, 0, 1);
         Assert.Equal(ItemUseOutcome.NotPorted, r.Outcome);
         Assert.Equal(0, r.DialogId);
         Assert.Equal(40, c.Items[1].Variable);
+    }
+
+    /// <summary>
+    /// The repair itself — <c>condition += (100 - condition) * skill / 100</c> (ITEMUSE.C:219-241),
+    /// skill = WeaponCraft for a blade and ArmorCraft for armour, read EFFECTIVE (the original asks
+    /// <c>stat_actor_get(member, stat_idx, 0)</c>).
+    /// </summary>
+    [Fact]
+    public void TheRepairRaisesConditionByTheCraftSkill() {
+        RuntimeContainer c = Member(It(Whetstone, 20), It(Broadsword, 40, Repairable));
+        var stats = Stats(weaponCraft: 50);
+
+        ItemUseResult r = InventoryUse.Use(c, 0, 1, Objs(), Ctx(stats));
+
+        // 40 + (100 - 40) * 50 / 100 = 70
+        Assert.Equal(70, c.Items[1].Variable);
+        Assert.True((c.Items[1].ItemFlags & Repairable) == 0, "repairing CLEARS 0x20");
+        Assert.Equal(ItemUseOutcome.Handled, r.Outcome);
+        Assert.Equal(UsedRecord, r.DialogId);
+        Assert.Equal(19, c.Items[0].Variable);   // a successful repair spends one charge
+    }
+
+    /// <summary>A hammer on armour uses ArmorCraft, not WeaponCraft — the arg_a == 4 arm.</summary>
+    [Fact]
+    public void ArmourIsRepairedWithArmorCraft() {
+        RuntimeContainer c = Member(It(ArmorersHammer, 20), It(DragonPlate, 20, Repairable));
+        var stats = Stats(weaponCraft: 0, armorCraft: 25);
+
+        InventoryUse.Use(c, 0, 1, Objs(), Ctx(stats));
+
+        // 20 + (100 - 20) * 25 / 100 = 40, and WeaponCraft 0 would have left it at 20
+        Assert.Equal(40, c.Items[1].Variable);
+    }
+
+    /// <summary>The kit keeps its charge when the target needs no repair, even with a context.</summary>
+    [Fact]
+    public void ARefusedRepairStillKeepsTheCharge() {
+        RuntimeContainer c = Member(It(Whetstone, 20), It(Broadsword, 90));
+
+        ItemUseResult r = InventoryUse.Use(c, 0, 1, Objs(), Ctx(Stats(weaponCraft: 50)));
+
+        Assert.Equal(NoRepairRecord, r.DialogId);
+        Assert.Equal(20, c.Items[0].Variable);
+        Assert.Equal(90, c.Items[1].Variable);
     }
 
     [Fact]

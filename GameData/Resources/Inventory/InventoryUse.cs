@@ -270,7 +270,7 @@ public static class InventoryUse {
                 outcome = Coat(target, trec, ObjectType.Sword, ObjectType.Armor, argA, argB);
                 break;
             case ObjectType.Repair:            // 8 — ITEMUSE.C:219-241
-                return Repair(container, source, target, trec, rec, argA);
+                return Repair(container, sourceIndex, source, target, trec, rec, argA, context);
             case ObjectType.BowString:         // 12 — ITEMUSE.C:243-259
                 outcome = Restring(source, target, trec);
                 break;
@@ -410,13 +410,26 @@ public static class InventoryUse {
     /// An item that carries no <see cref="ItemFlags.Repairable"/> refuses with its own record and
     /// returns before the tail, so the kit keeps its charge.
     ///
-    /// <para>The repair itself — <c>condition += (100 - condition) * skill / 100</c> with skill =
-    /// the member's ArmorCraft or WeaponCraft, followed by a skill-up — reads the stat runtime
-    /// (base + permanent + timed modifiers) that the remake has no model for, so it reports
-    /// <see cref="ItemUseOutcome.NotPorted"/> rather than repairing by a guessed amount.</para>
+    /// <para>The repair itself is <c>condition += (100 - condition) * skill / 100</c> with skill =
+    /// the member's ArmorCraft (<c>arg_a == 4</c>) or WeaponCraft, read EFFECTIVE — the original
+    /// asks <c>stat_actor_get(member, stat_idx, 0)</c>, mode 0 — followed by a one-point skill-up,
+    /// exactly as <c>stat_combatant_modify(member, stat_idx, 1, 3)</c> does.</para>
+    ///
+    /// <para><b>This was reported as NotPorted for years on a blocker that had been solved.</b> The
+    /// old comment said the formula "reads the stat runtime the remake has no model for"; that model
+    /// is <see cref="StatEngine.Get"/> at <see cref="StatReadMode.Effective"/>, which by then had
+    /// six production callers. A deviation's "blocked on X" clause goes stale — check X before
+    /// believing it. Met in play on the Krondor road with both broadswords worn to 30% and 44% and
+    /// no mender this side of the gauntlet (TASK-567).</para>
+    ///
+    /// <para><b>The kit is charged, so the common tail has to run.</b> A successful repair returns
+    /// through <see cref="Tail"/> asking for <see cref="ItemUseOutcome.Handled"/>, which spends one
+    /// use and discards the kit when the last goes; the "needs no repair" arm returns BEFORE the
+    /// tail and so keeps the charge, which is the original's <c>return -1</c>.</para>
     /// </summary>
-    private static ItemUseResult Repair(RuntimeContainer container, RuntimeItem source,
-        RuntimeItem target, ObjectInfo trec, ObjectInfo rec, ushort argA) {
+    private static ItemUseResult Repair(RuntimeContainer container, int sourceIndex,
+        RuntimeItem source, RuntimeItem target, ObjectInfo trec, ObjectInfo rec, ushort argA,
+        ItemUseContext context) {
         if (target == null || trec == null || (int)trec.ObjectType != argA
             || (target.ItemFlags & Broken) != 0) {
             return new ItemUseResult(ItemUseOutcome.NoEffect, NoEffectRecord, source.ObjectId, false);
@@ -424,7 +437,35 @@ public static class InventoryUse {
         if ((target.ItemFlags & Repairable) == 0) {
             return new ItemUseResult(ItemUseOutcome.Handled, NoRepairRecord, target.ObjectId, false);
         }
-        return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+        if (context == null || !context.IsUsable) {
+            return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+        }
+
+        // arg_a is the target CATEGORY: 4 is Armor, and the original picks stat 9 for it and stat 10
+        // for everything else — ArmorCraft and WeaponCraft at exactly those indices.
+        ActorAttribute craft = argA == (ushort)ObjectType.Armor
+            ? ActorAttribute.ArmorCraft
+            : ActorAttribute.WeaponCraft;
+        ActorStat skillStat = StatOf(context, craft);
+        ActorStat health = HealthOf(context);
+        if (skillStat == null || health == null) {
+            return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+        }
+
+        int skill = StatEngine.Get(skillStat, craft, health);
+        target.Variable = (byte)(target.Variable
+            + (100 - target.Variable) * skill / 100);
+        target.ItemFlags = (ushort)(target.ItemFlags & ~Repairable);
+
+        // One point of the same skill, with the emphasis bonus every other SkillUse change gets.
+        StatEngine.Modify(skillStat, craft, 1, StatChangeMode.SkillUse,
+            Character.SkillEmphasis.BonusFor(context.ReadFlag, context.PartySlot - 1,
+                (int)craft, context.PartySlot != 0));
+
+        byte objectId = source.ObjectId;
+        container.Dirty = true;
+        ItemUseResult tail = Tail(container, sourceIndex, rec, ItemUseOutcome.Handled);
+        return new ItemUseResult(tail.Outcome, UsedRecord, objectId, tail.SourceRemoved);
     }
 
     /// <summary>
