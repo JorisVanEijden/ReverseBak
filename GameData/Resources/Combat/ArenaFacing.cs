@@ -19,28 +19,32 @@ using System;
 /// </remarks>
 public static class ArenaFacing {
     /// <summary>
-    /// The facing octant that points from a combatant toward another cell, or -1 for no direction.
+    /// The facing octant that points from a combatant toward another cell, or -1 for no direction —
+    /// <c>combat_actor_heading_from_dxdy</c> (canassa CACTOR.C:1751).
     /// </summary>
     /// <param name="deltaColumn">Target column minus the actor's, in grid cells.</param>
     /// <param name="deltaRow">Target row minus the actor's.</param>
     /// <remarks>
-    /// <b>Octant 0 is AWAY from the camera</b> — deeper into the arena, the direction the party
-    /// faces — matching <see cref="Combatant.FacingOctant"/>. The arena's rows run away from the
-    /// viewer, so a target one row further in and no columns across is octant 0, and each further
-    /// octant is an eighth of a turn toward increasing columns.
+    /// <b>The original's numbering, which is what <see cref="Combatant.FacingOctant"/> holds</b>:
+    /// 0 toward the camera (-row), 2 toward +column, 4 deeper into the arena (+row), 6 toward -column,
+    /// and the odd octants between. The party deploys at 4 and the enemies at 0.
     ///
-    /// <para><b>The zero delta answers -1 rather than 0.</b> A cursor resting on the actor's own
-    /// cell names no direction, and rounding <c>atan2(0, 0)</c> would silently answer "straight
-    /// ahead" — turning the actor on a cursor move that carried no information.</para>
+    /// <para><b>By SIGN, not by angle.</b> The original tests only whether each delta is negative,
+    /// zero or positive, so (5,1) and (1,5) are both the +column/+row diagonal. An earlier version
+    /// rounded an <c>atan2</c> instead, and numbered the ring mirrored (0 = +row), which drew every
+    /// diagonal turn facing the wrong side.</para>
+    ///
+    /// <para><b>The zero delta answers -1</b>, the original's own "no direction", which the
+    /// animation start reads as "keep the current facing".</para>
     /// </remarks>
     public static int OctantToward(int deltaColumn, int deltaRow) {
-        if (deltaColumn == 0 && deltaRow == 0) {
-            return -1;
-        }
-        double radians = Math.Atan2(deltaColumn, deltaRow);
-        var octant = (int)Math.Round(radians / (Math.PI / 4.0));
-
-        return ((octant % 8) + 8) % 8;
+        int column = Math.Sign(deltaColumn);
+        int row = Math.Sign(deltaRow);
+        return column switch {
+            > 0 => row == 0 ? 2 : row > 0 ? 3 : 1,
+            < 0 => row == 0 ? 6 : row > 0 ? 5 : 7,
+            _ => row > 0 ? 4 : row < 0 ? 0 : -1,
+        };
     }
 
     /// <summary>A quarter turn — the only headings this produces.</summary>

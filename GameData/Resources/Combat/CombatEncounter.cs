@@ -323,6 +323,92 @@ public sealed class CombatEncounter {
         }
     }
 
+    /// <summary>The facing the arena gives the party: its back to the camera.</summary>
+    /// <remarks>COMBAT.C:135 passes <c>R3D_DEG(90)</c> = 0x4000, and the animation start divides by
+    /// 0x1000 (CACTOR.C:1861).</remarks>
+    public const int PartyDeployFacing = 4;
+
+    /// <summary>The facing the arena gives every enemy: toward the camera, i.e. toward the party.</summary>
+    /// <remarks>COMBAT.C:144/146 pass 0, for the dead and the living alike.</remarks>
+    public const int EnemyDeployFacing = 0;
+
+    /// <summary>
+    /// Face both sides the way the arena lays them out — the loop at the top of the arena
+    /// (canassa COMBAT.C:131-150).
+    /// </summary>
+    public void DeployFacings() {
+        foreach (Combatant c in Party) {
+            c.FacingOctant = PartyDeployFacing;
+        }
+        foreach (Combatant c in Enemies) {
+            c.FacingOctant = EnemyDeployFacing;
+        }
+    }
+
+    /// <summary>
+    /// Turn <paramref name="actor"/> toward its target, or toward its nearest living opponent when it
+    /// has none — <c>combatenc_actor_face_target</c> (canassa CBENC.C:993).
+    /// </summary>
+    /// <remarks>
+    /// <b>This is what leaves an actor looking where it does between turns.</b> The original runs it
+    /// as every turn ends: <c>combat_arena_advance_turn</c> for the party (COMBAT.C:1436) and after
+    /// the AI acts for a monster (CBENC.C:984, skipped for a fleeing one), and after a player move
+    /// whose target it clears first (COMBAT.C:2333-2335). The target is used as it stands, dead or
+    /// alive, as the original does.
+    /// </remarks>
+    public void FaceTarget(Combatant actor) {
+        if (actor == null || actor.IsDead) {
+            return;
+        }
+        FaceToward(actor, actor.Target ?? NearestOpponent(actor));
+    }
+
+    /// <summary>
+    /// Turn <paramref name="actor"/> toward <paramref name="other"/> — <c>combat_actor_heading_from_to</c>
+    /// fed to an animation start. A dead actor, a missing other or a shared cell leaves it as it is.
+    /// </summary>
+    /// <param name="actor">The combatant that turns.</param>
+    /// <param name="other">The combatant it turns toward.</param>
+    /// <param name="evenOnly">
+    /// The animation is played in direction mode 3, which rounds the facing down to an even octant
+    /// (<c>facing - facing % 2</c>, CACTOR.C:1865) — the attack and parry poses.
+    /// </param>
+    public static void FaceToward(Combatant actor, Combatant other, bool evenOnly = false) {
+        if (actor == null || other == null || actor.IsDead) {
+            return;
+        }
+        int octant = ArenaFacing.OctantToward(other.X - actor.X, other.Y - actor.Y);
+        if (octant < 0) {
+            return;
+        }
+        actor.FacingOctant = evenOnly ? octant - (octant % 2) : octant;
+    }
+
+    /// <summary>
+    /// The first living opponent at the smallest Chebyshev distance — <c>combatenc_find_nearest_actor</c>.
+    /// Strictly smaller, so a tie goes to the opponent listed first. The opponents are the other
+    /// list, so a party-side decoy looks at the enemies.
+    /// </summary>
+    public Combatant NearestOpponent(Combatant actor) {
+        if (actor == null) {
+            return null;
+        }
+        List<Combatant> opponents = Party.Contains(actor) ? Enemies : Party;
+        Combatant best = null;
+        int bestDistance = int.MaxValue;
+        foreach (Combatant c in opponents) {
+            if (c == null || c.IsDead) {
+                continue;
+            }
+            int distance = CombatGrid.ChebyshevDistance(actor.X, actor.Y, c.X, c.Y);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = c;
+            }
+        }
+        return best;
+    }
+
     /// <summary>Whether every combatant that could act has acted, so the round is spent.</summary>
     public bool RoundComplete() {
         foreach (Combatant c in AllCombatants()) {

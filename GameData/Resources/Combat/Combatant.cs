@@ -230,13 +230,12 @@ public sealed class Combatant {
     /// where <c>facingDirection</c> lives per creature in <c>creatueBitmapAnim</c> @+0x4. It is
     /// <b>not</b> on <c>combatData</c>, which carries only <c>hitReactionDir</c> — the recoil visual.
     ///
-    /// <para><b>0 means facing AWAY from the viewer</b> — the party is drawn from behind, looking
-    /// into the arena. Corrected 2026-09-04 after being written the other way round: the claim was
-    /// checked against a 320x200 head too small to tell a face from the back of a skull, when the
-    /// reference that settles it is the sprite sheet. <c>OWN1.BMX</c>'s walk columns are the five
-    /// facings, column 0 draws Owyn's face and column 12 his back, and the original's encounter-15
-    /// capture matches column 12. It is also the sensible reading: the arena camera looks over the
-    /// party's shoulders at the enemies.</para>
+    /// <para><b>The ORIGINAL's numbering</b> (<see cref="ArenaFacing.OctantToward"/>): 0 faces the
+    /// camera, 4 faces deeper into the arena, 2 and 6 the two profiles. The arena deploys the party
+    /// at 4 — drawn from behind, <c>OWN1.BMX</c> column 12 — and every enemy at 0, facing the party
+    /// (<see cref="CombatEncounter.DeployFacings"/>). Until 2026-09-18 the port used a mirrored
+    /// numbering with 0 = away and deployed everyone at 0, so the enemies stood with their backs to
+    /// the party.</para>
     ///
     /// <para>Before this field existed the port passed the party's travel heading for every
     /// combatant, and since the arena camera looks along that same heading they all resolved to one
@@ -244,9 +243,10 @@ public sealed class Combatant {
     ///
     /// <para><b>Turning is a side effect of choosing an animation</b> in the original:
     /// <c>startCreatureBitmapAnimation</c> @0x5EC23 is what writes it, so a combatant faces where
-    /// its current pose points rather than being turned by a separate step. Nothing here updates it
-    /// on a move or a swing yet — that is the rest of TASK-324, and until it lands every combatant
-    /// simply keeps the deployed 0.</para>
+    /// its current pose points rather than being turned by a separate step. The rules that matter
+    /// for where an actor ends up looking are ported: the acting actor faces the cursor, an actor
+    /// whose turn ends faces its target or nearest opponent, and a melee exchange turns attacker and
+    /// defender to each other (see <see cref="CombatEncounter.FaceTarget"/>).</para>
     /// </remarks>
     public int FacingOctant { get; set; }
 

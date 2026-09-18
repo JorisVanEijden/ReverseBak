@@ -132,25 +132,33 @@ public class ArenaFacingTests {
     }
 
     [Fact]
-    public void OctantTowardIsZeroDeeperIntoTheArena() {
-        // Octant 0 is AWAY from the camera, matching Combatant.FacingOctant, so a target one row
-        // further in and no columns across is 0 — the direction a freshly deployed party already
-        // faces.
-        Assert.Equal(0, ArenaFacing.OctantToward(0, 1));
-        Assert.Equal(0, ArenaFacing.OctantToward(0, 5));   // distance does not change the direction
+    public void OctantTowardIsFourDeeperIntoTheArena() {
+        // The ORIGINAL's numbering (combat_actor_heading_from_dxdy, CACTOR.C:1751): a target further
+        // in (+row) is 4 -- the facing a freshly deployed party has (COMBAT.C:135, 0x4000 / 0x1000).
+        Assert.Equal(4, ArenaFacing.OctantToward(0, 1));
+        Assert.Equal(4, ArenaFacing.OctantToward(0, 5));   // distance does not change the direction
     }
 
     [Fact]
-    public void OctantTowardWalksTheEighthsInOrder() {
-        // Each further octant is an eighth of a turn toward increasing columns. Pinned as a ring so
-        // a sign flip anywhere shows up as a specific wrong facing rather than a vague one.
-        Assert.Equal(1, ArenaFacing.OctantToward(1, 1));
+    public void OctantTowardIsTheOriginalsRing() {
+        // -row 0, +col 2, +row 4, -col 6, and the diagonals between. An earlier atan2 version
+        // numbered this ring mirrored (0 = +row), so every diagonal turn drew facing the wrong side.
+        Assert.Equal(0, ArenaFacing.OctantToward(0, -1));
+        Assert.Equal(1, ArenaFacing.OctantToward(1, -1));
         Assert.Equal(2, ArenaFacing.OctantToward(1, 0));
-        Assert.Equal(3, ArenaFacing.OctantToward(1, -1));
-        Assert.Equal(4, ArenaFacing.OctantToward(0, -1));
-        Assert.Equal(5, ArenaFacing.OctantToward(-1, -1));
+        Assert.Equal(3, ArenaFacing.OctantToward(1, 1));
+        Assert.Equal(4, ArenaFacing.OctantToward(0, 1));
+        Assert.Equal(5, ArenaFacing.OctantToward(-1, 1));
         Assert.Equal(6, ArenaFacing.OctantToward(-1, 0));
-        Assert.Equal(7, ArenaFacing.OctantToward(-1, 1));
+        Assert.Equal(7, ArenaFacing.OctantToward(-1, -1));
+    }
+
+    [Fact]
+    public void OctantTowardGoesBySignNotAngle() {
+        // The original tests only the signs of dx and dy, so any diagonal is the diagonal octant,
+        // however shallow. Rounding an angle would call (5,1) the pure +column octant.
+        Assert.Equal(3, ArenaFacing.OctantToward(5, 1));
+        Assert.Equal(3, ArenaFacing.OctantToward(1, 5));
     }
 
     [Fact]
