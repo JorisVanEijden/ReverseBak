@@ -96,4 +96,51 @@ public class EncounterObjectStatesPlacedTests {
         Assert.Equal(-700, e.Facing);
         Assert.Equal(EncounterObjectStates.KindStanding, e.Kind);
     }
+    /// <summary>
+    /// THE SNAPSHOT IS WHAT MAKES THE UNDERGROUND KEEP WORTH KEEPING. (TASK-558)
+    /// </summary>
+    /// <remarks>
+    /// <c>MarkPlaced(underground: true)</c> keeps the stored pose rather than taking the arena's,
+    /// faithfully — but nothing was putting a real pose there, so a dungeon body inherited the
+    /// spawn's zeros and was drawn at its tile's origin. In the original
+    /// <c>rgnenc_persist_zone_snapshot</c> (RGNENC.C:385-412) fills it in as the zone comes down.
+    /// </remarks>
+    [Fact]
+    public void ASnapshotSurvivesTheUndergroundKeep() {
+        var states = new EncounterObjectStates();
+        states.SnapshotPose(RefPair, Record, Slot, 1234, -5678, 0x4000);
+
+        // The fight ends underground: MarkPlaced keeps what the snapshot left.
+        states.MarkPlaced(RefPair, Record, Slot, 9999, 8888, 777, underground: true);
+
+        EncounterObjectStates.Entry e = Read(states);
+        Assert.Equal(1234, e.WorldXOffset);
+        Assert.Equal(-5678, e.WorldYOffset);
+        Assert.Equal(0x4000, e.Facing);
+    }
+
+    [Fact]
+    public void WithoutASnapshotTheUndergroundKeepIsZeros() {
+        // The control, and the bug as it was reported: five Mac Mordain corpses at their tile's
+        // origin because the kept pose was never written.
+        var states = new EncounterObjectStates();
+
+        states.MarkPlaced(RefPair, Record, Slot, 9999, 8888, 777, underground: true);
+
+        EncounterObjectStates.Entry e = Read(states);
+        Assert.Equal(0, e.WorldXOffset);
+        Assert.Equal(0, e.WorldYOffset);
+    }
+
+    [Fact]
+    public void ASnapshotDoesNotPromoteTheActorToABody() {
+        // It runs while the monster is still standing; only MarkPlaced makes it a corpse. Writing
+        // the kind here would mark a body before the fight was fought.
+        var states = new EncounterObjectStates();
+        EncounterObjectStates.Entry beforeKind = Read(states);
+
+        states.SnapshotPose(RefPair, Record, Slot, 10, 20, 30);
+
+        Assert.Equal(beforeKind.KindState, Read(states).KindState);
+    }
 }
