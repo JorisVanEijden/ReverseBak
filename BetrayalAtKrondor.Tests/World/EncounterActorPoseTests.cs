@@ -193,3 +193,51 @@ public class EncounterActorPoseTests {
         Assert.Equal(0, EncounterActorPose.SpriteColumn(EncounterActorPose.WalkingKind, -1, out _));
     }
 }
+
+/// <summary>
+/// A facing is the column AND the mirror — the column alone names two of them.
+/// </summary>
+/// <remarks>
+/// TASK-595: combat sprites only ever faced up, down and right. Five sheets cover eight facings by
+/// drawing three of them mirrored, so octants 7/1, 6/2 and 5/3 share a column number. The renderer
+/// cached built columns under that number alone and compared it alone to decide whether anything had
+/// changed, so turning from a right-facing octant to its left-facing twin was a no-op twice over:
+/// nothing rebuilt, and the collision handed back whichever handedness had been built first.
+///
+/// <para>These pin the premise the renderer's cache key rests on. They are not a substitute for
+/// looking at the screen, which is what a rendering defect ultimately needs.</para>
+/// </remarks>
+public class EncounterActorFacingIdentityTests {
+    private static (int Column, bool Mirrored) Facing(int octant) {
+        int column = EncounterActorPose.SpriteColumn(
+            EncounterActorPose.WalkingKind, octant, out bool mirrored);
+        return (column, mirrored);
+    }
+
+    [Theory]
+    [InlineData(1, 7)]
+    [InlineData(2, 6)]
+    [InlineData(3, 5)]
+    public void TheLeftFacingOctantSharesItsTwinsColumnAndDiffersOnlyInTheMirror(int right, int left) {
+        Assert.Equal(Facing(right).Column, Facing(left).Column);
+        Assert.False(Facing(right).Mirrored);
+        Assert.True(Facing(left).Mirrored);
+    }
+
+    [Fact]
+    public void TheColumnAloneDoesNotIdentifyAFacing_ButThePairDoes() {
+        var all = Enumerable.Range(0, EncounterActorPose.Octants).Select(Facing).ToList();
+
+        // Three collisions is the whole point: 8 facings over 5 sheets.
+        Assert.Equal(5, all.Select(f => f.Column).Distinct().Count());
+        Assert.Equal(8, all.Distinct().Count());
+    }
+
+    [Fact]
+    public void TheForwardAndBackFacingsAreNeverMirrored() {
+        // Octants 0 and 4 face the camera and away from it; a mirror there would be a no-op that
+        // still cost a rebuild, and the original does not do it (SpriteColumn mirrors at >= 5).
+        Assert.False(Facing(0).Mirrored);
+        Assert.False(Facing(4).Mirrored);
+    }
+}
