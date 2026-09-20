@@ -2,6 +2,7 @@ namespace GameData.Resources.Combat;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// What Inspect shows you about an enemy — <c>combatenc_anim_actor_stat_rolls</c>
@@ -192,4 +193,67 @@ public static class CombatAssessment {
     /// reveals something.
     /// </remarks>
     public const int MaxSweeps = 1000;
+
+    /// <summary>
+    /// The assessment panel's text: the opening record's own words with the revealed rows laid into
+    /// the blank lines it ends with.
+    /// </summary>
+    /// <remarks>
+    /// <b>The rows belong INSIDE the panel, and record 0x84 leaves the space for them.</b> Its text
+    /// ends with three whitespace-only lines, and <c>combatenc_stat_roll_draw_line</c> (CBENC.C:269)
+    /// paints each row straight into that area at <see cref="FirstColumnX"/>/<see cref="FirstRowY"/>.
+    /// Three rows fit a column and a wrapped column starts <see cref="ColumnStep"/> to the right, so
+    /// the shipped layout is three lines of at most two columns — exactly the three blank lines.
+    ///
+    /// <para>We compose one page instead of painting into a live one. The original's two-video-page
+    /// blit is 1993 architecture, not behaviour; what has to survive is that the player sees the
+    /// intro and the numbers together and then dismisses them, which is what the caller gets by
+    /// showing this text and waiting.</para>
+    ///
+    /// <para><b>Reconstructed from the positions, not re-derived.</b> The lines arrive already laid
+    /// out by <see cref="Reveal"/>, as a label at x and its value at x + <see cref="ValueOffsetX"/>
+    /// on the same y. Grouping by y and ordering by x therefore rebuilds the shipped grid without a
+    /// second copy of the layout rule — and a row the CD build's column cap dropped is simply
+    /// absent here too.</para>
+    /// </remarks>
+    /// <param name="openingText">Record <see cref="OpeningDialog"/>'s text.</param>
+    /// <param name="lines">What <c>AssessmentLines</c> produced — label and value per revealed row.</param>
+    public static string ComposePageText(string? openingText, IReadOnlyList<HudPanelLine>? lines) {
+        string intro = TrimTrailingBlankLines(openingText ?? string.Empty);
+        if (lines == null || lines.Count == 0) {
+            return intro;
+        }
+
+        var body = new System.Text.StringBuilder(intro);
+        foreach (IGrouping<int, HudPanelLine> row in lines.GroupBy(l => l.Y).OrderBy(g => g.Key)) {
+            body.Append('\n').Append('\t');
+            body.Append(string.Join(ColumnGap,
+                row.OrderBy(l => l.X).Select(l => l.Text)));
+        }
+        return body.ToString();
+    }
+
+    /// <summary>What separates one printed cell from the next.</summary>
+    /// <remarks>
+    /// The original spaces them by pixel — the value sits <see cref="ValueOffsetX"/> right of its
+    /// label — which a text page cannot honour, so this is ours. Two spaces keeps a label readable
+    /// against its number without pushing a two-column line past the panel.
+    /// </remarks>
+    private const string ColumnGap = "  ";
+
+    /// <summary>
+    /// Drop the whitespace-only lines a record ends with, so composed rows land where they do.
+    /// </summary>
+    /// <remarks>
+    /// Record 0x84's are literally "\t " — the slot the rows are drawn into. Keeping them would
+    /// push the numbers three lines below where the original prints them.
+    /// </remarks>
+    private static string TrimTrailingBlankLines(string text) {
+        string[] parts = text.Split('\n');
+        int end = parts.Length;
+        while (end > 0 && string.IsNullOrWhiteSpace(parts[end - 1])) {
+            end--;
+        }
+        return string.Join("\n", parts.Take(end));
+    }
 }

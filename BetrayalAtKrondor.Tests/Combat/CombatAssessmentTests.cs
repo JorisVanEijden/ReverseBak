@@ -101,3 +101,76 @@ public class CombatAssessmentTests {
         Assert.Contains(AllRows(), r => r.Label == "Missle:");
     }
 }
+
+/// <summary>
+/// The panel's text — the rows go INSIDE record 0x84, in the blank lines it ends with.
+/// </summary>
+/// <remarks>
+/// TASK-591: the port awaited 0x84 and 0x85 and neither blocks (0x84 is SkipWait, 0x85 is
+/// text-less), so the rows were published and cleared inside one frame and 0x84's page was left
+/// on screen with no facts and nothing to dismiss it. Composing one page is the fix.
+/// </remarks>
+public class CombatAssessmentPageTests {
+    // Record 0x84's own shape: prose, then the three whitespace-only lines the rows are drawn into.
+    private const string Opening = "\t@ studied his opponent.\n\tHe was convinced of certain facts:\n\t \n\t \n\t ";
+
+    private static HudPanelLine Label(string text, int column, int row) =>
+        new HudPanelLine(text,
+            CombatAssessment.FirstColumnX + (column * CombatAssessment.ColumnStep),
+            CombatAssessment.FirstRowY + (row * CombatAssessment.RowStep));
+
+    private static HudPanelLine Value(string text, int column, int row) =>
+        new HudPanelLine(text,
+            CombatAssessment.FirstColumnX + (column * CombatAssessment.ColumnStep)
+            + CombatAssessment.ValueOffsetX,
+            CombatAssessment.FirstRowY + (row * CombatAssessment.RowStep));
+
+    [Fact]
+    public void TheBlankLinesAreReplacedByTheRows_NotAppendedAfterThem() {
+        // The three trailing "\t " lines are the slot, so keeping them would push the numbers
+        // three lines below where the original prints them.
+        string text = CombatAssessment.ComposePageText(
+            Opening, new[] { Label("Health:", 0, 0), Value("26", 0, 0) });
+
+        string[] lines = text.Split('\n');
+        Assert.Equal("\tHealth:  26", lines[^1]);
+        Assert.DoesNotContain(lines, l => string.IsNullOrWhiteSpace(l));
+    }
+
+    [Fact]
+    public void ARowsLabelAndValueLandOnOneLine_AndASecondColumnJoinsIt() {
+        // The shipped layout is three rows per column and a second column ColumnStep to the right;
+        // grouping by y rebuilds it without a second copy of that rule.
+        string text = CombatAssessment.ComposePageText(Opening, new[] {
+            Label("Health:", 0, 0), Value("26", 0, 0),
+            Label("Melee:", 1, 0), Value("45%", 1, 0),
+            Label("Stamina:", 0, 1), Value("33", 0, 1),
+        });
+
+        string[] lines = text.Split('\n');
+        Assert.Equal("\tHealth:  26  Melee:  45%", lines[^2]);
+        Assert.Equal("\tStamina:  33", lines[^1]);
+    }
+
+    [Fact]
+    public void RowsAreOrderedByPositionRatherThanByArrival() {
+        // Reveal hands them over in offer order; the page must read top-to-bottom, left-to-right.
+        string text = CombatAssessment.ComposePageText(Opening, new[] {
+            Label("Stamina:", 0, 1), Value("33", 0, 1),
+            Label("Health:", 0, 0), Value("26", 0, 0),
+        });
+
+        string[] lines = text.Split('\n');
+        Assert.Equal("\tHealth:  26", lines[^2]);
+        Assert.Equal("\tStamina:  33", lines[^1]);
+    }
+
+    [Fact]
+    public void AnInspectionThatRevealedNothingKeepsTheProseAndAddsNoBlankTail() {
+        // Reveal cannot normally return empty -- it re-offers the set until a row survives -- but
+        // the page must not render a ragged empty box if it ever does.
+        string text = CombatAssessment.ComposePageText(Opening, new HudPanelLine[0]);
+
+        Assert.EndsWith("certain facts:", text);
+    }
+}
