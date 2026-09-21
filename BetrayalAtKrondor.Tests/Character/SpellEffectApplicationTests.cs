@@ -81,6 +81,14 @@ public class SpellEffectApplicationTests {
 
     [Fact]
     public void TwoDeliveryCategoriesSwingInsteadOfCasting() {
+        // *** THE SWING IS THE DEFAULT ARM. *** CSPELL.C reads `case 1: case 4: default:` into one
+        // body, so 1 and 4 are only the two the original names -- the grid kinds 5 and 6 and the
+        // field-only -1 swing as well. Written as `== 1 || == 4` this answered false for 5 and 6,
+        // disagreeing with the live SpellCastSound.ForCombatCast, which swings for everything
+        // outside RangedKinds. Nothing called the predicate, so it was a trap rather than a bug.
+        Assert.True(SpellEffectApplication.SwingsInsteadOfCasting(5), "grid kind 5 takes the default");
+        Assert.True(SpellEffectApplication.SwingsInsteadOfCasting(6), "grid kind 6 takes the default");
+        Assert.True(SpellEffectApplication.SwingsInsteadOfCasting(-1), "the field-only kind too");
         Assert.True(SpellEffectApplication.SwingsInsteadOfCasting(1));
         Assert.True(SpellEffectApplication.SwingsInsteadOfCasting(4));
         Assert.False(SpellEffectApplication.SwingsInsteadOfCasting(0));

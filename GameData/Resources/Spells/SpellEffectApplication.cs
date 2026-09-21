@@ -117,19 +117,38 @@ public static class SpellEffectApplication {
     public static readonly int[] RangedWindupCategories = { 0, 2, 3, 7, 8 };
 
     /// <summary>Delivery categories that play a melee swing instead.</summary>
-    /// <remarks><b>Deliberately callerless.</b> SpellCastSound.ForCombatCast plays the swing for every kind outside RangedKinds.</remarks>
+    /// <remarks>
+    /// <b>Deliberately callerless.</b> SpellCastSound.ForCombatCast plays the swing for every kind
+    /// outside RangedKinds.
+    ///
+    /// <para><b>These are the two the original NAMES, not the whole swing set</b> — the arm is
+    /// <c>case 1: case 4: default:</c>, so 5, 6 and -1 swing too. Use
+    /// <see cref="SwingsInsteadOfCasting"/> for the predicate; this array is only the named pair.
+    /// </para>
+    /// </remarks>
     public static readonly int[] MeleeSwingCategories = { 1, 4 };
 
     /// <summary>
     /// Whether this delivery category swings rather than casting at range.
     /// </summary>
     /// <remarks>
-    /// <b>Two of the nine categories animate as a melee attack</b>, with a different sound, and they
-    /// are also the two that skip the casting-skill award. A port that gives every spell the same
-    /// wind-up loses the distinction between reaching out and striking.
+    /// <b>The swing is the switch's DEFAULT arm, not two enumerated cases.</b> CSPELL.C reads
+    /// <c>case 1: case 4: default:</c> falling into one body, so 1 and 4 are merely the two the
+    /// original bothered to name — the grid kinds 5 and 6, the field-only -1 and anything else all
+    /// swing as well. Written as <c>== 1 || == 4</c> this answered <b>false</b> for 5 and 6, which
+    /// disagrees with the live path: <c>SpellCastSound.ForCombatCast</c> plays the swing for every
+    /// kind outside <see cref="RangedWindupCategories"/> and is correct.
+    ///
+    /// <para>Nothing called this, so the disagreement was never reachable — but it read like the
+    /// canonical predicate and would have introduced the bug the moment it was wired. Stated as the
+    /// complement so the three expressions of this one rule cannot drift apart again (2026-09-21).
+    /// </para>
+    ///
+    /// <para>These are also the categories that skip the casting-skill award, which is why
+    /// <see cref="AwardsCastingSkill"/> is its exact negation.</para>
     /// </remarks>
     public static bool SwingsInsteadOfCasting(int deliveryCategory) =>
-        deliveryCategory == 1 || deliveryCategory == 4;
+        System.Array.IndexOf(RangedWindupCategories, deliveryCategory) < 0;
 
     /// <summary>
     /// Whether the caster is paid casting skill for this delivery category.
