@@ -100,6 +100,14 @@ public static class ProximityScan {
     /// <see cref="DisabledThreshold"/>. That is the whole difference from
     /// <see cref="ParticipatesInEncounterScan"/>, and it is the difference between drawing the world
     /// and drawing almost none of it.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port does not run this predicate: ADR 0003 keeps
+    /// the view distance as OURS rather than FILTER.DAT's, after a distance cull hid 97 of 113
+    /// explored automap features in zone 10 (2026-09-20). What survives of the rule is the half
+    /// that is about WHAT a thing is, and that IS applied — <see cref="NeverRenderedKind"/> and
+    /// <see cref="DisabledThreshold"/> inline in <c>WorldEntityVisibility</c>, and the latter again
+    /// in <c>ProximityWorld</c> for collision. This stays as the pinned model of the original's
+    /// whole rule, so the deviation can be read against what it deviates from.</para>
     /// </remarks>
     public static bool JoinsVisibleList(int kind, long octagonalDistance, int radius, int shift,
         long threshold, int visibleSoFar) {
