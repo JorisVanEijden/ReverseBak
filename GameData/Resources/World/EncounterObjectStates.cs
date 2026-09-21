@@ -386,46 +386,6 @@ public sealed class EncounterObjectStates {
     /// promotes a standing actor back to roaming, so a wandering monster that is saved comes back
     /// stopped and stays stopped — the same one-way trip <see cref="StopRoaming"/> describes.</para>
     /// </remarks>
-    /// <summary>
-    /// Records where an actor is standing NOW, keeping its kind.
-    /// </summary>
-    /// <remarks>
-    /// <b>This is the half <see cref="MarkPlaced"/> relies on underground and nobody was writing.</b>
-    /// MarkPlaced keeps the stored pose for a dungeon body instead of taking the arena one, and its
-    /// remarks are right that the original does the same — <c>rgnenc_persist_actor_placed</c> re-reads
-    /// the record from the temp file when <c>g_game_mode == 2</c>. What that re-read finds, though,
-    /// is whatever <c>rgnenc_persist_zone_snapshot</c> (RGNENC.C:385-412) put there, and that routine
-    /// copies every kind-3/4 actor's LIVE world position and yaw into its pose as the zone is torn
-    /// down:
-    ///
-    /// <code>
-    ///     pState->pose.nWorld_x_offset = pCurEntry->pos.xy.nWorld_x - party_x * 0xfa00;
-    ///     pState->pose.nWorld_y_offset = pCurEntry->pos.xy.nWorld_y - party_y * 0xfa00;
-    ///     pState->pose.nFacing         = pCurEntry->orientation.yaw;
-    /// </code>
-    ///
-    /// <para>With no counterpart the kept pose is whatever the entry held, which for a freshly
-    /// spawned encounter is ZERO — so every dungeon body was drawn at its tile's origin and none of
-    /// them could be looted. Measured in the upper Mac Mordain Cadal: five corpses from two fights,
-    /// all at world (640000, 640000), the origin of tile (10,10) (TASK-558).</para>
-    ///
-    /// <para>The offsets are relative to the PARTY'S TILE origin, which is the <c>* 0xfa00</c> above
-    /// and the same frame <see cref="MarkPlaced"/>'s caller already subtracts.</para>
-    /// </remarks>
-    public void SnapshotPose(int refPair, int recordIndex, int slotIndex,
-        int worldXOffset, int worldYOffset, short facing) {
-        int at = IndexOf(refPair, recordIndex, slotIndex);
-        Entry kept = _entries[at];
-        _entries[at] = new Entry {
-            WorldXOffset = worldXOffset,
-            WorldYOffset = worldYOffset,
-            Facing = facing,
-            // The kind is NOT touched: the snapshot happens while the actor is still standing, and
-            // it is the later MarkPlaced that turns it into a body.
-            KindState = kept.KindState,
-        };
-    }
-
     public void MarkPlaced(int refPair, int recordIndex, int slotIndex,
         int worldXOffset, int worldYOffset, short facing, bool underground) {
         int at = IndexOf(refPair, recordIndex, slotIndex);

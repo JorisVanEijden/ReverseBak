@@ -97,20 +97,25 @@ public class EncounterObjectStatesPlacedTests {
         Assert.Equal(EncounterObjectStates.KindStanding, e.Kind);
     }
     /// <summary>
-    /// THE SNAPSHOT IS WHAT MAKES THE UNDERGROUND KEEP WORTH KEEPING. (TASK-558)
+    /// The underground keep is only worth keeping if a real pose is stored — TASK-558.
     /// </summary>
     /// <remarks>
-    /// <c>MarkPlaced(underground: true)</c> keeps the stored pose rather than taking the arena's,
-    /// faithfully — but nothing was putting a real pose there, so a dungeon body inherited the
-    /// spawn's zeros and was drawn at its tile's origin. In the original
-    /// <c>rgnenc_persist_zone_snapshot</c> (RGNENC.C:385-412) fills it in as the zone comes down.
+    /// <c>MarkPlaced(underground: true)</c> keeps the STORED pose rather than taking the arena's,
+    /// faithfully. The stored pose is seeded here by an above-ground placement, which is how
+    /// production writes one — these used to seed it with a <c>SnapshotPose</c> helper modelling
+    /// <c>rgnenc_persist_zone_snapshot</c>, but TASK-558 concluded in so many words that *"the fix
+    /// is not the zone snapshot this task was named for"*: the real defect was
+    /// <see cref="EncounterObjectStates.StopRoaming"/> blanking the pose. The helper had no
+    /// production caller and only these tests kept it looking alive, so it is gone and the seeding
+    /// now uses live API only.
     /// </remarks>
     [Fact]
-    public void ASnapshotSurvivesTheUndergroundKeep() {
+    public void AStoredPoseSurvivesTheUndergroundKeep() {
         var states = new EncounterObjectStates();
-        states.SnapshotPose(RefPair, Record, Slot, 1234, -5678, 0x4000);
+        // Above ground, MarkPlaced WRITES the pose it is given — that is the seed.
+        states.MarkPlaced(RefPair, Record, Slot, 1234, -5678, 0x4000, underground: false);
 
-        // The fight ends underground: MarkPlaced keeps what the snapshot left.
+        // The fight ends underground: MarkPlaced keeps what was already stored.
         states.MarkPlaced(RefPair, Record, Slot, 9999, 8888, 777, underground: true);
 
         EncounterObjectStates.Entry e = Read(states);
@@ -120,7 +125,7 @@ public class EncounterObjectStatesPlacedTests {
     }
 
     [Fact]
-    public void WithoutASnapshotTheUndergroundKeepIsZeros() {
+    public void WithNoStoredPoseTheUndergroundKeepIsZeros() {
         // The control, and the bug as it was reported: five Mac Mordain corpses at their tile's
         // origin because the kept pose was never written.
         var states = new EncounterObjectStates();
@@ -130,18 +135,6 @@ public class EncounterObjectStatesPlacedTests {
         EncounterObjectStates.Entry e = Read(states);
         Assert.Equal(0, e.WorldXOffset);
         Assert.Equal(0, e.WorldYOffset);
-    }
-
-    [Fact]
-    public void ASnapshotDoesNotPromoteTheActorToABody() {
-        // It runs while the monster is still standing; only MarkPlaced makes it a corpse. Writing
-        // the kind here would mark a body before the fight was fought.
-        var states = new EncounterObjectStates();
-        EncounterObjectStates.Entry beforeKind = Read(states);
-
-        states.SnapshotPose(RefPair, Record, Slot, 10, 20, 30);
-
-        Assert.Equal(beforeKind.KindState, Read(states).KindState);
     }
 
     /// <summary>
