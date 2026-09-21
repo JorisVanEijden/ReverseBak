@@ -5,7 +5,7 @@ using GameData.Resources.Text;
 
 /// <summary>
 /// Renders a party-money amount as the original does. Faithful port of
-/// <c>FormatMoneyToString</c> @0x42d9a (canassa <c>gstate_format_money</c>, GSTATE.C:442) plus the
+/// <c>FormatMoneyToString</c> @0x42d9a (canassa <c>gstate_format_money</c>, GSTATE.C:456) plus the
 /// inventory readout's inline abbreviation (<c>UI_DrawInventory</c> @0x56dd0, INVENTOR.C:530-543).
 /// Spec: <c>docs/specs/party-money-display.md</c>.
 ///

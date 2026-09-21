@@ -2,7 +2,7 @@ namespace GameData.Resources.GameState;
 
 /// <summary>
 /// Where a global event flag lives in the save's two bitmaps — <c>gstate_event_read</c> /
-/// <c>gstate_event_write</c> (canassa GAME/STATE/GSTATE.C:40 and :118).
+/// <c>gstate_event_write</c> (canassa GAME/STATE/GSTATE.C:40 and :116).
 /// </summary>
 /// <remarks>
 /// <b>The two bitmaps are packed DIFFERENTLY, and only one of them is linear.</b> The low map is the
