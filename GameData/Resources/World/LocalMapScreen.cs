@@ -151,6 +151,49 @@ public static class LocalMapScreen {
     public static bool CanZoomUp(long cameraZ, long step, long maximum) =>
         cameraZ + step <= maximum;
 
+    /// <summary>
+    /// Which zoom a mouse-wheel notch means, and whether it is allowed right now.
+    /// </summary>
+    /// <param name="wheelDeltaY">UI Toolkit's wheel delta. Negative is scrolling AWAY from the
+    /// user, which everywhere else means "zoom in" — and on a top-down map, in means lower.</param>
+    /// <returns>False when the notch is refused; <paramref name="action"/> is then
+    /// <see cref="MapAction.None"/>.</returns>
+    /// <remarks>
+    /// <b>An ADDITION — the original has no wheel binding.</b> It lives here anyway, beside the
+    /// rest of the zoom rules, because the thing it has to get right is theirs: the one-step arms
+    /// do NOT clamp themselves (<see cref="ClampsItsOwnZoom"/> is false for them, since they have
+    /// buttons and the enable gate is their guard), so a caller with no button — which is exactly
+    /// what a wheel notch is — must ask <see cref="CanZoomDown"/>/<see cref="CanZoomUp"/> itself or
+    /// walk the camera past the range. Writing that check at the call site instead is how the two
+    /// copies of a subtle rule start to drift.
+    ///
+    /// <para>A notch is ONE step, not five. The five-step arms would clamp themselves, but five
+    /// steps a notch is a jump rather than a zoom.</para>
+    /// </remarks>
+    public static bool TryWheelZoom(float wheelDeltaY, long cameraZ, long step,
+        long minimum, long maximum, out MapAction action) {
+        action = MapAction.None;
+        if (wheelDeltaY == 0f) {
+            return false;
+        }
+
+        if (wheelDeltaY < 0f) {
+            if (!CanZoomDown(cameraZ, step, minimum)) {
+                return false;
+            }
+            action = MapAction.ZoomDownOneStep;
+
+            return true;
+        }
+
+        if (!CanZoomUp(cameraZ, step, maximum)) {
+            return false;
+        }
+        action = MapAction.ZoomUpOneStep;
+
+        return true;
+    }
+
     /// <summary>The camera height an action produces, clamped where the original clamps.</summary>
     /// <param name="action">The control that was used.</param>
     /// <param name="cameraZ">Current camera height.</param>

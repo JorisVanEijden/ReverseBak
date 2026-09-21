@@ -183,4 +183,63 @@ public class LocalMapScreenTests {
         // And it draws from Z##M.TBL, not the world table — the two differ, so this is not cosmetic.
         Assert.Equal(2, LocalMapScreen.AutomapModelTableSlot);
     }
+
+    // ---- the mouse wheel (TASK-597, an ADDITION -- the original binds nothing to it) ----
+
+    // A zone with room for exactly two steps either way from the middle.
+    private const long WheelStep = 100, WheelMin = 1000, WheelMax = 1400, WheelMiddle = 1200;
+
+    [Fact]
+    public void AWheelNotchIsONEStep_NotFive() {
+        // Five steps a notch would be a jump, not a zoom -- and the five-step arms are also the
+        // only ones that clamp themselves, so picking them would quietly change the rule too.
+        Assert.True(LocalMapScreen.TryWheelZoom(-1f, WheelMiddle, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction inward));
+        Assert.Equal(LocalMapScreen.MapAction.ZoomDownOneStep, inward);
+        Assert.True(LocalMapScreen.TryWheelZoom(1f, WheelMiddle, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction outward));
+        Assert.Equal(LocalMapScreen.MapAction.ZoomUpOneStep, outward);
+    }
+
+    [Fact]
+    public void ScrollingAwayFromTheUserZoomsIN_WhichLowersTheCamera() {
+        // UI Toolkit reports "away" as NEGATIVE delta.y, and on a top-down map zooming in means a
+        // lower camera. Getting this backwards is invisible in a unit test unless it is asserted.
+        Assert.True(LocalMapScreen.TryWheelZoom(-3f, WheelMiddle, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction action));
+
+        Assert.True(LocalMapScreen.ZoomStepsFor(action) < 0);
+    }
+
+    [Fact]
+    public void TheWHEELHasToCheckTheRangeItself_BecauseItHasNoButtonToGreyOut() {
+        // The point of the helper. The one-step arms do NOT clamp -- ClampsItsOwnZoom is false for
+        // them -- so without this check a notch at the limit would walk the camera out of range.
+        Assert.False(LocalMapScreen.ClampsItsOwnZoom(LocalMapScreen.MapAction.ZoomDownOneStep));
+        Assert.False(LocalMapScreen.ClampsItsOwnZoom(LocalMapScreen.MapAction.ZoomUpOneStep));
+
+        Assert.False(LocalMapScreen.TryWheelZoom(-1f, WheelMin, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction atFloor));
+        Assert.Equal(LocalMapScreen.MapAction.None, atFloor);
+        Assert.False(LocalMapScreen.TryWheelZoom(1f, WheelMax, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction atCeiling));
+        Assert.Equal(LocalMapScreen.MapAction.None, atCeiling);
+    }
+
+    [Fact]
+    public void TheREFUSALISEXACT_APartialStepIsStillRefused() {
+        // One FULL step must fit, which is the same rule CanZoomDown/CanZoomUp give the buttons.
+        // Half a step of headroom is not enough, and a whole one is.
+        Assert.False(LocalMapScreen.TryWheelZoom(-1f, WheelMin + (WheelStep / 2), WheelStep,
+            WheelMin, WheelMax, out _));
+        Assert.True(LocalMapScreen.TryWheelZoom(-1f, WheelMin + WheelStep, WheelStep,
+            WheelMin, WheelMax, out _));
+    }
+
+    [Fact]
+    public void AZeroDeltaIsNotAZoom() {
+        Assert.False(LocalMapScreen.TryWheelZoom(0f, WheelMiddle, WheelStep, WheelMin, WheelMax,
+            out LocalMapScreen.MapAction action));
+        Assert.Equal(LocalMapScreen.MapAction.None, action);
+    }
 }
