@@ -459,9 +459,10 @@ public static class InventoryUse {
         target.ItemFlags = (ushort)(target.ItemFlags & ~Repairable);
 
         // One point of the same skill, with the emphasis bonus every other SkillUse change gets.
-        StatEngine.Modify(skillStat, craft, 1, StatChangeMode.SkillUse,
+        MarkOnTheSheet(context, craft, StatEngine.Modify(skillStat, craft, 1,
+            StatChangeMode.SkillUse,
             Character.SkillEmphasis.BonusFor(context.ReadFlag, context.PartySlot - 1,
-                (int)craft, context.PartySlot != 0));
+                (int)craft, context.PartySlot != 0)));
 
         byte objectId = source.ObjectId;
         container.Dirty = true;
@@ -569,9 +570,10 @@ public static class InventoryUse {
         // only SkillUse: STAT.C:264-273 puts it after the mode switch and before the frac banking,
         // so this Absolute gain is boosted too. charSlot is 1-based, and the flag rows are
         // charSlot - 1 (STAT.C:107, :196) — which also gives the "party members only" gate for free.
-        StatEngine.Modify(barding, ActorAttribute.Barding, gain, StatChangeMode.Absolute,
-            Character.SkillEmphasis.BonusFor(context.ReadFlag, context.PartySlot - 1,
-                (int)ActorAttribute.Barding, context.PartySlot != 0));
+        MarkOnTheSheet(context, ActorAttribute.Barding,
+            StatEngine.Modify(barding, ActorAttribute.Barding, gain, StatChangeMode.Absolute,
+                Character.SkillEmphasis.BonusFor(context.ReadFlag, context.PartySlot - 1,
+                    (int)ActorAttribute.Barding, context.PartySlot != 0)));
 
         byte objectId = source.ObjectId;
         container.Dirty = true;
@@ -784,6 +786,29 @@ public static class InventoryUse {
     /// original's behaviour; the slot is cleared here for the same reason
     /// <c>GameSession.ApplyStatModifiers</c> clears it, or the eight fill with dead entries.</para>
     /// </remarks>
+
+    /// <summary>
+    /// Light the changed attribute up on the user's character sheet — <c>STAT.C:300-307</c>.
+    /// </summary>
+    /// <remarks>
+    /// The Unity side has <c>GameSession.ModifyStatOf</c>, which does this with the change. Here
+    /// there is no session, only the context's <c>WriteFlag</c>, so the rule is spelled once in this
+    /// helper rather than at each use site.
+    ///
+    /// <para><b>The index is the CHARACTER, not the party slot.</b> <c>PartySlot</c> is 1-based —
+    /// <see cref="Character.SkillEmphasis"/> takes <c>PartySlot - 1</c> for its own flag in the
+    /// neighbouring 6230 family, with the same stride — and slot 0 means nobody, so it marks
+    /// nothing.</para>
+    /// </remarks>
+    private static void MarkOnTheSheet(ItemUseContext context, ActorAttribute attribute,
+        StatEngine.StatChange change) {
+        if (context?.WriteFlag == null || context.PartySlot == 0 || !change.SignalsImprovement) {
+            return;
+        }
+        context.WriteFlag(
+            Character.CharacterSheetRow.ChangedFlagFor(context.PartySlot - 1, (int)attribute), 1);
+    }
+
     private static Func<int, int> PartyEffectsFor(ItemUseContext context, ActorAttribute attribute) {
         if (context == null) {
             return null;
