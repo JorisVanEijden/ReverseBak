@@ -452,7 +452,8 @@ public static class InventoryUse {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
 
-        int skill = StatEngine.Get(skillStat, craft, health);
+        int skill = StatEngine.Get(skillStat, craft, health, StatReadMode.Effective,
+            PartyEffectsFor(context, craft));
         target.Variable = (byte)(target.Variable
             + (100 - target.Variable) * skill / 100);
         target.ItemFlags = (ushort)(target.ItemFlags & ~Repairable);
@@ -554,7 +555,8 @@ public static class InventoryUse {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
 
-        int skill = StatEngine.Get(barding, ActorAttribute.Barding, health);
+        int skill = StatEngine.Get(barding, ActorAttribute.Barding, health,
+            StatReadMode.Effective, PartyEffectsFor(context, ActorAttribute.Barding));
         int track = Audio.MusicSelection.ForLutePractice(skill);
 
         // RNDR(low, high) — inclusive of both ends, so the span is high - low + 1.
@@ -761,6 +763,50 @@ public static class InventoryUse {
         context.Stats != null && context.Stats.Length > (int)attribute
             ? context.Stats[(int)attribute]
             : null;
+
+    /// <summary>
+    /// The timed modifiers and condition penalties a party member's stat read carries —
+    /// <c>StatEngine.Get</c>'s <c>applyPartyEffects</c> hook, built from what the item-use context
+    /// already holds.
+    /// </summary>
+    /// <remarks>
+    /// <b>Item use reads skills at mode 0, so it gets the whole pipeline.</b> `ITEMUSE.C:223` is
+    /// <c>stat_actor_get(member, stat_idx, 0)</c> on a party member, and `STAT.C:126-153` runs the
+    /// eight timed modifiers and then the seven condition penalties inside the
+    /// <c>charSlot != 0</c> block. Reading without them returned the raw skill, so a repair made
+    /// while drunk or plagued — or under a skill-boosting potion — used the wrong number.
+    ///
+    /// <para>That omission was invisible for the usual reason: a missing modifier just means the
+    /// stat reads its unmodified value, which looks like a perfectly ordinary skill.</para>
+    ///
+    /// <para><b>Reading is what expires a modifier</b>, and only a read of a MATCHING attribute —
+    /// a live slot for another stat is not examined and its lapse is not noticed. That is the
+    /// original's behaviour; the slot is cleared here for the same reason
+    /// <c>GameSession.ApplyStatModifiers</c> clears it, or the eight fill with dead entries.</para>
+    /// </remarks>
+    private static Func<int, int> PartyEffectsFor(ItemUseContext context, ActorAttribute attribute) {
+        if (context == null) {
+            return null;
+        }
+
+        return value => {
+            Character.ActorStatModifiers.Slot[] slots = context.StatModifiers;
+            if (slots != null) {
+                for (var slot = 0; slot < slots.Length; slot++) {
+                    if (!Character.ActorStatModifiers.Affects(slots[slot], attribute)) {
+                        continue;
+                    }
+                    value = Character.ActorStatModifiers.Apply(slots[slot], value,
+                        inCombat: false, context.GameTime, out bool expired);
+                    if (expired) {
+                        slots[slot] = default;
+                    }
+                }
+            }
+
+            return ConditionEngine.ApplyAttributePenalties(value, attribute, context.Conditions);
+        };
+    }
 
     private static ActorStat HealthOf(ItemUseContext context) =>
         StatOf(context, ActorAttribute.Health);

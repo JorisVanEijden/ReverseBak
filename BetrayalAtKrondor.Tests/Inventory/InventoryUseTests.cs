@@ -273,6 +273,35 @@ public class InventoryUseTests {
         Assert.Equal(19, c.Items[0].Variable);   // a successful repair spends one charge
     }
 
+    /// <summary>
+    /// The craft skill is read with the party effects on — a timed modifier on WeaponCraft changes
+    /// what the repair is worth.
+    /// </summary>
+    /// <remarks>
+    /// ITEMUSE.C:223 is <c>stat_actor_get(member, stat_idx, <b>0</b>)</c>, and STAT.C:126-153 runs
+    /// the eight timed modifiers and the seven condition penalties inside the
+    /// <c>charSlot != 0</c> block. The repair read the raw skill, so a modifier did nothing here —
+    /// invisible for the usual reason, since an unmodified stat looks like a perfectly ordinary
+    /// skill.
+    /// </remarks>
+    [Fact]
+    public void TheRepairSkillCarriesATimedModifier() {
+        RuntimeContainer c = Member(It(Whetstone, 20), It(Broadsword, 40, Repairable));
+        ActorStat[] stats = Stats(weaponCraft: 50);
+        // +20 flat on WeaponCraft, no expiry, applies out of combat.
+        var slots = new ActorStatModifiers.Slot[ActorStatModifiers.SlotsPerCharacter];
+        slots[0] = new ActorStatModifiers.Slot(
+            flags: 1, statMask: 1 << (int)ActorAttribute.WeaponCraft,
+            value: 20, appliedAt: 0, expiresAt: 0);
+        var ctx = new ItemUseContext(stats, 1, _ => 0, (_, __) => { }, _ => 0,
+            statModifiers: slots);
+
+        InventoryUse.Use(c, 0, 1, Objs(), ctx);
+
+        // skill 70, not 50: 40 + (100 - 40) * 70 / 100 = 82. Without the modifier it is 70.
+        Assert.Equal(82, c.Items[1].Variable);
+    }
+
     /// <summary>A hammer on armour uses ArmorCraft, not WeaponCraft — the arg_a == 4 arm.</summary>
     [Fact]
     public void ArmourIsRepairedWithArmorCraft() {
