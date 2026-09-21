@@ -254,11 +254,6 @@ public static class StatEngine {
     public static int HealthPoolMax(ActorStat health, ActorStat stamina) =>
         (health?.Max ?? 0) + (stamina?.Max ?? 0);
 
-    /// <summary>The pool's maximum.</summary>
-    /// <inheritdoc cref="HealthPool"/>
-    public static int HealthPoolMaximum(ActorStat health, ActorStat stamina) =>
-        (health?.Max ?? 0) + (stamina?.Max ?? 0);
-
     /// <summary>
     /// How far below full the pool sits, never negative — the temple's bill.
     /// </summary>

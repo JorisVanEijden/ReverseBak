@@ -364,7 +364,7 @@ public class StatEngineTests {
         // HealthStaminaCombo has no stored slot: it is this sum, which is what ModifyHealthPool
         // writes back into. Reading it as health alone under-counts every wounded member.
         Assert.Equal(17, StatEngine.HealthPool(health, stamina));
-        Assert.Equal(35, StatEngine.HealthPoolMaximum(health, stamina));
+        Assert.Equal(35, StatEngine.HealthPoolMax(health, stamina));
     }
 
     [Fact]
