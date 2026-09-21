@@ -91,7 +91,16 @@ public static class ShopPurchase {
             health, stamina, inCombat: false);
         ConditionEngine.Apply(conditions, ActorCondition.Starving, -100,
             health, stamina, inCombat: false);
-        StatEngine.ModifyHealthPool(health, stamina, DrinkRestores, DrinkRestoreCapPercent, out _);
+        // *** THE NEAR-DEATH CEILING APPLIES HERE TOO. *** SHOP.C:153 is
+        // `stat_combatant_modify(&g_gameState.characters[partySlot], 0x10, 0x300, 0x3c)` -- a real
+        // party character, so charSlot != 0 and STAT.C:206-211 replaces the 60% target with
+        // ((100 - rank) * 0x1e) / 100 + 1. The ceiling lives INSIDE stat_combatant_modify, so the
+        // original has no way to opt out of it and neither should this.
+        //
+        // It is a defaulted argument here, which is exactly how UpkeepEngine.ApplyHour skipped it
+        // for a whole camp rest (TASK-605): omitting it reads as "not relevant", not as a bug.
+        StatEngine.ModifyHealthPool(health, stamina, DrinkRestores, DrinkRestoreCapPercent, out _,
+            nearDeathRank: conditions[ActorCondition.NearDeath]);
 
         return true;
     }

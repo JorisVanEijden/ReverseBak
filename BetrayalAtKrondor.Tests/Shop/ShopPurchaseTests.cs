@@ -74,4 +74,39 @@ public class ShopPurchaseTests {
         Assert.Equal(40, conditions[ActorCondition.Starving]);
         Assert.Equal(ShopPurchase.MaxDrunk, conditions[ActorCondition.Drunk]);
     }
+
+    // ---- the Near-death ceiling applies to a drink too ----
+
+    [Fact]
+    public void ADrinkCannotLiftANearDeathDrinkerPastTheirCeiling() {
+        // SHOP.C:153 is stat_combatant_modify(&characters[partySlot], 0x10, 0x300, 0x3c) -- a real
+        // party character, so charSlot != 0 and STAT.C:206-211 REPLACES the 60% target with
+        // ((100 - rank) * 0x1e) / 100 + 1. At rank 90 that is 4, so a 3-point drink on a pool of 4
+        // may add nothing at all.
+        //
+        // The ceiling lives inside stat_combatant_modify, so the original cannot opt out of it.
+        // Here it is a defaulted argument -- the same shape that let a whole camp rest skip it
+        // (TASK-605).
+        var health = new ActorStat { Base = 4, Effective = 4, Max = 60 };
+        var stamina = new ActorStat { Base = 0, Effective = 0, Max = 40 };
+        var conditions = new ActorConditions();
+        ConditionEngine.Apply(conditions, ActorCondition.NearDeath, 90);
+
+        Assert.True(ShopPurchase.Drink(Drink(number: 1, drunkAmount: 1), conditions, health, stamina));
+
+        // ((100 - 90) * 30) / 100 + 1 = 4. Already there, so the drink lifts nothing.
+        Assert.Equal(4, StatEngine.HealthPool(health, stamina));
+    }
+
+    [Fact]
+    public void ADrinkStillRestoresSomeoneWhoIsNOTNearDeath() {
+        // The control: without it the case above is satisfied by a drink that heals nobody.
+        var health = new ActorStat { Base = 4, Effective = 4, Max = 60 };
+        var stamina = new ActorStat { Base = 0, Effective = 0, Max = 40 };
+        var conditions = new ActorConditions();
+
+        Assert.True(ShopPurchase.Drink(Drink(number: 1, drunkAmount: 1), conditions, health, stamina));
+
+        Assert.Equal(7, StatEngine.HealthPool(health, stamina));
+    }
 }
