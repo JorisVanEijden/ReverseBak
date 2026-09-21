@@ -1,5 +1,7 @@
 namespace GameData.Resources.Character;
 
+using System;
+
 using GameData.Resources;
 
 /// <summary>
@@ -107,6 +109,27 @@ public static class CharacterSheetRow {
     /// <summary>The flag key for one actor's attribute.</summary>
     public static int ChangedFlagFor(int actorNumber, int attributeNumber) =>
         ChangedFlagBase + (actorNumber * AttributesPerActor) + attributeNumber;
+
+    /// <summary>
+    /// Mark an attribute as changed on its owner's sheet, if the change is one that shows.
+    /// </summary>
+    /// <remarks>
+    /// <b>The rule, in one place, for callers that have no session.</b> The Unity side has
+    /// <c>GameSession.ModifyStatOf</c>, which does this with the change and also sets
+    /// <see cref="ImprovedDirtyBit"/>; engine-independent code has only a write-flag delegate, and
+    /// two copies of a three-line rule is how rules drift.
+    ///
+    /// <para><paramref name="partySlot"/> is the original's <c>charSlot</c>: <b>1-based, and 0
+    /// means nobody</b>, which is the <c>charSlot != 0</c> gate at STAT.C:300 for free. The flag row
+    /// is <c>partySlot - 1</c> (STAT.C:107, :196).</para>
+    /// </remarks>
+    public static void MarkChanged(Action<int, int> writeFlag, int partySlot,
+        ActorAttribute attribute, StatEngine.StatChange change) {
+        if (writeFlag == null || partySlot < 1 || !change.SignalsImprovement) {
+            return;
+        }
+        writeFlag(ChangedFlagFor(partySlot - 1, (int)attribute), 1);
+    }
 
     /// <summary>Which pen a name takes.</summary>
     public static int NamePen(bool changedSinceLastSeen) => changedSinceLastSeen ? ChangedPen : Pen;

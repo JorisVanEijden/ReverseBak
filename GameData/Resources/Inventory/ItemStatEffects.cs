@@ -93,7 +93,7 @@ public static class ItemStatEffects {
             // First read: full value, no roll, and the flag is set so it never pays out twice.
             writeFlag(key, 1);
             ApplyToMaskedAttributes(stats, record.EffectArgA,
-                (long)record.EffectArgB << 8, StatChangeMode.Absolute);
+                (long)record.EffectArgB << 8, StatChangeMode.Absolute, partySlot, writeFlag);
             return true;
         }
 
@@ -103,17 +103,21 @@ public static class ItemStatEffects {
             return false;
         }
         ApplyToMaskedAttributes(stats, record.EffectArgA,
-            record.EffectDurationHours, StatChangeMode.PercentOfRemaining);
+            record.EffectDurationHours, StatChangeMode.PercentOfRemaining, partySlot, writeFlag);
         return true;
     }
 
-    private static void ApplyToMaskedAttributes(ActorStat[] stats, int mask, long delta, StatChangeMode mode) {
+    private static void ApplyToMaskedAttributes(ActorStat[] stats, int mask, long delta,
+        StatChangeMode mode, int partySlot, Action<int, int> writeFlag) {
         for (var i = 0; i < AttributeBits; i++) {
             if ((mask & (1 << i)) == 0) {
                 continue;
             }
             if (i < stats.Length && stats[i] != null) {
-                StatEngine.Modify(stats[i], (ActorAttribute)i, delta, mode);
+                // The sheet mark rides with the change, as stat_combatant_modify does it
+                // (STAT.C:300-307); partySlot is already gated to a party member above.
+                Character.CharacterSheetRow.MarkChanged(writeFlag, partySlot, (ActorAttribute)i,
+                    StatEngine.Modify(stats[i], (ActorAttribute)i, delta, mode));
             }
         }
     }

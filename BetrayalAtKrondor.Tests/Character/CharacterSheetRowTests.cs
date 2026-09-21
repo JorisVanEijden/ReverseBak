@@ -1,5 +1,6 @@
 namespace BetrayalAtKrondor.Tests.Character;
 
+using GameData;
 using GameData.Resources.Character;
 using Xunit;
 
@@ -151,5 +152,41 @@ public class CharacterSheetRowTests {
         Assert.Equal(CharacterSheetRow.ChangedFlagBase, CharacterSheetRow.ChangedFlagFor(0, 0));
         Assert.Equal(CharacterSheetRow.ChangedFlagBase + 17, CharacterSheetRow.ChangedFlagFor(1, 0));
         Assert.NotEqual(CharacterSheetRow.ChangedFlagFor(0, 16), CharacterSheetRow.ChangedFlagFor(1, 0));
+    }
+
+    /// <summary>
+    /// <see cref="CharacterSheetRow.MarkChanged"/> — the rule for callers with no session.
+    /// </summary>
+    /// <remarks>
+    /// <b>partySlot is the original's charSlot: 1-based, and 0 means nobody.</b> That zero is the
+    /// <c>charSlot != 0</c> gate at STAT.C:300, which is why a monster never gets a sheet row —
+    /// and why an off-by-one here would write every mark onto the wrong character.
+    /// </remarks>
+    [Fact]
+    public void MarkChanged_WritesTheOwnersRow_AndNothingForSlotZero() {
+        var written = new System.Collections.Generic.List<int>();
+        void Write(int key, int value) => written.Add(key);
+        var shows = new StatEngine.StatChange(41, changed: true, increased: true,
+            signalsImprovement: true);
+
+        CharacterSheetRow.MarkChanged(Write, partySlot: 2, ActorAttribute.Stealth, shows);
+        // Slot 2 is character 1 — the row is partySlot - 1 (STAT.C:107, :196).
+        Assert.Equal(new[] { CharacterSheetRow.ChangedFlagFor(1, (int)ActorAttribute.Stealth) },
+            written);
+
+        written.Clear();
+        CharacterSheetRow.MarkChanged(Write, partySlot: 0, ActorAttribute.Stealth, shows);
+        Assert.Empty(written);
+    }
+
+    [Fact]
+    public void MarkChanged_WritesNothingWhenTheChangeDoesNotShow() {
+        var written = new System.Collections.Generic.List<int>();
+        var hidden = new StatEngine.StatChange(40, changed: false, increased: false,
+            signalsImprovement: false);
+
+        CharacterSheetRow.MarkChanged((k, v) => written.Add(k), 2, ActorAttribute.Stealth, hidden);
+
+        Assert.Empty(written);
     }
 }

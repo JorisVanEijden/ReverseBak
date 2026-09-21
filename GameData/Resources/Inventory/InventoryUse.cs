@@ -802,11 +802,8 @@ public static class InventoryUse {
     /// </remarks>
     private static void MarkOnTheSheet(ItemUseContext context, ActorAttribute attribute,
         StatEngine.StatChange change) {
-        if (context?.WriteFlag == null || context.PartySlot == 0 || !change.SignalsImprovement) {
-            return;
-        }
-        context.WriteFlag(
-            Character.CharacterSheetRow.ChangedFlagFor(context.PartySlot - 1, (int)attribute), 1);
+        Character.CharacterSheetRow.MarkChanged(context?.WriteFlag, context?.PartySlot ?? 0,
+            attribute, change);
     }
 
     private static Func<int, int> PartyEffectsFor(ItemUseContext context, ActorAttribute attribute) {
