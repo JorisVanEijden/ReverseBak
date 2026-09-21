@@ -34,9 +34,32 @@ public static class CombatArenaCamera {
     /// </remarks>
     public const bool HeightIsAbsolute = true;
 
+    /// <summary>
+    /// The extra height the arena camera takes UNDERGROUND, on top of START.DAT's field.
+    /// </summary>
+    /// <remarks>
+    /// <b>The shipped 800 is not the height the fight is viewed from.</b> The last nine
+    /// instructions of <c>combat_captureArenaBackdrop</c> (@0x222a2, underground arm only) raise the
+    /// camera's world z by this much and rebuild the view, <i>after</i> the backdrop still has been
+    /// captured — so the backdrop is drawn from 800 and the fight itself is projected from 1310. The
+    /// surface arm returns before any of it, which is why only the underground arena is affected.
+    ///
+    /// <para><b>It is the sign of the vertical placement, not a tweak.</b> With the arena 3350 ahead
+    /// and the camera pitched 16.64° down, 800 puts the near row 3.2° ABOVE the camera axis and 1310
+    /// puts it 4.7° BELOW — the near row crosses frame centre. No field of view can do that, which is
+    /// what sent TASK-604 looking for a pose difference in the first place.</para>
+    /// </remarks>
+    public const int UndergroundHeightRaise = 510;
+
     /// <summary>The arena camera's height, in game units.</summary>
+    /// <remarks>
+    /// Underground this is START.DAT's field <b>plus</b> <see cref="UndergroundHeightRaise"/>; see
+    /// there for why the shipped 800 is not what the fight is viewed from.
+    /// </remarks>
     public static int HeightFor(StartData start, bool underground) =>
-        underground ? start.CombatCameraHeightUnderground : start.CombatCameraHeightAboveGround;
+        underground
+            ? start.CombatCameraHeightUnderground + UndergroundHeightRaise
+            : start.CombatCameraHeightAboveGround;
 
     /// <summary>The arena camera's downward tilt, in the engine's 16-bit angle units.</summary>
     /// <remarks>

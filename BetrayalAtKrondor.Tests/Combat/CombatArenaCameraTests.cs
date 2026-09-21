@@ -24,15 +24,23 @@ public class CombatArenaCameraTests {
     public void TheZoneKindPicksThePair_NotTheChapter() {
         StartData s = Shipped();
         Assert.Equal(1024, CombatArenaCamera.HeightFor(s, underground: false));
-        Assert.Equal(800, CombatArenaCamera.HeightFor(s, underground: true));
+        // 800 is START.DAT's field; the arena is viewed from 800 + 510, because
+        // combat_captureArenaBackdrop raises the camera underground (@0x222a2) after the backdrop
+        // still is captured. See CombatArenaCamera.UndergroundHeightRaise.
+        Assert.Equal(800 + CombatArenaCamera.UndergroundHeightRaise,
+            CombatArenaCamera.HeightFor(s, underground: true));
         Assert.Equal(-2112, CombatArenaCamera.PitchFor(s, underground: false));
         Assert.Equal(-3030, CombatArenaCamera.PitchFor(s, underground: true));
     }
 
     [Fact]
-    public void ADungeonSitsLowerAndLooksFurtherDown() {
+    public void ADungeonLooksFurtherDown_AndTheRaisePutsTheEyeHigherNotLower() {
         StartData s = Shipped();
-        Assert.True(CombatArenaCamera.HeightFor(s, true) < CombatArenaCamera.HeightFor(s, false));
+        // START.DAT's own pair really is lower underground...
+        Assert.True(s.CombatCameraHeightUnderground < s.CombatCameraHeightAboveGround);
+        // ...but the arena raises it by 510, so the eye the FIGHT is viewed from ends up HIGHER
+        // than the surface one. This assertion read `<` until the raise was found (TASK-604).
+        Assert.True(CombatArenaCamera.HeightFor(s, true) > CombatArenaCamera.HeightFor(s, false));
         // More negative is steeper: both are downward tilts in 16-bit angle units.
         Assert.True(CombatArenaCamera.PitchFor(s, true) < CombatArenaCamera.PitchFor(s, false));
     }
