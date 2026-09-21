@@ -223,12 +223,13 @@ public static class RoadTravel {
         return found ? RoadSweep.Turn : RoadSweep.None;
     }
 
-    /// <summary>
-    /// Whether travel mode may be engaged at all: not already travelling, and standing on road
-    /// or bridge. This is the gate on the travel button (spec §3.5).
-    /// </summary>
-    public static bool CanEngage(bool alreadyTravelling, int currentKind) =>
-        !alreadyTravelling && IsRoadKind(currentKind);
+    // REMOVED 2026-09-21: `CanEngage(alreadyTravelling, currentKind)` — "standing on road or
+    // bridge", tested against the party's RAW position. The original has no such test. It engages
+    // by attempting the step (`worldmove_step_once_along_axis`, WORLDMOV.C:745-753), which goes to
+    // `worldmove_prox_find_near_pos` (:634) and queries CELL CENTRES only. Keeping a second,
+    // coarser predicate beside TryEngage let the two disagree and refuse a road the snap could
+    // reach (TASK-554). The `!alreadyTravelling` half lives at the one call site that needs it,
+    // PartyMovement.CanEngageTravel.
 
     /// <summary>
     /// Engaging travel: snap to the centre of a nearby road cell.
