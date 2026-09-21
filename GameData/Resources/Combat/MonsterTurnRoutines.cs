@@ -122,6 +122,9 @@ public static class MonsterTurnRoutines {
     /// wandering routine) — the third parameter is <c>damage</c>, and COMBAT.C only rolls the weapon's
     /// damage <c>if (damage == 0)</c>. So these creatures' swings always land for 25..49 whatever they
     /// carry. The same band as <see cref="MeleeMinDamage"/>/<see cref="MeleeMaxDamage"/>; see TASK-525.
+    ///
+    /// <para><b>Deliberately callerless.</b> A duplicate restatement of that band, which
+    /// CombatRuntime.SwingSpeciesBlow consumes.</para>
     /// </remarks>
     public static readonly (int Min, int Max) CloseOrRangedMeleeDelay = (0x19, 0x31);
 
@@ -382,6 +385,9 @@ public static class MonsterTurnRoutines {
     /// <i>disengaged</i> to the target filters in <see cref="CombatAi"/>, so it can never be found
     /// by the "engaged" role and is always eligible for the "disengaged" one. Dropping this line
     /// would quietly change who the rest of the field goes after.
+    ///
+    /// <para><b>Deliberately callerless.</b> Carried as MonsterTurnResolver.Decision
+    /// .ClearsTargetAfterTurn and applied in the finally of CombatRuntime.ResolveEnemyTurn.</para>
     /// </remarks>
     public static bool ClearsTargetAfterActing => true;
 
