@@ -85,6 +85,22 @@ public static class CharacterSheetRow {
     /// </remarks>
     public const int ChangedFlagBase = 6350;
 
+    /// <summary>
+    /// The <c>bPartyDirtyFlags</c> bit an attribute GAIN sets — <c>STAT.C:305</c>,
+    /// <c>if (origBase &lt; slot->base) g_gameState.bPartyDirtyFlags |= 1;</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Bit 0, and it is not the affliction bit.</b>
+    /// <see cref="ConditionAnnouncements.DirtyBit"/> is bit 1 and means a member caught something
+    /// the hourly tick has not announced; this one means something went up. They are set by
+    /// different routines for different reasons and share only the byte.
+    ///
+    /// <para>Note the asymmetry with the mark beside it: the mark follows
+    /// <c>SignalsImprovement</c> (any change to a skill), this follows an <i>increase</i>. A skill
+    /// that drops is worth highlighting and is not worth calling an improvement.</para>
+    /// </remarks>
+    public const int ImprovedDirtyBit = 1;
+
     /// <summary>Attributes per actor in the flag array.</summary>
     public const int AttributesPerActor = 17;
 
