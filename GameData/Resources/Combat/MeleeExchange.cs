@@ -181,12 +181,16 @@ public static class MeleeExchange {
         public Advancement(ActorStat attackerMelee = null, ActorStat attackerStrength = null,
             ActorStat defenderDefense = null,
             Func<ActorAttribute, int> attackerStudy = null,
-            Func<ActorAttribute, int> defenderStudy = null) {
+            Func<ActorAttribute, int> defenderStudy = null,
+            Action<ActorAttribute, StatEngine.StatChange> attackerMark = null,
+            Action<ActorAttribute, StatEngine.StatChange> defenderMark = null) {
             AttackerMelee = attackerMelee;
             AttackerStrength = attackerStrength;
             DefenderDefense = defenderDefense;
             AttackerStudy = attackerStudy;
             DefenderStudy = defenderStudy;
+            AttackerMark = attackerMark;
+            DefenderMark = defenderMark;
         }
 
         public ActorStat AttackerMelee { get; }
@@ -203,6 +207,22 @@ public static class MeleeExchange {
 
         /// <summary>The defender's study bonus by attribute, or null for none.</summary>
         public Func<ActorAttribute, int> DefenderStudy { get; }
+
+        /// <summary>
+        /// Records the attacker's changed rating on their character sheet — STAT.C:300-307, which
+        /// the original does inside <c>stat_combatant_modify</c> so no caller can forget it.
+        /// </summary>
+        /// <remarks>
+        /// <b>Per actor, for the same reason the study bonuses are.</b> One exchange advances three
+        /// ratings across two people, and each one's mark belongs to their own sheet.
+        ///
+        /// <para>Null for a monster, which the original excludes with <c>charSlot != 0</c> — and
+        /// the stats above are null for one too, so nothing is awarded to mark.</para>
+        /// </remarks>
+        public Action<ActorAttribute, StatEngine.StatChange> AttackerMark { get; }
+
+        /// <summary>The defender's equivalent; see <see cref="AttackerMark"/>.</summary>
+        public Action<ActorAttribute, StatEngine.StatChange> DefenderMark { get; }
     }
 
     /// <summary>
@@ -244,7 +264,8 @@ public static class MeleeExchange {
         // these only on a hit would quietly halve the attacker's Melee curve and pay a defender
         // nothing for a fight they survived by being missed.
         CombatAdvancement.OnMeleeDeclared(advancement.DefenderDefense, advancement.AttackerMelee,
-            advancement.DefenderStudy, advancement.AttackerStudy);
+            advancement.DefenderStudy, advancement.AttackerStudy,
+            advancement.DefenderMark, advancement.AttackerMark);
 
         bool parrying = (defender.Flags & CombatantFlags.Parry) != 0;
         if (!CombatFormulas.MeleeHits(rnd(100), chance, parrying)) {
@@ -253,7 +274,7 @@ public static class MeleeExchange {
 
         // And again on connecting: Melee a SECOND time, plus Strength.
         CombatAdvancement.OnMeleeHit(advancement.AttackerMelee, advancement.AttackerStrength,
-            advancement.AttackerStudy);
+            advancement.AttackerStudy, advancement.AttackerMark);
 
         // *** THE DEFENDER'S ARMOUR CAN CANCEL THE ENCHANTMENT OUTRIGHT. ***
         // cbstat_armor_absorption_by_class ends by running the bonus through

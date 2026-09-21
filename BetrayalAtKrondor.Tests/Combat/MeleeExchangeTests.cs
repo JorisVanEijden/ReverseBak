@@ -2,6 +2,7 @@ namespace BetrayalAtKrondor.Tests.Combat;
 
 using System;
 using System.Collections.Generic;
+using GameData;
 using GameData.Resources.Character;
 using GameData.Resources.Combat;
 using Xunit;
@@ -22,6 +23,47 @@ public class MeleeExchangeTests {
 
     private static readonly MeleeExchange.Defender Unarmoured =
         new MeleeExchange.Defender(defenseRating: 0, armorRating: 0, applyArmor: false);
+
+    /// <summary>
+    /// The advancement marks reach the sheet through a real exchange — STAT.C:300-307.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is what stops the sink being dropped again.</b> The mark is an OPTIONAL argument all
+    /// the way down (making it required would churn 23 test call sites that do not care), so
+    /// nothing in the type system notices if a future edit stops passing it. This does.
+    ///
+    /// <para>Both actors are asserted because one exchange advances three ratings across two
+    /// people: the defender is paid Defense for standing there and the attacker Melee then
+    /// Strength — so a sink wired for the attacker only would still look right from one side.</para>
+    /// </remarks>
+    [Fact]
+    public void AnExchangeMarksBOTHActorsRatingsOnTheirSheets() {
+        var marked = new List<(int Who, ActorAttribute Attribute)>();
+        ActorStat Stat() => new ActorStat { Base = 40, Max = 99 };
+        ActorStat attackerMelee = Stat(), attackerStrength = Stat(), defenderDefense = Stat();
+
+        var advancement = new MeleeExchange.Advancement(
+            attackerMelee, attackerStrength, defenderDefense,
+            attackerStudy: null, defenderStudy: null,
+            attackerMark: (attribute, _) => marked.Add((0, attribute)),
+            defenderMark: (attribute, _) => marked.Add((1, attribute)));
+
+        MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, AlwaysHits,
+            advancement: advancement);
+
+        // *** ASSERT THE SINK WAS REACHED, NOT THAT THE MARK FIRED. *** One SkillUse award of
+        // AwardDelta banks a remainder in Experience rather than moving the stored value, so
+        // SignalsImprovement is false and filtering on it makes this collection empty — which is
+        // exactly how this test failed when first written. Whether a reached sink then writes the
+        // flag is StatChange.SignalsImprovement's business and GameSession.RecordStatChange's,
+        // both already pinned elsewhere; what can silently rot HERE is the plumbing.
+        //
+        // The defender is paid Defense for being swung at, win or lose; the attacker Melee for
+        // swinging and Strength for connecting.
+        Assert.Contains((1, ActorAttribute.Defense), marked);
+        Assert.Contains((0, ActorAttribute.AccuracyMelee), marked);
+        Assert.Contains((0, ActorAttribute.Strength), marked);
+    }
 
     [Fact]
     public void AFixedBlowReplacesTheWeaponRoll() {

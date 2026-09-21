@@ -34,9 +34,11 @@ public static class CombatAdvancement {
     /// <param name="defenderDefense">The defender's Defense stat, or null to skip.</param>
     /// <param name="attackerMelee">The attacker's AccuracyMelee stat, or null to skip.</param>
     public static void OnMeleeDeclared(ActorStat defenderDefense, ActorStat attackerMelee,
-        Func<ActorAttribute, int> defenderStudy = null, Func<ActorAttribute, int> attackerStudy = null) {
-        Award(defenderDefense, ActorAttribute.Defense, defenderStudy);
-        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy);
+        Func<ActorAttribute, int> defenderStudy = null, Func<ActorAttribute, int> attackerStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> defenderMark = null,
+        Action<ActorAttribute, StatEngine.StatChange> attackerMark = null) {
+        Award(defenderDefense, ActorAttribute.Defense, defenderStudy, defenderMark);
+        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy, attackerMark);
     }
 
     /// <summary>
@@ -47,9 +49,10 @@ public static class CombatAdvancement {
     /// connecting — which is the whole of the "fighting makes you better at fighting" curve.</para>
     /// </summary>
     public static void OnMeleeHit(ActorStat attackerMelee, ActorStat attackerStrength,
-        Func<ActorAttribute, int> attackerStudy = null) {
-        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy);
-        Award(attackerStrength, ActorAttribute.Strength, attackerStudy);
+        Func<ActorAttribute, int> attackerStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> attackerMark = null) {
+        Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy, attackerMark);
+        Award(attackerStrength, ActorAttribute.Strength, attackerStudy, attackerMark);
     }
 
     /// <summary>
@@ -64,8 +67,9 @@ public static class CombatAdvancement {
     /// would train Defense off arrows that defence never affected.
     /// </remarks>
     public static void OnShotDeclared(ActorStat shooterCrossbow,
-        Func<ActorAttribute, int> shooterStudy = null) {
-        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy);
+        Func<ActorAttribute, int> shooterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> shooterMark = null) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy, shooterMark);
     }
 
     /// <summary>
@@ -78,8 +82,9 @@ public static class CombatAdvancement {
     /// for it to train.
     /// </remarks>
     public static void OnShotHit(ActorStat shooterCrossbow,
-        Func<ActorAttribute, int> shooterStudy = null) {
-        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy);
+        Func<ActorAttribute, int> shooterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> shooterMark = null) {
+        Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy, shooterMark);
     }
 
     /// <summary>
@@ -92,8 +97,9 @@ public static class CombatAdvancement {
     /// and never on a negated cast (<c>SpellEffectApplication.AwardsCastingSkill</c>, CSPELL.C:1305).
     /// </remarks>
     public static void OnSpellCast(ActorStat casterCasting,
-        Func<ActorAttribute, int> casterStudy = null) {
-        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy);
+        Func<ActorAttribute, int> casterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> casterMark = null) {
+        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy, casterMark);
     }
 
     /// <summary>
@@ -110,8 +116,9 @@ public static class CombatAdvancement {
     /// windup animation. Others take a different branch.</para>
     /// </remarks>
     public static void OnSpellHit(ActorStat casterCasting,
-        Func<ActorAttribute, int> casterStudy = null) {
-        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy);
+        Func<ActorAttribute, int> casterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange> casterMark = null) {
+        Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy, casterMark);
     }
 
     /// <param name="study">
@@ -121,10 +128,13 @@ public static class CombatAdvancement {
     /// STAT.C:271 asks for THIS rating's own flag before applying the actor's rate.
     /// </param>
     private static void Award(ActorStat stat, ActorAttribute attribute,
-        Func<ActorAttribute, int> study = null) {
-        if (stat != null) {
-            StatEngine.Modify(stat, attribute, AwardDelta, StatChangeMode.SkillUse,
-                study?.Invoke(attribute) ?? 0);
+        Func<ActorAttribute, int> study = null,
+        Action<ActorAttribute, StatEngine.StatChange> mark = null) {
+        if (stat == null) {
+            return;
         }
+        StatEngine.StatChange change = StatEngine.Modify(stat, attribute, AwardDelta,
+            StatChangeMode.SkillUse, study?.Invoke(attribute) ?? 0);
+        mark?.Invoke(attribute, change);
     }
 }
