@@ -40,6 +40,12 @@ public static class DialogChoiceMenu {
     /// the farewell, and for the party row it is cancel — which is why neither needs its own dismiss
     /// path. A port that treats dismissal as "no selection" would leave a conversation with no way
     /// out of the grid.
+    ///
+    /// <para><b>Deliberately callerless.</b> ASKABOUT.C:493-495 resolves the dismissal inside the
+    /// poll loop, so the port expresses it as the choice layer's own cancel delegate —
+    /// <c>DialogManager</c> passes <c>() =&gt; ResolveChoice(_choiceButtons.Count - 1)</c> to the
+    /// NavigableLayer. The party picker shares that ResolveChoice, where
+    /// <c>cancelled = index == labels.Count - 1</c> reproduces ASKABOUT.C:518-522.</para>
     /// </remarks>
     public static bool DismissalPressesLastEntry(int pollResult) => pollResult == DismissedResult;
 
@@ -57,6 +63,15 @@ public static class DialogChoiceMenu {
     /// rather than taking the first. So a menu with two topics beginning "S" cannot be driven by the
     /// keyboard for either of them — pressing S simply does nothing, and the player has to click.
     /// Taking the first match is the obvious "improvement" and it changes what the keyboard does.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port carries it as
+    /// <c>NavigableLayer</c>'s <c>ambiguousLetterSelectsNothing</c>, which <c>DialogManager</c>
+    /// passes <c>true</c> for the "dialog-choice" layer.</para>
+    ///
+    /// <para><b>The flag defaults to false, and that is correct.</b> The scan is in ASKABOUT.C's own
+    /// loop <i>around</i> <c>menupage_run</c>, not inside it — MENUPAGE.C has no letter handling at
+    /// all — so the rule belongs to the choice menu and not to REQ screens. The other construction
+    /// site, <c>MenuLayerHost</c>, is therefore right to leave it off.</para>
     /// </remarks>
     public static bool AcceleratorResolves(int matchCount) => matchCount == 1;
 

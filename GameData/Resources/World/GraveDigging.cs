@@ -156,10 +156,23 @@ public static class GraveDigging {
     /// <b>A trapped grave is DISPOSED before its trap is spawned.</b>
     /// </summary>
     /// <remarks>
-    /// The handler reads the encounter's x/y, calls <c>disposeContainer</c>, nulls its pointer and
-    /// only then spawns from TRAP.DAT — then re-fetches the container at the location, because the
-    /// spawn may have put a new one there. Spawning first would leave the old grave in place beside
-    /// whatever the trap created.
+    /// <b>This is a record flush, NOT a world-level removal</b> — the earlier wording here claimed
+    /// the latter and the source does not support it. WCURSOR.C's dig routine allocates an in-memory
+    /// actor record with <c>actorspawn_objfixed(zone, x, y)</c>, and around the trap dispatch it
+    /// does <c>actorspawn_destroy_and_persist(record)</c> — the paired free — then **re-reads the
+    /// record immediately afterwards**, because the spawn may have rewritten it:
+    /// <code>
+    /// actorspawn_destroy_and_persist(actor_record);            /* flush + free */
+    /// actor_record = 0;
+    /// if (hotspotevt_dispatch_at_point(7, x, y, &amp;extra) != 0) { ... }
+    /// actor_record = actorspawn_objfixed(zone, pos_x, pos_y);  /* re-read */
+    /// </code>
+    /// The grave is not taken off the field by this; the same routine flushes the record again on
+    /// every exit path, trap or no trap.
+    ///
+    /// <para><b>Deliberately callerless.</b> The port holds no such record — GraveInteractionHandler
+    /// reads GetLiveContainerAt fresh after the trap dispatch, which is the observable half — so
+    /// there is nothing for it to dispose.</para>
     /// </remarks>
     public static bool TrapDisposesTheGraveFirst => true;
 }
