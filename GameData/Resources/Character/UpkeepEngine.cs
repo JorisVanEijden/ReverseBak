@@ -135,8 +135,26 @@ public static class UpkeepEngine {
         if (regeneration != 0) {
             // RegenBonus goes NEGATIVE for the afflictions that sap (poison, starvation), so this
             // is a drain as often as a heal -- and a drain that empties the pool owes Near-death.
+            //
+            // *** NEAR-DEATH REPLACES THE HEAL TARGET; IT DOES NOT JUST SLOW IT. *** STAT.C:206-211,
+            // inside the stat 0x10 branch:
+            //
+            //     target = (mode * uMaxSum) / 100;
+            //     if (charSlot != 0) { rank = ranks[rowIdx][6];
+            //                          if (rank != 0) target = ((100 - rank) * 0x1e) / 100 + 1; }
+            //
+            // So a member at Near-death 100 can be healed to a pool of exactly 1, and at 95 to 2 --
+            // the 80% ceiling is not reached at all until the rank decays (one point a day,
+            // ApplyDailyNearDeathRecovery). That is WHY a Near-death party cannot finish a "Camp
+            // until Healed" in the original.
+            //
+            // The rank was not passed here, so it defaulted to 0 and the clamp never applied: the
+            // rest healed two Near-death-100 members from a pool of 10 to the full 80% in 90 hours,
+            // where the original still had them at Near-death 95 after 108 (TASK-605). The clamp
+            // itself was already implemented and already used by CharacterHeal -- only this caller
+            // was not feeding it.
             StatEngine.ModifyHealthPool(health, stamina, regeneration * 0x100, capPercent, out _,
-                conditions: conditions);
+                nearDeathRank: conditions[ActorCondition.NearDeath], conditions: conditions);
         }
     }
 
