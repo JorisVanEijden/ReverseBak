@@ -274,4 +274,33 @@ public class CombatWalkTests {
         Assert.Equal(CombatTerrain.Pushable, puzzle.Grid.TerrainAt(4, 5));
         Assert.Equal((3, 5), (actor.X, actor.Y));
     }
+
+    /// <summary>
+    /// A probe answers whether it GOT THERE, which is the only thing a dry run is asked.
+    /// </summary>
+    /// <remarks>
+    /// The original's probe is <c>combataipath_actor_walk_path(actor, 1)</c> and its non-zero
+    /// return is exactly "reachable" — that is what sets bit 1 of the move/attack map
+    /// (CMBTGRID.C:1401, :1419), which the wandering routine rerolls against. Ours returned a
+    /// hard-coded false, so <c>Arrived</c> could not be read after a probe at all (TASK-615).
+    ///
+    /// <para>The out-of-reach half is the control: without it "always false" would pass the first
+    /// assertion's negation and "always true" would pass this one alone.</para>
+    /// </remarks>
+    [Fact]
+    public void AProbeReportsWhetherItReachedTheTile() {
+        CombatGrid grid = GridWith(CombatTerrain.Open);
+        Combatant actor = Actor(1, 5);        // Speed 5
+
+        CombatWalk.WalkResult near = CombatWalk.Walk(grid, actor, 4, 5, actor.Speed, probe: true);
+        Assert.True(near.Arrived, "three tiles away with speed 5 is reachable");
+
+        // Twelve tiles of Chebyshev distance against five of movement: the walker runs out.
+        CombatWalk.WalkResult far = CombatWalk.Walk(grid, actor, 1, 12, actor.Speed, probe: true);
+        Assert.False(far.Arrived, "beyond the actor's movement is NOT reachable this turn");
+
+        // And the probe still moved nobody, whichever answer it gave.
+        Assert.Equal(1, actor.X);
+        Assert.Equal(5, actor.Y);
+    }
 }

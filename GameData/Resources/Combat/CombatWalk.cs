@@ -130,6 +130,12 @@ public static class CombatWalk {
         public int SpeedRemaining { get; }
 
         /// <summary>Whether the actor reached the destination.</summary>
+        /// <remarks>
+        /// <b>Meaningful after a probe too</b> — there it is exactly "could this actor get there
+        /// this turn", the question <see cref="X"/> cannot answer because a probe reports the start
+        /// position. Distinct from <see cref="PathClear"/>: a walk whose every step succeeded but
+        /// which ran out of movement leaves that true and this false.
+        /// </remarks>
         public bool Arrived { get; }
 
         /// <summary>The original's return value: false once a step was refused outright.</summary>
@@ -274,9 +280,16 @@ public static class CombatWalk {
         }
 
         if (probe) {
+            // *** A PROBE REPORTS WHETHER IT GOT THERE. *** That is the whole question a dry run is
+            // asked — the original's own is `combataipath_actor_walk_path(actor, 1)`, whose non-zero
+            // return IS "reachable" (CMBTGRID.C:1401, the bit-1 arm of the move/attack map). This
+            // returned a hard-coded false until 2026-09-21, which made `Arrived` unreadable after a
+            // probe and left callers to infer reachability from `PathClear` — a different question,
+            // true as well for a walk whose every step succeeded and still ran out of movement.
+            bool reached = actor.X == destX && actor.Y == destY;
             actor.X = startX;
             actor.Y = startY;
-            return new WalkResult(startX, startY, speed, false, pathClear, hazards);
+            return new WalkResult(startX, startY, speed, reached, pathClear, hazards);
         }
 
         return new WalkResult(actor.X, actor.Y, speedRemaining > 0 ? speedRemaining : 0,
