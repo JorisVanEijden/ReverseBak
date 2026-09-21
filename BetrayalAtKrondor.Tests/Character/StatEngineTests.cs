@@ -365,15 +365,28 @@ public class StatEngineTests {
         // writes back into. Reading it as health alone under-counts every wounded member.
         Assert.Equal(17, StatEngine.HealthPool(health, stamina));
         Assert.Equal(35, StatEngine.HealthPoolMaximum(health, stamina));
-        Assert.Equal(18, StatEngine.HealthPoolDeficit(health, stamina));
     }
 
     [Fact]
     public void APoolOverItsMaximumIsNotADebt() {
-        var health = new ActorStat { Base = 30, Max = 20 };
-        var stamina = new ActorStat { Base = 20, Max = 15 };
-
         // A temple bills one royal per missing point, so a negative deficit would PAY the party.
-        Assert.Equal(0, StatEngine.HealthPoolDeficit(health, stamina));
+        Assert.Equal(0, StatEngine.HealthPoolDeficit(effectivePool: 50, effectivePoolMax: 35));
+    }
+
+    [Fact]
+    public void TheDeficitIsMeasuredAgainstTheEFFECTIVEPool() {
+        // CHARSCRN.C:476-479 adds stat_actor_get(actor, 0x10, 1) - stat_actor_get(actor, 0x10, 0)
+        // -- the maxima against the EFFECTIVE pool. A member whose stored pair is full but who is
+        // held down by a modifier still owes the difference.
+        //
+        // The signature is what enforces it: it takes the two figures rather than the ActorStats,
+        // because a stat pair cannot answer what the effective pool is -- the modifier table lives
+        // in game state. Passing the stored pair here is now something a caller has to do on
+        // purpose (TASK-608).
+        Assert.Equal(18, StatEngine.HealthPoolDeficit(effectivePool: 17, effectivePoolMax: 35));
+
+        // Stored pair at its maximum, effective held 6 below it: still a bill, and therefore still
+        // something for the priest to cure.
+        Assert.Equal(6, StatEngine.HealthPoolDeficit(effectivePool: 29, effectivePoolMax: 35));
     }
 }

@@ -259,10 +259,30 @@ public static class StatEngine {
     public static int HealthPoolMaximum(ActorStat health, ActorStat stamina) =>
         (health?.Max ?? 0) + (stamina?.Max ?? 0);
 
-    /// <summary>How far below full the pool sits, never negative.</summary>
-    /// <inheritdoc cref="HealthPool"/>
-    public static int HealthPoolDeficit(ActorStat health, ActorStat stamina) {
-        int missing = HealthPoolMaximum(health, stamina) - HealthPool(health, stamina);
+    /// <summary>
+    /// How far below full the pool sits, never negative — the temple's bill.
+    /// </summary>
+    /// <param name="effectivePool"><c>stat_actor_get(actor, 0x10, <b>0</b>)</c>, the EFFECTIVE
+    /// pool.</param>
+    /// <param name="effectivePoolMax"><c>stat_actor_get(actor, 0x10, 1)</c>, the stored maxima.</param>
+    /// <remarks>
+    /// <b>IT IS MEASURED AGAINST THE EFFECTIVE POOL, NOT THE STORED PAIR.</b> `CHARSCRN.C:476-479`
+    /// adds <c>stat_actor_get(actor, 0x10, 1) - stat_actor_get(actor, 0x10, <b>0</b>)</c> to the
+    /// price, so a member held below full by a modifier owes for that too.
+    ///
+    /// <para>This used to take the two <see cref="ActorStat"/>s and subtract
+    /// <see cref="HealthPool"/> — the STORED pair — which under-billed an afflicted member by
+    /// exactly the modifier. Worse, <c>TempleHealScreen</c> uses the bill as the test for whether
+    /// there is anything to cure at all, so a member whose only shortfall was a modifier read as
+    /// perfectly healthy and the priest skipped them.</para>
+    ///
+    /// <para>It takes the two figures rather than the stats precisely so that mistake cannot be
+    /// made again: an <see cref="ActorStat"/> pair cannot answer what the effective pool is — the
+    /// modifier table lives in game state, not in the stats — so a caller now has to go and get it.
+    /// See <c>GameSession.EffectivePool</c>/<c>EffectivePoolMax</c>.</para>
+    /// </remarks>
+    public static int HealthPoolDeficit(int effectivePool, int effectivePoolMax) {
+        int missing = effectivePoolMax - effectivePool;
 
         return missing > 0 ? missing : 0;
     }
