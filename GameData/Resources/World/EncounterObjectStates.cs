@@ -92,7 +92,21 @@ public sealed class EncounterObjectStates {
         for (var slot = 0; slot < SlotsPerRecord; slot++) {
             int at = IndexOf(refPair, recordIndex, slot);
             if (_entries[at].Kind == KindRoaming) {
-                Write(at, KindStanding);
+                // *** THE POSE SURVIVES. *** The original assigns the kind word and nothing else —
+                // `g_pEncounterObjectState[base + j].wKind_state = 0x400;` (rgnenc_mark_defended,
+                // RGNENC.C:496-498), leaving pose.nWorld_x_offset/nWorld_y_offset/nFacing untouched.
+                // Going through Write() here replaced the WHOLE entry and blanked all three, so a
+                // roaming actor that had a real pose became a body at offset (0,0) — and offset zero
+                // from the party's tile IS the tile origin. That is TASK-558: five corpses in the
+                // upper Mac Mordain Cadal stacked at (640000,640000), the origin of tile (10,10),
+                // and `walk` 23 still carries one such record (rp2 rec0 slot0, kind 0x400, (0,0)).
+                Entry kept = _entries[at];
+                _entries[at] = new Entry {
+                    WorldXOffset = kept.WorldXOffset,
+                    WorldYOffset = kept.WorldYOffset,
+                    Facing = kept.Facing,
+                    KindState = (ushort)(KindStanding << 8),
+                };
                 stopped++;
             }
         }

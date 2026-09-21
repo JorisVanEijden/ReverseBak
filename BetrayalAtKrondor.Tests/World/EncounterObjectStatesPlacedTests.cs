@@ -143,4 +143,45 @@ public class EncounterObjectStatesPlacedTests {
 
         Assert.Equal(beforeKind.KindState, Read(states).KindState);
     }
+
+    /// <summary>
+    /// Defeating a roaming actor must not lose where it was standing — TASK-558.
+    /// </summary>
+    /// <remarks>
+    /// <b>The bug this pins put every dungeon body at its tile's origin.</b> The original assigns
+    /// the kind word alone — <c>g_pEncounterObjectState[base + j].wKind_state = 0x400;</c>
+    /// (<c>rgnenc_mark_defended</c>, RGNENC.C:496-498) — and leaves the pose beside it untouched.
+    /// <see cref="EncounterObjectStates.StopRoaming"/> used to go through the private Write helper,
+    /// which replaces the WHOLE entry, so the offsets and facing were blanked. An offset of (0,0)
+    /// from the party's tile IS the tile origin, which is how five corpses in the upper Mac Mordain
+    /// Cadal came to be stacked at (640000,640000).
+    ///
+    /// <para><b>Non-vacuous:</b> with the preservation removed and <c>Write(at, KindStanding)</c>
+    /// restored, this fails on the first offset assertion, reporting 0 instead of 4321.</para>
+    /// </remarks>
+    [Fact]
+    public void StopRoamingKeepsThePoseAndOnlyChangesTheKind() {
+        // Built through Load, because nothing public promotes an entry to Roaming — that happens
+        // inside the seed. A crafted block is the only way to start from "placed and walking with a
+        // real pose", which is exactly the state the defect destroys.
+        var body = new byte[EncounterObjectStates.BodyOffset + EncounterObjectStates.SaveSize];
+        int at = EncounterObjectStates.BodyOffset
+            + (EncounterObjectStates.IndexOf(RefPair, Record, Slot) * EncounterObjectStates.EntrySize);
+        System.BitConverter.GetBytes(4321).CopyTo(body, at);
+        System.BitConverter.GetBytes(8765).CopyTo(body, at + 4);
+        System.BitConverter.GetBytes((short)0x2000).CopyTo(body, at + 8);
+        System.BitConverter.GetBytes((ushort)(EncounterObjectStates.KindRoaming << 8)).CopyTo(body, at + 10);
+
+        var states = new EncounterObjectStates();
+        states.Load(body);
+        Assert.Equal(EncounterObjectStates.KindRoaming, Read(states).Kind);
+
+        Assert.Equal(1, states.StopRoaming(RefPair, Record));
+
+        EncounterObjectStates.Entry after = Read(states);
+        Assert.Equal(4321, after.WorldXOffset);
+        Assert.Equal(8765, after.WorldYOffset);
+        Assert.Equal((short)0x2000, after.Facing);
+        Assert.Equal(EncounterObjectStates.KindStanding, after.Kind);
+    }
 }
