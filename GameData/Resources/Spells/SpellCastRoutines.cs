@@ -261,6 +261,9 @@ public static class SpellCastRoutines {
     /// until it runs out of targets, runs out of power, or has taken as many hops as there are
     /// combat actors. The dispatcher zeroes its magnitude afterwards precisely because the routine
     /// has already dealt all the damage itself.
+    ///
+    /// <para><b>Deliberately callerless.</b> The chain is CombatRuntime.ApplyEvilSeekChain, called
+    /// from the per-spell switch when the aimed target does not resist.</para>
     /// </remarks>
     public static bool EvilSeekChains => true;
 
@@ -278,6 +281,9 @@ public static class SpellCastRoutines {
     /// after it has been applied once, so the original target takes <c>cost × 2</c> and each
     /// subsequent victim takes 80% of the one before — integer-truncated, which is what eventually
     /// ends the chain.
+    ///
+    /// <para><b>Deliberately callerless.</b> CombatRuntime.ApplyEvilSeekChain carries the decay
+    /// inline, matching cspell_chain_damage's `decay = 100` then `decay = 0x50`.</para>
     /// </remarks>
     public static int EvilSeekPowerAtHop(int spellCost, int hop) {
         int power = EvilSeekInitialPower(spellCost);
@@ -295,6 +301,16 @@ public static class SpellCastRoutines {
     /// The per-hop resistance check skips only that victim's damage; the arc still happens, the
     /// victim is still recorded as visited, and the chain still passes through them to the next
     /// target at the reduced power. A resistant creature standing in the middle shields nobody.
+    ///
+    /// <para><b>This is true of LATER hops only, and the distinction is not a detail.</b> The
+    /// per-spell switch that starts the chain lives inside CSPELL.C:1370's
+    /// `cbstat_char_bitmap_3w_test(...) == 0` — "the aimed target does not resist" — so a resistant
+    /// FIRST target starts no chain at all and the cost is paid for nothing. Verified live in the
+    /// original on an entry-306 rogue (TASK-541).</para>
+    ///
+    /// <para><b>Deliberately callerless.</b> Both halves are implemented: the outer gate at
+    /// CombatRuntime's `spellId == SpellIds.EvilSeek && !TargetResists(target, spellId)`, and the
+    /// per-hop behaviour inside ApplyEvilSeekChain.</para>
     /// </remarks>
     public static bool EvilSeekResistanceStopsOnlyThatHop => true;
 
