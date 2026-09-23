@@ -114,6 +114,9 @@ public class NoteMapViewTests {
         ItemUseResult result = InventoryUse.Use(container, 0, -1, Notes(), Context(flags));
 
         Assert.Equal(NoteMapView.WrongNoteDialogId, result.DialogId);
+        // Var 0 is the item (ITEMUSE.C:133): 0x1b7742's arms are keyed on it, the Abbot's Journal's
+        // text among them. A 0 here reads nothing.
+        Assert.Equal(NoteMapView.MapNoteItemId + 1, result.DialogVar0);
         Assert.Empty(flags);
     }
 

@@ -33,7 +33,8 @@ public static class NoteMapView {
     /// </remarks>
     public const int MarkerZone = 9;
 
-    /// <summary>Dialog when the item is a note but not the one with a map.</summary>
+    /// <summary>Dialog when the item is a note but not the one with a map — the shared use-result
+    /// record, keyed on Var 0 = the item id, whose 124 and 125 arms are the two journals' text.</summary>
     public const int WrongNoteDialogId = 0x1b7742;
 
     /// <summary>

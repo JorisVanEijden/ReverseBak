@@ -880,7 +880,12 @@ public static class InventoryUse {
     /// </remarks>
     private static ItemUseResult UseNote(RuntimeItem source, ItemUseContext context) {
         if (!NoteMapView.ShowsAMap(source.ObjectId)) {
-            return new ItemUseResult(ItemUseOutcome.Silent, NoteMapView.WrongNoteDialogId, 0, false);
+            // *** VAR 0 IS THE ITEM, AND THE ITEM IS WHAT THIS DIALOG IS ABOUT. *** Use_Item sets
+            // nEvtArgCount = item_id before it dispatches (ITEMUSE.C:133), and 0x1b7742 branches on
+            // it: the Abbot's Journal (124) and the dwarf's journal (125) are READ here, 124 setting
+            // flag 8138. Passing 0 matched no arm, so reading the journal showed nothing at all.
+            return new ItemUseResult(ItemUseOutcome.Silent, NoteMapView.WrongNoteDialogId,
+                source.ObjectId, false);
         }
 
         int mapId = source.Variable;
