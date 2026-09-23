@@ -33,10 +33,29 @@ public static class DialogTextRuns {
     /// <summary>0xF5 — pen remap, applied once.</summary>
     public const char RemapOnce = '⌡';
 
-    /// <summary>Whether a character is one of the six control codes rather than text.</summary>
-    /// <remarks><b>Deliberately callerless.</b> Production decodes through <see cref="Decode"/>, which switches on the six codes itself; this states the set for the tests.</remarks>
-    public static bool IsControlCode(char c) =>
-        c is Reset or ItalicHighlight or ItalicHighlightAlt or Italic or RemapTwice or RemapOnce;
+    /// <summary>
+    /// The CP437 glyphs of bytes 0xE0-0xFF, in byte order. <b>The original draws none of them.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>font_render_glyph_or_ctrl</c> (canassa GFX/FONT/FONT.C:217-218) takes any byte whose high
+    /// nibble is 0xE0 OR 0xF0 as a control code and switches on the low nibble alone, so 0xE3 is the
+    /// same italic as 0xF3; nibbles 6-15 have no arm and draw nothing. The telepathic voices of
+    /// chapter 8's Seven Pillars put 0xE3 before every letter, and with only 0xF0-0xF5 known here
+    /// they read "πWπe πsπeπvπeπn".
+    /// </remarks>
+    private const string ControlGlyphs =
+        "αßΓπΣσµτΦΘΩδ∞φε∩"
+        + "≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+
+    /// <summary>The control code's low nibble — the only part the original switches on — or -1.</summary>
+    private static int ControlNibble(char c) {
+        int index = ControlGlyphs.IndexOf(c);
+        return index < 0 ? -1 : index & 0x0F;
+    }
+
+    /// <summary>Whether a character is a control code (a CP437 byte 0xE0-0xFF) rather than text.</summary>
+    /// <remarks><b>Deliberately callerless.</b> Production decodes through <see cref="Decode"/>, which switches on the codes itself; this states the set for the tests.</remarks>
+    public static bool IsControlCode(char c) => ControlNibble(c) >= 0;
 
     /// <summary>A maximal stretch of source characters sharing one style.</summary>
     public readonly struct Run {
@@ -93,14 +112,14 @@ public static class DialogTextRuns {
 
         for (int i = start; i < end; i++) {
             char c = text[i];
-            switch (c) {
-                case Reset:
+            switch (ControlNibble(c)) {
+                case 0:     // Reset
                     Flush(i);
                     italic = false;
                     pen = bodyPen;
                     continue;
-                case ItalicHighlight:
-                case ItalicHighlightAlt:
+                case 1:     // ItalicHighlight
+                case 2:     // ItalicHighlightAlt
                     // Pen 1 drops to 0, pen 0x0A stays, everything else becomes the highlight
                     // (0x15ef4-0x15f1e). For the common black-bodied dialog that is pen 5 — the
                     // cream highlight on the chapter-intro title.
@@ -108,19 +127,28 @@ public static class DialogTextRuns {
                     italic = true;
                     pen = pen == 1 ? 0 : pen == 0x0A ? 0x0A : 5;
                     continue;
-                case Italic:
+                case 3:     // Italic
                     Flush(i);
                     italic = true;
                     continue;
-                case RemapTwice:
+                case 4:     // RemapTwice
                     // The original's case 4 falls THROUGH into case 5, so the remap runs twice.
                     Flush(i);
                     pen = RemapPen(RemapPenFirstStep(pen));
                     continue;
-                case RemapOnce:
+                case 5:     // RemapOnce
                     Flush(i);
                     pen = RemapPen(pen);
                     continue;
+                case -1:
+                    break;
+                default:
+                    // Nibbles 6-15: no arm in the original, so nothing is drawn and no style moves.
+                    Flush(i);
+                    continue;
+            }
+
+            switch (c) {
                 case ' ':
                 case '\n':
                     // Reset BEFORE the break character, so it belongs to the unstyled run that

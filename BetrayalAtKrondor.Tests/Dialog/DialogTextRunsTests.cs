@@ -40,6 +40,18 @@ public class DialogTextRunsTests {
         Assert.Equal("abc", string.Concat(runs.Select(r => Slice(text, r))));
     }
 
+    // The Seven Pillars' voice (DIAL_Z19) puts 0xE3 before every letter. FONT.C:217-218 reads a
+    // 0xE_ byte exactly like its 0xF_ twin, so it is italic and never a glyph.
+    [Fact]
+    public void TheE0RowIsTheSameControlCodesAsTheF0Row() {
+        const string text = "πWπe °x";
+        List<DialogTextRuns.Run> runs = Decode(text);
+
+        Assert.Equal("We x", string.Concat(runs.Select(r => Slice(text, r))));
+        Assert.True(runs[0].Italic);
+        Assert.Equal(Decode("≤x")[0].Pen, Decode("πx")[0].Pen);
+    }
+
     [Fact]
     public void AHighlightGivesTheBlackBodiedDialogPenFive() {
         // The cream/tan highlight on the chapter-intro title. Pen 0 is the common body pen.
