@@ -457,6 +457,11 @@ public static class InventoryTransfer {
 
         ObjectInfo rec = objects?.GetById(item.ObjectId);
         if (rec == null || ((int)rec.Flags & StackableFlag) == 0) { return false; }
+        // *** THE COUNT CAPACITY BINDS THE MERGE PATH TOO. *** Read off 0x552F9, which tests
+        // `numberOfItems == capacity` and returns 0 BEFORE it looks for a stack — so a container
+        // full by item count refuses even a merge that would consume no new slot. Only CanFit
+        // enforced this, and reaching the loop past a false CanFit dropped it (TASK-625).
+        if (target.Items.Count >= target.Capacity) { return false; }
         foreach (RuntimeItem t in target.Items) {
             // classify 2 — the insert merges via consolidation.
             if (t.ObjectId == item.ObjectId && t.Variable + item.Variable <= rec.MaxAmount) {

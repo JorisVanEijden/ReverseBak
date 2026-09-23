@@ -123,4 +123,18 @@ public class InventoryTransferTests {
         Assert.True(InventoryTransfer.HasRoomFor(full, new RuntimeItem(72, 28, 0), objs));  // 2+28 == 30
         Assert.False(InventoryTransfer.HasRoomFor(full, new RuntimeItem(72, 29, 0), objs)); // 2+29 > 30
     }
+
+    // 0x552F9 tests `numberOfItems == capacity` and returns 0 BEFORE it looks for a stack, so a
+    // container full by ITEM COUNT refuses even a merge that consumes no new slot.
+    [Fact] public void HasRoomFor_RefusesAMergeWhenTheContainerIsFullByItemCount() {
+        var objList = new List<ObjectInfo> {
+            new ObjectInfo("r") { Number = 72, Name = "Rations", InventorySlots = 1, MaxAmount = 30, Flags = (ObjectFlags)0x800 },
+        };
+        var items = new List<RuntimeItem> { new RuntimeItem(72, 2, 0) };
+        var objs = new ObjectInfoSet("O", objList);
+        // Capacity 1: already at the count cap, and the one item IS a matching stack with headroom.
+        var full = C(1, SaveGameContainerType.Inventory, items.ToArray());
+
+        Assert.False(InventoryTransfer.HasRoomFor(full, new RuntimeItem(72, 3, 0), objs));
+    }
 }
