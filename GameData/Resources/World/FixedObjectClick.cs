@@ -86,7 +86,8 @@ public static class FixedObjectClick {
     /// <b>And a refusal there cancels the rest of the click.</b> The early message is the only one
     /// whose return value is acted on: a negative answer drops the hotspot and stops everything
     /// after it. So this bit changes both when the line is heard and whether the player can decline.
-    /// <para><b>Deliberately callerless.</b> No shipped record carries the bit (0 of 478 with a dialog), so AnswerCancelsClick after the message covers every case.</para>
+    /// <para>No shipped record carries the bit (0 of 478 with a dialog), so in the shipped game every
+    /// building's message comes AFTER its hotspot; <c>BuildingInteractionHandler</c> keeps both orders.</para>
     /// </remarks>
     public const int MessageFirstFlag = 0x20;
 
