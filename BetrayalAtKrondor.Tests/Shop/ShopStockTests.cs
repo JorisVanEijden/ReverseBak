@@ -215,4 +215,58 @@ public class ShopStockTests {
         Assert.Single(shop.Items);
         Assert.Empty(buyer.Items);
     }
+
+    // TASK-625: Buy tested the slot budget alone, so a buyer at the budget was refused a stackable
+    // they ALREADY carry -- a merge that costs no new slot, and which the delivery below performs
+    // anyway by adding then consolidating. Measured at Romney: a member at 20/20 slots holding 2
+    // Rations ran the whole offer and kept its gold.
+    private static (ObjectInfoSet objs, RuntimeContainer buyer, RuntimeContainer shop) SlotFullBuyer(
+        bool alreadyHoldsTheStack) {
+        const int RationsId = 72;
+        var list = new List<ObjectInfo> {
+            new ObjectInfo("r") {
+                Number = RationsId, Name = "Rations", Price = 1, InventorySlots = 1,
+                MaxAmount = 14, Flags = (ObjectFlags)0x800,
+            },
+        };
+        var held = new List<RuntimeItem>();
+        int filler = alreadyHoldsTheStack ? 19 : 20;
+        for (var i = 0; i < filler; i++) {
+            var id = (byte)(100 + i);
+            list.Add(new ObjectInfo("x" + i) { Number = id, Price = 1, InventorySlots = 1, MaxAmount = 1 });
+            held.Add(new RuntimeItem(id, 1, 0));
+        }
+        if (alreadyHoldsTheStack) { held.Add(new RuntimeItem(RationsId, 2, 0)); }
+
+        var buyer = new RuntimeContainer { Capacity = 24, ContainerType = SaveGameContainerType.Inventory };
+        buyer.Items.AddRange(held);
+        var shop = new RuntimeContainer { Capacity = 28, ContainerType = SaveGameContainerType.FixedWorldItem };
+        shop.Items.Add(new RuntimeItem(RationsId, 3, 0));
+
+        return (new ObjectInfoSet("O", list), buyer, shop);
+    }
+
+    [Fact] public void Buy_DeliversAStackableTheBuyerAlreadyCarries_WhenSlotFull() {
+        var (objs, buyer, shop) = SlotFullBuyer(alreadyHoldsTheStack: true);
+        var gold = 100;
+        var ok = ShopStock.Buy(shop, buyer, shop.Items[0], objs, 10, ref gold);
+
+        Assert.True(ok);
+        Assert.Equal(90, gold);
+        var stack = buyer.Items.Find(i => i.ObjectId == 72);
+        Assert.NotNull(stack);
+        Assert.Equal(5, stack.Variable);   // 2 held + 3 bought, merged into the one stack
+    }
+
+    // The control: without it the fix passes by never refusing, and the slot budget stops meaning
+    // anything for a buyer who is genuinely out of room.
+    [Fact] public void Buy_StillRefusesAStackableTheBuyerDoesNotCarry_WhenSlotFull() {
+        var (objs, buyer, shop) = SlotFullBuyer(alreadyHoldsTheStack: false);
+        var gold = 100;
+        var ok = ShopStock.Buy(shop, buyer, shop.Items[0], objs, 10, ref gold);
+
+        Assert.False(ok);
+        Assert.Equal(100, gold);           // nothing charged
+        Assert.DoesNotContain(buyer.Items, i => i.ObjectId == 72);
+    }
 }

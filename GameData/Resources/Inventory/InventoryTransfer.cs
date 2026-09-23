@@ -173,20 +173,7 @@ public static class InventoryTransfer {
         // Room classification (classify 1/2): fits as-is; else consolidate the destination and
         // retry; else acceptable anyway when the WHOLE amount merges into one existing stack
         // (canMergeIntoExistingStack @0x552F9 — never a silent partial merge, spec §13.2).
-        bool hasRoom = CanFit(target, item, objects);
-        if (!hasRoom) {
-            InventoryOrder.Consolidate(target, objects,
-                target.ContainerType == SaveGameContainerType.Inventory);
-            hasRoom = CanFit(target, item, objects);
-        }
-        if (!hasRoom && rec != null && (flags & StackableFlag) != 0) {
-            foreach (RuntimeItem t in target.Items) {
-                if (t.ObjectId == item.ObjectId && t.Variable + item.Variable <= rec.MaxAmount) {
-                    hasRoom = true; // classify 2 — the insert below merges via consolidation
-                    break;
-                }
-            }
-        }
+        bool hasRoom = HasRoomFor(target, item, objects);
 
         if (hasRoom) {
             // The quantity picker (spec §14): countables always ask; member->member moves of
@@ -445,6 +432,41 @@ public static class InventoryTransfer {
     // requires total <= budget (no slack). Both passes must pass. For a character inventory
     // (ContainerType == SaveGameContainerType.Inventory) currently-equipped items are excluded
     // from both sums.
+    /// <summary>
+    /// Whether <paramref name="item"/> can land in <paramref name="target"/> — the whole room
+    /// question, not just the slot budget.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three steps, and <see cref="CanFit"/> is only the first.</b> The original's room
+    /// classification tries the budget, then consolidates the destination and tries again, and then
+    /// accepts anyway when the WHOLE amount merges into one existing stack
+    /// (<c>canMergeIntoExistingStack</c> @0x552F9 — never a silent partial merge, spec §13.2).
+    ///
+    /// <para><b>Ask this, not <see cref="CanFit"/>.</b> A caller that tests the budget alone refuses
+    /// a stackable the member already carries, which costs no new slot. The shop's buy path did
+    /// exactly that: at Romney a member at 20/20 slots holding a 2-qty Rations stack ran the whole
+    /// offer and then silently kept its gold, because <c>CompletePurchaseAsync</c> asked
+    /// <see cref="CanFit"/> and never asked the stack question (TASK-625). <c>CanFit</c> stays
+    /// public because the budget alone is still the right question for the picker's headroom maths.</para>
+    /// </remarks>
+    public static bool HasRoomFor(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
+        if (CanFit(target, item, objects)) { return true; }
+        InventoryOrder.Consolidate(target, objects,
+            target.ContainerType == SaveGameContainerType.Inventory);
+        if (CanFit(target, item, objects)) { return true; }
+
+        ObjectInfo rec = objects?.GetById(item.ObjectId);
+        if (rec == null || ((int)rec.Flags & StackableFlag) == 0) { return false; }
+        foreach (RuntimeItem t in target.Items) {
+            // classify 2 — the insert merges via consolidation.
+            if (t.ObjectId == item.ObjectId && t.Variable + item.Variable <= rec.MaxAmount) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static bool CanFit(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
         if (target.Items.Count >= target.Capacity) { return false; }
         bool isChar = target.ContainerType == SaveGameContainerType.Inventory;

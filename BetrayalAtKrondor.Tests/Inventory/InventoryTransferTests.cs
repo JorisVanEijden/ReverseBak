@@ -83,4 +83,44 @@ public class InventoryTransferTests {
         Assert.Single(src.Items); // unchanged
         Assert.Equal(20, dst.Items.Count); // unchanged
     }
+
+    // TASK-625: the shop's buy path asked CanFit, which is the slot budget alone, so a member at
+    // the budget was refused an item they already carry a stack of -- a merge that costs no new
+    // slot and that the original allows (canMergeIntoExistingStack @0x552F9). Measured at Romney:
+    // actor2 at 20/20 slots holding 2 Rations kept its gold; actor4 at 18/20 bought the same stack.
+    private static (ObjectInfoSet objs, RuntimeContainer full) AtSlotBudget(bool holdingTheStack) {
+        var objList = new List<ObjectInfo>();
+        var items = new List<RuntimeItem>();
+        // 0x800 stackable, like Rations.
+        objList.Add(new ObjectInfo("r") { Number = 72, Name = "Rations", InventorySlots = 1, MaxAmount = 30, Flags = (ObjectFlags)0x800 });
+        int filler = holdingTheStack ? 19 : 20;
+        for (int i = 0; i < filler; i++) {
+            byte id = (byte)(100 + i);
+            objList.Add(new ObjectInfo("x" + i) { Number = id, Name = "Trinket" + i, InventorySlots = 1, MaxAmount = 1 });
+            items.Add(new RuntimeItem(id, 1, 0));
+        }
+        if (holdingTheStack) { items.Add(new RuntimeItem(72, 2, 0)); }   // the 20th slot IS the stack
+        // Capacity 24 as the shipped packs have: the binding constraint is the 20-slot budget.
+        return (new ObjectInfoSet("O", objList), C(24, SaveGameContainerType.Inventory, items.ToArray()));
+    }
+
+    [Fact] public void HasRoomFor_AllowsAStackableTheMemberAlreadyCarries_AtTheSlotBudget() {
+        var (objs, full) = AtSlotBudget(holdingTheStack: true);
+        var incoming = new RuntimeItem(72, 10, 0);
+        Assert.False(InventoryTransfer.CanFit(full, incoming, objs));   // the budget alone says no
+        Assert.True(InventoryTransfer.HasRoomFor(full, incoming, objs)); // the merge says yes
+    }
+
+    // The control. Without it the fix passes by never refusing anything.
+    [Fact] public void HasRoomFor_StillRefusesAStackableTheMemberDoesNotCarry_AtTheSlotBudget() {
+        var (objs, full) = AtSlotBudget(holdingTheStack: false);
+        var incoming = new RuntimeItem(72, 10, 0);
+        Assert.False(InventoryTransfer.HasRoomFor(full, incoming, objs));
+    }
+
+    [Fact] public void HasRoomFor_RefusesWhenTheMergeWouldOverflowTheStacksMaxAmount() {
+        var (objs, full) = AtSlotBudget(holdingTheStack: true);   // carries 2, MaxAmount 30
+        Assert.True(InventoryTransfer.HasRoomFor(full, new RuntimeItem(72, 28, 0), objs));  // 2+28 == 30
+        Assert.False(InventoryTransfer.HasRoomFor(full, new RuntimeItem(72, 29, 0), objs)); // 2+29 > 30
+    }
 }

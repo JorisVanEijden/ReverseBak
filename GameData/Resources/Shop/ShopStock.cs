@@ -166,7 +166,12 @@ public static class ShopStock {
         }
 
         RuntimeItem handedOver = delivered ?? item;
-        if (!InventoryTransfer.CanFit(buyer, handedOver, objects)) {
+        // *** THE SECOND GATE, AND IT HAS TO ASK THE SAME QUESTION AS THE FIRST. *** This tested
+        // CanFit — the slot budget alone — so a buyer at the budget was refused a stackable they
+        // already carry even after CompletePurchaseAsync had allowed it, and the sale ended here
+        // with nothing moved and nothing charged. The delivery below ADDS then consolidates, which
+        // is exactly how the merge lands, so the budget was never the right question (TASK-625).
+        if (!InventoryTransfer.HasRoomFor(buyer, handedOver, objects)) {
             return false;
         }
 
