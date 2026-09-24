@@ -423,6 +423,30 @@ public sealed class EncounterObjectStates {
     }
 
     /// <summary>
+    /// The party has left the chunk this ref pair belongs to — <c>rgnenc_zone_rectr_save_objects</c>
+    /// (RGNENC.C:338), run by <c>czone_resync_on_world_move</c> before the next chunk is loaded.
+    /// </summary>
+    /// <remarks>
+    /// <b>Three outcomes, by kind.</b> A roamer (kind 3) goes back to "owed a placement" with a zero
+    /// pose, so it is re-placed from its template the next time the chunk is entered; a standing actor
+    /// or body (kind 4) keeps its pose; EVERY other kind — including a pending actor nobody placed — is
+    /// written Removed. That last arm is only harmless because the original places each pending actor
+    /// on entering a chunk; the port's draw does the same (WorldRuntime redraws on a chunk change).
+    /// </remarks>
+    public void LeaveChunk(int refPair) {
+        for (var entry = 0; entry < EntriesPerRefPair; entry++) {
+            int at = refPair * EntriesPerRefPair + entry;
+            int kind = _entries[at].Kind;
+            if (kind == KindStanding) {
+                continue;
+            }
+            _entries[at] = new Entry {
+                KindState = (ushort)((kind == KindRoaming ? KindReset : KindRemoved) << 8),
+            };
+        }
+    }
+
+    /// <summary>
     /// Stores where a drawn actor stands, relative to the party's tile, keeping its state word —
     /// what <c>rgnenc_persist_zone_snapshot</c> (RGNENC.C:385) and
     /// <c>rgnenc_zone_rectr_save_objects</c> (:338) write for each world actor before anything

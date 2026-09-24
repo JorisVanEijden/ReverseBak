@@ -36,6 +36,33 @@ public class EncounterObjectStatesTests {
     }
 
     [Fact]
+    public void LeavingAChunkResetsRoamersKeepsBodiesAndRemovesTheRest() {
+        // rgnenc_zone_rectr_save_objects (RGNENC.C:338-382): kind 3 -> 0x200 with a zero pose, kind 4
+        // kept as it stands, every other kind -> 0x100 with a zero pose. Only the chunk being left.
+        var states = new EncounterObjectStates();
+        states.SetStateWord(4, 0, 0, 0x0305);
+        states.SetPose(4, 0, 0, 47364, 6107, 24576);
+        states.MarkPlaced(4, 0, 1, 51194, 20000, 16384, underground: false);
+        states.SetKindForTest(4, 0, 2, EncounterObjectStates.KindReset);
+        states.SetStateWord(5, 0, 0, 0x0301);
+        states.SetPose(5, 0, 0, 100, 200, 0);
+
+        states.LeaveChunk(4);
+
+        EncounterObjectStates.Entry roamer = states[EncounterObjectStates.IndexOf(4, 0, 0)];
+        Assert.Equal(0x0200, roamer.KindState);
+        Assert.Equal(0, roamer.WorldXOffset);
+        Assert.Equal(0, roamer.Facing);
+        EncounterObjectStates.Entry body = states[EncounterObjectStates.IndexOf(4, 0, 1)];
+        Assert.Equal(EncounterObjectStates.KindStanding, body.Kind);
+        Assert.Equal(51194, body.WorldXOffset);
+        Assert.Equal(EncounterObjectStates.KindRemoved, states[EncounterObjectStates.IndexOf(4, 0, 2)].Kind);
+        Assert.Equal(EncounterObjectStates.KindRemoved, states[EncounterObjectStates.IndexOf(4, 3, 6)].Kind);
+        Assert.Equal(0x0301, states[EncounterObjectStates.IndexOf(5, 0, 0)].KindState);
+        Assert.Equal(100, states[EncounterObjectStates.IndexOf(5, 0, 0)].WorldXOffset);
+    }
+
+    [Fact]
     public void MarkingOneSlotLeavesItsNeighboursAlone() {
         var states = new EncounterObjectStates();
         states.MarkRemoved(refPair: 2, recordIndex: 1, slotIndex: 4);
