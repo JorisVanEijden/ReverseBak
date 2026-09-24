@@ -423,6 +423,24 @@ public sealed class EncounterObjectStates {
     }
 
     /// <summary>
+    /// Stores where a drawn actor stands, relative to the party's tile, keeping its state word —
+    /// what <c>rgnenc_persist_zone_snapshot</c> (RGNENC.C:385) and
+    /// <c>rgnenc_zone_rectr_save_objects</c> (:338) write for each world actor before anything
+    /// re-reads the block.
+    /// </summary>
+    public void SetPose(int refPair, int recordIndex, int slotIndex,
+        int worldXOffset, int worldYOffset, short facing) {
+        int at = IndexOf(refPair, recordIndex, slotIndex);
+        Entry kept = _entries[at];
+        _entries[at] = new Entry {
+            WorldXOffset = worldXOffset,
+            WorldYOffset = worldYOffset,
+            Facing = facing,
+            KindState = kept.KindState,
+        };
+    }
+
+    /// <summary>
     /// Sets a slot's kind directly, zeroing the low bits. For tests and for a loader replaying a
     /// state the game wrote — the named Mark* methods cover the transitions the game itself
     /// performs, and <see cref="SetStateWord"/> is the one that keeps a walk phase.
