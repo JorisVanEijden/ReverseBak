@@ -33,11 +33,22 @@ public class CutsceneDialogCommandTests {
     }
 
     [Fact]
-    public void APOSITIVEIdShowsADialogWhateverTheMode() {
-        foreach (int arg2 in new[] { 0, 1, 2, 3, 4, 5, 255 }) {
+    public void APOSITIVEIdShowsADialogInEveryModeButTwo() {
+        foreach (int arg2 in new[] { 0, 1, 3, 4, 5, 255 }) {
             Assert.Equal(CutsceneDialogCommand.Kind.Display,
                 CutsceneDialogCommand.KindOf(12, arg2));
         }
+    }
+
+    [Fact]
+    public void ModeTwoOpensTheChapterBookTheIdSpells() {
+        // TTMDLG.C:110: case 2 is gmain_play_chapter_intro(arg / 10, arg % 10). C93.TTM's 94 is the
+        // epilogue, C94.BOK; C41.TTM's 44..46 are C44..C46.
+        Assert.Equal(CutsceneDialogCommand.Kind.OpenBook, CutsceneDialogCommand.KindOf(94, 2));
+        Assert.Equal("C94.BOK", CutsceneDialogCommand.BookFor(94));
+        Assert.Equal("C23.BOK", CutsceneDialogCommand.BookFor(23));
+        // Id 0 with 2 stays a book-page turn step (INTRO.TTM), never a book called C00.
+        Assert.Equal(CutsceneDialogCommand.Kind.BookAnimation, CutsceneDialogCommand.KindOf(0, 2));
     }
 
     [Fact]

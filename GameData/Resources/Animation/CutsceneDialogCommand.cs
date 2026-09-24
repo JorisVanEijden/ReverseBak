@@ -29,6 +29,9 @@ public static class CutsceneDialogCommand {
 
         /// <summary>Show a DDX dialog entry.</summary>
         Display,
+
+        /// <summary>Open a chapter book — see <see cref="BookFor"/>.</summary>
+        OpenBook,
     }
 
     /// <summary>Added to <c>Dialog16Id</c> to reach the global DDX dialog-id catalog.</summary>
@@ -72,8 +75,22 @@ public static class CutsceneDialogCommand {
         if (dialog16Id == 0 && arg2 >= 0 && arg2 <= MaxBookStep) {
             return Kind.BookAnimation;
         }
+        if (dialog16Id > 0 && arg2 == OpenBook) {
+            return Kind.OpenBook;
+        }
         return dialog16Id > 0 ? Kind.Display : Kind.None;
     }
+
+    /// <summary>The book an <see cref="Kind.OpenBook"/> command shows.</summary>
+    /// <remarks>
+    /// <c>ttmscript_show_dialog_action</c> case 2 (TTMDLG.C:110) is
+    /// <c>gmain_play_chapter_intro(arg / 10, arg % 10)</c>, which builds <c>C00.BOK</c> and adds the
+    /// chapter to the first digit and the part to the second: id 94 is C94.BOK. It is NOT a dialog —
+    /// read as one it looked up entry 1600094 and showed nothing, so the eight books the scenes open
+    /// this way (C23, C44-C46, C53, C63, C83 and the epilogue C94) never appeared. The music step of
+    /// that routine only reads CHAPSONG for parts 1 and 2, so none of these changes the track.
+    /// </remarks>
+    public static string BookFor(int dialog16Id) => $"C{dialog16Id / 10}{dialog16Id % 10}.BOK";
 
     /// <summary>The global dialog id a <see cref="Kind.Display"/> command names.</summary>
     public static int DialogIdFor(int dialog16Id) => dialog16Id + DialogIdBase;
