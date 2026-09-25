@@ -163,9 +163,8 @@ public static class CombatWalk {
     /// pose-3 + overlay, each playing <c>audio_play(0x45)</c> — so in the original the zap
     /// repeats across the cine rather than sounding once.
     ///
-    /// <para><c>ponytail: played once, not ten times. The repeat is a property of the cine's frame
-    /// loop, which needs the overlay render TASK-117 owns; wiring the count without the visual would
-    /// just be a stutter.</c></para>
+    /// <para>The rules play it once; the other nine ride on the cine's frames, which
+    /// <c>SpellVfx.CrystalZapAsync</c> draws (TASK-117).</para>
     /// </remarks>
     public const int CrystalGroundSoundId = 0x45;
 

@@ -146,6 +146,18 @@ public sealed class Combatant {
     /// </remarks>
     public bool SwingPending { get; set; }
 
+    /// <summary>The number to float over this combatant at the next redraw — the damage dealt, 0 for
+    /// a blow that landed and did nothing ("miss"), null for none.</summary>
+    /// <remarks>
+    /// <c>combat_arena_apply_damage</c> (COMBAT.C:376-390) sets <c>dmgFloatValue</c>/<c>dmgFloatFrames</c>
+    /// on any blow with knockback: the damage for 8 frames when it is 1..999, "miss" when it is 0.
+    /// Carried across the resolve-then-redraw gap like <see cref="SwingPending"/>.
+    /// </remarks>
+    public int? DamageFloat { get; set; }
+
+    /// <summary>Frames a floating number stays up — <c>dmgFloatFrames = 8</c> (COMBAT.C:384).</summary>
+    public const int DamageFloatFrames = 8;
+
     /// <summary>The <see cref="CombatEffectSprite"/> id flying from this combatant to
     /// <see cref="FlightToSlot"/> on the next redraw, or 0 for none.</summary>
     /// <remarks>

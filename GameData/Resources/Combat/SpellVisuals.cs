@@ -30,6 +30,10 @@ public enum SpellVisualKind {
     /// <summary>One Evil Seek hop: shapes 5, 3, 3 fly source to target at random speeds, then the
     /// target flickers white/red for four frames (CSPELL.C:456-484). Raised per hop by the chain.</summary>
     HopBurst,
+    /// <summary>Stepping onto crystal ground: the crystal run lights up as a crackling beam for ten
+    /// frames while the walker flashes white, cue 0x45 each frame — the terrain-3 arm's short cine
+    /// (CMBTAI.C:221-225, CACTOR.C:1078, beam WORLDFX.C:539).</summary>
+    CrystalZap,
     /// <summary>Strength Drain: shape 0x26 rolls to the target, which turns white, and rolls back
     /// (CSPELL.C:441-454).</summary>
     Rebound,

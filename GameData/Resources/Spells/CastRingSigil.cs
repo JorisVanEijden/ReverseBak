@@ -1,5 +1,7 @@
 namespace GameData.Resources.Spells;
 
+using System.Collections.Generic;
+
 /// <summary>
 /// The figure drawn inside the casting ring — one closed six-vertex outline per school.
 /// </summary>
@@ -76,16 +78,53 @@ public static class CastRingSigil {
     public const int RestingPen = 0x89;
 
     /// <summary>Pen the oldest copy in the morph trail is stroked in; each newer copy is one higher.</summary>
-    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: CastScreen draws the resting figure only, with no morph trail.</remarks>
     public const int TrailFirstPen = 0x83;
 
     /// <summary>Copies drawn behind the leading edge while the figure morphs.</summary>
-    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: no morph trail in CastScreen.</remarks>
     public const int TrailLength = 7;
 
     /// <summary>Frames the morph runs for; the vertices stop moving at 30 and it settles over the rest.</summary>
-    /// <remarks><b>Deliberately callerless.</b> Presentation not ported: CastScreen does not animate the morph.</remarks>
     public const int MorphSteps = 0x25;
+
+    /// <summary>
+    /// The morph, frame by frame — <c>hexanim_move_tiles</c> (HEXANIM.C:22): each frame is the
+    /// <see cref="TrailLength"/> figures to stroke, oldest first, the oldest in
+    /// <see cref="TrailFirstPen"/> and each newer one pen higher.
+    /// </summary>
+    /// <remarks>
+    /// The vertices step by <c>(target - current) / (30 - frame)</c>, INTEGER division, recomputed
+    /// every frame, so they ease in and land exactly on frame 30; the last seven frames let the
+    /// trail catch up. Every copy starts on the old figure, so the first frames are the old figure
+    /// alone. The caller draws the resting figure afterwards, as the routine's own tail does.
+    /// </remarks>
+    public static IEnumerable<(int[] X, int[] Y)[]> Morph(int from, int to) {
+        var curX = (int[])VertexX[from].Clone();
+        var curY = (int[])VertexY[from].Clone();
+        var trail = new Queue<(int[] X, int[] Y)>();
+        for (var i = 0; i < TrailLength; i++) {
+            trail.Enqueue(((int[])curX.Clone(), (int[])curY.Clone()));
+        }
+        for (var frame = 0; frame < MorphSteps; frame++) {
+            var stepX = new int[VertexCount];
+            var stepY = new int[VertexCount];
+            int divisor = 0x1e - frame;
+            for (var v = 0; v < VertexCount; v++) {
+                if (divisor > 0) {
+                    stepX[v] = (VertexX[to][v] - curX[v]) / divisor;
+                    stepY[v] = (VertexY[to][v] - curY[v]) / divisor;
+                }
+            }
+            trail.Dequeue();
+            trail.Enqueue(((int[])curX.Clone(), (int[])curY.Clone()));
+            yield return trail.ToArray();
+            if (frame < 0x1e) {
+                for (var v = 0; v < VertexCount; v++) {
+                    curX[v] += stepX[v];
+                    curY[v] += stepY[v];
+                }
+            }
+        }
+    }
 
     /// <summary>Whether <paramref name="school"/> has a figure.</summary>
     public static bool Has(int school) => school >= 0 && school < VertexX.Length;

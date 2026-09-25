@@ -110,4 +110,15 @@ public class SpellVisualsTests {
         Assert.Equal(0xd0, SpellParticles.BoxColour(7, front: false));
         Assert.Equal(12, SpellParticles.BoxEdges.Length);
     }
+
+    [Fact]
+    public void TheSigilMorphLandsOnTheNewFigureAtFrameThirty() {
+        var frames = CastRingSigil.Morph(0, 1).ToList();
+        Assert.Equal(CastRingSigil.MorphSteps, frames.Count);
+        Assert.All(frames, f => Assert.Equal(CastRingSigil.TrailLength, f.Length));
+        // The first frame is the old figure alone; the newest copy of the last frame is the new one.
+        Assert.Equal(CastRingSigil.VertexX[0], frames[0][^1].X);
+        Assert.Equal(CastRingSigil.VertexX[1], frames[^1][^1].X);
+        Assert.Equal(CastRingSigil.VertexY[1], frames[^1][0].Y); // the trail has caught up
+    }
 }
