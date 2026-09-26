@@ -284,6 +284,31 @@ public static class CombatItemUse {
     }
 
     /// <summary>
+    /// Whether an equipped, intact staff used in a fight refuses to fire, and the line it says first
+    /// (0 when it only says "nothing happens") -- ITEMUSE.C:141-153.
+    /// </summary>
+    /// <remarks>
+    /// Every refusal falls to the tail with the outcome still 0, so "nothing happens" (0x1b7743)
+    /// follows the specific line. In order: staff 2 underground (0x1b7770), any staff but 2 and 4,
+    /// and anything in chapter 8, the island where no staff works (0x1b7773).
+    /// </remarks>
+    public static bool StaffRefuses(int objectId, bool underground, int chapter, out int line) {
+        line = 0;
+        if (objectId == 0x02 && underground) {
+            line = 0x1b7770;
+            return true;
+        }
+        if (objectId != 0x02 && objectId != 0x04) {
+            return true;
+        }
+        if (chapter == 8) {
+            line = 0x1b7773;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// <b>An item bound for this dispatch is NOT consumed by the screen.</b>
     /// </summary>
     /// <remarks>

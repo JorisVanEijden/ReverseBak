@@ -69,4 +69,16 @@ public class CombatItemSelectionTests {
         Assert.NotNull(idol);
         Assert.False(CombatItemUse.Works(idol.Value, underground: false, chapter: 8));
     }
+
+    [Fact]
+    public void AStaffRefusesUnderground_OnTheIsland_AndWhenItIsNotAFiringStaff() {
+        Assert.True(CombatItemUse.StaffRefuses(0x02, underground: true, chapter: 1, out int line));
+        Assert.Equal(0x1b7770, line);
+        Assert.False(CombatItemUse.StaffRefuses(0x04, underground: true, chapter: 1, out _));
+        Assert.True(CombatItemUse.StaffRefuses(0x04, underground: false, chapter: 8, out line));
+        Assert.Equal(0x1b7773, line);
+        Assert.True(CombatItemUse.StaffRefuses(0x03, underground: false, chapter: 1, out line));
+        Assert.Equal(0, line);
+        Assert.False(CombatItemUse.StaffRefuses(0x02, underground: false, chapter: 7, out _));
+    }
 }
