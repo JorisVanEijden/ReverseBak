@@ -695,10 +695,9 @@ public static class InventoryUse {
     /// the shared tail neither plays a record nor decrements again — the original returns -1 for the
     /// same reason.</para>
     ///
-    /// <para><b>The repeat prompt is not ported.</b> The original loops on DDX 1800004 ("use
-    /// another?") and keeps dosing until the player declines or the item runs out. That loop is
-    /// driven by a modal answer, so it belongs to the screen rather than here; one invocation is one
-    /// dose, and the player clicks again. Faithful per dose, one prompt short of faithful overall.</para>
+    /// <para><b>The repeat prompt lives in the screen.</b> The original loops on DDX 1800004 ("use
+    /// again?") and keeps dosing until the player declines or the item runs out. That loop is driven
+    /// by a modal answer, so InventoryMenu.DoseAgainAsync runs it; one invocation here is one dose.</para>
     /// </remarks>
     /// <summary>Shown when a potion is refused — <c>dialog_play_record(0x1b7760)</c>.</summary>
     /// <remarks>
