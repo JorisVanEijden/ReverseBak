@@ -167,6 +167,15 @@ public sealed class Combatant {
     /// </remarks>
     public int FlightEffectId { get; set; }
 
+    /// <summary>Where a MISSED projectile of this combatant's ended, in cell units, for the next
+    /// redraw to fly it there instead of at its target — <see cref="SpellProjectileMiss"/>. Null on
+    /// a hit, and cleared once drawn.</summary>
+    public (float X, float Y)? FlightMissEnd { get; set; }
+
+    /// <summary>The bystander a missed projectile struck instead, set by the rules for the arena to
+    /// aim the flight at — the original's <c>*target_ptr</c> rewrite (CSPELL.C:430).</summary>
+    public Combatant FlightInterceptedBy { get; set; }
+
     /// <summary>Roster slot of the combatant the pending flight is aimed at.</summary>
     public int FlightToSlot { get; set; }
 

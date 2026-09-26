@@ -121,4 +121,24 @@ public class SpellVisualsTests {
         Assert.Equal(CastRingSigil.VertexX[1], frames[^1][^1].X);
         Assert.Equal(CastRingSigil.VertexY[1], frames[^1][0].Y); // the trail has caught up
     }
+
+    [Fact]
+    public void AMissedShotDeflectsAndFliesOffTheGrid() {
+        // From (4,1) at (4,7), nobody in the way: it leaves the board, having turned off the line.
+        var miss = SpellProjectileMiss.Fly(4, 1, 4, 7, 300, n => n - 1, (_, _) => false);
+        Assert.Null(miss.Intercepted);
+        Assert.False(CombatGrid.InBounds((int)Math.Floor(miss.EndX), (int)Math.Floor(miss.EndY)));
+        // RND(2) = 1 turns positive, RND(0x300) = 0x2ff gives the full 0x6ff: about 9.8 degrees.
+        double turned = Math.Atan2(miss.EndY - 1.5, miss.EndX - 4.5) - Math.PI / 2;
+        Assert.InRange(Math.Abs(turned) * 180 / Math.PI, 9.0, 10.5);
+    }
+
+    [Fact]
+    public void AMissedShotStrikesTheFirstBystanderOnItsPath() {
+        // Deflected by the minimum (5.6 deg toward +x), a bystander one column over at row 11 is on the line; the aimed
+        // target at (4,7) is never struck by its own miss.
+        var miss = SpellProjectileMiss.Fly(4, 1, 4, 12, 300, n => 0,
+            (x, y) => (x, y) == (5, 11) || (x, y) == (4, 12));
+        Assert.Equal((5, 11), miss.Intercepted);
+    }
 }
