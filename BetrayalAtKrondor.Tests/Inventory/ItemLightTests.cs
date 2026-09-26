@@ -63,6 +63,31 @@ public class ItemLightTests {
     }
 
     [Fact]
+    public void ATorchInTheNaphthaCavernsExplodes_AndInAFightIsPutAway() {
+        // ITEMUSE.C:370-376: chapter 4, zone 11. Neither lights the torch nor spends it.
+        var clock = new Clock();
+        RuntimeContainer pack = Pack(Torch, 2, lit: false);
+        ItemUseContext context = Context(clock);
+        context.Chapter = 4;
+        context.Zone = 11;
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, Objects(), context);
+        Assert.Equal(0x1b776e, result.DialogId);
+        Assert.Equal(-1L, clock.LitFor);
+        Assert.Equal(0, pack.Items[0].ItemFlags & (ushort)ItemFlags.Lit);
+
+        context.InCombat = true;
+        result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, Objects(), context);
+        Assert.Equal(0x1b7770, result.DialogId);
+        Assert.Equal(2, pack.Items[0].Variable);
+
+        context.Zone = 12;   // anywhere else it lights as usual
+        context.InCombat = false;
+        Assert.Equal(ItemUseOutcome.Silent,
+            InventoryUse.Use(pack, 0, InventoryUse.NoTarget, Objects(), context).Outcome);
+    }
+
+    [Fact]
     public void UsingALitTorchPutsItOut() {
         var clock = new Clock { Burning = true };
         RuntimeContainer pack = Pack(Torch, 2, lit: true);

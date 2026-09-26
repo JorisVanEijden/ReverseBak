@@ -34,6 +34,15 @@ public sealed class ItemUseContext {
         ExtinguishItemLight = extinguishItemLight;
     }
 
+    /// <summary>The chapter being played (<c>g_gameState.nChapter</c>).</summary>
+    public int Chapter { get; set; }
+
+    /// <summary>The zone the party is in (<c>g_gameState.nZoneId</c>).</summary>
+    public int Zone { get; set; }
+
+    /// <summary>Whether the screen was opened from a fight (<c>g_wInCombatMode</c>).</summary>
+    public bool InCombat { get; set; }
+
     /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
     public ActorStat[] Stats { get; }
 
@@ -190,6 +199,10 @@ public static class InventoryUse {
     private const byte LastQuarrelId = 38;         // 0x26
     private const byte PoisonedQuarrelOffset = 3;  // 0x24..0x26 -> 0x27..0x29
     private const byte PoisonedRationsId = 73;     // 'I'
+    /// <summary>"@1 rushed to stop him... A deafening explosion" (ITEMUSE.C:375).</summary>
+    private const int NaphthaExplosionRecord = 0x1b776e;
+    /// <summary>"@ put the object away... neither the time nor the place" (ITEMUSE.C:372).</summary>
+    private const int NotNowRecord = 0x1b7770;
     private const byte AntiVenomId = 113;          // 'q', Silverthorn Anti-Venom
     /// <summary>"Breaking open the bulb of anti-venom, @ greedily drank..." (ITEMUSE.C:197).</summary>
     private const int AntiVenomCuredRecord = 0x1b776f;
@@ -351,11 +364,16 @@ public static class InventoryUse {
                 }
                 // One carried light at a time: with the item timer running, nothing happens — the
                 // outcome keeps its starting 0.
-                // ponytail: the chapter-4 zone-11 torch refusal (dialogs 0x1b776e, and 0x1b7770 in
-                // combat) is not ported; the context carries no chapter or zone.
                 if (context.ItemLightBurning()) {
                     outcome = ItemUseOutcome.NoEffect;
                     break;
+                }
+                // *** A TORCH IN THE NAPHTHA CAVERNS. *** Chapter 4, zone 11: out of a fight the
+                // record plays the explosion and itself ends the party (it sets Var 16 = 2); in one
+                // the torch is simply put away. Neither lights it or spends it (ITEMUSE.C:370-376).
+                if (source.ObjectId == InventoryConsume.TorchObjectId && context.Chapter == 4 && context.Zone == 11) {
+                    return new ItemUseResult(ItemUseOutcome.Handled,
+                        context.InCombat ? NotNowRecord : NaphthaExplosionRecord, source.ObjectId, false);
                 }
                 source.ItemFlags |= (ushort)ItemFlags.Lit;
                 context.LightItem(ItemLight.DurationTicks(rec));
