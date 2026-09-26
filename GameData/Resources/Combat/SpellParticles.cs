@@ -52,6 +52,21 @@ public static class SpellParticles {
             }
         }
 
+        /// <summary>Each live spark's ground shadow — a 1-px dot in pen 0x18 at z=0 under it
+        /// (<c>worldfx_render_star</c>, WORLDFX.C:209-212).</summary>
+        public IEnumerable<ParticlePoint> Shadows {
+            get {
+                for (var i = 0; i < Count; i++) {
+                    if (_z[i] > -1) {
+                        yield return new ParticlePoint(_x[i], _y[i], 0);
+                    }
+                }
+            }
+        }
+
+        /// <summary>The shadow pen.</summary>
+        public const int ShadowPen = 0x18;
+
         /// <summary>Advance one frame; false once every spark is spent.</summary>
         public bool Step() {
             var active = false;

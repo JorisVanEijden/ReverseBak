@@ -141,4 +141,12 @@ public class SpellVisualsTests {
             (x, y) => (x, y) == (5, 11) || (x, y) == (4, 12));
         Assert.Equal((5, 11), miss.Intercepted);
     }
+
+    [Fact]
+    public void FlamecastsVictimGlowsRedEveryOtherProjectilesWhite() {
+        Assert.Equal(1, SpellVisuals.OneShot(SpellIds.Flamecast, Kind(3, 200), 5).Tint);
+        Assert.Equal(3, SpellVisuals.OneShot(SpellIds.FettersOfRime, Kind(3, 232), 5).Tint);
+        var burst = new SpellParticles.SparkBurst(35, _ => 0);
+        Assert.All(burst.Shadows, p => Assert.Equal(0, p.Z));
+    }
 }

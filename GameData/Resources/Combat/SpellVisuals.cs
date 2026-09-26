@@ -58,7 +58,9 @@ public enum LingeringVisualKind {
 /// <summary>A one-shot visual: what to play, and in which palette colour.</summary>
 /// <param name="Colour">A palette index; 0 on a spark burst means "random per spark" (WORLDFX.C:217).</param>
 /// <param name="Spread">The spark burst's velocity spread, in world units per frame.</param>
-public readonly record struct SpellVisual(SpellVisualKind Kind, int Colour = 0, int Spread = 0) {
+/// <param name="Tint">The remap the struck target is drawn through while the burst plays (1 red,
+/// 3 white; 0 none) — <c>cspell_apply_hit_at</c>'s knockback frame, held 10 frames (CSPELL.C:411-435).</param>
+public readonly record struct SpellVisual(SpellVisualKind Kind, int Colour = 0, int Spread = 0, int Tint = 0) {
     public static readonly SpellVisual None = new(SpellVisualKind.None);
 }
 
@@ -117,7 +119,8 @@ public static class SpellVisuals {
             case 2:
                 return new SpellVisual(SpellVisualKind.PaletteFlash, colour);
             case 3:
-                return new SpellVisual(SpellVisualKind.SparkBurst, colour, ProjectileSpread(spellId, magnitude));
+                return new SpellVisual(SpellVisualKind.SparkBurst, colour, ProjectileSpread(spellId, magnitude),
+                    ProjectileTint(spellId));
             case 4:
                 return new SpellVisual(SpellVisualKind.StormFlash);
             case 9:
@@ -129,7 +132,8 @@ public static class SpellVisuals {
             case 16:
                 return new SpellVisual(SpellVisualKind.Sink);
             case 19:
-                return new SpellVisual(SpellVisualKind.SparkBurst, FirestormColour, (magnitude >> 2) + 10);
+                return new SpellVisual(SpellVisualKind.SparkBurst, FirestormColour, (magnitude >> 2) + 10,
+                    ProjectileTint(spellId));
             default:
                 // 0 is a fade no shipped spell uses; 5-8, 14, 15 have no dispatcher arm and only
                 // draw while a status sits on the actor (see Lingering); 11, 17, 18 are walks,
@@ -144,6 +148,13 @@ public static class SpellVisuals {
         SpellIds.BaneOfBlackSlayers => (magnitude >> 2) + 0x14,
         _ => (magnitude >> 2) + 10,
     };
+
+    /// <summary>The struck target's tint on impact: red for Flamecast, white for everything else
+    /// (CSPELL.C:411-425).</summary>
+    public static int ProjectileTint(int spellId) => spellId == SpellIds.Flamecast ? 1 : 3;
+
+    /// <summary>Frames the impact tint holds — <c>knockbackTimer = 10</c> (CSPELL.C:435).</summary>
+    public const int ImpactTintFrames = 10;
 
     /// <summary>What an actor carrying a lingering effect of this spell shows each frame.</summary>
     /// <remarks>Kinds 3/19 (burst particles), 9/13 (orbit), 12 and 16 also have per-frame arms, but
