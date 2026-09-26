@@ -30,6 +30,12 @@ public static class ShopPricing {
     /// <summary>The zone-3 story shop's 6x exchange rate. Everywhere else the rate is 100.</summary>
     public const int InflatedExchangeRate = 600;
 
+    /// <summary>The guild war near Romney has started (set by DIAL_Z20; SHOP.C:40).</summary>
+    public const int InflationFlag = 56361;
+
+    /// <summary>...and is over (set by DIAL_Z19/Z20; SHOP.C:41).</summary>
+    public const int InflationEndedFlag = 56362;
+
     private const int NormalExchangeRate = 100;
 
     /// <summary>Object flags that make an item priced by remaining charges. The original tests the
