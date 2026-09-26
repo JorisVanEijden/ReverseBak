@@ -299,6 +299,41 @@ public class ItemStatEffectsTests {
         Assert.Equal(35, conditions[ActorCondition.Drunk]);
     }
 
+    private static ObjectInfo AntiVenom() =>
+        new ObjectInfo("q") {
+            Number = 113,
+            ObjectType = ObjectType.Enhancer,
+            Flags = ObjectFlags.LimitedUses | ObjectFlags.DiscardWhenEmpty | ObjectFlags.Stackable,
+        };
+
+    [Fact]
+    public void AntiVenomCuresAPoisonedMember_AndSaysSo() {
+        // ITEMUSE.C:190-197: 'q', no target, poison rank != 0 -> apply -100, play 0x1b776f, spend.
+        var conditions = new ActorConditions();
+        conditions[ActorCondition.Poisoned] = 40;
+        RuntimeContainer pack = Pack(Item(objectId: 113, condition: 2));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(AntiVenom()),
+            ContextWith(Stats(), conditions, new Flags()));
+
+        Assert.Equal(ItemUseOutcome.Handled, result.Outcome);
+        Assert.Equal(0x1b776f, result.DialogId);
+        Assert.Equal(0, conditions[ActorCondition.Poisoned]);
+        Assert.Equal(1, pack.Items[0].Variable);
+    }
+
+    [Fact]
+    public void AntiVenomOnAnUnpoisonedMember_NothingHappens_AndKeepsTheBulb() {
+        var conditions = new ActorConditions();
+        RuntimeContainer pack = Pack(Item(objectId: 113, condition: 2));
+
+        ItemUseResult result = InventoryUse.Use(pack, 0, InventoryUse.NoTarget, BookSet(AntiVenom()),
+            ContextWith(Stats(), conditions, new Flags()));
+
+        Assert.Equal(ItemUseOutcome.NoEffect, result.Outcome);
+        Assert.Equal(2, pack.Items[0].Variable);
+    }
+
     [Fact]
     public void ARestorativeIsSpentLikeAnyOtherUse() {
         var conditions = new ActorConditions();

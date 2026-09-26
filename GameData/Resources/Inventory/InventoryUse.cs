@@ -190,6 +190,9 @@ public static class InventoryUse {
     private const byte LastQuarrelId = 38;         // 0x26
     private const byte PoisonedQuarrelOffset = 3;  // 0x24..0x26 -> 0x27..0x29
     private const byte PoisonedRationsId = 73;     // 'I'
+    private const byte AntiVenomId = 113;          // 'q', Silverthorn Anti-Venom
+    /// <summary>"Breaking open the bulb of anti-venom, @ greedily drank..." (ITEMUSE.C:197).</summary>
+    private const int AntiVenomCuredRecord = 0x1b776f;
     private const byte RationPoisonId = 105;       // 'i', Coltari Poison
     private const byte LightBowstringId = 77;      // 'M'
     private const byte BessyMaulerId = 32;         // ' ', a heavy crossbow
@@ -257,12 +260,25 @@ public static class InventoryUse {
             case ObjectType.Poison:            // 9 — ITEMUSE.C:169-186
                 outcome = UsePoison(source, target, trec, argA, argB);
                 break;
-            case ObjectType.Enhancer:          // 10 — ITEMUSE.C:188-206, target half only
-                // The no-target half is the antidote ('q' on a poisoned member), which needs the
-                // status-rank table. Its guard is "rank != 0", so with no target and no ranks
-                // modelled we cannot tell "cures you" from "nothing happens".
+            case ObjectType.Enhancer:          // 10 — ITEMUSE.C:188-206
                 if (target == null) {
-                    return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                    // The no-target half is the antidote: 'q' on a poisoned member clears the
+                    // poison and says so (ITEMUSE.C:190-197). Anything else, or an unpoisoned
+                    // member, falls to "nothing happens" -- the outcome keeps its starting 0.
+                    if (context?.Conditions == null) {
+                        return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
+                    }
+                    if (source.ObjectId != AntiVenomId || !context.Conditions.Has(ActorCondition.Poisoned)) {
+                        outcome = ItemUseOutcome.NoEffect;
+                        break;
+                    }
+                    // ponytail: the combat half (clearing CAF_POISON on the acting combatant) is not
+                    // carried by the context; poison ticks in combat read the combatant's flag.
+                    ConditionEngine.Apply(context.Conditions, ActorCondition.Poisoned, -100);
+                    container.Dirty = true;
+                    ItemUseResult spent = Tail(container, sourceIndex, rec, ItemUseOutcome.Handled);
+                    return new ItemUseResult(spent.Outcome, AntiVenomCuredRecord, spent.DialogVar0,
+                        spent.SourceRemoved);
                 }
                 outcome = Coat(target, trec, ObjectType.Armor, argA, argB);
                 break;
