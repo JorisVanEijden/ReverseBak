@@ -159,6 +159,29 @@ public static class SpellParticles {
             return false;
         }
 
+        /// <summary>
+        /// The damage the vortex's zaps add this frame — the two overlay passes of
+        /// <c>worldfx_ptcl_overlay_step_back</c> / <c>_render_front</c> (WORLDFX.C:176-245).
+        /// </summary>
+        /// <remarks>
+        /// Every drawn mote closer than 200 rolls one in fifty, and a strike adds <c>2 + RND2(4)</c>
+        /// to <c>g_nSnowParticleSeedX</c> (IDA <c>fluxZapDamage</c> @0x3efbc). The back pass takes
+        /// the motes whose angle is positive and the front pass those whose angle is negative, so a
+        /// mote at angle exactly 0 is in neither and cannot strike.
+        /// </remarks>
+        public int ZapDamage() {
+            var damage = 0;
+            for (var pass = 0; pass < 2; pass++) {
+                for (var i = 0; i < Count; i++) {
+                    bool inPass = pass == 0 ? _angle[i] > 0 : _angle[i] < 0;
+                    if (inPass && _radius[i] > 0x4b && _radius[i] < 200 && _rnd(50) == 0) {
+                        damage += 2 + _rnd(4);
+                    }
+                }
+            }
+            return damage;
+        }
+
         /// <summary>Advance one frame; false when the effect has finished.</summary>
         public bool Step() {
             if (_blast) {
@@ -185,6 +208,23 @@ public static class SpellParticles {
             }
             return active;
         }
+    }
+
+    /// <summary>
+    /// Unfortunate Flux's damage: the vortex played to its end, its zaps summed —
+    /// <c>worldfx_flux_vortex_play</c> (WORLDFX.C:137-169) stepping every mote and then rendering,
+    /// frame after frame until none is left outside radius 75. <c>Cast_Spell</c>'s post-animation
+    /// case 20 then takes the total as the spell's magnitude (CSPELL.C:1492-1494).
+    /// </summary>
+    public static int FluxZapTotal(Func<int, int> rnd) {
+        Orbit vortex = Orbit.Vortex(rnd);
+        var total = 0;
+        bool active;
+        do {
+            active = vortex.Step();
+            total += vortex.ZapDamage();
+        } while (active);
+        return total;
     }
 
     /// <summary>Six fresh twinkles around the body — <c>worldfx_sparkle_burst</c> (WORLDFX.C:36):

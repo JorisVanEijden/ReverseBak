@@ -149,4 +149,20 @@ public class SpellVisualsTests {
         var burst = new SpellParticles.SparkBurst(35, _ => 0);
         Assert.All(burst.Shadows, p => Assert.Equal(0, p.Z));
     }
+
+    [Fact]
+    public void FluxWithNoStrikeDealsNothing() {
+        // Control: a roll that never comes up 0 of 50 never zaps, so the vortex adds nothing.
+        Assert.Equal(0, SpellParticles.FluxZapTotal(n => n - 1));
+    }
+
+    [Fact]
+    public void FluxDamageFollowsTheVortexsZaps() {
+        // TASK-659: the magnitude IS the zap total. Transcribed from WORLDFX.C and simulated
+        // 20,000 times this averages 72.5 (sd 16.6); in the running original twenty-odd casts
+        // on the SAVE91 Shades gave numbers in that range (see the task notes).
+        var rng = new Random(659);
+        double mean = Enumerable.Range(0, 2000).Average(_ => SpellParticles.FluxZapTotal(n => rng.Next(n)));
+        Assert.InRange(mean, 68, 77);
+    }
 }
