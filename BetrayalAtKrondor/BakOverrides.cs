@@ -971,7 +971,9 @@ public class BakOverrides : CSharpOverrideHelper {
         // IS bp+0, so the arguments start at bp+6. Reading bp+0x20 returned garbage (19292).
         DoOnTopOfInstructionIda(Seg020, 0x05AA, () => {
             uint chapterArg = MemoryUtils.ToPhysicalAddress(State.SS, (ushort)(State.BP + 6));
-            if (UInt16[chapterArg] == chapter) {
+            // Without BAK_SPIKE_CHAPTER `chapter` is 0, and rewriting to it turned a load-only
+            // run's chapter change into CHAPTER0/C01.BOK/C02.BOK -- files that do not exist.
+            if (!haveChapter || UInt16[chapterArg] == chapter) {
                 return;
             }
             _loggerService.LogInformation("Chapter spike: playChapterAnimationsAndBook chapter {Was} -> {Now}",
@@ -997,7 +999,14 @@ public class BakOverrides : CSharpOverrideHelper {
         // blocks on page turns. Replace it with a far return (the `push cs; call near ptr` at
         // seg020:0x066C returns far, and the caller does its own `add sp, 4`) so the capture reaches
         // C<chapter>1.ADS unattended. Returns 0 = the book was not aborted.
-        DefineFunctionIda(Seg020, 0x04F1, SkipChapterBook, true, nameof(SkipChapterBook));
+        //
+        // *** ONLY FOR THE CHAPTER SPIKE (or BAK_SPIKE_SKIPBOOKS=1). *** Armed for a plain
+        // BAK_SPIKE_LOADSAVE too, it hid every chapter book from a driven chapter change, so a
+        // crossing looked like "map, then straight into the scene" and was recorded as a port
+        // difference (TASK-533's Romney note, TASK-685).
+        if (haveChapter || Environment.GetEnvironmentVariable("BAK_SPIKE_SKIPBOOKS") == "1") {
+            DefineFunctionIda(Seg020, 0x04F1, SkipChapterBook, true, nameof(SkipChapterBook));
+        }
     }
 
     private bool _menuForced;
