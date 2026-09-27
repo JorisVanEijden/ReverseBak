@@ -27,7 +27,7 @@ public class ContainerOwnerNumberingTests {
         SaveGameContainerData c = Container(SaveGameContainerType.Inventory, actorNumber: 1);
 
         Assert.Equal((short)1, c.OwnerActorNumber);
-        Assert.Equal(0, c.OwnerPartyPosition);
+        Assert.Equal(0, c.OwnerCharacterIndex);
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public class ContainerOwnerNumberingTests {
     [InlineData(6, 5)]
     public void PositionIsAlwaysOneBelowTheActorNumber(short actorNumber, int expectedPosition) =>
         Assert.Equal(expectedPosition,
-            Container(SaveGameContainerType.Inventory, actorNumber).OwnerPartyPosition);
+            Container(SaveGameContainerType.Inventory, actorNumber).OwnerCharacterIndex);
 
     [Fact]
     public void ActorZeroMeansNoOwner() {
@@ -46,7 +46,7 @@ public class ContainerOwnerNumberingTests {
         SaveGameContainerData c = Container(SaveGameContainerType.Inventory, actorNumber: 0);
 
         Assert.Null(c.OwnerActorNumber);
-        Assert.Null(c.OwnerPartyPosition);
+        Assert.Null(c.OwnerCharacterIndex);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class ContainerOwnerNumberingTests {
         SaveGameContainerData chest = Container(SaveGameContainerType.Chest, actorNumber: 3);
 
         Assert.Null(chest.OwnerActorNumber);
-        Assert.Null(chest.OwnerPartyPosition);
+        Assert.Null(chest.OwnerCharacterIndex);
     }
 
     [Fact]
@@ -64,5 +64,5 @@ public class ContainerOwnerNumberingTests {
         // The point of the whole file: same container, two different correct answers.
         Assert.NotEqual(
             Container(SaveGameContainerType.Inventory, actorNumber: 4).OwnerActorNumber,
-            (short?)Container(SaveGameContainerType.Inventory, actorNumber: 4).OwnerPartyPosition);
+            (short?)Container(SaveGameContainerType.Inventory, actorNumber: 4).OwnerCharacterIndex);
 }

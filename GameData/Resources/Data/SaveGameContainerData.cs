@@ -56,7 +56,7 @@ public class SaveGameContainerData {
     /// <summary>
     /// The owning actor's number, as stored — <b>1-based</b>, so Locklear is 1 and 0 means "no
     /// actor". Compare it against <c>SaveGameActorData.ActorNumber</c>, which is stored the same
-    /// way; to index the party record set use <see cref="OwnerPartyPosition"/> instead.
+    /// way; to index the party record set use <see cref="OwnerCharacterIndex"/> instead.
     /// </summary>
     public short? OwnerActorNumber {
         get => IsActorInventoryContainer && Location.ActorNumber > 0
@@ -65,8 +65,11 @@ public class SaveGameContainerData {
     }
 
     /// <summary>
-    /// The owning member's index in the party record set, or null when the container is not a
-    /// member's pack.
+    /// The owning CHARACTER's index in the character record set (Locklear 0, Gorath 1, Owyn 2, …,
+    /// James 4), or null when the container is not a member's pack. It is not a seat in the active
+    /// party: from chapter 3 the party is characters 4, 2, 1, and a seat read as a character hands
+    /// out Locklear's pack. (This was named OwnerPartyPosition until 2026-09-27, and the name misled
+    /// callers exactly that way.)
     /// </summary>
     /// <remarks>
     /// <b>The stored actor number is one MORE than the record index.</b> Confirmed from the
@@ -81,5 +84,5 @@ public class SaveGameContainerData {
     /// before them and leaves Locklear — actor 1, and the only one with no lower neighbour — with
     /// no pack at all.</para>
     /// </remarks>
-    public int? OwnerPartyPosition => OwnerActorNumber - 1;
+    public int? OwnerCharacterIndex => OwnerActorNumber - 1;
 }
