@@ -65,7 +65,7 @@ public static class DialogBackdrop {
         (flags & Flag) != 0 || type == FullScreenType;
 
     /// <summary>Whether this entry is drawn on the full-screen parchment.</summary>
-    public static bool DrawsFullScreenBackdrop(DialogEntry entry) =>
+    public static bool DrawsFullScreenBackdrop(DialogEntry? entry) =>
         entry != null && DrawsFullScreenBackdrop(entry.Flags, entry.DialogType);
 
     /// <summary>

@@ -19,7 +19,7 @@ public static class InventoryOrder {
     /// <summary>Sort + merge stacks until stable. <paramref name="equippedOrder"/> is the original's
     /// <c>bResidence == RES_PARTY_SLOT</c>: party members float equipped items to the front by
     /// descending category. Returns true when anything changed (callers mark the container dirty).</summary>
-    public static bool Consolidate(RuntimeContainer container, ObjectInfoSet objects,
+    public static bool Consolidate(RuntimeContainer container, ObjectInfoSet? objects,
         bool equippedOrder, int? shopChapter = null) {
         if (container == null || container.Items.Count < 2) {
             return false;
@@ -32,7 +32,7 @@ public static class InventoryOrder {
             for (int i = 1; i < container.Items.Count; i++) {
                 RuntimeItem a = container.Items[i - 1];
                 RuntimeItem b = container.Items[i];
-                ObjectInfo rec = objects?.GetById(a.ObjectId);
+                ObjectInfo? rec = objects?.GetById(a.ObjectId);
                 if (rec == null || a.ObjectId != b.ObjectId) {
                     continue;
                 }
@@ -70,7 +70,7 @@ public static class InventoryOrder {
     /// != 0</c>, i.e. "does this container carry a shop block", the very test that also makes a
     /// transfer out of it a purchase.
     /// </param>
-    public static bool Sort(RuntimeContainer container, ObjectInfoSet objects, bool equippedOrder,
+    public static bool Sort(RuntimeContainer container, ObjectInfoSet? objects, bool equippedOrder,
         int? shopChapter = null) {
         bool changed = false;
         bool swapped;
@@ -98,10 +98,10 @@ public static class InventoryOrder {
     // a pristine one. Running the pack's rule over a shelf sorts by footprint and puts the bulkiest
     // goods on page 1: at Fletcher's Post that was the Standard Kingdom Armor, where the original
     // opens on the Broadsword. Verified against the original 2026-09-07, all three pages.
-    private static bool ShouldSwap(RuntimeItem a, RuntimeItem b, ObjectInfoSet objects,
+    private static bool ShouldSwap(RuntimeItem a, RuntimeItem b, ObjectInfoSet? objects,
         bool equippedOrder, int? shopChapter) {
-        ObjectInfo ra = objects?.GetById(a.ObjectId);
-        ObjectInfo rb = objects?.GetById(b.ObjectId);
+        ObjectInfo? ra = objects?.GetById(a.ObjectId);
+        ObjectInfo? rb = objects?.GetById(b.ObjectId);
         if (ra == null || rb == null) {
             return false;
         }

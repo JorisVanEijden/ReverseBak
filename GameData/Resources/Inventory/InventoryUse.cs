@@ -14,12 +14,12 @@ using System;
 /// view — behave exactly as before.</para>
 /// </summary>
 public sealed class ItemUseContext {
-    public ItemUseContext(ActorStat[] stats, int partySlot,
+    public ItemUseContext(ActorStat[]? stats, int partySlot,
         Func<int, int> readFlag, Action<int, int> writeFlag, Func<int, int> random,
-        ActorConditions conditions = null, ushort[] knownSpells = null,
-        Character.ActorStatModifiers.Slot[] statModifiers = null, uint gameTime = 0,
-        Func<bool> itemLightBurning = null, Action<long> lightItem = null,
-        Action extinguishItemLight = null) {
+        ActorConditions? conditions = null, ushort[]? knownSpells = null,
+        Character.ActorStatModifiers.Slot[]? statModifiers = null, uint gameTime = 0,
+        Func<bool>? itemLightBurning = null, Action<long>? lightItem = null,
+        Action? extinguishItemLight = null) {
         Stats = stats;
         PartySlot = partySlot;
         ReadFlag = readFlag;
@@ -44,13 +44,13 @@ public sealed class ItemUseContext {
     public bool InCombat { get; set; }
 
     /// <summary>The character's live attributes, indexed by <see cref="ActorAttribute"/>.</summary>
-    public ActorStat[] Stats { get; }
+    public ActorStat[]? Stats { get; }
 
     /// <summary>The character's live afflictions, for the categories that set one.</summary>
-    public ActorConditions Conditions { get; }
+    public ActorConditions? Conditions { get; }
 
     /// <summary>The character's live known-spell words, for the scroll that teaches one.</summary>
-    public ushort[] KnownSpells { get; }
+    public ushort[]? KnownSpells { get; }
 
     /// <summary>
     /// The character's own eight timed modifier slots, for the potion category that fills one.
@@ -61,7 +61,7 @@ public sealed class ItemUseContext {
     /// combatant's place in the active party. Handing over just the eight keeps that mistake out of
     /// here entirely.
     /// </remarks>
-    public Character.ActorStatModifiers.Slot[] StatModifiers { get; }
+    public Character.ActorStatModifiers.Slot[]? StatModifiers { get; }
 
     /// <summary>Game time in two-second ticks, for stamping and expiring those slots.</summary>
     public uint GameTime { get; }
@@ -80,13 +80,13 @@ public sealed class ItemUseContext {
     public Func<int, int> Random { get; }
 
     /// <summary>Whether a carried item's light timer is already running — <c>timerpool_contains(1, 0)</c>.</summary>
-    public Func<bool> ItemLightBurning { get; }
+    public Func<bool>? ItemLightBurning { get; }
 
     /// <summary>Starts the carried item's light timer for this many ticks.</summary>
-    public Action<long> LightItem { get; }
+    public Action<long>? LightItem { get; }
 
     /// <summary>Zeroes the carried item's light timer, which runs its burn-down.</summary>
-    public Action ExtinguishItemLight { get; }
+    public Action? ExtinguishItemLight { get; }
 
     /// <summary>Whether this context can actually be used.</summary>
     public bool IsUsable =>
@@ -247,23 +247,24 @@ public static class InventoryUse {
     /// first — see <c>InventoryMenu.RefuseUse</c>.</para>
     /// </summary>
     public static ItemUseResult Use(RuntimeContainer container, int sourceIndex, int targetIndex,
-        ObjectInfoSet objects, ItemUseContext context = null) {
+        ObjectInfoSet objects, ItemUseContext? context = null) {
         if (container == null || sourceIndex < 0 || sourceIndex >= container.Items.Count) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
         RuntimeItem source = container.Items[sourceIndex];
-        ObjectInfo rec = objects?.GetById(source.ObjectId);
+        ObjectInfo? rec = objects?.GetById(source.ObjectId);
         if (rec == null) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
         // An item is never its own target: the gesture refuses it upstream
         // (focused->wAction_id != hovered->wAction_id), so the dispatch only ever sees a real
         // second item or none at all.
-        RuntimeItem target = targetIndex >= 0 && targetIndex < container.Items.Count
+        RuntimeItem? target = targetIndex >= 0 && targetIndex < container.Items.Count
             && targetIndex != sourceIndex
             ? container.Items[targetIndex]
             : null;
-        ObjectInfo trec = target == null ? null : objects.GetById(target.ObjectId);
+        // objects is non-null here: rec (read through objects?.) passed its null check above.
+        ObjectInfo? trec = target == null ? null : objects!.GetById(target.ObjectId);
 
         var argA = (ushort)rec.EffectArgA;
         var argB = (ushort)rec.EffectArgB;
@@ -344,7 +345,8 @@ public static class InventoryUse {
                     // No character to apply it to; say nothing rather than claim no effect.
                     return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
                 }
-                ItemStatEffects.Apply(context.Stats, context.PartySlot, source, rec,
+                // IsUsable (checked above) requires Stats != null.
+                ItemStatEffects.Apply(context.Stats!, context.PartySlot, source, rec,
                     context.ReadFlag, context.WriteFlag, context.Random);
                 // Outcome 1 REGARDLESS of whether the effect applied: the original sets it
                 // unconditionally, so the read is spent — charge consumed, "used" record played —
@@ -399,7 +401,7 @@ public static class InventoryUse {
     /// the first that matches the <i>item</i> wins, so Coltari Poison on a blade does nothing at
     /// all rather than falling through to the coating leaf.
     /// </summary>
-    private static ItemUseOutcome UsePoison(RuntimeItem source, RuntimeItem target, ObjectInfo trec,
+    private static ItemUseOutcome UsePoison(RuntimeItem source, RuntimeItem? target, ObjectInfo? trec,
         ushort argA, ushort argB) {
         if (target == null) {
             return ItemUseOutcome.NoEffect;
@@ -421,7 +423,7 @@ public static class InventoryUse {
         return Coat(target, trec, ObjectType.Sword, argA, argB);
     }
 
-    private static ItemUseOutcome Coat(RuntimeItem target, ObjectInfo trec, ObjectType accepted,
+    private static ItemUseOutcome Coat(RuntimeItem? target, ObjectInfo? trec, ObjectType accepted,
         ushort argA, ushort argB) => Coat(target, trec, accepted, accepted, argA, argB);
 
     /// <summary>
@@ -429,7 +431,7 @@ public static class InventoryUse {
     /// <c>target-&gt;flags &amp;= arg_b; target-&gt;flags |= arg_a</c>. arg_b keeps the bits the
     /// coating tolerates, so applying one coating replaces any other.
     /// </summary>
-    private static ItemUseOutcome Coat(RuntimeItem target, ObjectInfo trec, ObjectType acceptedA,
+    private static ItemUseOutcome Coat(RuntimeItem? target, ObjectInfo? trec, ObjectType acceptedA,
         ObjectType acceptedB, ushort argA, ushort argB) {
         if (target == null || trec == null
             || (trec.ObjectType != acceptedA && trec.ObjectType != acceptedB)) {
@@ -462,8 +464,8 @@ public static class InventoryUse {
     /// tail and so keeps the charge, which is the original's <c>return -1</c>.</para>
     /// </summary>
     private static ItemUseResult Repair(RuntimeContainer container, int sourceIndex,
-        RuntimeItem source, RuntimeItem target, ObjectInfo trec, ObjectInfo rec, ushort argA,
-        ItemUseContext context) {
+        RuntimeItem source, RuntimeItem? target, ObjectInfo? trec, ObjectInfo rec, ushort argA,
+        ItemUseContext? context) {
         if (target == null || trec == null || (int)trec.ObjectType != argA
             || (target.ItemFlags & Broken) != 0) {
             return new ItemUseResult(ItemUseOutcome.NoEffect, NoEffectRecord, source.ObjectId, false);
@@ -480,8 +482,8 @@ public static class InventoryUse {
         ActorAttribute craft = argA == (ushort)ObjectType.Armor
             ? ActorAttribute.ArmorCraft
             : ActorAttribute.WeaponCraft;
-        ActorStat skillStat = StatOf(context, craft);
-        ActorStat health = HealthOf(context);
+        ActorStat? skillStat = StatOf(context, craft);
+        ActorStat? health = HealthOf(context);
         if (skillStat == null || health == null) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
@@ -509,7 +511,7 @@ public static class InventoryUse {
     /// every crossbow <i>except</i> the two heavy ones, and the heavy string fits only those two.
     /// A fitted string sets the crossbow back to full condition and clears its wear bits.
     /// </summary>
-    private static ItemUseOutcome Restring(RuntimeItem source, RuntimeItem target, ObjectInfo trec) {
+    private static ItemUseOutcome Restring(RuntimeItem source, RuntimeItem? target, ObjectInfo? trec) {
         if (target == null || trec?.ObjectType != ObjectType.Crossbow) {
             return ItemUseOutcome.NoEffect;
         }
@@ -528,7 +530,7 @@ public static class InventoryUse {
     /// the lute, Pug's spell sharing) need screens or runtimes the remake lacks.
     /// </summary>
     private static ItemUseResult UsableSpecial(RuntimeContainer container, int sourceIndex,
-        RuntimeItem source, RuntimeItem target, ObjectInfo rec, ItemUseContext context) {
+        RuntimeItem source, RuntimeItem? target, ObjectInfo rec, ItemUseContext? context) {
         switch (source.ObjectId) {
             case RawMannaId:
                 return RechargeStaff(container, sourceIndex, source, target);
@@ -579,13 +581,13 @@ public static class InventoryUse {
     /// only for <c>outcome == 1</c>, so the message is heard exactly once.</para>
     /// </remarks>
     private static ItemUseResult PractiseLute(RuntimeContainer container, int sourceIndex,
-        RuntimeItem source, ObjectInfo rec, ItemUseContext context) {
+        RuntimeItem source, ObjectInfo rec, ItemUseContext? context) {
         if (context == null || !context.IsUsable || context.Random == null) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
 
-        ActorStat barding = StatOf(context, ActorAttribute.Barding);
-        ActorStat health = HealthOf(context);
+        ActorStat? barding = StatOf(context, ActorAttribute.Barding);
+        ActorStat? health = HealthOf(context);
         if (barding == null || health == null) {
             return new ItemUseResult(ItemUseOutcome.NotPorted, 0, 0, false);
         }
@@ -621,7 +623,7 @@ public static class InventoryUse {
     /// the common tail, so the charge bookkeeping here is the whole of it.
     /// </summary>
     private static ItemUseResult RechargeStaff(RuntimeContainer container, int sourceIndex,
-        RuntimeItem source, RuntimeItem target) {
+        RuntimeItem source, RuntimeItem? target) {
         if (target == null || target.ObjectId != CrystalStaffId) {
             return new ItemUseResult(ItemUseOutcome.NoEffect, NoEffectRecord, source.ObjectId, false);
         }
@@ -650,7 +652,7 @@ public static class InventoryUse {
     /// Use button on a Shell dereferences a null far pointer; the remake treats a missing target as
     /// "not the exotic sword", which is what the count check then covers.</para>
     /// </summary>
-    private static ItemUseResult AwakenExoticSwords(RuntimeContainer container, RuntimeItem target,
+    private static ItemUseResult AwakenExoticSwords(RuntimeContainer container, RuntimeItem? target,
         ObjectInfo rec, int sourceIndex) {
         bool onExoticSword = target != null && target.ObjectId == ExoticSwordId;
         int converted = 0;
@@ -731,7 +733,8 @@ public static class InventoryUse {
     /// </remarks>
     private static ItemUseResult DrinkPotion(RuntimeContainer container, int sourceIndex,
         ObjectInfo rec, ItemUseContext context) {
-        Character.ActorStatModifiers.Slot[] slots = context.StatModifiers;
+        // Use() returns NotPorted before calling here when StatModifiers is null.
+        Character.ActorStatModifiers.Slot[] slots = context.StatModifiers!;
         Character.ActorStatModifiers.SweepExpired(slots, inCombat: false, context.GameTime);
 
         int statMask = rec.EffectArgB;
@@ -769,15 +772,16 @@ public static class InventoryUse {
 
         for (var i = 0; i < ActorConditions.Count; i++) {
             if (i != (int)ActorCondition.Healing) {
-                ConditionEngine.Apply(context.Conditions, (ActorCondition)i, RestorativeAfflictionRelief);
+                // Use() returns NotPorted before calling here when Conditions is null.
+                ConditionEngine.Apply(context.Conditions!, (ActorCondition)i, RestorativeAfflictionRelief);
             }
         }
 
-        ActorStat health = HealthOf(context);
-        ActorStat stamina = StaminaOf(context);
+        ActorStat? health = HealthOf(context);
+        ActorStat? stamina = StaminaOf(context);
         if (health != null && stamina != null) {
             StatEngine.ModifyHealthPool(health, stamina, (long)heal << 8, RestorativeHealTarget,
-                out _, context.Conditions[ActorCondition.NearDeath]);
+                out _, context.Conditions![ActorCondition.NearDeath]);
         }
 
         bool removed = false;
@@ -794,7 +798,7 @@ public static class InventoryUse {
     // Only the Near-death branch of ConditionEngine.Apply reads these, and no shipping restorative
     // applies Near-death — but an override could, and passing them is what makes the collapse
     // behave rather than silently skipping the health reset.
-    private static ActorStat StatOf(ItemUseContext context, ActorAttribute attribute) =>
+    private static ActorStat? StatOf(ItemUseContext context, ActorAttribute attribute) =>
         context.Stats != null && context.Stats.Length > (int)attribute
             ? context.Stats[(int)attribute]
             : null;
@@ -839,13 +843,13 @@ public static class InventoryUse {
             attribute, change);
     }
 
-    private static Func<int, int> PartyEffectsFor(ItemUseContext context, ActorAttribute attribute) {
+    private static Func<int, int>? PartyEffectsFor(ItemUseContext? context, ActorAttribute attribute) {
         if (context == null) {
             return null;
         }
 
         return value => {
-            Character.ActorStatModifiers.Slot[] slots = context.StatModifiers;
+            Character.ActorStatModifiers.Slot[]? slots = context.StatModifiers;
             if (slots != null) {
                 for (var slot = 0; slot < slots.Length; slot++) {
                     if (!Character.ActorStatModifiers.Affects(slots[slot], attribute)) {
@@ -863,10 +867,10 @@ public static class InventoryUse {
         };
     }
 
-    private static ActorStat HealthOf(ItemUseContext context) =>
+    private static ActorStat? HealthOf(ItemUseContext context) =>
         StatOf(context, ActorAttribute.Health);
 
-    private static ActorStat StaminaOf(ItemUseContext context) =>
+    private static ActorStat? StaminaOf(ItemUseContext context) =>
         StatOf(context, ActorAttribute.Stamina);
 
     private static ItemUseResult Tail(RuntimeContainer container, int sourceIndex, ObjectInfo rec,

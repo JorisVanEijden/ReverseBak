@@ -45,7 +45,7 @@ public class ActorStatusEffectOffsetTests {
         using var stream = new MemoryStream(save);
         SaveGame parsed = new SaveGameExtractor().Extract("SAVE02.GAM", stream);
         SaveGameActorStatusEffectsData[] effects =
-            parsed.Data.StateData.PartyConfigurationData.ActorStatusEffects;
+            parsed.Data!.StateData.PartyConfigurationData.ActorStatusEffects;
 
         Assert.Equal(SaveGameOffsets.PartyActorCount, effects.Length);
         Assert.Equal(97, effects[0].Healing);

@@ -236,8 +236,8 @@ public static class KeywordAvailability {
     /// </remarks>
     public static Decision Evaluate(int globalKey, int ownFlagValue, int suppressedFlagValue,
         Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem = null, Func<int, int> spellsKnownWord = null,
-        Func<bool> partyHasDamagedArmour = null) {
+        Func<int, bool>? partyCarriesItem = null, Func<int, int>? spellsKnownWord = null,
+        Func<bool>? partyHasDamagedArmour = null) {
         if (!SpecialCases.TryGetValue(globalKey, out SpecialCase special)) {
             return new Decision(IsAvailable(ownFlagValue, suppressedFlagValue), null);
         }
@@ -278,8 +278,8 @@ public static class KeywordAvailability {
     }
 
     private static bool? EvaluateExtra(SpecialCase special, Func<int, int> flagValue, int chapter,
-        Func<int, bool> partyCarriesItem, Func<int, int> spellsKnownWord,
-        Func<bool> partyHasDamagedArmour) {
+        Func<int, bool>? partyCarriesItem, Func<int, int>? spellsKnownWord,
+        Func<bool>? partyHasDamagedArmour) {
         switch (special.Requirement) {
             case Requirement.FlagSet:
                 return flagValue == null ? null : flagValue(special.First) != 0;

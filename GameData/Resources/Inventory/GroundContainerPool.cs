@@ -44,7 +44,7 @@ public static class GroundContainerPool {
     /// </summary>
     /// <param name="recycled">True when the returned record is a live bag being reused, so the
     /// caller must clear its contents (and knows an existing pile was destroyed).</param>
-    public static RuntimeContainer SelectSlot(IReadOnlyList<RuntimeContainer> zoneContainers,
+    public static RuntimeContainer? SelectSlot(IReadOnlyList<RuntimeContainer>? zoneContainers,
         out bool recycled) {
         recycled = false;
         if (zoneContainers == null) {
@@ -61,7 +61,7 @@ public static class GroundContainerPool {
         // the last-touch times as UNSIGNED 32-bit after ORing 0x80000000 into a protected bag's,
         // which is what pushes those past every unprotected one. Ties keep the first record, since
         // the scan only replaces on a strict improvement.
-        RuntimeContainer best = null;
+        RuntimeContainer? best = null;
         uint bestKey = uint.MaxValue;
         foreach (RuntimeContainer c in zoneContainers) {
             if ((c.DataTypes & SaveGameContainerDataType.SelfSpawn) == 0) {
@@ -128,14 +128,14 @@ public static class GroundContainerPool {
     /// array (CMBINV.C:810). Run after any change to a bag's contents; it clears the bit first, so
     /// removing the last protected item drops it again.
     /// </summary>
-    public static void RecomputeHoldsProtectedItem(RuntimeContainer container, ObjectInfoSet objects) {
+    public static void RecomputeHoldsProtectedItem(RuntimeContainer container, ObjectInfoSet? objects) {
         if (container == null) {
             return;
         }
         SaveGameContainerDataType before = container.DataTypes;
         container.DataTypes &= ~SaveGameContainerDataType.HoldsProtectedItem;
         foreach (RuntimeItem item in container.Items) {
-            ObjectInfo rec = objects?.GetById(item.ObjectId);
+            ObjectInfo? rec = objects?.GetById(item.ObjectId);
             if (rec != null && ((int)rec.Flags & ProtectedItemObjectFlag) != 0) {
                 container.DataTypes |= SaveGameContainerDataType.HoldsProtectedItem;
                 break;

@@ -34,8 +34,8 @@ public static class GdsSceneMenu {
     /// same <see cref="GdsSceneRules.IsHotspotVisible"/> pass itself and calls <see cref="ElementFor"/>;
     /// this keeps the two halves pinned together by the tests.</para>
     /// </remarks>
-    public static UiElement[] BuildElements(GdsScene scene, UserInterface frame, int chapter,
-        bool preserve, Func<Condition, bool> gatePasses) {
+    public static UiElement[] BuildElements(GdsScene scene, UserInterface? frame, int chapter,
+        bool preserve, Func<Condition, bool>? gatePasses) {
         if (scene?.Hotspots == null || frame == null) {
             return [];
         }
@@ -104,7 +104,7 @@ public static class GdsSceneMenu {
     /// the default arrow". So the off-by-one and the no-cursor case resolve together, and passing
     /// the authored value straight through would shift every hotspot onto the neighbouring cursor.
     /// </remarks>
-    public static int CursorIndexFor(GdsHotspot hotspot) => (hotspot?.Cursor ?? 0) - 1;
+    public static int CursorIndexFor(GdsHotspot? hotspot) => (hotspot?.Cursor ?? 0) - 1;
 
     /// <summary>
     /// The cursor set a location uses.

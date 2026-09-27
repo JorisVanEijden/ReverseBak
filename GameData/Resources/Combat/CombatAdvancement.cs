@@ -33,10 +33,10 @@ public static class CombatAdvancement {
     /// </summary>
     /// <param name="defenderDefense">The defender's Defense stat, or null to skip.</param>
     /// <param name="attackerMelee">The attacker's AccuracyMelee stat, or null to skip.</param>
-    public static void OnMeleeDeclared(ActorStat defenderDefense, ActorStat attackerMelee,
-        Func<ActorAttribute, int> defenderStudy = null, Func<ActorAttribute, int> attackerStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> defenderMark = null,
-        Action<ActorAttribute, StatEngine.StatChange> attackerMark = null) {
+    public static void OnMeleeDeclared(ActorStat? defenderDefense, ActorStat? attackerMelee,
+        Func<ActorAttribute, int>? defenderStudy = null, Func<ActorAttribute, int>? attackerStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? defenderMark = null,
+        Action<ActorAttribute, StatEngine.StatChange>? attackerMark = null) {
         Award(defenderDefense, ActorAttribute.Defense, defenderStudy, defenderMark);
         Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy, attackerMark);
     }
@@ -48,9 +48,9 @@ public static class CombatAdvancement {
     /// <para>So a landed hit pays the attacker twice over for Melee — once for trying, once for
     /// connecting — which is the whole of the "fighting makes you better at fighting" curve.</para>
     /// </summary>
-    public static void OnMeleeHit(ActorStat attackerMelee, ActorStat attackerStrength,
-        Func<ActorAttribute, int> attackerStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> attackerMark = null) {
+    public static void OnMeleeHit(ActorStat? attackerMelee, ActorStat? attackerStrength,
+        Func<ActorAttribute, int>? attackerStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? attackerMark = null) {
         Award(attackerMelee, ActorAttribute.AccuracyMelee, attackerStudy, attackerMark);
         Award(attackerStrength, ActorAttribute.Strength, attackerStudy, attackerMark);
     }
@@ -66,9 +66,9 @@ public static class CombatAdvancement {
     /// entirely: there is no defensive skill in play to improve. A port that mirrored the melee pair
     /// would train Defense off arrows that defence never affected.
     /// </remarks>
-    public static void OnShotDeclared(ActorStat shooterCrossbow,
-        Func<ActorAttribute, int> shooterStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> shooterMark = null) {
+    public static void OnShotDeclared(ActorStat? shooterCrossbow,
+        Func<ActorAttribute, int>? shooterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? shooterMark = null) {
         Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy, shooterMark);
     }
 
@@ -81,9 +81,9 @@ public static class CombatAdvancement {
     /// damage has no Strength term (<see cref="CombatFormulas.RangedDamage"/>), so there is nothing
     /// for it to train.
     /// </remarks>
-    public static void OnShotHit(ActorStat shooterCrossbow,
-        Func<ActorAttribute, int> shooterStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> shooterMark = null) {
+    public static void OnShotHit(ActorStat? shooterCrossbow,
+        Func<ActorAttribute, int>? shooterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? shooterMark = null) {
         Award(shooterCrossbow, ActorAttribute.AccuracyCrossbow, shooterStudy, shooterMark);
     }
 
@@ -96,9 +96,9 @@ public static class CombatAdvancement {
     /// <see cref="OnMeleeDeclared"/> is. It is NOT unconditional: only the wind-up kinds reach it,
     /// and never on a negated cast (<c>SpellEffectApplication.AwardsCastingSkill</c>, CSPELL.C:1305).
     /// </remarks>
-    public static void OnSpellCast(ActorStat casterCasting,
-        Func<ActorAttribute, int> casterStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> casterMark = null) {
+    public static void OnSpellCast(ActorStat? casterCasting,
+        Func<ActorAttribute, int>? casterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? casterMark = null) {
         Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy, casterMark);
     }
 
@@ -115,9 +115,9 @@ public static class CombatAdvancement {
     /// <para>Note it is only the delivery categories that reach this pair — the ones that play the
     /// windup animation. Others take a different branch.</para>
     /// </remarks>
-    public static void OnSpellHit(ActorStat casterCasting,
-        Func<ActorAttribute, int> casterStudy = null,
-        Action<ActorAttribute, StatEngine.StatChange> casterMark = null) {
+    public static void OnSpellHit(ActorStat? casterCasting,
+        Func<ActorAttribute, int>? casterStudy = null,
+        Action<ActorAttribute, StatEngine.StatChange>? casterMark = null) {
         Award(casterCasting, ActorAttribute.AccuracyCasting, casterStudy, casterMark);
     }
 
@@ -127,9 +127,9 @@ public static class CombatAdvancement {
     /// (<see cref="OnMeleeHit"/> pays Melee and Strength) and the emphasis mark is per attribute —
     /// STAT.C:271 asks for THIS rating's own flag before applying the actor's rate.
     /// </param>
-    private static void Award(ActorStat stat, ActorAttribute attribute,
-        Func<ActorAttribute, int> study = null,
-        Action<ActorAttribute, StatEngine.StatChange> mark = null) {
+    private static void Award(ActorStat? stat, ActorAttribute attribute,
+        Func<ActorAttribute, int>? study = null,
+        Action<ActorAttribute, StatEngine.StatChange>? mark = null) {
         if (stat == null) {
             return;
         }

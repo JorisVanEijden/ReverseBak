@@ -118,7 +118,7 @@ public static class MonsterStatRoll {
     /// different maxima. Setting only the base leaves the maximum at whatever the stat block was
     /// initialised with, which makes a summon look wounded the moment it lands.
     /// </remarks>
-    public static IReadOnlyDictionary<ActorAttribute, int> Roll(MonsterStats template,
+    public static IReadOnlyDictionary<ActorAttribute, int> Roll(MonsterStats? template,
         Func<int, int> rnd) {
         var rolled = new Dictionary<ActorAttribute, int>();
         if (template == null) {

@@ -115,7 +115,7 @@ public static class EncounterCompletion {
     /// completes nothing, and a group is never completed by a defeat that is not one of its
     /// members.</para>
     /// </remarks>
-    public static int GroupFlagEarnedBy(long encounter, Func<long, bool> isFought) {
+    public static int GroupFlagEarnedBy(long encounter, Func<long, bool>? isFought) {
         if (isFought == null) {
             return None;
         }

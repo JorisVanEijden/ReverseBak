@@ -178,7 +178,7 @@ public static class UpkeepEngine {
     /// </summary>
     /// <returns>What the member ate, or <see cref="Meal.WentHungry"/>.</returns>
     public static Meal ConsumeRations(RuntimeContainer inventory, ActorConditions conditions,
-        Func<int, ObjectInfo> lookup) {
+        Func<int, ObjectInfo?>? lookup) {
         if (conditions == null) {
             throw new ArgumentNullException(nameof(conditions));
         }
@@ -212,7 +212,7 @@ public static class UpkeepEngine {
     /// the way <c>STAT.C:225</c> does. Optional: omit it and only the pool moves.
     /// </param>
     public static bool ApplyExhaustion(ActorStat health, ActorStat stamina, int characterIndex,
-        ActorConditions conditions = null) {
+        ActorConditions? conditions = null) {
         if (health == null) {
             throw new ArgumentNullException(nameof(health));
         }

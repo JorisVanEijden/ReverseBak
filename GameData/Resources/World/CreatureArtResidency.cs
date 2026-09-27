@@ -60,8 +60,8 @@ public static class CreatureArtResidency {
     /// <c>*pActorDelta != 0</c> — an unset slot reads as 0, and treating it as a type would load art
     /// for whatever <see cref="CreatureType"/> happens to sit at zero.</para>
     /// </remarks>
-    public static IReadOnlyList<CreatureType> Needed(IReadOnlyList<CreatureType> rostered,
-        IEnumerable<int> placedCreatures) {
+    public static IReadOnlyList<CreatureType> Needed(IReadOnlyList<CreatureType>? rostered,
+        IEnumerable<int>? placedCreatures) {
         var needed = new List<CreatureType>();
         if (rostered != null) {
             foreach (CreatureType type in rostered) {
@@ -96,7 +96,7 @@ public static class CreatureArtResidency {
     /// though we render it correctly.
     /// </remarks>
     public static IReadOnlyList<CreatureType> BeyondTheRoster(
-        IReadOnlyList<CreatureType> rostered, IEnumerable<int> placedCreatures) {
+        IReadOnlyList<CreatureType>? rostered, IEnumerable<int>? placedCreatures) {
         var extras = new List<CreatureType>();
         if (placedCreatures == null) {
             return extras;

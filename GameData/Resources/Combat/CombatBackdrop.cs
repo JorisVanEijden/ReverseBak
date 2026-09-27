@@ -36,6 +36,6 @@ public static class CombatBackdrop {
     public const string PaintedBackdropImage = "FCOMBAT.SCX";
 
     /// <summary>The image this encounter fights against, or null for the world.</summary>
-    public static string ImageFor(long encounterNumber) =>
+    public static string? ImageFor(long encounterNumber) =>
         encounterNumber == PaintedBackdropEncounter ? PaintedBackdropImage : null;
 }

@@ -20,7 +20,7 @@ public static class ItemIconResolver {
     public const int LitTorchIcon = 8;
 
     /// <summary>The item's icon, ignoring anything only a carried stack can know.</summary>
-    public static string ResolveBmxSubResource(ObjectInfo obj) => ResolveBmxSubResource(obj, 0);
+    public static string? ResolveBmxSubResource(ObjectInfo? obj) => ResolveBmxSubResource(obj, 0);
 
     /// <summary>
     /// The item's icon, including the overrides a LIT item gets.
@@ -39,7 +39,7 @@ public static class ItemIconResolver {
     /// second sprite.
     /// </remarks>
     /// <param name="flags">The carried item's flags — <see cref="ItemFlags.Lit"/> is bit 0.</param>
-    public static string ResolveBmxSubResource(ObjectInfo obj, ushort flags) {
+    public static string? ResolveBmxSubResource(ObjectInfo? obj, ushort flags) {
         if (obj == null) {
             return null;
         }

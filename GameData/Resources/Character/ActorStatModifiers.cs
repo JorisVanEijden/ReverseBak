@@ -54,7 +54,7 @@ public static class ActorStatModifiers {
     /// </summary>
     /// <returns>An empty array when the body is too short — callers get no modifiers rather than a
     /// throw, matching how the other fixed-size blocks degrade.</returns>
-    public static Slot[] Load(byte[] body, int offset = BodyOffset) {
+    public static Slot[] Load(byte[]? body, int offset = BodyOffset) {
         var slots = new Slot[Characters * SlotsPerCharacter];
         if (body == null || offset < 0 || offset + BlockSize > body.Length) {
             return slots;
@@ -301,7 +301,7 @@ public static class ActorStatModifiers {
     /// <para>The combat-only gate still wraps it: a <see cref="ModifierFlags.CombatOnly"/> slot
     /// outside combat is skipped whole, expiry included, so the sweep frees nothing out of combat.</para>
     /// </remarks>
-    public static int SweepExpired(IList<Slot> slots, bool inCombat, uint gameTime) {
+    public static int SweepExpired(IList<Slot>? slots, bool inCombat, uint gameTime) {
         if (slots == null) {
             return 0;
         }
@@ -329,7 +329,7 @@ public static class ActorStatModifiers {
     /// the same debuff STACK, while an item's modifier on that stat shuts the spell out entirely.
     /// Reading it as an ordinary "already present" guard gets both halves backwards.
     /// </remarks>
-    public static bool SpellStatusIsBlocked(IReadOnlyList<Slot> slots, int statMask) {
+    public static bool SpellStatusIsBlocked(IReadOnlyList<Slot>? slots, int statMask) {
         if (slots == null) {
             return false;
         }
@@ -349,7 +349,7 @@ public static class ActorStatModifiers {
     /// stat blocks it, with no exemption for spell statuses — and the refusal plays a dialog rather
     /// than failing quietly, so a potion that does nothing says so.
     /// </remarks>
-    public static bool ItemModifierIsBlocked(IReadOnlyList<Slot> slots, int statMask) {
+    public static bool ItemModifierIsBlocked(IReadOnlyList<Slot>? slots, int statMask) {
         if (slots == null) {
             return false;
         }

@@ -115,7 +115,7 @@ public static class CastMenuSelection {
     /// rather than opening the screen on someone with no spells.
     /// </remarks>
     /// <returns>The slot, or <see cref="None"/> when the party has no caster at all.</returns>
-    public static int ResolveCasterSlot(int rememberedSlot, IReadOnlyList<bool> canCast) {
+    public static int ResolveCasterSlot(int rememberedSlot, IReadOnlyList<bool>? canCast) {
         if (canCast == null) {
             return None;
         }

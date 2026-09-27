@@ -93,7 +93,7 @@ public static class EquippedGear {
     /// question they actually ask. <b>First match wins</b> in slot order, which matters only if a
     /// caller later needs the item itself.
     /// </remarks>
-    public static bool HasIntact(IEnumerable<Slot> slots, int category) {
+    public static bool HasIntact(IEnumerable<Slot>? slots, int category) {
         if (slots == null) {
             return false;
         }

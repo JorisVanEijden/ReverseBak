@@ -41,7 +41,7 @@ public sealed class UiStringCatalog {
 
     /// <summary>Per-entry override, later-source-wins — the rule <c>ContentRegistry.Merge</c>
     /// uses, so a translation can replace part of the catalog without restating all of it.</summary>
-    public UiStringCatalog Merge(UiStringCatalog over) {
+    public UiStringCatalog Merge(UiStringCatalog? over) {
         var merged = new Dictionary<string, string>(_entries);
         if (over != null) {
             foreach (KeyValuePair<string, string> kv in over._entries) {
@@ -51,14 +51,14 @@ public sealed class UiStringCatalog {
         return new UiStringCatalog(merged);
     }
 
-    private static UiStringCatalog _embedded;
+    private static UiStringCatalog? _embedded;
 
     /// <summary>The catalog compiled into this assembly. One copy, nothing to hand-sync.</summary>
     public static UiStringCatalog Embedded {
         get {
             if (_embedded == null) {
                 Assembly asm = typeof(UiStringCatalog).Assembly;
-                string name = null;
+                string? name = null;
                 foreach (string candidate in asm.GetManifestResourceNames()) {
                     if (candidate.EndsWith(ResourceId, StringComparison.Ordinal)) {
                         name = candidate;

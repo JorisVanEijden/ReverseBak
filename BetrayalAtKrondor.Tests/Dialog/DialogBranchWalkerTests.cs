@@ -9,7 +9,7 @@ using System.Linq;
 using Xunit;
 
 public class DialogBranchWalkerTests {
-    private static DialogEntry E(int offset, string text, params DialogBranchBase[] br) =>
+    private static DialogEntry E(int offset, string? text, params DialogBranchBase[] br) =>
         new DialogEntry { Offset = offset, Text = text, Branches = new List<DialogBranchBase>(br) };
 
     private static DialogEntry EA(int offset, IEnumerable<DialogActionBase> actions, params DialogBranchBase[] br) =>

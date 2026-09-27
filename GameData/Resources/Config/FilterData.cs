@@ -59,7 +59,7 @@ public class FilterData : IResource {
     /// <c>WorldEntityVisibility</c>'s render gate — cannot drift on the clamp.
     /// </remarks>
     /// <returns>The block's distances, or null when no block was loaded at all.</returns>
-    public int[] DrawDistancesFor(int detailLevel) {
+    public int[]? DrawDistancesFor(int detailLevel) {
         if (DetailLevels == null || DetailLevels.Count == 0) {
             return null;
         }

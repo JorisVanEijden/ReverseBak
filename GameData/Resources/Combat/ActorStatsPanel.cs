@@ -82,7 +82,7 @@ public static class ActorStatsPanel {
     /// <param name="name">The character's name.</param>
     /// <param name="values">One value per <see cref="Rows"/> entry, in the same order.</param>
     /// <returns>The lines, or an empty list when there is nothing to draw.</returns>
-    public static IReadOnlyList<HudPanelLine> Lines(string name, IReadOnlyList<int> values) {
+    public static IReadOnlyList<HudPanelLine> Lines(string? name, IReadOnlyList<int>? values) {
         var lines = new List<HudPanelLine>();
         if (name == null || values == null || values.Count < Rows.Length) {
             return lines;

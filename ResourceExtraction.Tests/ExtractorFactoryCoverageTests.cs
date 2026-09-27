@@ -54,7 +54,7 @@ public class ExtractorFactoryCoverageTests {
             if (type.IsAbstract || type.IsGenericTypeDefinition || !type.IsClass) {
                 continue;
             }
-            for (Type t = type.BaseType; t != null; t = t.BaseType) {
+            for (Type? t = type.BaseType; t != null; t = t.BaseType) {
                 if (t.IsGenericType && t.GetGenericTypeDefinition().Name.StartsWith("ExtractorBase")) {
                     yield return (type, t.GetGenericArguments()[0]);
                     break;
@@ -70,7 +70,7 @@ public class ExtractorFactoryCoverageTests {
             if (DeliberatelyUnregistered.ContainsKey(extractor.Name)) {
                 continue;
             }
-            if (!ExtractorFactory.ExtractorMap.TryGetValue(resource, out Type registered)) {
+            if (!ExtractorFactory.ExtractorMap.TryGetValue(resource, out Type? registered)) {
                 missing.Add($"{extractor.Name} produces {resource.Name}, which nothing maps to");
             } else if (registered != extractor) {
                 missing.Add($"{resource.Name} maps to {registered.Name}, not {extractor.Name}");
@@ -93,8 +93,8 @@ public class ExtractorFactoryCoverageTests {
     [Fact]
     public void NothingIsMappedToAnExtractorThatDoesNotProduceIt() {
         foreach (KeyValuePair<Type, Type> pair in ExtractorFactory.ExtractorMap) {
-            Type produced = null;
-            for (Type t = pair.Value.BaseType; t != null; t = t.BaseType) {
+            Type? produced = null;
+            for (Type? t = pair.Value.BaseType; t != null; t = t.BaseType) {
                 if (t.IsGenericType && t.GetGenericTypeDefinition().Name.StartsWith("ExtractorBase")) {
                     produced = t.GetGenericArguments()[0];
                     break;

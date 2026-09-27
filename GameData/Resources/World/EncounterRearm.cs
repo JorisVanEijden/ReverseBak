@@ -1,6 +1,7 @@
 namespace GameData.Resources.World;
 
 using GameData.Resources.Character;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// Putting a defeated encounter's monsters back on their feet —
@@ -47,7 +48,7 @@ public static class EncounterRearm {
     /// rest of the 95-byte record are left exactly as the fight left them. A port that "restores the
     /// actor" wholesale hands back a creature the game never intended to reset.
     /// </remarks>
-    public static bool HealToFull(ActorStat[] stats) {
+    public static bool HealToFull(ActorStat[]? stats) {
         if (stats == null) {
             return false;
         }
@@ -66,7 +67,8 @@ public static class EncounterRearm {
     /// rewrites only the status byte, and the placement pass resolves stale tiles when the fight
     /// next opens (<c>CombatPlacement.FindTile</c>).
     /// </remarks>
-    public static Data.SaveGameCombatData WithStatusReset(Data.SaveGameCombatData existing) =>
+    [return: NotNullIfNotNull(nameof(existing))]
+    public static Data.SaveGameCombatData? WithStatusReset(Data.SaveGameCombatData? existing) =>
         existing == null ? null : new Data.SaveGameCombatData(
             existing.TargetActorPointer, existing.CreatureType,
             existing.XOnGrid, existing.YOnGrid, existing.TargetXOnGrid, existing.TargetYOnGrid,

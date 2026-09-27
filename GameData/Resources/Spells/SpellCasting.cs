@@ -87,7 +87,7 @@ public static class SpellCasting {
             return true;
         }
 
-        RuntimeItem source = FindPowerSource(context, requireReadyFlag);
+        RuntimeItem? source = FindPowerSource(context, requireReadyFlag);
         if (source == null) {
             return !requireReadyFlag;
         }
@@ -187,7 +187,7 @@ public static class SpellCasting {
     /// <returns>The pool delta actually applied, in whole points.</returns>
     public static int ApplyCost(SpellCastContext context, int cost,
         Character.ActorStat health, Character.ActorStat stamina, out bool collapsed,
-        Character.ActorConditions conditions = null) {
+        Character.ActorConditions? conditions = null) {
         collapsed = false;
         if (context == null || cost <= 0) {
             return 0;
@@ -197,7 +197,7 @@ public static class SpellCasting {
             -(long)cost << 8, 100, out collapsed, conditions: conditions);
 
         if (context.Chapter == PowerSourceChapter) {
-            RuntimeItem source = FindPowerSource(context, requireReadyFlag: true);
+            RuntimeItem? source = FindPowerSource(context, requireReadyFlag: true);
             if (source != null) {
                 source.Variable = source.Variable < cost ? (byte)0 : (byte)(source.Variable - cost);
             }
@@ -272,7 +272,7 @@ public static class SpellCasting {
     ///
     /// <para><b>Deliberately callerless.</b> InGameScreen.PartyHasACaster applies the same any-member IsCaster(Max) rule, reading the stats straight off the session.</para>
     /// </remarks>
-    public static bool CastButtonIsUsable(System.Collections.Generic.IReadOnlyList<int> activeCastingSkills) {
+    public static bool CastButtonIsUsable(System.Collections.Generic.IReadOnlyList<int>? activeCastingSkills) {
         if (activeCastingSkills == null) {
             return false;
         }
@@ -290,7 +290,7 @@ public static class SpellCasting {
     /// <remarks><b>Deliberately callerless.</b> The inverted storage is the menu loader's enable gate: InGameScreen passes !caster to SetEntryGate.</remarks>
     public static int CastButtonFlag(bool usable) => usable ? 0 : 1;
 
-    private static RuntimeItem FindPowerSource(SpellCastContext context, bool requireReadyFlag) {
+    private static RuntimeItem? FindPowerSource(SpellCastContext context, bool requireReadyFlag) {
         if (context.Inventory == null) {
             return null;
         }
@@ -347,10 +347,10 @@ public sealed class SpellCastContext {
     public int GameTimeIn2Seconds { get; set; }
 
     /// <summary>The caster's spellbook mask.</summary>
-    public ushort[] KnownSpells { get; set; }
+    public ushort[]? KnownSpells { get; set; }
 
     /// <summary>The caster's pack — spell components and the chapter-8 power source.</summary>
-    public RuntimeContainer Inventory { get; set; }
+    public RuntimeContainer? Inventory { get; set; }
 
     /// <summary>Combined health and stamina, the pool spell cost is paid from.</summary>
     public int HealthStaminaPool { get; set; }

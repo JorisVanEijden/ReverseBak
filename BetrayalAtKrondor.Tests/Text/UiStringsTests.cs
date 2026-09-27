@@ -72,7 +72,7 @@ public class UiStringsTests {
     [Fact]
     public void EmbeddedReadsThroughToTheManifestResource() {
         var asm = typeof(UiStringCatalog).Assembly;
-        string name = null;
+        string? name = null;
         foreach (string candidate in asm.GetManifestResourceNames()) {
             if (candidate.EndsWith(UiStringCatalog.ResourceId, StringComparison.Ordinal)) {
                 name = candidate;
@@ -80,7 +80,7 @@ public class UiStringsTests {
         }
         Assert.NotNull(name);
 
-        using Stream stream = asm.GetManifestResourceStream(name);
+        using Stream? stream = asm.GetManifestResourceStream(name);
         Assert.NotNull(stream);
         using var reader = new StreamReader(stream);
         UiStringCatalog fromStream = UiStringCatalog.FromJson(reader.ReadToEnd());

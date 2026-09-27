@@ -124,7 +124,7 @@ public static class ConditionEngine {
     /// <c>g_wInCombatMode</c>.</para>
     /// </summary>
     public static ConditionChange Apply(ActorConditions conditions, ActorCondition condition,
-        int amount, ActorStat health = null, ActorStat stamina = null, bool inCombat = false) {
+        int amount, ActorStat? health = null, ActorStat? stamina = null, bool inCombat = false) {
         if (conditions == null) {
             throw new ArgumentNullException(nameof(conditions));
         }
@@ -189,7 +189,7 @@ public static class ConditionEngine {
     /// to 40% of normal, scaling linearly from no effect at rank 0.</para>
     /// </summary>
     public static int ApplyAttributePenalties(int value, ActorAttribute attribute,
-        ActorConditions conditions) {
+        ActorConditions? conditions) {
         if (conditions == null) {
             return value;
         }

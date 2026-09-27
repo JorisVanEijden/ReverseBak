@@ -62,7 +62,7 @@ public class FontResource : IResource {
         GlyphFormat > MonochromeGlyphFormat ? FontPixelFormat.Paletted : FontPixelFormat.Monochrome;
 
     /// <summary>The glyph for a character code, or null when the font does not carry it.</summary>
-    public FontGlyph GlyphFor(int character) {
+    public FontGlyph? GlyphFor(int character) {
         int index = character - FirstCharacter;
 
         return index >= 0 && index < Glyphs.Count ? Glyphs[index] : null;

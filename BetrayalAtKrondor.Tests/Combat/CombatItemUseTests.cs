@@ -30,7 +30,7 @@ public class CombatItemUseTests {
     public void TheINFINITYPOOLIsWhatTheSurchargeFlagIs() {
         // *** The finding. *** SpellCostModifiers.Effective's `surcharged` had no source because it
         // was being looked for in the world rather than in an item.
-        CombatItemUse.Use pool = CombatItemUse.For(0x0d).Value;
+        CombatItemUse.Use pool = CombatItemUse.For(0x0d)!.Value;
 
         Assert.Equal(CombatItemUse.Effect.AmplifiedCast, pool.Effect);
         Assert.Equal(CombatItemUse.Targeting.None, pool.Targeting);
@@ -45,8 +45,8 @@ public class CombatItemUseTests {
         // *** Both return BEFORE the shared tail, so refusal and consumption are one question. ***
         // Consuming first and checking after would eat the Idol in chapter 8 and the Lightning Staff
         // in every dungeon.
-        CombatItemUse.Use idol = CombatItemUse.For(0x0c).Value;
-        CombatItemUse.Use staff = CombatItemUse.For(0x02).Value;
+        CombatItemUse.Use idol = CombatItemUse.For(0x0c)!.Value;
+        CombatItemUse.Use staff = CombatItemUse.For(0x02)!.Value;
 
         Assert.False(CombatItemUse.Works(idol, underground: false, chapter: 8));
         Assert.True(CombatItemUse.Works(idol, underground: false, chapter: 7));
@@ -90,7 +90,7 @@ public class CombatItemUseTests {
 
     [Fact]
     public void RORICSSealBackfiresThreeTimesInTen() {
-        CombatItemUse.Use seal = CombatItemUse.For(0x0f).Value;
+        CombatItemUse.Use seal = CombatItemUse.For(0x0f)!.Value;
 
         Assert.Equal(30, seal.BackfirePercent);
         Assert.Equal(CombatItemUse.Targeting.AnyEnemy, seal.Targeting);
@@ -101,10 +101,10 @@ public class CombatItemUseTests {
 
     [Fact]
     public void TheHORNSummonsTWICE_whichAOnePerUseReadingWouldHalve() {
-        Assert.Equal(2, CombatItemUse.For(0x0b).Value.SummonCount);
-        Assert.Equal(1, CombatItemUse.For(0x09).Value.SummonCount);
-        Assert.NotEqual(CombatItemUse.For(0x0b).Value.SummonCreature,
-            CombatItemUse.For(0x09).Value.SummonCreature);
+        Assert.Equal(2, CombatItemUse.For(0x0b)!.Value.SummonCount);
+        Assert.Equal(1, CombatItemUse.For(0x09)!.Value.SummonCount);
+        Assert.NotEqual(CombatItemUse.For(0x0b)!.Value.SummonCreature,
+            CombatItemUse.For(0x09)!.Value.SummonCreature);
     }
 
     [Fact]

@@ -50,11 +50,11 @@ public static class InventoryAcquire {
     /// food is the one who eats it, not the one the gift was addressed to. The ground pile has no
     /// slot and no hunger, which is why its entry takes a null.</para>
     /// </param>
-    public static bool TryGive(RuntimeContainer container, RuntimeItem item, ObjectInfoSet objects,
-        RuntimeContainer sharedKeys = null,
-        GameData.Resources.Character.ActorConditions receiverConditions = null,
+    public static bool TryGive(RuntimeContainer? container, RuntimeItem? item, ObjectInfoSet? objects,
+        RuntimeContainer? sharedKeys = null,
+        GameData.Resources.Character.ActorConditions? receiverConditions = null,
         System.Collections.Generic.IReadOnlyList<(RuntimeContainer Container,
-            GameData.Resources.Character.ActorConditions Conditions)> othersThenGround = null) {
+            GameData.Resources.Character.ActorConditions? Conditions)>? othersThenGround = null) {
         if (container == null || item == null) {
             return false;
         }
@@ -71,7 +71,7 @@ public static class InventoryAcquire {
         // *** THE CASCADE. *** The others in roster order, then the ground.
         if (othersThenGround != null) {
             foreach ((RuntimeContainer fallback,
-                GameData.Resources.Character.ActorConditions conditions) in othersThenGround) {
+                GameData.Resources.Character.ActorConditions? conditions) in othersThenGround) {
                 if (fallback == null || ReferenceEquals(fallback, container)
                     || !Place(fallback, item, objects)) {
                     continue;
@@ -85,7 +85,7 @@ public static class InventoryAcquire {
     }
 
     /// <summary>Put the item in, with the tidy-up any acquisition gets.</summary>
-    private static bool Place(RuntimeContainer container, RuntimeItem item, ObjectInfoSet objects) {
+    private static bool Place(RuntimeContainer container, RuntimeItem item, ObjectInfoSet? objects) {
         if (!InventoryTransfer.CanFit(container, item, objects)) {
             return false;
         }
@@ -115,7 +115,7 @@ public static class InventoryAcquire {
     /// moved.</para>
     /// </remarks>
     private static void FeedIfStarving(RuntimeContainer container, RuntimeItem item,
-        ObjectInfoSet objects, GameData.Resources.Character.ActorConditions conditions) {
+        ObjectInfoSet? objects, GameData.Resources.Character.ActorConditions? conditions) {
         if (conditions == null || objects == null
             || objects.GetById(item.ObjectId)?.ObjectType != ObjectType.Food
             || !conditions.Has(ActorCondition.Starving)) {

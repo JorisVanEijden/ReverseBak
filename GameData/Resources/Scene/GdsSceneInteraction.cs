@@ -135,7 +135,7 @@ public static class GdsSceneInteraction {
     /// <para>Showing the raw string instead prints the hashes and the name run together with the
     /// prose, which is what a port does when it treats the description as one string.</para>
     /// </remarks>
-    public static (string Name, string Text) SplitExamineText(string description) {
+    public static (string? Name, string Text) SplitExamineText(string description) {
         if (string.IsNullOrEmpty(description) || description[0] != NameMarker) {
             return (null, description);
         }

@@ -12,8 +12,8 @@ using GameData.Resources.Character;
 /// the extraction assembly to do it.</para>
 /// </summary>
 public readonly struct DirtyActorEdit {
-    public DirtyActorEdit(int characterIndex, ActorStat[] stats, ActorConditions conditions,
-        ushort[] knownSpells = null) {
+    public DirtyActorEdit(int characterIndex, ActorStat[]? stats, ActorConditions? conditions,
+        ushort[]? knownSpells = null) {
         CharacterIndex = characterIndex;
         Stats = stats;
         Conditions = conditions;
@@ -24,12 +24,12 @@ public readonly struct DirtyActorEdit {
     public int CharacterIndex { get; }
 
     /// <summary>Live attribute slots in ActorAttribute order, or null to leave them untouched.</summary>
-    public ActorStat[] Stats { get; }
+    public ActorStat[]? Stats { get; }
 
     /// <summary>Live affliction ranks, or null to leave them untouched.</summary>
-    public ActorConditions Conditions { get; }
+    public ActorConditions? Conditions { get; }
 
     /// <summary>The three known-spell words, or null to leave them untouched. Without these a
     /// spell learned from a scroll would apply and then vanish on save.</summary>
-    public ushort[] KnownSpells { get; }
+    public ushort[]? KnownSpells { get; }
 }

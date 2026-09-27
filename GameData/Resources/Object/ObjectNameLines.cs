@@ -19,7 +19,7 @@ using System.Collections.Generic;
 /// </remarks>
 public static class ObjectNameLines {
     /// <summary>The name as one or two lines.</summary>
-    public static IReadOnlyList<string> Split(string name, int wordWrap) {
+    public static IReadOnlyList<string> Split(string? name, int wordWrap) {
         name ??= string.Empty;
         if (wordWrap <= 0 || wordWrap >= name.Length) {
             return new[] { name };
@@ -28,6 +28,6 @@ public static class ObjectNameLines {
     }
 
     /// <inheritdoc cref="Split(string,int)"/>
-    public static IReadOnlyList<string> Split(ObjectInfo obj) =>
+    public static IReadOnlyList<string> Split(ObjectInfo? obj) =>
         Split(obj?.Name, obj?.WordWrap ?? 0);
 }

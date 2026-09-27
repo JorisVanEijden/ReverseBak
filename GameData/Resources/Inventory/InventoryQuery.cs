@@ -25,7 +25,7 @@ public static class InventoryQuery {
     /// <para>The original's parameter is named <c>kind</c>, which invites reading it as an item
     /// category; the body matches it against <c>item_id</c>, so it is an object id.</para>
     /// </summary>
-    public static int CountByKind(RuntimeContainer container, int objectId) {
+    public static int CountByKind(RuntimeContainer? container, int objectId) {
         if (container == null) {
             return 0;
         }
@@ -83,7 +83,7 @@ public static class InventoryQuery {
     /// boolean is modelled; a caller that needs the name should extend this rather than re-walk
     /// the packs.
     /// </remarks>
-    public static bool AnyHolds(IEnumerable<RuntimeContainer> packs, int objectId) {
+    public static bool AnyHolds(IEnumerable<RuntimeContainer>? packs, int objectId) {
         if (packs == null) {
             return false;
         }
@@ -122,7 +122,7 @@ public static class InventoryQuery {
     /// with whoever builds the repair service.</para>
     /// </remarks>
     public static int CountNeedingRepair(IEnumerable<RuntimeContainer> packs,
-        Object.ObjectInfoSet objects) =>
+        Object.ObjectInfoSet? objects) =>
         WalkArmourNeedingRepair(packs, objects, repair: false);
 
     /// <summary>
@@ -139,7 +139,7 @@ public static class InventoryQuery {
     /// <para>No category test and no catalog: the original matches the object id alone
     /// (<c>slot-&gt;item_id == '0'</c>), so this needs nothing but the packs.</para>
     /// </remarks>
-    public static int CountAtConditionAtLeast(IEnumerable<RuntimeContainer> packs,
+    public static int CountAtConditionAtLeast(IEnumerable<RuntimeContainer>? packs,
         int objectId, int minCondition) {
         if (packs == null) {
             return 0;
@@ -179,7 +179,7 @@ public static class InventoryQuery {
         WalkArmourNeedingRepair(packs, objects, repair: true);
 
     private static int WalkArmourNeedingRepair(IEnumerable<RuntimeContainer> packs,
-        Object.ObjectInfoSet objects, bool repair) {
+        Object.ObjectInfoSet? objects, bool repair) {
         if (packs == null || objects == null) {
             return 0;
         }
@@ -192,7 +192,7 @@ public static class InventoryQuery {
                 if (item == null) {
                     continue;
                 }
-                Object.ObjectInfo info = objects.GetById(item.ObjectId);
+                Object.ObjectInfo? info = objects.GetById(item.ObjectId);
                 if (info == null || info.ObjectType != ObjectType.Armor
                     || item.Variable >= PristineCondition) {
                     continue;
@@ -246,7 +246,7 @@ public static class InventoryQuery {
                 if (item == null || (item.ItemFlags & (ushort)ItemFlags.Equipped) == 0) {
                     continue;
                 }
-                Object.ObjectInfo info = objects.GetById(item.ObjectId);
+                Object.ObjectInfo? info = objects.GetById(item.ObjectId);
                 if (info == null || info.ObjectType != ObjectType.Sword) {
                     continue;
                 }

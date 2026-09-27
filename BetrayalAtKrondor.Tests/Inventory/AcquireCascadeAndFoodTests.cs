@@ -43,8 +43,8 @@ public class AcquireCascadeAndFoodTests {
         return p;
     }
 
-    private static (RuntimeContainer, ActorConditions)[] Cascade(
-        params (RuntimeContainer, ActorConditions)[] entries) => entries;
+    private static (RuntimeContainer, ActorConditions?)[] Cascade(
+        params (RuntimeContainer, ActorConditions?)[] entries) => entries;
 
     private static ActorConditions Starving() {
         var c = new ActorConditions();

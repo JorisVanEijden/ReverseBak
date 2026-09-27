@@ -245,9 +245,10 @@ public static class DialogSlotPopulator {
             return; // the engine returns before writing anything, leaving the slot as it was
         }
 
+        // PartyRoster is non-null from here: partyCount above is 0 when it is null.
         int candidate = -1;
         for (int draw = 0; draw < RandomDrawLimit && candidate < 0; draw++) {
-            candidate = context.PartyRoster[Draw(context, partyCount)];
+            candidate = context.PartyRoster![Draw(context, partyCount)];
             if (table.IsTakenBelow(slot, candidate) || !SatisfiesKind(kind, candidate, context)) {
                 candidate = -1;
             }
@@ -256,7 +257,7 @@ public static class DialogSlotPopulator {
             // aux names a slot (one-based) to copy the actor from; zero means the party leader.
             candidate = aux > 0 && aux <= SlotCount
                 ? table.Kinds[aux - 1]
-                : context.PartyRoster[0];
+                : context.PartyRoster![0];
         }
 
         table.Kinds[slot] = candidate;

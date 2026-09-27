@@ -131,7 +131,7 @@ public class SpellCastingTests {
 
         Assert.False(SpellCasting.IsCastable(7, spell, context));
 
-        context.Inventory.Items.Add(new RuntimeItem(17, 1, 0));
+        context.Inventory!.Items.Add(new RuntimeItem(17, 1, 0));
         Assert.True(SpellCasting.IsCastable(7, spell, context));
     }
 
@@ -140,7 +140,7 @@ public class SpellCastingTests {
         // count_by_kind sums condition when it is non-zero, so a spent stack counts as nothing even
         // though the item is still in the pack.
         SpellCastContext context = ContextKnowing(7);
-        context.Inventory.Items.Add(new RuntimeItem(17, 0, 0));
+        context.Inventory!.Items.Add(new RuntimeItem(17, 0, 0));
 
         Assert.Equal(1, InventoryQuery.CountByKind(context.Inventory, 17));
 
@@ -243,7 +243,7 @@ public class SpellCastingTests {
         Assert.False(SpellCasting.IsCastable(7, SpellWith(), context));
 
         // Present but unflagged is still refused by the castability rule.
-        context.Inventory.Items.Add(new RuntimeItem(SpellCasting.PowerSourceObjectId, 30, 0));
+        context.Inventory!.Items.Add(new RuntimeItem(SpellCasting.PowerSourceObjectId, 30, 0));
         Assert.False(SpellCasting.IsCastable(7, SpellWith(), context));
 
         context.Inventory.Items.Clear();
@@ -257,7 +257,7 @@ public class SpellCastingTests {
         SpellCastContext context = ContextKnowing(7);
         context.Chapter = SpellCasting.PowerSourceChapter;
         context.HealthStaminaPool = 100;
-        context.Inventory.Items.Add(new RuntimeItem(SpellCasting.PowerSourceObjectId, 6,
+        context.Inventory!.Items.Add(new RuntimeItem(SpellCasting.PowerSourceObjectId, 6,
             SpellCasting.PowerSourceReadyFlag));
 
         PowerRange range = SpellCasting.GetPowerRange(SpellWith(minimumCost: 1, maximumCost: 40),
@@ -272,7 +272,7 @@ public class SpellCastingTests {
         context.Chapter = SpellCasting.PowerSourceChapter;
         var source = new RuntimeItem(SpellCasting.PowerSourceObjectId, 20,
             SpellCasting.PowerSourceReadyFlag);
-        context.Inventory.Items.Add(source);
+        context.Inventory!.Items.Add(source);
 
         var health = new ActorStat { Base = 30, Max = 30 };
         var stamina = new ActorStat { Base = 30, Max = 30 };
@@ -291,7 +291,7 @@ public class SpellCastingTests {
         context.Chapter = SpellCasting.PowerSourceChapter;
         var source = new RuntimeItem(SpellCasting.PowerSourceObjectId, 3,
             SpellCasting.PowerSourceReadyFlag);
-        context.Inventory.Items.Add(source);
+        context.Inventory!.Items.Add(source);
 
         var health = new ActorStat { Base = 30, Max = 30 };
         var stamina = new ActorStat { Base = 30, Max = 30 };
@@ -306,7 +306,7 @@ public class SpellCastingTests {
         SpellCastContext context = ContextKnowing(7);
         context.Chapter = 7;
         var source = new RuntimeItem(SpellCasting.PowerSourceObjectId, 2, 0);
-        context.Inventory.Items.Add(source);
+        context.Inventory!.Items.Add(source);
         context.HealthStaminaPool = 40;
 
         PowerRange range = SpellCasting.GetPowerRange(SpellWith(minimumCost: 1, maximumCost: 30),

@@ -19,7 +19,7 @@ public class Spell : IResource {
     /// docs/re-notes/reference-inventory.md #8.</summary>
     public string? ObjectKey { get; set; }
 
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public int MinimumCost { get; set; }
     public int MaximumCost { get; set; }
     public bool IsMartial { get; set; }

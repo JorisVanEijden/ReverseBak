@@ -5,8 +5,8 @@ public record AnimatorResource : IResource {
         Id = id;
     }
 
-    public string Version { get; set; }
-    public Dictionary<int, string> ResourceFiles { get; set; }
+    public string Version { get; set; } = null!; // set by AdsExtractor / the JSON reader
+    public Dictionary<int, string> ResourceFiles { get; set; } = null!;
     public List<AnimatorScript> Animations { get; set; } = [];
     public ResourceType Type { get => ResourceType.ADS; }
     public string Id { get; }

@@ -28,15 +28,15 @@ public sealed class ActorConditions {
     /// (false) and the original writes its CONDITION global — see <see cref="ConditionAnnouncements"/>.
     /// </summary>
     /// <remarks>The ranks do not know whose they are, so whoever owns the actor wires this.</remarks>
-    public Action<ActorCondition, bool> EventRaised { get; set; }
+    public Action<ActorCondition, bool>? EventRaised { get; set; }
 
     /// <summary>
     /// Raised by <see cref="ConditionEngine.Apply"/> on every Near-death write — where the original
     /// recomputes the party-down byte (STAT.C:382).
     /// </summary>
-    public Action NearDeathChanged { get; set; }
+    public Action? NearDeathChanged { get; set; }
 
-    public ActorConditions(SaveGameActorStatusEffectsData saved) {
+    public ActorConditions(SaveGameActorStatusEffectsData? saved) {
         if (saved == null) {
             return;
         }

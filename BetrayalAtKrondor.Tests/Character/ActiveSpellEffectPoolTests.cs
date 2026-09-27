@@ -33,8 +33,8 @@ public class ActiveSpellEffectPoolTests {
 
         Assert.NotEqual(first, second);
         Assert.Equal(2, pool.InUse);
-        Assert.Equal(9, pool[first].Duration);
-        Assert.Equal(3, pool[second].Duration);
+        Assert.Equal(9, pool[first]!.Duration);
+        Assert.Equal(3, pool[second]!.Duration);
     }
 
     [Fact]
@@ -56,11 +56,11 @@ public class ActiveSpellEffectPoolTests {
         int slot = pool.Register(actor, spellNumber: 7, investedCost: 12, duration: 4);
 
         Assert.Equal(slot, actor.ActiveEffectSlot);
-        Assert.Equal(7, pool[slot].SpellNumber);
-        Assert.Equal(12, pool[slot].InvestedCost);
-        Assert.Equal(4, pool[slot].Duration);
-        Assert.Equal(0, pool[slot].Age);
-        Assert.Equal(ActiveSpellEffectPool.None, pool[slot].Next);
+        Assert.Equal(7, pool[slot]!.SpellNumber);
+        Assert.Equal(12, pool[slot]!.InvestedCost);
+        Assert.Equal(4, pool[slot]!.Duration);
+        Assert.Equal(0, pool[slot]!.Age);
+        Assert.Equal(ActiveSpellEffectPool.None, pool[slot]!.Next);
     }
 
     [Fact]
@@ -259,8 +259,8 @@ public class ActiveSpellEffectPoolTests {
 
         pool.TickActor(actor);
 
-        Assert.Equal(4, pool[second].Duration); // aged once despite the head going first
-        Assert.Equal(ActiveSpellEffectPool.None, pool[head].SpellNumber);
+        Assert.Equal(4, pool[second]!.Duration); // aged once despite the head going first
+        Assert.Equal(ActiveSpellEffectPool.None, pool[head]!.SpellNumber);
     }
 
     [Fact]

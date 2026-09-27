@@ -22,7 +22,7 @@ using GameData.Resources.Character;
 /// day combat is found to change something else.</para>
 /// </remarks>
 public readonly struct DirtyRosterActorEdit {
-    public DirtyRosterActorEdit(int actorSlot, ActorStat[] stats) {
+    public DirtyRosterActorEdit(int actorSlot, ActorStat[]? stats) {
         ActorSlot = actorSlot;
         Stats = stats;
     }
@@ -31,5 +31,5 @@ public readonly struct DirtyRosterActorEdit {
     public int ActorSlot { get; }
 
     /// <summary>Live attributes, or null to leave the saved ones alone.</summary>
-    public ActorStat[] Stats { get; }
+    public ActorStat[]? Stats { get; }
 }

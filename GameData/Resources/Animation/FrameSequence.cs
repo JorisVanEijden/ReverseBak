@@ -24,7 +24,7 @@ public static class FrameSequence {
     /// zero is a real frame index. A caller that treats "not found" as a position restarts the
     /// scene instead of reporting a broken jump.</para>
     /// </remarks>
-    public static int IndexOfTag(IReadOnlyList<Frame> frames, int tag) {
+    public static int IndexOfTag(IReadOnlyList<Frame>? frames, int tag) {
         if (frames == null) {
             return NotFound;
         }

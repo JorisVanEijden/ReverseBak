@@ -24,7 +24,7 @@ public static class SpellBook {
     public static ushort[] Empty() => new ushort[Words];
 
     /// <summary>Whether a character knows a spell.</summary>
-    public static bool IsKnown(ushort[] words, int spellId) {
+    public static bool IsKnown(ushort[]? words, int spellId) {
         if (words == null || spellId < 0 || spellId > MaxSpellId) {
             return false;
         }
@@ -86,7 +86,7 @@ public static class SpellBook {
     /// know. What belongs here is that a book is <see cref="Words"/> words wide and that merging
     /// them is a bitwise OR, so nothing outside this type has to open-code the layout.</para>
     /// </remarks>
-    public static int Share(ushort[] a, ushort[] b) {
+    public static int Share(ushort[]? a, ushort[]? b) {
         if (a == null || b == null) {
             return 0;
         }

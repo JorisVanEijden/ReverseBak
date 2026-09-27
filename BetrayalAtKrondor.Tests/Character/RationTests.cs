@@ -25,7 +25,7 @@ public class RationTests {
     private static ObjectInfo Object(ObjectFlags flags) =>
         new ObjectInfo("test") { Flags = flags };
 
-    private static ObjectInfo Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo o) ? o : null;
+    private static ObjectInfo? Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo? o) ? o : null;
 
     private static RuntimeContainer Pack(params (int ObjectId, byte Count)[] items) {
         var container = new RuntimeContainer { Capacity = 20 };

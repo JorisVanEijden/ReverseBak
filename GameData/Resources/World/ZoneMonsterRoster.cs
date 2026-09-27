@@ -43,7 +43,7 @@ public static class ZoneMonsterRoster {
     /// <c>(chapter - 1) * 8</c> bytes in, eight being four 16-bit slots.
     /// </summary>
     /// <returns><c>null</c> when the zone has no row for that chapter.</returns>
-    public static ChapterMonsters For(ZoneShape zone, int chapter) =>
+    public static ChapterMonsters? For(ZoneShape? zone, int chapter) =>
         zone?.Chapters != null && chapter >= 1 && chapter <= zone.Chapters.Count
             ? zone.Chapters[chapter - 1]
             : null;
@@ -58,9 +58,9 @@ public static class ZoneMonsterRoster {
     /// trailing — 108 rows, no interior gap — but that is the data being tidy, not the format
     /// promising anything.
     /// </remarks>
-    public static IReadOnlyList<CreatureType> TypesIn(ZoneShape zone, int chapter) {
+    public static IReadOnlyList<CreatureType> TypesIn(ZoneShape? zone, int chapter) {
         var types = new List<CreatureType>(SlotsPerChapter);
-        ChapterMonsters row = For(zone, chapter);
+        ChapterMonsters? row = For(zone, chapter);
         if (row == null) {
             return types;
         }

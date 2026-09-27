@@ -132,7 +132,7 @@ public static class SpellCastRoutines {
     /// match means a character somehow wearing two swords gets the earlier slot enchanted, and a
     /// target with no equipped sword receives nothing at all.
     /// </remarks>
-    public static int SteelfireTarget(RuntimeContainer target, ObjectInfoSet objects) =>
+    public static int SteelfireTarget(RuntimeContainer? target, ObjectInfoSet objects) =>
         target == null ? -1 : InventoryEquip.FindEquippedIndex(target, ObjectType.Sword, objects);
 
     /// <summary>

@@ -216,10 +216,10 @@ public static class CombatWalk {
     /// original's loop, and it is why <see cref="WalkResult.PathClear"/> is worth checking.
     /// </remarks>
     public static WalkResult Walk(CombatGrid grid, Combatant actor, int destX, int destY, int speed,
-        bool probe = false, TrapPuzzle puzzle = null,
-        Func<int, int, int> tileTrapDamage = null,
-        Action<Combatant, Hazard> onHazard = null,
-        Func<int, int, bool> occupiedByLiveCombatant = null) {
+        bool probe = false, TrapPuzzle? puzzle = null,
+        Func<int, int, int>? tileTrapDamage = null,
+        Action<Combatant, Hazard>? onHazard = null,
+        Func<int, int, bool>? occupiedByLiveCombatant = null) {
         if (grid == null) {
             throw new ArgumentNullException(nameof(grid));
         }
@@ -330,8 +330,8 @@ public static class CombatWalk {
     /// shoot the WALKER for a cannon aimed at an object. Whether the firing has effects beyond the
     /// damage is an open question on <c>Cast_Spell</c> and is recorded there.</para>
     /// </remarks>
-    private static Shove? Shoves(Combatant actor, StepResult step, TrapPuzzle puzzle,
-        bool probe, Func<int, int, bool> occupiedByLiveCombatant = null) {
+    private static Shove? Shoves(Combatant actor, StepResult step, TrapPuzzle? puzzle,
+        bool probe, Func<int, int, bool>? occupiedByLiveCombatant = null) {
         if (probe || puzzle == null) {
             return null;
         }
@@ -386,8 +386,8 @@ public static class CombatWalk {
     /// landing on crystal GROUND, where <c>combatgrid_place_actor_on_tile</c> sets its tile to
     /// 0xff — the "disintegrates any crystal pushed between them" rule, and a different one.</para>
     /// </remarks>
-    private static int FireCannonsAtPushedCrystal(TrapPuzzle puzzle, int x, int y,
-        Func<int, int, bool> occupiedByLiveCombatant) {
+    private static int FireCannonsAtPushedCrystal(TrapPuzzle? puzzle, int x, int y,
+        Func<int, int, bool>? occupiedByLiveCombatant) {
         if (puzzle == null || !CombatGrid.InBounds(x, y)) {
             return 0;
         }
@@ -396,7 +396,7 @@ public static class CombatWalk {
     }
 
     private static void FireTerrainHazard(CombatGrid grid, Combatant actor, List<Hazard> hazards,
-        Func<int, int, int> tileTrapDamage, Action<Combatant, Hazard> onHazard) {
+        Func<int, int, int>? tileTrapDamage, Action<Combatant, Hazard>? onHazard) {
         CombatTerrain terrain = grid.TerrainAt(actor.X, actor.Y);
         Hazard hazard;
 
@@ -436,8 +436,8 @@ public static class CombatWalk {
         onHazard?.Invoke(actor, hazard);
     }
 
-    private static void FireCannons(TrapPuzzle puzzle, Combatant actor, List<Hazard> hazards,
-        Action<Combatant, Hazard> onHazard, Func<int, int, bool> occupiedByLiveCombatant) {
+    private static void FireCannons(TrapPuzzle? puzzle, Combatant actor, List<Hazard> hazards,
+        Action<Combatant, Hazard>? onHazard, Func<int, int, bool>? occupiedByLiveCombatant) {
         if (puzzle == null) {
             return;
         }

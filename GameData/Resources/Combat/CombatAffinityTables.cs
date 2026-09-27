@@ -93,7 +93,7 @@ public class CombatAffinityTables : IResource {
     /// by 0/1/2 silently answers "no affinity" for the whole party. Measured against the original
     /// 2026-09-12 (TASK-446): a reflected Flamecast that should have done 7 to Owyn did 15.
     /// </remarks>
-    public CreatureAffinity AffinityOf(int creatureClass) =>
+    public CreatureAffinity? AffinityOf(int creatureClass) =>
         creatureClass >= 0 && creatureClass < Creatures.Count ? Creatures[creatureClass] : null;
 
     public int ModifierFor(int creatureClass, int itemRace) {

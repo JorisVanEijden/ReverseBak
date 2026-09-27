@@ -12,7 +12,7 @@ namespace GameData.Resources.Dialog;
 /// </summary>
 public sealed class DialogPlay {
     public DialogPlay(DialogEntry entry, DialogSlotTable slots, DialogSlotContext context,
-        Dialog dialog = null, System.Collections.Generic.Stack<string> pushed = null) {
+        Dialog? dialog = null, System.Collections.Generic.Stack<string>? pushed = null) {
         Pushed = pushed ?? new System.Collections.Generic.Stack<string>();
         Entry = entry;
         Slots = slots;
@@ -39,7 +39,7 @@ public sealed class DialogPlay {
     /// after this one, and reloading it per line would re-seed the slots this play has been
     /// accumulating. Null for plays built before the chain existed, which simply cannot continue.
     /// </remarks>
-    public Dialog Dialog { get; }
+    public Dialog? Dialog { get; }
 
     /// <summary>
     /// The records entries pushed on the way (op 0x10), newest on top — played when a tree ends.

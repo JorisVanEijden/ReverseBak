@@ -141,7 +141,7 @@ public static class EncounterAftermath {
     /// Prefer this over the eight-argument form: the box's order is the trap, and here it cannot be
     /// got wrong.
     /// </remarks>
-    public static int ApproachDirection(TileEventTrigger trigger,
+    public static int ApproachDirection(TileEventTrigger? trigger,
         int partyTileX, int partyTileY, long partyWorldX, long partyWorldY) =>
         trigger == null
             ? 1

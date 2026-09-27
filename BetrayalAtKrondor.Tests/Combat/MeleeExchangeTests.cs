@@ -115,7 +115,7 @@ public class MeleeExchangeTests {
     [Fact]
     public void NoRandomSourceIsAProgrammingErrorRatherThanASilentMiss() {
         Assert.Throws<ArgumentNullException>(
-            () => MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, null));
+            () => MeleeExchange.Resolve(Fighter(), Fighter(), Bruiser, Unarmoured, null!));
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class MeleeExchangeTests {
             if (encounter.RoundComplete()) {
                 encounter.BeginRound();
             }
-            Combatant actor = encounter.PickNext();
+            Combatant? actor = encounter.PickNext();
             if (actor == null) {
                 break;
             }

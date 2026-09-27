@@ -51,7 +51,7 @@ public static class CombatLineOfFire {
     /// obstacle reports a clear shot.</item>
     /// </list>
     /// </remarks>
-    public static bool IsClear(int fromX, int fromY, int toX, int toY, Func<int, int, bool> blocks) {
+    public static bool IsClear(int fromX, int fromY, int toX, int toY, Func<int, int, bool>? blocks) {
         if (blocks == null || (fromX == toX && fromY == toY)) {
             return true;
         }
@@ -111,11 +111,11 @@ public static class CombatLineOfFire {
     /// returns the combatant on a tile, or <c>null</c>.
     /// </remarks>
     public static Func<int, int, bool> BlockedByLivingActor(
-        Func<int, int, Combatant> occupantAt, Combatant shooter) => (x, y) => {
+        Func<int, int, Combatant?>? occupantAt, Combatant shooter) => (x, y) => {
         if (occupantAt == null) {
             return false;
         }
-        Combatant occupant = occupantAt(x, y);
+        Combatant? occupant = occupantAt(x, y);
         return occupant != null && occupant != shooter && !occupant.IsDead;
     };
 }

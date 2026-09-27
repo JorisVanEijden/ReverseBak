@@ -244,7 +244,7 @@ public class CombatFormulasTests {
     private static DamageOutcome Apply(
         int damage, int stamina = 100, int health = 100, bool immune = false, bool applyArmor = false,
         int armorRating = 0, int? absorbPool = null, bool fromDirectAttack = true, bool negated = false,
-        bool weak = false, bool resistant = false, Func<int, int> rnd = null) =>
+        bool weak = false, bool resistant = false, Func<int, int>? rnd = null) =>
         CombatFormulas.ApplyDamage(damage, stamina, health, immune, applyArmor, armorRating, absorbPool,
                                    fromDirectAttack, negated, weak, resistant, rnd ?? Never());
 

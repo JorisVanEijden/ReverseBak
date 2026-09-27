@@ -58,7 +58,7 @@ public class ZoneAppearanceExtractorTests {
     [InlineData("Z10.DAT", 0, 0, 0)]
     [InlineData("Z12.DAT", 0, 0, 0)]
     public void TheShippedZonesReadAsExpected(string name, int sky, int ground, int remapped) {
-        string path = Find(name);
+        string? path = Find(name);
         if (path == null) {
             return;
         }
@@ -76,14 +76,14 @@ public class ZoneAppearanceExtractorTests {
 
     [Fact]
     public void EveryShippedZoneFileIsAccountedForToTheBYTE() {
-        string path = Find("Z01.DAT");
+        string? path = Find("Z01.DAT");
         if (path == null) {
             return;
         }
 
         for (var i = 1; i <= 12; i++) {
             string name = $"Z{i:D2}.DAT";
-            string file = Find(name);
+            string? file = Find(name);
             Assert.NotNull(file);
             using FileStream stream = File.OpenRead(file);
             long length = stream.Length;
@@ -112,7 +112,7 @@ public class ZoneAppearanceExtractorTests {
         return new ZoneAppearanceExtractor().Extract("TEST.DAT", buffer);
     }
 
-    private static string Find(string name) {
+    private static string? Find(string name) {
         var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (dir != null) {
             string candidate = Path.Combine(dir.FullName, "OriginalGame", name);

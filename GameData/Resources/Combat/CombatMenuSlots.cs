@@ -172,7 +172,7 @@ public static class CombatMenuSlots {
     /// The repack is the whole reason page cannot be read off an id. Kinds are visited in order and
     /// claim cells in order, so carrying fewer kinds pulls later ones onto the first page.
     /// </remarks>
-    public static int[] PackCells(IReadOnlyList<int> quarrelsOfKind) {
+    public static int[] PackCells(IReadOnlyList<int>? quarrelsOfKind) {
         var cells = new int[ActionIdByQuarrelKind.Length];
         for (var i = 0; i < cells.Length; i++) {
             cells[i] = -1;

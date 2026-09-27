@@ -22,13 +22,13 @@ public sealed class ExeStringTableEntry {
 }
 
 public sealed class ExeStringTable {
-    public string KeyPrefix { get; set; }
+    public string KeyPrefix { get; set; } = null!; // always set by the manifest's object initializers
     public int Stride { get; set; }
-    public ExeStringTableEntry[] Entries { get; set; }
+    public ExeStringTableEntry[] Entries { get; set; } = null!;
 
     /// <summary>Derived, never declared: the table is located by its first entry's text, so a
     /// separately-written anchor could only ever disagree with it.</summary>
-    public string Anchor => Entries != null && Entries.Length > 0 ? Entries[0].Text : null;
+    public string? Anchor => Entries != null && Entries.Length > 0 ? Entries[0].Text : null;
 
     /// <summary>Derived, never declared — a declared count that disagreed with the entries would be
     /// exactly the silent mismatch this shape exists to prevent.</summary>
@@ -47,8 +47,8 @@ public sealed class ExeStringTable {
 }
 
 public sealed class ExeStringSingle {
-    public string Key { get; set; }
-    public string Text { get; set; }
+    public string Key { get; set; } = null!; // always set by the manifest's object initializers
+    public string Text { get; set; } = null!;
     public int Occurrence { get; set; }
 }
 
@@ -404,7 +404,8 @@ public static class ExeStringManifest {
     public static IDictionary<string, string> Extract(byte[] exe) {
         var result = new Dictionary<string, string>();
         foreach (ExeStringTable t in Tables) {
-            IReadOnlyList<string> values = ExeStringReader.ReadTable(exe, t.Anchor, t.Stride, t.Count);
+            // Anchor is null only for a table with no entries; every table in Tables declares some.
+            IReadOnlyList<string> values = ExeStringReader.ReadTable(exe, t.Anchor!, t.Stride, t.Count);
             for (int i = 0; i < t.Entries.Length; i++) {
                 ExeStringTableEntry entry = t.Entries[i];
                 // The reader only anchors on entry 0; every later slot is reached by arithmetic and

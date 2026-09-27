@@ -62,7 +62,7 @@ public class DialogBackdropTests {
 
     [Fact]
     public void NothingToAskAboutIsNotABackdrop() =>
-        Assert.False(DialogBackdrop.DrawsFullScreenBackdrop((DialogEntry)null));
+        Assert.False(DialogBackdrop.DrawsFullScreenBackdrop((DialogEntry?)null));
 
     [Fact]
     public void ONLYTheFlagPathRedrawsTheWorldOverIt() {

@@ -56,7 +56,7 @@ public static class PicklockAttempt {
     /// LockPicking to award. Two on success; on failure, one when the consolation roll lands — you
     /// learn a little from a lock you could not open.
     /// </param>
-    public static AttemptResult WithLockpicks(int lockScore, int skill, Func<int, int> rnd,
+    public static AttemptResult WithLockpicks(int lockScore, int skill, Func<int, int>? rnd,
         out int skillAwarded) {
         if (lockScore <= MaxPickableScore && lockScore < skill) {
             skillAwarded = SkillOnSuccess;
@@ -105,7 +105,7 @@ public static class PicklockAttempt {
     /// </param>
     /// <param name="skill">The picker's LockPicking, which only affects the breakage odds.</param>
     /// <param name="rnd">Returns a value in [0, 100); consulted only when the key does not fit.</param>
-    public static AttemptResult WithKey(int keyKind, int lockScore, int skill, Func<int, int> rnd) {
+    public static AttemptResult WithKey(int keyKind, int lockScore, int skill, Func<int, int>? rnd) {
         if (LockScoreForKeyKind(keyKind) == lockScore) {
             return AttemptResult.Opened;
         }

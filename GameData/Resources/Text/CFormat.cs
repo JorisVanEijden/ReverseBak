@@ -51,7 +51,7 @@ public static class CFormat {
             }
             char conv = format[j];
             if (conv == 'd' || conv == 's' || conv == 'c' || conv == 'u') {
-                object value = args != null && arg < args.Length ? args[arg] : null;
+                object? value = args != null && arg < args.Length ? args[arg] : null;
                 arg++;
                 if (value != null) {
                     sb.Append(System.Convert.ToString(value, CultureInfo.InvariantCulture));

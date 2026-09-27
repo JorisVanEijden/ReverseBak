@@ -23,7 +23,7 @@ public static class SpellBookPageView {
     /// file and appends as it goes, so a page lists them in file order rather than alphabetically
     /// or by spell id.</para>
     /// </summary>
-    public static IReadOnlyList<SpellBookEntry> KnownIn(SpellBookGroup group, ushort[] knownSpells) {
+    public static IReadOnlyList<SpellBookEntry> KnownIn(SpellBookGroup? group, ushort[]? knownSpells) {
         var known = new List<SpellBookEntry>();
         if (group?.Spells == null) {
             return known;
@@ -44,7 +44,7 @@ public static class SpellBookPageView {
     /// the original always paints the box and its icon and simply writes nothing beside them, so a
     /// caster who knows one school still sees all six categories.
     /// </returns>
-    public static string Line(SpellBookGroup group, ushort[] knownSpells) {
+    public static string Line(SpellBookGroup? group, ushort[] knownSpells) {
         var text = new StringBuilder();
         foreach (SpellBookEntry entry in KnownIn(group, knownSpells)) {
             if (text.Length > 0) {
@@ -58,7 +58,7 @@ public static class SpellBookPageView {
     /// <summary>
     /// Every row of the page, in order — one per group, whether or not it has anything to show.
     /// </summary>
-    public static IReadOnlyList<string> Lines(SpellBookPage page, ushort[] knownSpells) {
+    public static IReadOnlyList<string> Lines(SpellBookPage? page, ushort[] knownSpells) {
         var lines = new List<string>();
         if (page?.Groups == null) {
             return lines;

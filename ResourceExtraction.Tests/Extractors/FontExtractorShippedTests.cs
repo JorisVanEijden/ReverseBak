@@ -16,7 +16,7 @@ public class FontExtractorShippedTests {
     [InlineData("SPELL.FNT", 9, 0, 96)]
     [InlineData("PUZZLE.FNT", 8, 0, 251)]
     public void EveryShippedFontReadsWholeAndInStep(string name, int height, int first, int glyphs) {
-        string path = Find(name);
+        string? path = Find(name);
         if (path == null) {
             return;
         }
@@ -33,7 +33,7 @@ public class FontExtractorShippedTests {
 
     [Fact]
     public void TheSpellFontIsSymbolsRatherThanLetters() {
-        string path = Find("SPELL.FNT");
+        string? path = Find("SPELL.FNT");
         if (path == null) {
             return;
         }
@@ -58,7 +58,7 @@ public class FontExtractorShippedTests {
     [InlineData("BOOK.FNT")]
     [InlineData("PUZZLE.FNT")]
     public void TheTextAndPuzzleFontsSayTheyAreBitmasks(string name) {
-        string path = Find(name);
+        string? path = Find(name);
         if (path == null) {
             return;
         }
@@ -80,7 +80,7 @@ public class FontExtractorShippedTests {
     }
 
     /// <summary>The game directory, walking up from the test binary as the other data tests do.</summary>
-    private static string Find(string name) {
+    private static string? Find(string name) {
         var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (dir != null) {
             string candidate = Path.Combine(dir.FullName, "OriginalGame", name);

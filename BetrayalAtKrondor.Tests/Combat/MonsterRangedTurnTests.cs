@@ -64,7 +64,7 @@ public class MonsterRangedTurnTests {
         Assert.Equal((0x32, 3), Pair(MonsterTurnRoutines.AlwaysHeavyCreature));
 
         static (int, int) Pair(int creature) {
-            MonsterTurnRoutines.RangedTurn t = MonsterTurnRoutines.HeavyShotFor(creature).Value;
+            MonsterTurnRoutines.RangedTurn t = MonsterTurnRoutines.HeavyShotFor(creature)!.Value;
             return (t.ActionId, t.KnockbackFrames);
         }
     }

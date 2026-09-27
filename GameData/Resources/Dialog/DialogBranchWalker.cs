@@ -6,6 +6,7 @@ using GameData.Resources.Dialog.Branches;
 using GameData.Resources.GameState;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 /// <summary>
@@ -25,9 +26,10 @@ public static class DialogBranchWalker {
     /// routers whose only job is to fill a text variable before branching to the leaf that uses it.
     /// Skipping them leaves those tokens showing the seeded default instead of what the dialog
     /// meant.</param>
-    public static DialogEntry WalkToLeaf(Dialog dialog, DialogEntry start, Func<int, int?> getGlobal,
-        Action<Effect> applyEffect = null, Action<DialogEntry> onEntryVisited = null,
-        Func<int> roll = null, Stack<string> pushed = null) {
+    [return: NotNullIfNotNull(nameof(start))]
+    public static DialogEntry? WalkToLeaf(Dialog? dialog, DialogEntry? start, Func<int, int?> getGlobal,
+        Action<Effect>? applyEffect = null, Action<DialogEntry>? onEntryVisited = null,
+        Func<int>? roll = null, Stack<string>? pushed = null) {
         if (dialog == null || start == null) {
             return start;
         }
@@ -39,7 +41,7 @@ public static class DialogBranchWalker {
             if (!string.IsNullOrEmpty(current.Text)) {
                 return current; // leaf
             }
-            DialogBranchBase chosen = ChooseBranch(current, getGlobal, roll);
+            DialogBranchBase? chosen = ChooseBranch(current, getGlobal, roll);
             if (chosen?.TargetKey == null || !byKey.TryGetValue(chosen.TargetKey, out DialogEntry next)) {
                 // Dead end BY OFFSET. An id-addressed target is not really a dead end — see
                 // IdAddressedTargetOf, which the caller resolves by loading that dialog.
@@ -88,12 +90,12 @@ public static class DialogBranchWalker {
     /// than assuming an unconditional default, so a continuation that depends on state picks the
     /// same successor the original would.</para>
     /// </remarks>
-    public static DialogEntry NextLine(Dialog dialog, DialogEntry current, Func<int, int?> getGlobal,
-        Func<int> roll = null) {
+    public static DialogEntry? NextLine(Dialog? dialog, DialogEntry? current, Func<int, int?> getGlobal,
+        Func<int>? roll = null) {
         if (dialog == null || current == null || string.IsNullOrEmpty(current.Text)) {
             return null;
         }
-        DialogBranchBase chosen = ChooseBranch(current, getGlobal, roll);
+        DialogBranchBase? chosen = ChooseBranch(current, getGlobal, roll);
         if (chosen?.TargetKey == null) {
             return null;
         }
@@ -112,7 +114,7 @@ public static class DialogBranchWalker {
         return byKey;
     }
 
-    private static void ApplyEffects(DialogEntry entry, Action<Effect> applyEffect) {
+    private static void ApplyEffects(DialogEntry entry, Action<Effect>? applyEffect) {
         if (applyEffect == null) {
             return;
         }
@@ -149,7 +151,7 @@ public static class DialogBranchWalker {
             }
         }
         var pushed = new Stack<string>();
-        DialogEntry current = start;
+        DialogEntry? current = start;
         for (int hop = 0; hop < MaxHops && current != null; hop++) {
             foreach (DialogActionBase action in current.Actions) {
                 apply(action);
@@ -161,13 +163,13 @@ public static class DialogBranchWalker {
     // Pick the next entry: the chosen branch's target, pushing this entry's PushDialogEntry targets
     // first (op 0x10 is stacked only while record_key != 0); when there is no target, pop. A target
     // this Dialog does not hold (a genuinely cross-file id) ends that tree here, so it pops too.
-    private static DialogEntry ResolveContinuation(DialogEntry entry, Func<int, int?> getGlobal,
+    private static DialogEntry? ResolveContinuation(DialogEntry entry, Func<int, int?> getGlobal,
         Dictionary<string, DialogEntry> byKey, Stack<string> pushed) {
-        string next = ChooseBranch(entry, getGlobal)?.TargetKey;
+        string? next = ChooseBranch(entry, getGlobal)?.TargetKey;
         if (next != null) {
             PushTargets(entry, pushed);
         }
-        DialogEntry resolved = next != null && byKey.TryGetValue(next, out DialogEntry viaBranch) ? viaBranch : null;
+        DialogEntry? resolved = next != null && byKey.TryGetValue(next, out DialogEntry viaBranch) ? viaBranch : null;
         while (resolved == null && pushed.Count > 0) {
             byKey.TryGetValue(pushed.Pop(), out resolved);
         }
@@ -211,12 +213,12 @@ public static class DialogBranchWalker {
     /// <para>Asking the entry the walk STOPPED on re-picks the branch the walk itself picked:
     /// <see cref="ChooseBranch"/> is a pure function of the entry and the globals.</para>
     /// </remarks>
-    public static int? IdAddressedTargetOf(DialogEntry entry, Func<int, int?> getGlobal,
-        Func<int> roll = null) {
+    public static int? IdAddressedTargetOf(DialogEntry? entry, Func<int, int?> getGlobal,
+        Func<int>? roll = null) {
         if (entry == null) {
             return null;
         }
-        DialogBranchBase chosen = ChooseBranch(entry, getGlobal, roll);
+        DialogBranchBase? chosen = ChooseBranch(entry, getGlobal, roll);
         return chosen != null && chosen.TargetOffset == null ? chosen.TargetId : null;
     }
 
@@ -230,13 +232,13 @@ public static class DialogBranchWalker {
     /// </remarks>
     public const int MaxIdAddressedHops = 4;
 
-    private static DialogBranchBase ChooseBranch(DialogEntry entry, Func<int, int?> getGlobal,
-        Func<int> roll = null) {
+    private static DialogBranchBase? ChooseBranch(DialogEntry entry, Func<int, int?> getGlobal,
+        Func<int>? roll = null) {
         if ((entry.Flags & DialogEntryFlags.TakeRandomBranch) != 0 && entry.Branches.Count > 0) {
             return RandomBranch(entry, roll);
         }
 
-        DialogBranchBase fallback = null;
+        DialogBranchBase? fallback = null;
         foreach (DialogBranchBase b in entry.Branches) {
             if (b is DefaultBranch) { fallback = b; continue; }
             if (b is ConditionalBranch cb && Holds(cb.Condition, getGlobal)) { return cb; }
@@ -258,7 +260,7 @@ public static class DialogBranchWalker {
     /// RNG gets a stable, valid line rather than an exception — but it gets the SAME one every
     /// time, which is why the executor always passes one.</para>
     /// </remarks>
-    private static DialogBranchBase RandomBranch(DialogEntry entry, Func<int> roll) {
+    private static DialogBranchBase RandomBranch(DialogEntry entry, Func<int>? roll) {
         if (roll == null) {
             return entry.Branches[0];
         }

@@ -174,7 +174,7 @@ public sealed class Combatant {
 
     /// <summary>The bystander a missed projectile struck instead, set by the rules for the arena to
     /// aim the flight at — the original's <c>*target_ptr</c> rewrite (CSPELL.C:430).</summary>
-    public Combatant FlightInterceptedBy { get; set; }
+    public Combatant? FlightInterceptedBy { get; set; }
 
     /// <summary>Roster slot of the combatant the pending flight is aimed at.</summary>
     public int FlightToSlot { get; set; }
@@ -272,7 +272,7 @@ public sealed class Combatant {
     public int FacingOctant { get; set; }
 
     /// <summary>Whoever this combatant is currently fighting.</summary>
-    public Combatant Target { get; set; }
+    public Combatant? Target { get; set; }
 
     /// <summary>
     /// The three AI priority rows this actor walks — <c>aiTurnProfile</c> (spellcast),

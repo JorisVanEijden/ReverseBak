@@ -46,7 +46,7 @@ public static class SpellInfoPanel {
     /// line advance. So a spell with no second effect line closes up rather than showing a blank row
     /// — which is why panels of different lengths all look deliberate.
     /// </remarks>
-    public static bool LineAdvances(string line) => !string.IsNullOrEmpty(line);
+    public static bool LineAdvances(string? line) => !string.IsNullOrEmpty(line);
 
     /// <summary>
     /// The y of each drawn line, given which of the earlier ones were non-empty.

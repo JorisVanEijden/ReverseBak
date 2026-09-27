@@ -160,7 +160,7 @@ public static class StashExposure {
     /// original compares against these thresholds. A true hypotenuse would move every band.</para>
     /// </remarks>
     public static (int CoverWeight, int TrafficWeight) AccumulateWeights(
-        int stashX, int stashY, System.Collections.Generic.IEnumerable<NearbyEntity> entities) {
+        int stashX, int stashY, System.Collections.Generic.IEnumerable<NearbyEntity>? entities) {
         int cover = WeightBase;
         int traffic = WeightBase;
         if (entities == null) {

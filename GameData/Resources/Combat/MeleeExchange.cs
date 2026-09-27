@@ -178,12 +178,12 @@ public static class MeleeExchange {
     /// leaving them null is the ordinary case for the enemy side rather than an error.</para>
     /// </remarks>
     public readonly struct Advancement {
-        public Advancement(ActorStat attackerMelee = null, ActorStat attackerStrength = null,
-            ActorStat defenderDefense = null,
-            Func<ActorAttribute, int> attackerStudy = null,
-            Func<ActorAttribute, int> defenderStudy = null,
-            Action<ActorAttribute, StatEngine.StatChange> attackerMark = null,
-            Action<ActorAttribute, StatEngine.StatChange> defenderMark = null) {
+        public Advancement(ActorStat? attackerMelee = null, ActorStat? attackerStrength = null,
+            ActorStat? defenderDefense = null,
+            Func<ActorAttribute, int>? attackerStudy = null,
+            Func<ActorAttribute, int>? defenderStudy = null,
+            Action<ActorAttribute, StatEngine.StatChange>? attackerMark = null,
+            Action<ActorAttribute, StatEngine.StatChange>? defenderMark = null) {
             AttackerMelee = attackerMelee;
             AttackerStrength = attackerStrength;
             DefenderDefense = defenderDefense;
@@ -193,9 +193,9 @@ public static class MeleeExchange {
             DefenderMark = defenderMark;
         }
 
-        public ActorStat AttackerMelee { get; }
-        public ActorStat AttackerStrength { get; }
-        public ActorStat DefenderDefense { get; }
+        public ActorStat? AttackerMelee { get; }
+        public ActorStat? AttackerStrength { get; }
+        public ActorStat? DefenderDefense { get; }
 
         /// <summary>The attacker's study bonus by attribute, or null for none.</summary>
         /// <remarks>
@@ -203,10 +203,10 @@ public static class MeleeExchange {
         /// ratings across two actors, and the emphasis mark is per rating — an attacker who has
         /// marked Melee and not Strength is boosted on one and not the other.
         /// </remarks>
-        public Func<ActorAttribute, int> AttackerStudy { get; }
+        public Func<ActorAttribute, int>? AttackerStudy { get; }
 
         /// <summary>The defender's study bonus by attribute, or null for none.</summary>
-        public Func<ActorAttribute, int> DefenderStudy { get; }
+        public Func<ActorAttribute, int>? DefenderStudy { get; }
 
         /// <summary>
         /// Records the attacker's changed rating on their character sheet — STAT.C:300-307, which
@@ -219,10 +219,10 @@ public static class MeleeExchange {
         /// <para>Null for a monster, which the original excludes with <c>charSlot != 0</c> — and
         /// the stats above are null for one too, so nothing is awarded to mark.</para>
         /// </remarks>
-        public Action<ActorAttribute, StatEngine.StatChange> AttackerMark { get; }
+        public Action<ActorAttribute, StatEngine.StatChange>? AttackerMark { get; }
 
         /// <summary>The defender's equivalent; see <see cref="AttackerMark"/>.</summary>
-        public Action<ActorAttribute, StatEngine.StatChange> DefenderMark { get; }
+        public Action<ActorAttribute, StatEngine.StatChange>? DefenderMark { get; }
     }
 
     /// <summary>
@@ -244,7 +244,7 @@ public static class MeleeExchange {
     /// <see cref="CombatFormulas.MeleeHits"/>); routing it through the caller invites someone to
     /// subtract it from the chance instead, where the 2..98 clamp would swallow it.</para>
     /// </remarks>
-    public static Result Resolve(Combatant attacker, Combatant defender,
+    public static Result Resolve(Combatant? attacker, Combatant? defender,
         Attacker attackerStats, Defender defenderStats, Func<int, int> rnd,
         Advancement advancement = default) {
         if (rnd == null) {

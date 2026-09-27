@@ -95,13 +95,13 @@ public static class ShopRepair {
     /// <param name="record">Its object record (for <see cref="ObjectInfo.Price"/> and type).</param>
     /// <param name="repairCostMarkup">The shop block's markup, percent.</param>
     /// <param name="lookup">Object records by id, for the crossbow's bowstring.</param>
-    public static int PriceFor(RuntimeItem item, ObjectInfo record, int repairCostMarkup,
-        Func<int, ObjectInfo> lookup) {
+    public static int PriceFor(RuntimeItem item, ObjectInfo? record, int repairCostMarkup,
+        Func<int, ObjectInfo?>? lookup) {
         if (item == null || record == null) {
             return 0;
         }
         if (record.ObjectType == ObjectType.Crossbow) {
-            ObjectInfo str = lookup?.Invoke(
+            ObjectInfo? str = lookup?.Invoke(
                 item.ObjectId == BessyMaulerId ? HeavyBowstringId : LightBowstringId);
             return (str?.Price ?? 0) * 2;
         }
@@ -154,7 +154,7 @@ public static class ShopRepair {
     /// The category test comes FIRST and the condition test second, which is why a pristine sword at
     /// a mender who only does armour is told "he cannot mend that" rather than "it needs no repair".
     /// </remarks>
-    public static Outcome OutcomeFor(RuntimeItem item, ObjectInfo record, int repairCategories) {
+    public static Outcome OutcomeFor(RuntimeItem item, ObjectInfo? record, int repairCategories) {
         if (item == null || record == null || !Mends(repairCategories, record.ObjectType)) {
             return Outcome.CannotMend;
         }

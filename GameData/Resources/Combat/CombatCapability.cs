@@ -186,7 +186,7 @@ public static class CombatCapability {
     /// original's own starting value rather than a sentinel invented here — so an empty field reads
     /// as "clear" and both predicates behave as they do on a field with distant enemies.</para>
     /// </remarks>
-    public static int NearestOpponent(int fromX, int fromY, IEnumerable<Combatant> opponents) {
+    public static int NearestOpponent(int fromX, int fromY, IEnumerable<Combatant>? opponents) {
         int best = DistanceUnchecked;
         if (opponents == null) {
             return best;
@@ -204,7 +204,7 @@ public static class CombatCapability {
     }
 
     /// <summary>Whether health is above at least one entry of the ladder.</summary>
-    public static bool ClearsAnyThreshold(int health, IReadOnlyList<int> healthThresholds) {
+    public static bool ClearsAnyThreshold(int health, IReadOnlyList<int>? healthThresholds) {
         if (healthThresholds == null) {
             return false;
         }

@@ -11,7 +11,7 @@ using Xunit;
 /// is there more".
 /// </summary>
 public class DialogNextLineTests {
-    private static DialogEntry Entry(string key, string text, string target = null) {
+    private static DialogEntry Entry(string key, string text, string? target = null) {
         var e = new DialogEntry { Key = key, Text = text, Branches = new List<DialogBranchBase>() };
         if (target != null) {
             e.Branches.Add(new DefaultBranch { TargetKey = target });
@@ -68,8 +68,8 @@ public class DialogNextLineTests {
         DialogEntry c = Entry("c", "three");
         Dialog d = Of(a, b, c);
 
-        var said = new List<string>();
-        DialogEntry cur = a;
+        var said = new List<string?>();
+        DialogEntry? cur = a;
         while (cur != null) {
             said.Add(cur.Text);
             cur = DialogBranchWalker.NextLine(d, cur, NoGlobals);

@@ -32,7 +32,7 @@ public static class InventoryConsume {
     /// </summary>
     /// <param name="lookup">Object id → record; pass <c>objectInfoSet.GetById</c>.</param>
     public static bool TryConsumeOne(RuntimeContainer inventory, int objectId,
-        Func<int, ObjectInfo> lookup) {
+        Func<int, ObjectInfo?>? lookup) {
         if (inventory == null) {
             throw new ArgumentNullException(nameof(inventory));
         }

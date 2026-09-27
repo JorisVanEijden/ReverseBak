@@ -140,7 +140,7 @@ public static class ArenaFacing {
     /// <param name="partyWorldX"><inheritdoc cref="FacingFor(int, int, long, long, int, int, int, int)" path="/param[@name='partyWorldX']"/></param>
     /// <param name="partyWorldY"><inheritdoc cref="FacingFor(int, int, long, long, int, int, int, int)" path="/param[@name='partyWorldX']"/></param>
     /// <remarks>Prefer this: the box's field order is the trap, and here it cannot be got wrong.</remarks>
-    public static ushort FacingFor(World.TileEventTrigger trigger,
+    public static ushort FacingFor(World.TileEventTrigger? trigger,
         int partyTileX, int partyTileY, long partyWorldX, long partyWorldY) =>
         trigger == null
             ? (ushort)0

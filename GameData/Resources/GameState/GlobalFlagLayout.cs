@@ -115,7 +115,7 @@ public static class GlobalFlagLayout {
 
     /// <summary>Reads a high-bitmap flag out of the block.</summary>
     /// <returns>False when the id has no addressable position — see <see cref="TryHighPosition"/>.</returns>
-    public static bool TryReadHigh(byte[] highBitmap, int id, out int value) {
+    public static bool TryReadHigh(byte[]? highBitmap, int id, out int value) {
         value = 0;
         if (highBitmap == null || !TryHighPosition(id, out int row, out int bit)
             || row >= highBitmap.Length) {

@@ -22,7 +22,7 @@ public static class TrapPuzzleGoal {
     /// encounter into an instantly-solved puzzle. The original keeps this as a separate function for
     /// exactly that reason.
     /// </remarks>
-    public static bool HasExit(CombatGrid grid) {
+    public static bool HasExit(CombatGrid? grid) {
         if (grid == null) {
             return false;
         }
@@ -49,7 +49,7 @@ public static class TrapPuzzleGoal {
     /// <para><b>With no exit tile anywhere this is row 0</b>, which every actor on the grid is at or
     /// past — hence <see cref="HasExit"/>.</para>
     /// </remarks>
-    public static int ExitRow(CombatGrid grid) {
+    public static int ExitRow(CombatGrid? grid) {
         var row = 0;
         if (grid == null) {
             return row;
@@ -80,7 +80,7 @@ public static class TrapPuzzleGoal {
     /// combatant list on a non-zero character slot, so monsters wandering past the line do not end
     /// anything.</para>
     /// </remarks>
-    public static bool PartyIsOut(CombatGrid grid, IEnumerable<int> partyMemberRows) =>
+    public static bool PartyIsOut(CombatGrid? grid, IEnumerable<int>? partyMemberRows) =>
         PartyIsOut(ExitRow(grid), partyMemberRows);
 
     /// <summary>
@@ -91,7 +91,7 @@ public static class TrapPuzzleGoal {
     /// carried on <c>CombatEncounter.ObjectiveExitRow</c>. This overload is what lets the encounter
     /// answer "is it over" without holding a grid.
     /// </remarks>
-    public static bool PartyIsOut(int exitRow, IEnumerable<int> partyMemberRows) {
+    public static bool PartyIsOut(int exitRow, IEnumerable<int>? partyMemberRows) {
         if (partyMemberRows == null) {
             return false;
         }

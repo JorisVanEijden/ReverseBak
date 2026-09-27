@@ -81,7 +81,7 @@ public static class RestAction {
     /// <para><b>A monster always recovers</b>: it has no character slot, so the original skips the
     /// test entirely.</para>
     /// </remarks>
-    public static bool RecoveryAllowed(System.Collections.Generic.IReadOnlyList<int> conditionRanks) {
+    public static bool RecoveryAllowed(System.Collections.Generic.IReadOnlyList<int>? conditionRanks) {
         if (conditionRanks == null) {
             return true;   // no character row to consult — the monster case
         }

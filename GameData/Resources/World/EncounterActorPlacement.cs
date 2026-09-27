@@ -37,7 +37,7 @@ public static class EncounterActorPlacement {
     public readonly struct Placed {
         public Placed(int rosterSlot, int creatureNumber, long worldX, long worldY, short facing,
             bool roams, RoamingMovement.Pattern pattern = RoamingMovement.Pattern.Stationary,
-            long[] waypointX = null, long[] waypointY = null, bool downed = false,
+            long[]? waypointX = null, long[]? waypointY = null, bool downed = false,
             bool partyMember = false, long encounterNumber = -1) {
             Downed = downed;
             EncounterNumber = encounterNumber;
@@ -186,8 +186,9 @@ public static class EncounterActorPlacement {
         int waypoints = RoamingMovement.WaypointCount(pattern);
         var wx = new long[waypoints];
         var wy = new long[waypoints];
+        // slot is non-null inside the loop: a null slot reads pattern 0, which has 0 waypoints.
         for (var i = 0; i < waypoints; i++) {
-            wx[i] = originX + (slot.AltSpawnX != null && i < slot.AltSpawnX.Length ? slot.AltSpawnX[i] : 0);
+            wx[i] = originX + (slot!.AltSpawnX != null && i < slot.AltSpawnX.Length ? slot.AltSpawnX[i] : 0);
             wy[i] = originY + (slot.AltSpawnY != null && i < slot.AltSpawnY.Length ? slot.AltSpawnY[i] : 0);
         }
 

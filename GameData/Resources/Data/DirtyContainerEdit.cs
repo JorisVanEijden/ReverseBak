@@ -12,13 +12,13 @@ namespace GameData.Resources.Data;
 public sealed class DirtyContainerEdit {
     public int BodyOffset;       // absolute offset in the save BODY of this container's header
     public byte NumberOfItems;   // new live item count
-    public byte[] LiveItemBytes; // NumberOfItems*4 bytes: each item = [ObjectId, Variable, ItemFlags&0xFF, ItemFlags>>8]
+    public byte[] LiveItemBytes = null!; // always set by the creator's initializer. NumberOfItems*4 bytes: each item = [ObjectId, Variable, ItemFlags&0xFF, ItemFlags>>8]
 
     /// <summary>The full 16-byte header to write at <see cref="BodyOffset"/>, or null to leave the
     /// header alone (and patch only <see cref="NumberOfItems"/> + the items, as looting does). The
     /// writer applies it before <see cref="NumberOfItems"/>, so that field stays authoritative
     /// whichever value the header block happens to carry in its count byte.</summary>
-    public byte[] HeaderBytes;
+    public byte[]? HeaderBytes;
 
     /// <summary>Offset of the last-touch timestamp relative to <see cref="BodyOffset"/>, or -1
     /// when the record has no timestamp subrecord or it did not change.</summary>
@@ -38,5 +38,5 @@ public sealed class DirtyContainerEdit {
     public int ShopOffset = -1;
 
     /// <summary>The sixteen shop bytes, valid when <see cref="ShopOffset"/> is non-negative.</summary>
-    public byte[] ShopBytes;
+    public byte[]? ShopBytes;
 }

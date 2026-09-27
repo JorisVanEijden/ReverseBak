@@ -156,6 +156,6 @@ public class RoamingMovementRoadStepTests {
         // Tick's own null roadStep means "refuse"; a null predicate handed to the step itself is a
         // wiring mistake, and the two must not look the same.
         Assert.Throws<System.ArgumentNullException>(
-            () => RoamingMovement.RoadStepFor(At(Half, Half), null));
+            () => RoamingMovement.RoadStepFor(At(Half, Half), null!));
     }
 }

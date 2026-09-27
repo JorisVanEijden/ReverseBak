@@ -113,7 +113,7 @@ public static class CombatGridOutline {
     /// Indexed <c>zoneNumber - 1</c>, as <c>Load_grid</c> seeks. A zone outside the table is not an
     /// error worth throwing over — it means no grid rather than a wrong-coloured one.
     /// </remarks>
-    public static int? PenFor(GridData grid, int zoneNumber) {
+    public static int? PenFor(GridData? grid, int zoneNumber) {
         if (grid?.ZoneBorderPens == null) {
             return null;
         }

@@ -10,7 +10,7 @@ using Xunit;
 /// easy to invert, and inverting either makes interactions appear in the wrong chapter or vanish.
 /// </summary>
 public class GdsSceneRulesTests {
-    private static GdsHotspot Hotspot(List<int> hiddenInChapters = null, Condition gate = null) =>
+    private static GdsHotspot Hotspot(List<int>? hiddenInChapters = null, Condition? gate = null) =>
         new GdsHotspot {
             HiddenInChapters = hiddenInChapters ?? new List<int>(),
             VisibilityGate = gate,

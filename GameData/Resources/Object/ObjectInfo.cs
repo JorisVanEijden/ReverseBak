@@ -7,7 +7,7 @@ public class ObjectInfo : IResource {
         Id = id;
     }
 
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>+0x1E. <b>Editor-side melee-weapon/armor group marker — no runtime reader.</b>
     /// Ships exactly two values: <c>0x1F80</c> on the 17 <c>Sword</c>+<c>Armor</c> items, and

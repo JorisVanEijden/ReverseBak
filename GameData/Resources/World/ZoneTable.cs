@@ -16,7 +16,7 @@ public class ZoneTable : IResource
     public ResourceType Type => ResourceType.TBL;
     public string Id { get; }
     public List<ZoneTableEntry> Entries { get; set; } = new();
-    public MapSection MapSection { get; set; }
+    public MapSection MapSection { get; set; } = null!; // set by ZoneTableExtractor / the JSON reader
 }
 
 /// <summary>
@@ -66,7 +66,7 @@ public class ZoneTableEntry
 /// </summary>
 public record MapSection
 {
-    public List<string> Names { get; set; }
+    public List<string> Names { get; set; } = null!; // set by ZoneTableExtractor's initializer / the JSON reader
 
     /// <summary>+0x00 of section data. Always equal to <see cref="NumItems"/> in shipped
     /// data — likely an editor-side capacity / max-count paired with a separate used-count.

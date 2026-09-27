@@ -40,7 +40,7 @@ public static class CharacterHeal {
     /// which the original does inside this function — it lives outside because the timestamp is
     /// party state, not character state.
     /// </returns>
-    public static bool Apply(ActorStat[] stats, ActorConditions conditions, int amount) {
+    public static bool Apply(ActorStat[] stats, ActorConditions? conditions, int amount) {
         if (stats == null) {
             throw new ArgumentNullException(nameof(stats));
         }

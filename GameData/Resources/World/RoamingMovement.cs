@@ -291,9 +291,9 @@ public static class RoamingMovement {
     /// about-faces, and only an actor that landed on neither consults the sweep's heading.</para>
     /// </remarks>
     public static Pose Tick(Pose pose, Pattern pattern,
-        System.Collections.Generic.IReadOnlyList<long> waypointX,
-        System.Collections.Generic.IReadOnlyList<long> waypointY,
-        System.Func<Pose, RoadStep> roadStep = null) {
+        System.Collections.Generic.IReadOnlyList<long>? waypointX,
+        System.Collections.Generic.IReadOnlyList<long>? waypointY,
+        System.Func<Pose, RoadStep>? roadStep = null) {
         if (!Moves(pattern)) {
             return pose;
         }
@@ -401,8 +401,8 @@ public static class RoamingMovement {
         return (RoadTravel.CellCentre(x + bx), RoadTravel.CellCentre(y + by));
     }
 
-    private static bool ArrivedAt(Pose pose, System.Collections.Generic.IReadOnlyList<long> xs,
-        System.Collections.Generic.IReadOnlyList<long> ys, int count) {
+    private static bool ArrivedAt(Pose pose, System.Collections.Generic.IReadOnlyList<long>? xs,
+        System.Collections.Generic.IReadOnlyList<long>? ys, int count) {
         if (xs == null || ys == null) {
             return false;
         }

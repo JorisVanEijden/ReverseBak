@@ -55,7 +55,7 @@ public static class EncounterReset {
     /// <para>Non-encounter triggers between them are skipped, so the returned index is generally
     /// NOT <paramref name="recordIndex"/>.</para>
     /// </remarks>
-    public static int TriggerIndexForRecord(IReadOnlyList<TileEventType> triggerTypesInOrder,
+    public static int TriggerIndexForRecord(IReadOnlyList<TileEventType>? triggerTypesInOrder,
         int recordIndex) {
         if (triggerTypesInOrder == null || recordIndex < 0) {
             return -1;
@@ -93,7 +93,7 @@ public static class EncounterReset {
     /// zone's encounters.
     /// </remarks>
     public static List<long> RecordIds(
-        IEnumerable<(TileEventType Type, long? RecordId)> triggersInOrder) {
+        IEnumerable<(TileEventType Type, long? RecordId)>? triggersInOrder) {
         var ids = new List<long>();
         if (triggersInOrder == null) {
             return ids;
@@ -123,7 +123,7 @@ public static class EncounterReset {
     /// which is right: they are two ways into the same group of actors.</para>
     /// </remarks>
     public static int RecordIndexOf(
-        IEnumerable<(TileEventType Type, long? RecordId)> triggersInOrder, long recordId) =>
+        IEnumerable<(TileEventType Type, long? RecordId)>? triggersInOrder, long recordId) =>
         RecordIds(triggersInOrder).IndexOf(recordId);
 
     /// <summary>

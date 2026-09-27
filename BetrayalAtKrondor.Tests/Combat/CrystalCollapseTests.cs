@@ -98,7 +98,7 @@ public class CrystalCollapseTests {
 
         puzzle.CollapseUntilIsolated(1, 1);
 
-        TrapGridElement element = puzzle.ElementAt(1, 1);
+        TrapGridElement? element = puzzle.ElementAt(1, 1);
         Assert.NotNull(element);
         Assert.Equal(CrystalChain.WreckElementId, element.ElementId);
         // A wreck is no longer a crystal, so it cannot hold a run together on a later pass.

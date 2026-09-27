@@ -91,7 +91,7 @@ public readonly record struct SaveGameFields(
     /// positionally; a parameter added in the middle rebinds every one of them, which is exactly how
     /// SaveGameWriter.Write's optional-argument break happened earlier the same day.</para>
     /// </remarks>
-    byte[] ActiveParty = null,
+    byte[]? ActiveParty = null,
 
     /// <summary>
     /// Steps taken inside the current 1600-unit movement cell — body offset 52,
@@ -139,4 +139,4 @@ public readonly record struct SaveGameFields(
     /// (DIALOG.C:1216-1218), so a party shrinking to two stores the action's 0 in slot three, while
     /// a save that never changed party keeps whatever the loaded file held. TASK-532.
     /// </remarks>
-    byte[] ActivePartySlots = null);
+    byte[]? ActivePartySlots = null);

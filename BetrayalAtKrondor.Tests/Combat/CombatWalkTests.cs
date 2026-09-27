@@ -220,9 +220,9 @@ public class CombatWalkTests {
     [Fact]
     public void ANullGridOrActorIsAProgrammingErrorRatherThanAQuietNoWalk() {
         Assert.Throws<System.ArgumentNullException>(
-            () => CombatWalk.Walk(null, Actor(1, 5), 2, 5, 5));
+            () => CombatWalk.Walk(null!, Actor(1, 5), 2, 5, 5));
         Assert.Throws<System.ArgumentNullException>(
-            () => CombatWalk.Walk(new CombatGrid(), null, 2, 5, 5));
+            () => CombatWalk.Walk(new CombatGrid(), null!, 2, 5, 5));
     }
 
     // ---- shoving ---------------------------------------------------------------------------
@@ -256,7 +256,7 @@ public class CombatWalkTests {
         CombatWalk.WalkResult result =
             CombatWalk.Walk(puzzle.Grid, actor, 4, 5, actor.Speed, puzzle: puzzle);
 
-        Assert.Equal(PushResult.Blocked, result.Shove.Value.Result);
+        Assert.Equal(PushResult.Blocked, result.Shove!.Value.Result);
         Assert.Equal((3, 5), (actor.X, actor.Y));
     }
 

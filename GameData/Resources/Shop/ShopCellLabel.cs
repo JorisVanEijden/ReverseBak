@@ -54,11 +54,11 @@ public static class ShopCellLabel {
     /// <returns>
     /// <c>First</c> is null when the name fits one line; <c>Last</c> always carries the suffix.
     /// </returns>
-    public static (string First, string Last) LinesFor(
-        string name, int wordWrap, ObjectFlags flags, int condition) {
+    public static (string? First, string Last) LinesFor(
+        string? name, int wordWrap, ObjectFlags flags, int condition) {
         name ??= string.Empty;
 
-        string head = null;
+        string? head = null;
         string tail = name;
         if (wordWrap > 0 && wordWrap < name.Length) {
             head = name.Substring(0, wordWrap);

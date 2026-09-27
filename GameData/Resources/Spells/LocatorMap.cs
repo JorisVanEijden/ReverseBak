@@ -261,7 +261,7 @@ public static class LocatorMap {
     /// <param name="target">Which of the three searches is running.</param>
     /// <param name="itemIds">The object ids the container holds.</param>
     public static bool ContentsSatisfy(FieldSpells.LocatorTarget target,
-        System.Collections.Generic.IEnumerable<int> itemIds) {
+        System.Collections.Generic.IEnumerable<int>? itemIds) {
         if (itemIds == null || !ChecksContents(target)) {
             return false;
         }

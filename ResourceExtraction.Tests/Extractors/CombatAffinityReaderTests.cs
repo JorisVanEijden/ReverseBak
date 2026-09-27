@@ -21,7 +21,7 @@ public class CombatAffinityReaderTests {
     };
 
     /// <summary>Builds a stub image with the three tables at the offsets the address rule predicts.</summary>
-    private static byte[] BuildExe(short[] modifiers = null, int[] weakness = null, int[] resistance = null) {
+    private static byte[] BuildExe(short[]? modifiers = null, int[]? weakness = null, int[]? resistance = null) {
         var exe = new byte[0x40000];
         exe[0] = (byte)'M';
         exe[1] = (byte)'Z';

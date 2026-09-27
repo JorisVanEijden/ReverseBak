@@ -369,7 +369,11 @@ public class TtmAssembler {
         return memoryStream.ToArray();
     }
 
-    private static void WriteAlignedString(string s, BinaryWriter writer) {
+    private static void WriteAlignedString(string? s, BinaryWriter writer) {
+        // The extractor always reads a name; a hand-written override can leave it out.
+        if (s == null) {
+            throw new InvalidDataException("A TTM load command has no Filename.");
+        }
         byte[] bytes = Encoding.ASCII.GetBytes(s);
         writer.Write(bytes);
         writer.Write((byte)0);

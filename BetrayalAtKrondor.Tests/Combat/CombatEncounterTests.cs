@@ -240,7 +240,7 @@ public class CombatEncounterTests {
                 e.BeginRound();
             }
 
-            Combatant actor = e.PickNext();
+            Combatant? actor = e.PickNext();
             if (actor == null) {
                 break;
             }

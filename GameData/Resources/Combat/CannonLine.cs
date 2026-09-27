@@ -141,8 +141,8 @@ public static class CannonLine {
     /// combatant, or an element that is not <see cref="TransparentElementId"/>. Everything else is
     /// walked through — including empty crystal ground, which does not shield.</para>
     /// </remarks>
-    public static IReadOnlyList<Shot> ShotsOn(TrapPuzzle puzzle, int x, int y,
-        System.Func<int, int, bool> occupiedByLiveCombatant = null) {
+    public static IReadOnlyList<Shot> ShotsOn(TrapPuzzle? puzzle, int x, int y,
+        System.Func<int, int, bool>? occupiedByLiveCombatant = null) {
         var shots = new List<Shot>();
         if (puzzle == null) {
             return shots;
@@ -164,7 +164,7 @@ public static class CannonLine {
                 if (occupiedByLiveCombatant != null && occupiedByLiveCombatant(tx, ty)) {
                     break;
                 }
-                TrapGridElement element = puzzle.ElementAt(tx, ty);
+                TrapGridElement? element = puzzle.ElementAt(tx, ty);
                 if (element != null && element.ElementId != TransparentElementId) {
                     break;
                 }

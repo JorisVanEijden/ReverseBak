@@ -28,7 +28,7 @@ public class LitItemIconTests {
     [Fact]
     public void AnUnlitTorchKeepsItsOrdinaryIcon() {
         // The control: without it the override could be firing for every torch.
-        string unlit = ItemIconResolver.ResolveBmxSubResource(
+        string? unlit = ItemIconResolver.ResolveBmxSubResource(
             Item(InventoryConsume.TorchObjectId), 0);
 
         Assert.NotEqual("INVSHP2.BMX#8", unlit);

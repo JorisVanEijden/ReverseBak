@@ -62,7 +62,7 @@ public static class DefendAction {
     /// recovery and no animation: unlike <see cref="RestAction.Apply"/> it costs the turn and gives
     /// nothing back except the to-hit penalty imposed on whoever attacks.
     /// </remarks>
-    public static void Apply(Combatant actor) {
+    public static void Apply(Combatant? actor) {
         if (actor == null) {
             return;
         }

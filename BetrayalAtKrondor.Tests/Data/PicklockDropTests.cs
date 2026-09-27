@@ -86,7 +86,7 @@ public class PicklockDropTests {
         [Picklocks] = new ObjectInfo("Picklocks") { Flags = ObjectFlags.Stackable },
     };
 
-    private static ObjectInfo Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo o) ? o : null;
+    private static ObjectInfo? Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo? o) ? o : null;
 
     private static RuntimeContainer Bag(params (int ObjectId, byte Count)[] items) {
         var container = new RuntimeContainer { Capacity = 20 };
@@ -173,7 +173,7 @@ public class PicklockDropTests {
         RuntimeContainer working = Bag((Picklocks, 1));
 
         Assert.False(PicklockDrop.ApplyBreakage(
-            true, Broke, Picklocks, working, null, new RuntimeContainer[] { null }, Lookup));
+            true, Broke, Picklocks, working, null, new RuntimeContainer?[] { null }, Lookup));
 
         Assert.Empty(working.Items);
     }

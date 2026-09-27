@@ -204,7 +204,7 @@ public static class OpportunisticCasts {
     /// matching creatures on the field the pass may settle on the second or third rather than the
     /// nearest, and with one it may settle on nobody at all.</para>
     /// </remarks>
-    public static Cast Choose(IReadOnlyList<Candidate> enemies, Func<int, int> rnd,
+    public static Cast Choose(IReadOnlyList<Candidate>? enemies, Func<int, int> rnd,
         Func<int, bool> castable) {
         if (enemies == null || enemies.Count == 0) {
             return new Cast(NoSpell, -1);

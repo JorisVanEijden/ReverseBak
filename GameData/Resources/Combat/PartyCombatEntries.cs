@@ -41,7 +41,7 @@ public sealed class PartyCombatEntries : IResource {
     /// (<c>charSlot - 1</c>). Slot 0 means "not a party member" elsewhere in this codebase, so it has
     /// no entry here either.
     /// </remarks>
-    public SaveGameCombatData EntryFor(int charSlot) {
+    public SaveGameCombatData? EntryFor(int charSlot) {
         int index = charSlot - 1;
         return index >= 0 && index < Slots.Count ? Slots[index] : null;
     }

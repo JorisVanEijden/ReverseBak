@@ -74,7 +74,7 @@ public static class CampPartyStats {
     /// <c>!None</c> would paint someone who is merely healing as sick. The two look
     /// interchangeable and are not.</para>
     /// </remarks>
-    public static bool IsAfflicted(ActorConditions conditions) {
+    public static bool IsAfflicted(ActorConditions? conditions) {
         if (conditions == null) {
             return false;
         }

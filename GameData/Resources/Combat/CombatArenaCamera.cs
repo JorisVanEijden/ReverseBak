@@ -76,6 +76,6 @@ public static class CombatArenaCamera {
     /// A caller that gets false should leave the camera where it is rather than drop it to the
     /// floor.
     /// </remarks>
-    public static bool IsUsable(StartData start, bool underground) =>
+    public static bool IsUsable(StartData? start, bool underground) =>
         start != null && HeightFor(start, underground) > 0;
 }

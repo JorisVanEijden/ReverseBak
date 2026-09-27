@@ -177,7 +177,7 @@ public static class CastRingLayout {
     /// band is simply not clickable rather than being clamped to the nearest one that is.</para>
     /// </summary>
     /// <returns>The position index, or -1 for none. <b>First match by index wins</b>, not nearest.</returns>
-    public static int PositionAt(IReadOnlyList<RingPosition> positions, int cursorX, int cursorY,
+    public static int PositionAt(IReadOnlyList<RingPosition>? positions, int cursorX, int cursorY,
         int minIndex = 0, int maxIndex = PositionCount - 1,
         int boxWidth = HitBoxSize, int boxHeight = HitBoxSize) {
         if (positions == null) {
@@ -202,8 +202,8 @@ public static class CastRingLayout {
     /// greying the glyph, so the cursor falls through it to whatever is behind.
     /// </param>
     /// <returns>The index into the symbol list, or -1.</returns>
-    public static int SymbolAt(IReadOnlyList<(int X, int Y, int SpellId)> symbols,
-        int cursorX, int cursorY, System.Func<int, bool> isCastable,
+    public static int SymbolAt(IReadOnlyList<(int X, int Y, int SpellId)>? symbols,
+        int cursorX, int cursorY, System.Func<int, bool>? isCastable,
         int boxWidth = HitBoxSize, int boxHeight = HitBoxSize) {
         if (symbols == null) {
             return -1;

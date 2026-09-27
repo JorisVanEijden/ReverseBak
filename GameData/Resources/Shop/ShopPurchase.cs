@@ -3,6 +3,7 @@ namespace GameData.Resources.Shop;
 using GameData.Resources.Character;
 using GameData.Resources.Inventory;
 using GameData.Resources.Object;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// What a purchase does beyond moving the item — the special cases inside <c>BuyItem</c> @0x5b6d2.
@@ -48,7 +49,8 @@ public static class ShopPurchase {
     /// room check and before the type tests, so everything downstream — including whether a starving
     /// buyer eats it immediately — reads the Rations record, not the Drink one it was sold under.
     /// </remarks>
-    public static RuntimeItem Delivered(RuntimeItem bought) =>
+    [return: NotNullIfNotNull(nameof(bought))]
+    public static RuntimeItem? Delivered(RuntimeItem? bought) =>
         bought != null && bought.ObjectId == DaysRationsObjectId
             ? new RuntimeItem((byte)UpkeepEngine.RationsObjectId, 1, 0)
             : bought;

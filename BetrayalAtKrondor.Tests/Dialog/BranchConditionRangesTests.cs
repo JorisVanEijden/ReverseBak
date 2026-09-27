@@ -46,7 +46,7 @@ public class BranchConditionRangesTests {
         return d;
     }
 
-    private static string TargetOf(Condition condition, Dictionary<int, int> globals) {
+    private static string? TargetOf(Condition condition, Dictionary<int, int> globals) {
         Dialog dialog = TwoWay(condition);
         DialogEntry leaf = DialogBranchWalker.WalkToLeaf(
             dialog, dialog.Entries[0],

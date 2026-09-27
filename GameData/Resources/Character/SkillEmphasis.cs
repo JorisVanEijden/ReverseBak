@@ -150,7 +150,7 @@ public static class SkillEmphasis {
     /// the mode switch and before the <c>frac</c> banking (STAT.C:264-273), so an absolute award to
     /// a marked rating is boosted too.</para>
     /// </remarks>
-    public static int BonusFor(Func<int, int> flagValue, int actorNumber, int attribute,
+    public static int BonusFor(Func<int, int>? flagValue, int actorNumber, int attribute,
         bool isPartyMember) {
         if (!isPartyMember || flagValue == null
             || !IsEmphasised(flagValue(FlagFor(actorNumber, attribute)))) {

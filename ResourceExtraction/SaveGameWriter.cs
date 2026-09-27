@@ -23,19 +23,19 @@ public static class SaveGameWriter {
     public static SaveGameWriteResult Write(
         byte[] backingBody, in SaveGameFields fields,
         string name, short headerWorldX, short headerWorldY, short mapIcon,
-        IReadOnlyList<DirtyContainerEdit> containerEdits = null,
-        IReadOnlyList<DirtyActorEdit> actorEdits = null,
-        IReadOnlyList<DirtyCombatantEdit> combatantEdits = null,
-        IReadOnlyList<SaveGameTimerData> timers = null,
-        EncounterVisitTable automapVisits = null,
-        EncounterObjectStates encounterActorStates = null,
-        IReadOnlyList<GameData.Resources.Character.ActorStatModifiers.Slot> statModifiers = null,
+        IReadOnlyList<DirtyContainerEdit>? containerEdits = null,
+        IReadOnlyList<DirtyActorEdit>? actorEdits = null,
+        IReadOnlyList<DirtyCombatantEdit>? combatantEdits = null,
+        IReadOnlyList<SaveGameTimerData>? timers = null,
+        EncounterVisitTable? automapVisits = null,
+        EncounterObjectStates? encounterActorStates = null,
+        IReadOnlyList<GameData.Resources.Character.ActorStatModifiers.Slot>? statModifiers = null,
         short? lastSeenStepSpeed = null,
         short? lastSeenGridStride = null,
-        IReadOnlyDictionary<int, int> globalFlagEdits = null,
-        IReadOnlyList<DirtyRosterActorEdit> rosterActorEdits = null,
-        EncounterFoughtTimes encounterFoughtTimes = null,
-        GameData.Resources.GameState.ChapterFinishingGold chapterFinishingGold = null) {
+        IReadOnlyDictionary<int, int>? globalFlagEdits = null,
+        IReadOnlyList<DirtyRosterActorEdit>? rosterActorEdits = null,
+        EncounterFoughtTimes? encounterFoughtTimes = null,
+        GameData.Resources.GameState.ChapterFinishingGold? chapterFinishingGold = null) {
         if (backingBody is null) {
             throw new ArgumentNullException(nameof(backingBody));
         }

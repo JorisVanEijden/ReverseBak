@@ -78,7 +78,7 @@ public static class MonsterMorale {
     /// original's.
     /// </remarks>
     public static bool Routs(int staminaPercent, int morale, int rollPercent,
-        System.Collections.Generic.IReadOnlyList<int> thresholds, bool isUnderground) {
+        System.Collections.Generic.IReadOnlyList<int>? thresholds, bool isUnderground) {
         if (morale == NeverFleesMorale) {
             return false;
         }

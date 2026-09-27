@@ -44,7 +44,7 @@ public class GroundContainerPoolTests {
         var free = Free();
         var zone = new List<RuntimeContainer> { Bag(1), Chest(), free, Free() };
 
-        RuntimeContainer picked = GroundContainerPool.SelectSlot(zone, out bool recycled);
+        RuntimeContainer? picked = GroundContainerPool.SelectSlot(zone, out bool recycled);
 
         Assert.Same(free, picked);
         Assert.False(recycled);
@@ -55,7 +55,7 @@ public class GroundContainerPoolTests {
         var oldest = Bag(10);
         var zone = new List<RuntimeContainer> { Bag(50), oldest, Bag(30), Chest() };
 
-        RuntimeContainer picked = GroundContainerPool.SelectSlot(zone, out bool recycled);
+        RuntimeContainer? picked = GroundContainerPool.SelectSlot(zone, out bool recycled);
 
         Assert.Same(oldest, picked);
         Assert.True(recycled);
@@ -69,7 +69,7 @@ public class GroundContainerPoolTests {
         var plainNewer = Bag(9999);
         var zone = new List<RuntimeContainer> { protectedOldest, plainNewer };
 
-        RuntimeContainer picked = GroundContainerPool.SelectSlot(zone, out _);
+        RuntimeContainer? picked = GroundContainerPool.SelectSlot(zone, out _);
 
         Assert.Same(plainNewer, picked);
     }

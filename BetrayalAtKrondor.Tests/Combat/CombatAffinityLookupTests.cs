@@ -32,8 +32,8 @@ public class CombatAffinityLookupTests {
     public void TheRowIsFoundByCreatureClass() {
         CombatAffinityTables t = TableWith((16, 0, 0x0200));
 
-        Assert.Equal(0x0200, t.AffinityOf(16).ResistanceFlags);
-        Assert.Equal(0, t.AffinityOf(2).ResistanceFlags);
+        Assert.Equal(0x0200, t.AffinityOf(16)!.ResistanceFlags);
+        Assert.Equal(0, t.AffinityOf(2)!.ResistanceFlags);
     }
 
     [Fact]

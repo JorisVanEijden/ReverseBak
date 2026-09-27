@@ -36,7 +36,7 @@ public static class ShopStock {
     /// <c>wDamage_class_threshold</c>, and that name is wrong: it is compared against the chapter
     /// and nothing else. It was parsed and unread until this.</para>
     /// </remarks>
-    public static bool IsOfferedInChapter(ObjectInfo info, int chapter) =>
+    public static bool IsOfferedInChapter(ObjectInfo? info, int chapter) =>
         info == null || info.ChapterNumber <= chapter;
 
     /// <summary>The outcome of offering an item to a shop.</summary>
@@ -66,7 +66,7 @@ public static class ShopStock {
     /// lowest. That is economically backwards and it is what the code does — worth pinning before
     /// someone "corrects" it into picking the cheapest.
     /// </remarks>
-    public static int SelectSellSlot(RuntimeContainer shop, ObjectInfoSet objects,
+    public static int SelectSellSlot(RuntimeContainer shop, ObjectInfoSet? objects,
         out bool isNewSlot) {
         isNewSlot = false;
         if (shop == null) {
@@ -109,13 +109,13 @@ public static class ShopStock {
     /// </param>
     /// <param name="partyGold">Adjusted by the price on a successful sale.</param>
     public static SellResult Sell(RuntimeContainer shop, RuntimeContainer seller,
-        RuntimeItem item, ObjectInfoSet objects, ShopItemCategories shopCategories, long price,
+        RuntimeItem item, ObjectInfoSet? objects, ShopItemCategories shopCategories, long price,
         ref int partyGold) {
         if (shop == null || seller == null || item == null) {
             return SellResult.NotInterested;
         }
 
-        ObjectInfo info = objects?.GetById(item.ObjectId);
+        ObjectInfo? info = objects?.GetById(item.ObjectId);
         bool stocked = InventoryQuery.CountByKind(shop, item.ObjectId) != 0;
         // ObjectInfo.ShopType is the item's own category bitmask (canassa's wSub_flags), matched
         // against what the shop trades in — not the shop's type.
@@ -160,7 +160,7 @@ public static class ShopStock {
     /// DELIVERED item that has to fit.
     /// </param>
     public static bool Buy(RuntimeContainer shop, RuntimeContainer buyer, RuntimeItem item,
-        ObjectInfoSet objects, long price, ref int partyGold, RuntimeItem delivered = null) {
+        ObjectInfoSet? objects, long price, ref int partyGold, RuntimeItem? delivered = null) {
         if (shop == null || buyer == null || item == null || price < 0 || partyGold < price) {
             return false;
         }

@@ -123,7 +123,7 @@ public static class CharacterSheetRow {
     /// means nobody</b>, which is the <c>charSlot != 0</c> gate at STAT.C:300 for free. The flag row
     /// is <c>partySlot - 1</c> (STAT.C:107, :196).</para>
     /// </remarks>
-    public static void MarkChanged(Action<int, int> writeFlag, int partySlot,
+    public static void MarkChanged(Action<int, int>? writeFlag, int partySlot,
         ActorAttribute attribute, StatEngine.StatChange change) {
         if (writeFlag == null || partySlot < 1 || !change.SignalsImprovement) {
             return;

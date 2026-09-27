@@ -110,7 +110,7 @@ public sealed class TrapPuzzle {
             return PushResult.Blocked;
         }
 
-        TrapGridElement element = ElementAt(fromX, fromY);
+        TrapGridElement? element = ElementAt(fromX, fromY);
         if (element == null) {
             return PushResult.NoElement;
         }
@@ -152,7 +152,7 @@ public sealed class TrapPuzzle {
     /// rule. <c>// ponytail: cell-count ceiling, raise only if a grid ever exceeds it</c></para>
     /// </remarks>
     public int CollapseUntilIsolated(int x, int y) {
-        TrapGridElement here = ElementAt(x, y);
+        TrapGridElement? here = ElementAt(x, y);
         int kind = here != null && CrystalChain.IsCrystalElement(here.ElementId)
             ? here.ElementId
             : CrystalChain.AnyCrystal;
@@ -234,7 +234,7 @@ public sealed class TrapPuzzle {
     /// cannot hold a run together or be picked twice by a later pass.
     /// </remarks>
     private void Wreck(int x, int y) {
-        TrapGridElement element = ElementAt(x, y);
+        TrapGridElement? element = ElementAt(x, y);
         if (element != null) {
             element.ElementId = CrystalChain.WreckElementId;
         }
@@ -316,7 +316,7 @@ public sealed class TrapPuzzle {
     /// nothing needs the parameter yet; whoever ports the visual sweep will.</para>
     /// </remarks>
     private (int Dx, int Dy) FindLineDirection(int x, int y) {
-        TrapGridElement here = ElementAt(x, y);
+        TrapGridElement? here = ElementAt(x, y);
         bool fromCrystal = here != null && IsCrystalElement(here.ElementId);
 
         for (var dx = -1; dx <= 1; dx++) {
@@ -328,7 +328,7 @@ public sealed class TrapPuzzle {
                     continue;
                 }
 
-                TrapGridElement neighbour = ElementAt(x + dx, y + dy);
+                TrapGridElement? neighbour = ElementAt(x + dx, y + dy);
                 bool neighbourIsCrystal = neighbour != null && IsCrystalElement(neighbour.ElementId);
 
                 if (fromCrystal) {
@@ -369,7 +369,7 @@ public sealed class TrapPuzzle {
     public const int FiredSoundId = 0x1d;
 
     /// <summary>The element standing on a tile, or null.</summary>
-    public TrapGridElement ElementAt(int x, int y) {
+    public TrapGridElement? ElementAt(int x, int y) {
         foreach (TrapGridElement e in Elements) {
             if (e.IsOnGrid && e.X == x && e.Y == y) {
                 return e;
@@ -412,7 +412,7 @@ public static class TrapPuzzleBuilder {
     /// <param name="partySize">How many party members are present; markers beyond this are ignored,
     /// matching the original's <c>actor_idx &lt; g_combat_count_A</c> guard.</param>
     public static TrapPuzzle Build(
-        IEnumerable<(int Type, int X, int Y)> elements, bool underground = false, int partySize = PartySlots) {
+        IEnumerable<(int Type, int X, int Y)>? elements, bool underground = false, int partySize = PartySlots) {
         var puzzle = new TrapPuzzle(new CombatGrid(underground));
         if (elements == null) {
             return puzzle;

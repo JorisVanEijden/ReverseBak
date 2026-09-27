@@ -77,7 +77,7 @@ public static class EncounterDefeat {
     /// re-seeds from, so leaving a survivor there would repopulate the group.</para>
     /// </remarks>
     public static Result ApplyToRecord(EncounterObjectStates states, int refPair, int recordIndex,
-        IReadOnlyList<int> roster, Func<int, bool> isAlive, Action<int> kill) {
+        IReadOnlyList<int>? roster, Func<int, bool> isAlive, Action<int> kill) {
         if (states == null) {
             throw new ArgumentNullException(nameof(states));
         }

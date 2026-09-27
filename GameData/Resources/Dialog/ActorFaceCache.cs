@@ -110,7 +110,7 @@ public static class ActorFaceCache {
     /// because the cache is emptied at every scene change and no scene has seven speakers — but this
     /// port returns -1 rather than reproducing an out-of-bounds write.</para>
     /// </remarks>
-    public static int SlotFor(int actorNumber, int[] cachedActors) {
+    public static int SlotFor(int actorNumber, int[]? cachedActors) {
         if (cachedActors == null) {
             return -1;
         }

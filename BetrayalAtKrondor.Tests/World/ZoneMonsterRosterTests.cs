@@ -34,8 +34,8 @@ public class ZoneMonsterRosterTests {
     public void TheChapterIndexIsOneBased() {
         // The original seeks (chapter - 1) * 8 bytes in. Off by one here shows the wrong chapter's
         // monsters, which looks like content rather than a bug.
-        Assert.Equal(CreatureType.MoredhelWarrior, ZoneMonsterRoster.For(Shipped(), 1).Slot1);
-        Assert.Equal(CreatureType.Troll, ZoneMonsterRoster.For(Shipped(), 2).Slot1);
+        Assert.Equal(CreatureType.MoredhelWarrior, ZoneMonsterRoster.For(Shipped(), 1)!.Slot1);
+        Assert.Equal(CreatureType.Troll, ZoneMonsterRoster.For(Shipped(), 2)!.Slot1);
     }
 
     [Fact]

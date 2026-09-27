@@ -64,7 +64,7 @@ public sealed class ActiveSpellEffectPool {
 
     /// <summary>The slot at an index. Callers holding an index from <see cref="Register"/> read the
     /// effect through here.</summary>
-    public ActiveSpellEffect this[int slot] =>
+    public ActiveSpellEffect? this[int slot] =>
         slot >= 0 && slot < Capacity ? _slots[slot] : null;
 
     /// <summary>Returns every slot to the free state — <c>initActiveSpellEffectSlots</c>.</summary>
@@ -312,7 +312,7 @@ public sealed class ActiveSpellEffectPool {
     /// gives the same answer. It is checked <b>regardless</b> of the caller's strict flag — the two
     /// combat-status bits are the strict-only half, and these three spells always count.
     /// </remarks>
-    public bool IsIncapacitated(Combatant actor) {
+    public bool IsIncapacitated(Combatant? actor) {
         if (actor == null) {
             return false;
         }

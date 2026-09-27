@@ -97,7 +97,7 @@ public static class CombatEndPersistence {
     ///
     /// <para>Returns the starting tile unchanged when it is free, which is the ordinary case.</para>
     /// </remarks>
-    public static (int X, int Y) FreeTileFrom(int x, int y, Func<int, int, bool> occupied) {
+    public static (int X, int Y) FreeTileFrom(int x, int y, Func<int, int, bool>? occupied) {
         if (occupied == null) {
             return (x, y);
         }

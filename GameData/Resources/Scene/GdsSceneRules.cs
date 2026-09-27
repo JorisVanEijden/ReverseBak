@@ -63,7 +63,7 @@ public static class GdsSceneRules {
     /// on a global), not a boolean, which <see cref="VarCondition"/> carries faithfully.
     /// </param>
     public static bool IsHotspotVisible(GdsHotspot hotspot, int chapter, bool preserve,
-        Func<Condition, bool> gatePasses) {
+        Func<Condition, bool>? gatePasses) {
         if (hotspot == null) {
             return false;
         }
@@ -255,7 +255,7 @@ public static class GdsSceneRules {
     /// "SILDEN(CHEAM)". Both towns get their own arrival animation and both share idle 13, the
     /// resource's "DISPLAY" loop.</para>
     /// </remarks>
-    public static string AnimationTagFor(IEnumerable<AnimatorScript> animations,
+    public static string? AnimationTagFor(IEnumerable<AnimatorScript>? animations,
         int sceneAnimationTag) {
         if (animations == null) {
             return null;

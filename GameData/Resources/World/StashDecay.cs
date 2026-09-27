@@ -60,7 +60,8 @@ public static class StashDecay {
             return new Verdict(exempt: true, score: 0, empties: false);
         }
 
-        long days = StashExposure.WholeDaysSince(now, (uint)container.Timestamp.Value);
+        // Timestamp has a value here: IsExempt above returns true whenever hasLastTouch is false.
+        long days = StashExposure.WholeDaysSince(now, (uint)container.Timestamp!.Value);
         bool zeroed = container.IsShop
             || StashExposure.ResidenceZeroesScore(container.ContainerType)
             || (container.Params?.ProximityHundredFlag ?? false);

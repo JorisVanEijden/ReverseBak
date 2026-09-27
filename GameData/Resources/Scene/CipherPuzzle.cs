@@ -90,7 +90,7 @@ public class CipherPuzzle {
     /// The row selected in each column. Out-of-range entries are treated as unsolved rather than
     /// throwing — a fresh puzzle starts with every column on row 0.
     /// </param>
-    public bool IsSolved(IReadOnlyList<int> selectedRows) {
+    public bool IsSolved(IReadOnlyList<int>? selectedRows) {
         if (selectedRows == null) {
             return false;
         }

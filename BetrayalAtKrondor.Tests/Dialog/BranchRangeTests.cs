@@ -43,7 +43,7 @@ public class BranchRangeTests {
         return d;
     }
 
-    private static string Walk(Condition condition, System.Func<int, int?> globals) {
+    private static string? Walk(Condition condition, System.Func<int, int?> globals) {
         Dialog dialog = TwoWay(condition);
         DialogEntry leaf = DialogBranchWalker.WalkToLeaf(dialog, dialog.Entries[0], globals);
         return leaf?.Text;

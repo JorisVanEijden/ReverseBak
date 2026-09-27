@@ -62,17 +62,17 @@ public static class InventoryTransfer {
         /// <summary>Partial top-up of an existing destination stack (spec §15) — the source
         /// slot survives with at least 1.</summary>
         public bool IsTopUp { get; internal set; }
-        internal RuntimeContainer Source;
-        internal RuntimeContainer Target;
-        internal ObjectInfoSet Objects;
+        internal RuntimeContainer Source = null!; // always set by Plan's object initializer
+        internal RuntimeContainer Target = null!;
+        internal ObjectInfoSet? Objects;
         internal int ItemIndex;
         internal int TopUpIndex = -1;
     }
 
     /// <summary>Non-interactive move: every picker question is answered with "all".</summary>
     public static Result Move(RuntimeContainer source, int itemIndex, RuntimeContainer target,
-        ObjectInfoSet objects, ref int partyGold, bool targetIsCaster = false,
-        RuntimeContainer sharedKeys = null) {
+        ObjectInfoSet? objects, ref int partyGold, bool targetIsCaster = false,
+        RuntimeContainer? sharedKeys = null) {
         TransferPlan plan = Plan(source, itemIndex, target, objects, ref partyGold, targetIsCaster,
             allowShare: false, sharedKeys: sharedKeys);
         return plan.Immediate ?? Apply(plan, plan.MaxQuantity);
@@ -87,8 +87,8 @@ public static class InventoryTransfer {
     /// see the cat-7 branch below. Null disables the diversion (keys then take the normal path),
     /// which is what a save with no such container gets.</param>
     public static TransferPlan Plan(RuntimeContainer source, int itemIndex, RuntimeContainer target,
-        ObjectInfoSet objects, ref int partyGold, bool targetIsCaster = false,
-        bool allowShare = false, RuntimeContainer sharedKeys = null) {
+        ObjectInfoSet? objects, ref int partyGold, bool targetIsCaster = false,
+        bool allowShare = false, RuntimeContainer? sharedKeys = null) {
         var plan = new TransferPlan {
             Source = source, Target = target, Objects = objects, ItemIndex = itemIndex,
         };
@@ -97,7 +97,7 @@ public static class InventoryTransfer {
             return plan;
         }
         RuntimeItem item = source.Items[itemIndex];
-        ObjectInfo rec = objects?.GetById(item.ObjectId);
+        ObjectInfo? rec = objects?.GetById(item.ObjectId);
         ObjectType category = rec?.ObjectType ?? ObjectType.Misc;
 
         // transferItem @0x5555e first branch (CMBINV.C:758-771): an equipped melee weapon or
@@ -260,7 +260,7 @@ public static class InventoryTransfer {
     }
 
     public static Result Distribute(RuntimeContainer source, int itemIndex,
-        IReadOnlyList<RuntimeContainer> recipients, ObjectInfoSet objects) {
+        IReadOnlyList<RuntimeContainer> recipients, ObjectInfoSet? objects) {
         if (source == null || recipients == null
             || itemIndex < 0 || itemIndex >= source.Items.Count) {
             return Result.Blocked;
@@ -306,7 +306,7 @@ public static class InventoryTransfer {
     // key behaves as the original would. The key's own count is discarded: a picked-up key is
     // worth exactly one on the ring.
     private static Result AddToKeyring(RuntimeContainer source, int itemIndex, RuntimeItem item,
-        RuntimeContainer keys, ObjectInfoSet objects) {
+        RuntimeContainer keys, ObjectInfoSet? objects) {
         AddKeyToRing(item, keys, objects);
         RemoveAt(source, itemIndex);
         return Result.Moved;
@@ -323,7 +323,7 @@ public static class InventoryTransfer {
     /// with <c>if (rec-&gt;wCategory == 7) cmbinv_actor_pickup_item(...)</c> before it looks at the
     /// member's pack at all.
     /// </remarks>
-    public static void AddKeyToRing(RuntimeItem item, RuntimeContainer keys, ObjectInfoSet objects) {
+    public static void AddKeyToRing(RuntimeItem item, RuntimeContainer keys, ObjectInfoSet? objects) {
         if (item == null || keys == null) {
             return;
         }
@@ -349,7 +349,7 @@ public static class InventoryTransfer {
     // same code). Whole moves remove the source slot; partials leave the remainder and
     // consolidate the source as well.
     private static Result InsertAndConsolidate(RuntimeContainer source, int itemIndex,
-        RuntimeContainer target, ObjectInfoSet objects, int amount, bool wholeStack) {
+        RuntimeContainer target, ObjectInfoSet? objects, int amount, bool wholeStack) {
         RuntimeItem item = source.Items[itemIndex];
         RuntimeItem moved = item.Clone();
         moved.ItemFlags = (ushort)(moved.ItemFlags & ~ItemEquippedFlag);
@@ -449,13 +449,13 @@ public static class InventoryTransfer {
     /// <see cref="CanFit"/> and never asked the stack question (TASK-625). <c>CanFit</c> stays
     /// public because the budget alone is still the right question for the picker's headroom maths.</para>
     /// </remarks>
-    public static bool HasRoomFor(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
+    public static bool HasRoomFor(RuntimeContainer target, RuntimeItem item, ObjectInfoSet? objects) {
         if (CanFit(target, item, objects)) { return true; }
         InventoryOrder.Consolidate(target, objects,
             target.ContainerType == SaveGameContainerType.Inventory);
         if (CanFit(target, item, objects)) { return true; }
 
-        ObjectInfo rec = objects?.GetById(item.ObjectId);
+        ObjectInfo? rec = objects?.GetById(item.ObjectId);
         if (rec == null || ((int)rec.Flags & StackableFlag) == 0) { return false; }
         // *** THE COUNT CAPACITY BINDS THE MERGE PATH TOO. *** Read off 0x552F9, which tests
         // `numberOfItems == capacity` and returns 0 BEFORE it looks for a stack — so a container
@@ -472,7 +472,7 @@ public static class InventoryTransfer {
         return false;
     }
 
-    public static bool CanFit(RuntimeContainer target, RuntimeItem item, ObjectInfoSet objects) {
+    public static bool CanFit(RuntimeContainer target, RuntimeItem item, ObjectInfoSet? objects) {
         if (target.Items.Count >= target.Capacity) { return false; }
         bool isChar = target.ContainerType == SaveGameContainerType.Inventory;
         int budget = isChar ? CharSlotBudget : OtherSlotBudget;
@@ -490,7 +490,7 @@ public static class InventoryTransfer {
         return total <= budget;                        // pass 2: all footprints, no slack
     }
 
-    private static int Slots(RuntimeItem it, ObjectInfoSet objects) {
+    private static int Slots(RuntimeItem it, ObjectInfoSet? objects) {
         int s = objects?.GetById(it.ObjectId)?.InventorySlots ?? 1;
         return s <= 0 ? 1 : s; // howManyInventorySlots: default 1 when the record says 0
     }

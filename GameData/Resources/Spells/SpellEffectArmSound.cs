@@ -70,6 +70,6 @@ public static class SpellEffectArmSound {
     /// Re-rolled per flash, so the storm is deliberately irregular rather than metronomic. Zero is
     /// a legal roll — two cracks can land together.
     /// </remarks>
-    public static int FlashGapTicks(Func<int, int> rnd) =>
+    public static int FlashGapTicks(Func<int, int>? rnd) =>
         rnd == null ? 0 : rnd(FlashGapTickBound);
 }

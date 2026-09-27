@@ -58,7 +58,7 @@ public class ShopCellLabelTests {
         // "Standard Kingdom Armor" ships WordWrap 16, and the original renders it as two lines with
         // the condition on the lower one. Keeping it on one line is what ran it into the next
         // cell's text; the original never wraps, so the authored split IS the fit.
-        (string first, string last) =
+        (string? first, string last) =
             ShopCellLabel.LinesFor("Standard Kingdom Armor", 16, (ObjectFlags)0x1008, 100);
 
         Assert.Equal("Standard Kingdom", first);
@@ -69,7 +69,7 @@ public class ShopCellLabelTests {
     public void TheSplitCharacterItselfIsDropped_NotKeptOnEitherLine() {
         // INVENTOR.C nul-terminates AT the index and restarts at index+1, so the space at the split
         // belongs to neither line. An off-by-one here shows as a leading space on the lower line.
-        (string first, string last) =
+        (string? first, string last) =
             ShopCellLabel.LinesFor("Tsurani Light Crossbow", 13, (ObjectFlags)0x1008, 100);
 
         Assert.Equal("Tsurani Light", first);
@@ -86,7 +86,7 @@ public class ShopCellLabelTests {
     public void AnOutOfRangeSplitIsIgnoredRatherThanThrowing() {
         // Defensive: an override author can ship a WordWrap past the end of a renamed item, and a
         // shelf that throws takes the whole screen with it.
-        (string first, string last) = ShopCellLabel.LinesFor("Short", 99, (ObjectFlags)0, 1);
+        (string? first, string last) = ShopCellLabel.LinesFor("Short", 99, (ObjectFlags)0, 1);
 
         Assert.Null(first);
         Assert.Equal("Short", last);

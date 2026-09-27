@@ -33,7 +33,7 @@ public class ItemModifierTests {
     private static ObjectInfo Object(ActorAttributeFlag mask, int amount) =>
         new ObjectInfo("test") { EquipAttributeMask = mask, EquipModifierAmount = amount };
 
-    private static ObjectInfo Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo o) ? o : null;
+    private static ObjectInfo? Lookup(int id) => Catalog.TryGetValue(id, out ObjectInfo? o) ? o : null;
 
     private static ActorStat[] Stats() {
         var stats = new ActorStat[16];

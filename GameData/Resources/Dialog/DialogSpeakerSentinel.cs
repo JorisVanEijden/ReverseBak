@@ -90,7 +90,7 @@ public sealed class DialogSpeakerSentinel {
     /// answers 0 for those rather than picking someone: the table is per-play state, and a record
     /// resolved without it is being asked a question that has no answer yet.
     /// </param>
-    public int Resolve(int rawActorNumber, int chapterSpeaker, IReadOnlyList<int> slotKinds = null) {
+    public int Resolve(int rawActorNumber, int chapterSpeaker, IReadOnlyList<int>? slotKinds = null) {
         NewPrimaryActor = null;
 
         // The high byte is a portrait frame, not part of the id.

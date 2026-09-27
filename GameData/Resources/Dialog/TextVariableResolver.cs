@@ -22,7 +22,7 @@ using System.Text;
 public static class TextVariableResolver {
     /// <summary>Substitute against a full slot table, so the creature-name rules (which need each
     /// slot's KIND, not just its text) can apply.</summary>
-    public static string Substitute(string text, DialogSlotTable table, string currentActorName = null) =>
+    public static string Substitute(string text, DialogSlotTable table, string? currentActorName = null) =>
         Substitute(text, table?.Names, currentActorName, table?.Kinds);
 
     /// <param name="currentActorName">The name a bare <c>@</c> resolves to (the engine's
@@ -31,8 +31,8 @@ public static class TextVariableResolver {
     /// <param name="kinds">Each slot's kind, when known. Only slots marked
     /// <see cref="DialogSlotTable.CreatureActor"/> take the article/possessive reshaping; without
     /// kinds every slot is treated as an ordinary name.</param>
-    public static string Substitute(string text, IReadOnlyList<string> slots,
-        string currentActorName = null, IReadOnlyList<int> kinds = null) {
+    public static string Substitute(string text, IReadOnlyList<string>? slots,
+        string? currentActorName = null, IReadOnlyList<int>? kinds = null) {
         if (string.IsNullOrEmpty(text)) {
             return text;
         }
@@ -45,7 +45,7 @@ public static class TextVariableResolver {
             }
             if (i + 1 < text.Length && char.IsDigit(text[i + 1])) {
                 int n = text[i + 1] - '0';
-                if (n >= 0 && n < slots.Count) {
+                if (slots != null && n >= 0 && n < slots.Count) {
                     string name = slots[n] ?? "";
                     bool creature = kinds != null && n < kinds.Count
                         && kinds[n] == DialogSlotTable.CreatureActor;

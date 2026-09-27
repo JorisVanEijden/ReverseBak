@@ -8,7 +8,7 @@ namespace GameData.Resources.Text;
 /// mod's merged catalog can replace the embedded default at startup.
 /// </summary>
 public static class UiStrings {
-    private static UiStringCatalog _catalog;
+    private static UiStringCatalog? _catalog;
 
     public static UiStringCatalog Catalog {
         get => _catalog ??= UiStringCatalog.Embedded;

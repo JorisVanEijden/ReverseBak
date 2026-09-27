@@ -115,7 +115,7 @@ public static class PartyDownState {
     /// <see cref="Asserted"/> 2 into a 1 or a 0 — the pit's "already spoke" marker does not
     /// survive a heal, and nothing tries to make it.</para>
     /// </remarks>
-    public static int Recompute(IReadOnlyList<int> nearDeathRanks) {
+    public static int Recompute(IReadOnlyList<int>? nearDeathRanks) {
         if (nearDeathRanks == null) {
             return Standing;
         }

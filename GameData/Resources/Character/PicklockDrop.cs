@@ -149,9 +149,9 @@ public static class PicklockDrop {
     /// <returns>Whether anything was destroyed — false when nothing broke.</returns>
     public static bool ApplyBreakage(bool usedPicklocks, PicklockAttempt.AttemptResult result,
         int droppedObjectId, Inventory.RuntimeContainer workingSet,
-        Inventory.RuntimeContainer sharedInventory,
-        System.Collections.Generic.IEnumerable<Inventory.RuntimeContainer> partyPacks,
-        System.Func<int, Object.ObjectInfo> lookup) {
+        Inventory.RuntimeContainer? sharedInventory,
+        System.Collections.Generic.IEnumerable<Inventory.RuntimeContainer?>? partyPacks,
+        System.Func<int, Object.ObjectInfo?> lookup) {
         BreakageTarget target = BreakageFor(usedPicklocks, result);
         if (target == BreakageTarget.None) {
             return false;
@@ -166,7 +166,7 @@ public static class PicklockDrop {
                 && Inventory.InventoryConsume.TryConsumeOne(sharedInventory, droppedObjectId, lookup);
         }
 
-        foreach (Inventory.RuntimeContainer pack in partyPacks
+        foreach (Inventory.RuntimeContainer? pack in partyPacks
             ?? System.Array.Empty<Inventory.RuntimeContainer>()) {
             if (pack != null
                 && Inventory.InventoryConsume.TryConsumeOne(pack, droppedObjectId, lookup)) {

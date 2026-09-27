@@ -60,7 +60,7 @@ public class CombatLineOfFireTests {
         Flags = dead ? CombatantFlags.Dead : CombatantFlags.Ready,
     };
 
-    private static System.Func<int, int, Combatant> Field(params Combatant[] actors) =>
+    private static System.Func<int, int, Combatant?> Field(params Combatant[] actors) =>
         (x, y) => System.Array.Find(actors, a => a.X == x && a.Y == y);
 
     [Fact]

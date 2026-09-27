@@ -284,7 +284,7 @@ public static class StatEngine {
 
     public static int ModifyHealthPool(ActorStat health, ActorStat stamina, long delta,
         int healTargetPercent, out bool collapsed, int nearDeathRank = 0,
-        ActorConditions conditions = null, bool inCombat = false) {
+        ActorConditions? conditions = null, bool inCombat = false) {
         if (health == null) {
             throw new ArgumentNullException(nameof(health));
         }
@@ -368,7 +368,7 @@ public static class StatEngine {
     /// <c>v => ConditionEngine.ApplyAttributePenalties(v, attribute, conditions)</c>; the eight
     /// timed modifiers still have no owner.</param>
     public static int Get(ActorStat stat, ActorAttribute attribute, ActorStat healthOfActor,
-        StatReadMode mode = StatReadMode.Effective, Func<int, int> applyPartyEffects = null) {
+        StatReadMode mode = StatReadMode.Effective, Func<int, int>? applyPartyEffects = null) {
         if (stat == null) {
             throw new ArgumentNullException(nameof(stat));
         }
@@ -454,7 +454,7 @@ public static class StatEngine {
     /// <param name="carried">Every object in the actor's inventory, by id.</param>
     /// <param name="lookup">Object id → its record; pass <c>objectInfoSet.GetById</c>.</param>
     public static void RecalculateItemModifiers(ActorStat[] stats, IEnumerable<int> carried,
-        Func<int, ObjectInfo> lookup) {
+        Func<int, ObjectInfo?> lookup) {
         if (stats == null) {
             throw new ArgumentNullException(nameof(stats));
         }
@@ -479,7 +479,7 @@ public static class StatEngine {
                 weedwalkersCounted = true;
             }
 
-            ObjectInfo record = lookup(objectId);
+            ObjectInfo? record = lookup(objectId);
             if (record == null || record.EquipAttributeMask == 0) {
                 continue;
             }
@@ -506,7 +506,7 @@ public static class StatEngine {
     public static ActorStat[] FromSaved(SaveGameActorData actor) {
         var stats = new ActorStat[ActorAttributeValues.Count];
         for (int i = 0; i < stats.Length; i++) {
-            SaveGameAttributeValuesData saved = ActorAttributeValues.At(actor, i);
+            SaveGameAttributeValuesData? saved = ActorAttributeValues.At(actor, i);
             stats[i] = saved == null ? new ActorStat() : new ActorStat(saved);
         }
         return stats;

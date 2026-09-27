@@ -93,21 +93,21 @@ public static class PitDescent {
     /// Optional matching health/stamina pairs. Supplying them lets the collapse zero and refill the
     /// pool as the original does; omit them and only the condition ranks change.
     /// </param>
-    public static void ApplyToParty(IEnumerable<ActorConditions> party,
-        IEnumerable<(ActorStat Health, ActorStat Stamina)> stats = null) {
+    public static void ApplyToParty(IEnumerable<ActorConditions?>? party,
+        IEnumerable<(ActorStat Health, ActorStat Stamina)>? stats = null) {
         if (party == null) {
             return;
         }
 
-        IEnumerator<(ActorStat Health, ActorStat Stamina)> pools = stats?.GetEnumerator();
-        foreach (ActorConditions conditions in party) {
+        IEnumerator<(ActorStat Health, ActorStat Stamina)>? pools = stats?.GetEnumerator();
+        foreach (ActorConditions? conditions in party) {
             bool hasPool = pools != null && pools.MoveNext();
             if (conditions == null) {
                 continue;
             }
-            if (hasPool) {
+            if (hasPool) { // hasPool implies pools != null
                 ConditionEngine.Apply(conditions, ActorCondition.NearDeath, ActorConditions.MaxRank,
-                    pools.Current.Health, pools.Current.Stamina);
+                    pools!.Current.Health, pools.Current.Stamina);
             } else {
                 ConditionEngine.Apply(conditions, ActorCondition.NearDeath, ActorConditions.MaxRank);
             }
@@ -172,7 +172,7 @@ public static class PitDescent {
     /// <c>TypeId</c> is an index into the zone's entity table; looking for kind 15 in the tile data
     /// finds nothing and concludes the zone has no pits.</para>
     /// </remarks>
-    public static int SelectTarget(IReadOnlyList<int> visibleEntityKinds) {
+    public static int SelectTarget(IReadOnlyList<int>? visibleEntityKinds) {
         if (visibleEntityKinds == null) {
             return NoTarget;
         }

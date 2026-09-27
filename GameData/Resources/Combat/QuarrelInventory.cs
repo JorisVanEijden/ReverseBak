@@ -121,7 +121,7 @@ public static class QuarrelInventory {
     /// <para>The original also allocates ten slots for eight kinds; the last two are never written
     /// and contribute nothing to the total.</para>
     /// </remarks>
-    public static int Count(RuntimeContainer container, int kind = AllKinds) {
+    public static int Count(RuntimeContainer? container, int kind = AllKinds) {
         if (container == null) {
             return 0;
         }
@@ -182,7 +182,7 @@ public static class QuarrelInventory {
     /// call that chooses it, so splitting them apart moves when an archer runs dry.</para>
     /// </remarks>
     public static int Pick(RuntimeContainer container, int creatureType,
-        int preferredKind = AllKinds, bool spend = true, Func<int, ObjectInfo> lookup = null) {
+        int preferredKind = AllKinds, bool spend = true, Func<int, ObjectInfo?>? lookup = null) {
         // Checked before the pack is: this creature never looks, and never spends.
         if (creatureType == FreeAmmoCreatureType) {
             return FreeAmmoKind;

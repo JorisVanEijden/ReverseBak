@@ -77,12 +77,12 @@ public class PitDescentTests {
 
     [Fact]
     public void ANullMemberIsSkippedRatherThanThrowing() {
-        var party = new List<ActorConditions> { new(), null, new() };
+        var party = new List<ActorConditions?> { new(), null, new() };
 
         PitDescent.ApplyToParty(party);
 
         Assert.All(party.Where(c => c != null),
-            c => Assert.Equal(ActorConditions.MaxRank, c[ActorCondition.NearDeath]));
+            c => Assert.Equal(ActorConditions.MaxRank, c![ActorCondition.NearDeath]));
     }
 
     [Fact]

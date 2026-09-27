@@ -33,7 +33,7 @@ public static class ArenaLayout {
     /// </param>
     /// <returns>How many cells are open when it is done.</returns>
     public static int Build(CombatGrid grid, Func<int, int, bool> isOpenAt,
-        Func<int, int, int, int, bool> reaches = null) {
+        Func<int, int, int, int, bool>? reaches = null) {
         if (grid == null) {
             throw new ArgumentNullException(nameof(grid));
         }

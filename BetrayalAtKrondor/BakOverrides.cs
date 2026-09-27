@@ -563,7 +563,7 @@ public class BakOverrides : CSharpOverrideHelper {
     private const uint IdaDefFileStructs = 0x3F0E6;
 
     private int _trapSpikeEncounter = -1;
-    private string _trapFrameDir;
+    private string? _trapFrameDir;
     private int _trapFramesWanted;
     private int _trapFramesTaken;
     private bool _trapSpikeFired;
@@ -988,7 +988,7 @@ public class BakOverrides : CSharpOverrideHelper {
         // `call j_animationStateMachine` (IDA's own label there is loc_seg020_6FA), reached only
         // AFTER that frame's SwapDisplayBuffer and blit have run, so the captured buffer is a
         // finished frame. Set BAK_SPIKE_FRAMEDIR to dump every one of them.
-        string frameDir = Environment.GetEnvironmentVariable("BAK_SPIKE_FRAMEDIR");
+        string? frameDir = Environment.GetEnvironmentVariable("BAK_SPIKE_FRAMEDIR");
         if (!IsNullOrEmpty(frameDir)) {
             Directory.CreateDirectory(frameDir);
             _frameDir = frameDir;
@@ -1045,7 +1045,7 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private Action ChooseNewGameOnce(int _) {
         if (!_menuForced) {
-            string loadSpec = Environment.GetEnvironmentVariable("BAK_SPIKE_LOADSAVE");
+            string? loadSpec = Environment.GetEnvironmentVariable("BAK_SPIKE_LOADSAVE");
             if (!IsNullOrEmpty(loadSpec) && PointAtSaveGame(loadSpec)) {
                 _menuForced = true;
                 // mainMenu_loadGame -- _main passes this straight to StartGameOrLoadSave (seg020:0x0EC9).
@@ -1068,7 +1068,7 @@ public class BakOverrides : CSharpOverrideHelper {
         return FarRet();
     }
 
-    private string _frameDir;
+    private string? _frameDir;
     private int _storySceneFrame;
 
     /// <summary>
@@ -1109,7 +1109,8 @@ public class BakOverrides : CSharpOverrideHelper {
 
     private void CaptureStorySceneFrame() {
         _storySceneFrame++;
-        CaptureFrameTo(_frameDir, $"frame_{_storySceneFrame:D4}.png");
+        // Registered only after _frameDir is set, so it is non-null here.
+        CaptureFrameTo(_frameDir!, $"frame_{_storySceneFrame:D4}.png");
         if (_storySceneFrame % 25 == 0) {
             _loggerService.LogInformation("Chapter spike: captured story frame {Frame}", _storySceneFrame);
         }

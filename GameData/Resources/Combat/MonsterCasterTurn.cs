@@ -51,7 +51,7 @@ public static class MonsterCasterTurn {
     /// <see cref="FirstPassThresholdIndex"/> or <see cref="RetryThresholdIndex"/>.
     /// </param>
     public static bool HealthAllowsCasting(int health,
-        System.Collections.Generic.IReadOnlyList<int> thresholds, int thresholdIndex) =>
+        System.Collections.Generic.IReadOnlyList<int>? thresholds, int thresholdIndex) =>
         thresholds != null
         && thresholdIndex >= 0 && thresholdIndex < thresholds.Count
         && health > thresholds[thresholdIndex];

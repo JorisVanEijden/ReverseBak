@@ -81,7 +81,7 @@ public sealed class CombatEncounter {
     public bool EscapeAllowed { get; set; } = true;
 
     /// <summary>Whoever is acting, or null once the encounter is over.</summary>
-    public Combatant Current { get; private set; }
+    public Combatant? Current { get; private set; }
 
     /// <summary>The acting combatant's speed, floored the way the picker floors it.</summary>
     public int ActingSpeed { get; private set; }
@@ -167,7 +167,7 @@ public sealed class CombatEncounter {
     /// </remarks>
     public Spells.ActiveSpellEffectPool Effects { get; } = new Spells.ActiveSpellEffectPool();
 
-    public void BeginRound(CombatGrid grid = null) {
+    public void BeginRound(CombatGrid? grid = null) {
         foreach (Combatant c in AllCombatants()) {
             // *** THE EFFECTS AGE ONCE PER ROUND, BEFORE READY IS RESTORED. *** Ticking after would
             // hand a turn to an actor whose incapacitation is about to lapse and take it away again
@@ -207,14 +207,14 @@ public sealed class CombatEncounter {
     /// </list>
     /// Parry is cleared on whoever is picked, which is what makes Defend last exactly one round.
     /// </remarks>
-    public Combatant PickNext() {
+    public Combatant? PickNext() {
         if (IsOver()) {
             Current = null;
             ActingSpeed = 0;
             return null;
         }
 
-        Combatant best = null;
+        Combatant? best = null;
         var bestSpeed = 0;
 
         foreach (Combatant c in Party) {
@@ -276,7 +276,7 @@ public sealed class CombatEncounter {
     /// <para>Health and stamina are zeroed, the dead flag is set, and the dead condition is applied
     /// at full strength. Whether the body stays is decided by creature class.</para>
     /// </remarks>
-    public DeathOutcome Kill(Combatant combatant, bool playAnimation = true, CombatGrid grid = null) {
+    public DeathOutcome Kill(Combatant combatant, bool playAnimation = true, CombatGrid? grid = null) {
         if (combatant == null) {
             throw new System.ArgumentNullException(nameof(combatant));
         }
@@ -373,7 +373,7 @@ public sealed class CombatEncounter {
     /// The animation is played in direction mode 3, which rounds the facing down to an even octant
     /// (<c>facing - facing % 2</c>, CACTOR.C:1865) — the attack and parry poses.
     /// </param>
-    public static void FaceToward(Combatant actor, Combatant other, bool evenOnly = false) {
+    public static void FaceToward(Combatant? actor, Combatant? other, bool evenOnly = false) {
         if (actor == null || other == null || actor.IsDead) {
             return;
         }
@@ -389,12 +389,12 @@ public sealed class CombatEncounter {
     /// Strictly smaller, so a tie goes to the opponent listed first. The opponents are the other
     /// list, so a party-side decoy looks at the enemies.
     /// </summary>
-    public Combatant NearestOpponent(Combatant actor) {
+    public Combatant? NearestOpponent(Combatant? actor) {
         if (actor == null) {
             return null;
         }
         List<Combatant> opponents = Party.Contains(actor) ? Enemies : Party;
-        Combatant best = null;
+        Combatant? best = null;
         int bestDistance = int.MaxValue;
         foreach (Combatant c in opponents) {
             if (c == null || c.IsDead) {

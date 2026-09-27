@@ -509,7 +509,7 @@ public static class CombatAi {
     /// is what a caller with no grid gets rather than a silently different rule.
     /// </param>
     public static (int X, int Y) ApproachCell(int actorX, int actorY, int targetX, int targetY,
-        Func<int, int, bool> isBlocked = null) {
+        Func<int, int, bool>? isBlocked = null) {
         int approachX = targetX + (targetX < actorX ? 1 : -1);
         int approachY = targetY + (targetY < actorY ? 1 : -1);
 
@@ -570,7 +570,7 @@ public static class CombatAi {
     /// </remarks>
     /// <param name="isBlocked">The grid's occupancy test, or null to disable the rule.</param>
     public static bool ApproachIsBlocked(int actorX, int actorY, int targetX, int targetY,
-        Func<int, int, bool> isBlocked) {
+        Func<int, int, bool>? isBlocked) {
         if (isBlocked == null) {
             return false;
         }

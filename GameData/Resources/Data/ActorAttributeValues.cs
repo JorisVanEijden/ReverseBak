@@ -28,7 +28,7 @@ public static class ActorAttributeValues {
     /// index arrives from a dialog global the save file supplies, so a bad value is bad data to be
     /// rendered harmlessly, not a programming error to abort on.
     /// </summary>
-    public static SaveGameAttributeValuesData At(SaveGameActorData actor, int index) {
+    public static SaveGameAttributeValuesData? At(SaveGameActorData? actor, int index) {
         if (actor == null) {
             return null;
         }

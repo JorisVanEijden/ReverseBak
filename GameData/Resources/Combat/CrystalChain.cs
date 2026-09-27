@@ -101,12 +101,12 @@ public static class CrystalChain {
     /// other way round. The named constant exists so the next reader does not have to re-derive a
     /// bare <c>-1</c>.</para>
     /// </remarks>
-    public static bool TileCarriesRun(TrapPuzzle puzzle, int x, int y, int kind) {
+    public static bool TileCarriesRun(TrapPuzzle? puzzle, int x, int y, int kind) {
         if (puzzle?.Grid == null || puzzle.Grid.TerrainAt(x, y) != CombatTerrain.Crystal) {
             return false;
         }
 
-        TrapGridElement element = puzzle.ElementAt(x, y);
+        TrapGridElement? element = puzzle.ElementAt(x, y);
         if (element == null) {
             return true;
         }
@@ -147,7 +147,7 @@ public static class CrystalChain {
     /// first hit, so the answer is identical and the order is not worth matching — noted only so
     /// nobody reads the difference as a bug and "fixes" it.</para>
     /// </remarks>
-    public static bool RunContinues(TrapPuzzle puzzle, int x, int y, int kind) {
+    public static bool RunContinues(TrapPuzzle? puzzle, int x, int y, int kind) {
         for (var dx = -1; dx <= 1; dx++) {
             for (var dy = -1; dy <= 1; dy++) {
                 if (dx == 0 && dy == 0) {

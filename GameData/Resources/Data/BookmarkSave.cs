@@ -108,7 +108,7 @@ public static class BookmarkSave {
     /// rather than guessing a number — a stray file in a save directory must not be mistaken for
     /// slot 0, which is the bookmark and would then be overwritten.
     /// </remarks>
-    public static bool TryParseSlot(string fileName, out int slot) {
+    public static bool TryParseSlot(string? fileName, out int slot) {
         slot = -1;
         if (string.IsNullOrEmpty(fileName)) {
             return false;

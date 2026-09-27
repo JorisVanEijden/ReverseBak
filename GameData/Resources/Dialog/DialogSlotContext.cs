@@ -84,15 +84,15 @@ public sealed class DialogSlotContext {
     public static bool RunsAnInn(int? innCostPerNight) => innCostPerNight is not null and not 0;
 
     /// <summary>Creature id → name (MNAMES.DAT), for kind 17. Null yields an empty name.</summary>
-    public Func<int, string> CreatureNameOf { get; set; }
+    public Func<int, string>? CreatureNameOf { get; set; }
 
     /// <summary>Object id → name (OBJINFO.DAT), for kind 18. Null yields an empty name.</summary>
-    public Func<int, string> ObjectNameOf { get; set; }
+    public Func<int, string>? ObjectNameOf { get; set; }
 
     /// <summary>The engine's <c>RND(n)</c>: a value in <c>[0, n)</c>. Injected so the seeding is
     /// reproducible under test — the picker genuinely re-rolls on every dialog play, so a narration
     /// line can name a different companion each time it is shown, and that is faithful.</summary>
-    public Func<int, int> Random { get; set; }
+    public Func<int, int>? Random { get; set; }
 
     /// <summary>The name for a member id, or empty when the id is out of range.</summary>
     public string NameOf(int actorId) =>
@@ -100,7 +100,7 @@ public sealed class DialogSlotContext {
 
     /// <summary>An attribute's current value for the primary actor, by attribute index — kind 27's
     /// second write. Null yields 0.</summary>
-    public Func<int, int> AttributeValueOf { get; set; }
+    public Func<int, int>? AttributeValueOf { get; set; }
 
     /// <summary>The display name of attribute <paramref name="index"/>, from the UI string catalog.
     /// Empty when the index is outside the 16 the original names.</summary>

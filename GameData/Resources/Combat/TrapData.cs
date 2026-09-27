@@ -54,7 +54,7 @@ public class TrapData : IResource {
     /// committed output.</para>
     /// </remarks>
     public IEnumerable<(int Type, int X, int Y)> ElementsFor(int encounterNumber) {
-        TrapEncounter record = Encounters?.Find(e => e.Index == encounterNumber);
+        TrapEncounter? record = Encounters?.Find(e => e.Index == encounterNumber);
         if (record?.Elements == null) {
             yield break;
         }

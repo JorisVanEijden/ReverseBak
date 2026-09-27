@@ -72,14 +72,14 @@ public sealed class RuntimeContainer {
     /// alternative was threading a clock into a dozen <c>InventoryTransfer</c> / <c>InventoryUse</c>
     /// call sites that have no business knowing about time.</para>
     /// </summary>
-    public System.Func<int> TouchClock;
+    public System.Func<int>? TouchClock;
 
     /// <summary>
     /// Raised whenever <see cref="Dirty"/> is set, i.e. on every content change. The session attaches
     /// it to party packs to rebuild the owner's carried-item modifiers, which the original does in
     /// <c>cmbinv_actor_pickup_item</c> for every item that reaches a party member (TASK-510).
     /// </summary>
-    public System.Action ContentChanged;
+    public System.Action? ContentChanged;
 
     /// <summary>
     /// The record's placement, mutable because claiming a ground bag rewrites it in place —
@@ -137,7 +137,7 @@ public sealed class RuntimeContainer {
     /// zeroed by the one performance it pays for, and a shop's restock chapter moves. Without a live
     /// copy those are lost at the door and the tavern pays again on the next visit.</para>
     /// </remarks>
-    public SaveGameContainerShopData Shop;
+    public SaveGameContainerShopData? Shop;
 
     /// <summary>
     /// The <c>SUBREC_PARAMS</c> bytes, present only when
@@ -150,10 +150,10 @@ public sealed class RuntimeContainer {
     /// means a second reading does not need a second copy — see
     /// <see cref="SaveGameContainerLockData"/>.
     /// </remarks>
-    public SaveGameContainerLockData Params;
+    public SaveGameContainerLockData? Params;
 
     /// <summary>A working copy of a shop record, so spending from it cannot reach the snapshot.</summary>
-    private static SaveGameContainerShopData Copy(SaveGameContainerShopData shop) =>
+    private static SaveGameContainerShopData? Copy(SaveGameContainerShopData? shop) =>
         shop == null
             ? null
             : new SaveGameContainerShopData(shop.ShopType, shop.MarkupPercentage,

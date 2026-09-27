@@ -1,6 +1,7 @@
 namespace GameData.Resources.Combat;
 
 using GameData.Resources.Data;
+using System.Diagnostics.CodeAnalysis;
 
 /// <summary>
 /// Turning a live <see cref="Combatant"/> into the 22-byte <c>CombatantState</c> record a save
@@ -45,12 +46,13 @@ public static class CombatStatePersistence {
     /// </summary>
     /// <param name="existing">The record currently in the save for this actor slot.</param>
     /// <param name="combatant">The live combatant.</param>
-    public static SaveGameCombatData WithLiveState(SaveGameCombatData existing, Combatant combatant) {
+    [return: NotNullIfNotNull(nameof(existing))]
+    public static SaveGameCombatData? WithLiveState(SaveGameCombatData? existing, Combatant? combatant) {
         if (existing == null || combatant == null) {
             return existing;
         }
 
-        Combatant target = combatant.Target;
+        Combatant? target = combatant.Target;
         return new SaveGameCombatData(
             // Deliberately not the live target's address — see NoTargetPointer.
             NoTargetPointer,

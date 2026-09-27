@@ -29,7 +29,7 @@ public static class InventoryEquip {
     /// category, or -1 when that paperdoll slot is empty.
     /// </summary>
     public static int FindEquippedIndex(RuntimeContainer container, ObjectType category,
-        ObjectInfoSet objects) {
+        ObjectInfoSet? objects) {
         for (int i = 0; i < container.Items.Count; i++) {
             RuntimeItem item = container.Items[i];
             if ((item.ItemFlags & EquippedFlag) != 0
@@ -46,11 +46,11 @@ public static class InventoryEquip {
     /// category is currently equipped — the equip-first rule.
     /// </summary>
     public static bool CanAutoEquip(RuntimeContainer member, RuntimeItem item, bool isCaster,
-        ObjectInfoSet objects) {
+        ObjectInfoSet? objects) {
         if (member.ContainerType != SaveGameContainerType.Inventory) {
             return false;
         }
-        ObjectInfo obj = objects?.GetById(item.ObjectId);
+        ObjectInfo? obj = objects?.GetById(item.ObjectId);
         return obj != null
             && CanEquipCategory(obj.ObjectType, isCaster)
             && FindEquippedIndex(member, obj.ObjectType, objects) < 0;
@@ -61,17 +61,18 @@ public static class InventoryEquip {
     /// item of the same category in the container, then set it on this one. Idempotent for an
     /// already-equipped item, and silent in the original (outcome -2, no "used" text).
     /// </summary>
-    public static void Equip(RuntimeContainer container, int index, ObjectInfoSet objects) {
+    public static void Equip(RuntimeContainer container, int index, ObjectInfoSet? objects) {
         if (index < 0 || index >= container.Items.Count) {
             return;
         }
         RuntimeItem item = container.Items[index];
-        ObjectInfo obj = objects?.GetById(item.ObjectId);
+        ObjectInfo? obj = objects?.GetById(item.ObjectId);
         if (obj == null) {
             return;
         }
+        // objects is non-null here: obj (read through objects?.) passed its null check above.
         foreach (RuntimeItem other in container.Items) {
-            if (objects.GetById(other.ObjectId)?.ObjectType == obj.ObjectType) {
+            if (objects!.GetById(other.ObjectId)?.ObjectType == obj.ObjectType) {
                 other.ItemFlags = (ushort)(other.ItemFlags & ~EquippedFlag);
             }
         }

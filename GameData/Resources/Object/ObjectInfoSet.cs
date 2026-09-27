@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class ObjectInfoSet : IResource {
     private readonly Dictionary<int, ObjectInfo> _byId;
     public ObjectInfoSet(string id, IReadOnlyList<ObjectInfo> items,
-                         IReadOnlyList<int> spellPrices = null) {
+                         IReadOnlyList<int>? spellPrices = null) {
         Id = id; Items = items;
         SpellPrices = spellPrices ?? System.Array.Empty<int>();
         _byId = new Dictionary<int, ObjectInfo>();
@@ -30,7 +30,7 @@ public class ObjectInfoSet : IResource {
     /// <summary>The scroll price for a spell, or 0 when the table does not reach it.</summary>
     public int SpellPriceFor(int spellNumber) =>
         spellNumber >= 0 && spellNumber < SpellPrices.Count ? SpellPrices[spellNumber] : 0;
-    public ObjectInfo GetById(int objectId) => _byId.TryGetValue(objectId, out ObjectInfo o) ? o : null;
+    public ObjectInfo? GetById(int objectId) => _byId.TryGetValue(objectId, out ObjectInfo o) ? o : null;
     public string Id { get; }
     public ResourceType Type => ResourceType.DAT;
 }

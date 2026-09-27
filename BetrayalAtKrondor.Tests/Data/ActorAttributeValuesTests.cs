@@ -39,7 +39,7 @@ public class ActorAttributeValuesTests {
     public void ReadsTheMaximumNotTheCurrentValue() {
         SaveGameActorData actor = Actor();
         Assert.Equal(3, ActorAttributeValues.MaximumOf(actor, 3));
-        Assert.Equal(103, ActorAttributeValues.At(actor, 3).Current);
+        Assert.Equal(103, ActorAttributeValues.At(actor, 3)!.Current);
     }
 
     // The index comes from a save-supplied dialog global, so out-of-range is data, not a bug:

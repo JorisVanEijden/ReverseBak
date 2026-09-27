@@ -186,7 +186,7 @@ public static class MusicSelection {
     /// playback path untouched. Four of the nine chapters use it for their SECOND book: chapters
     /// 2, 4, 6 and 7 change the music once and then let it run.</para>
     /// </remarks>
-    public static int ForChapterBook(ChapterSongMap songs, int chapter, int part) {
+    public static int ForChapterBook(ChapterSongMap? songs, int chapter, int part) {
         if (songs?.Entries == null || part is not (1 or 2)
             || chapter < 1 || chapter > songs.Entries.Count) {
             return MusicPlayback.QueryOnly;
