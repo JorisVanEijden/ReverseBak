@@ -34,9 +34,9 @@ public class LockPickingTests {
     public void TheContextIsWhichLockNotHowHard() {
         // It reaches the DDX as an event argument and only picks the wording. Distinct values, no
         // ordering meaning.
-        Assert.Equal(0, (int)LockPicking.LockContext.Person);
+        Assert.Equal(0, (int)LockPicking.LockContext.Container);
         Assert.Equal(1, (int)LockPicking.LockContext.Door);
-        Assert.Equal(2, (int)LockPicking.LockContext.Container);
+        Assert.Equal(2, (int)LockPicking.LockContext.Building);
         Assert.Equal(3, (int)LockPicking.LockContext.Traversal);
     }
 

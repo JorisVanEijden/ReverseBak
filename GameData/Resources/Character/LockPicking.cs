@@ -2,7 +2,7 @@ namespace GameData.Resources.Character;
 
 /// <summary>
 /// The shared lock-picking rules — <c>picklock_screen_run</c> (<c>SRC/SCREENS/PICKLOCK.C</c>), which
-/// doors, chests, ladders and locked NPCs all route through.
+/// chests, doors, locked buildings and ladders all route through.
 /// </summary>
 public static class LockPicking {
     /// <summary>Object id of a lockpick.</summary>
@@ -14,16 +14,22 @@ public static class LockPicking {
     /// <para><b>It is not a difficulty.</b> The original hands it straight to the DDX as
     /// <c>nEvtArgCount</c>, so it only selects which wording the prompt uses — the actual challenge
     /// comes from the score. Naming it "mode" invites reading it as a tier.</para>
+    ///
+    /// <para><b>Named from the WORDING each value selects</b>, not from canassa: dialog 79 branches on
+    /// Var 0 = 0, 1, 2, 3 to "The box's lid refused to budge", "@0 tried the door. It's locked
+    /// tight", "The building appears to have been abandoned" and the ladder grate. Until 2026-09-27
+    /// 0 was named Person and 2 Container, so a locked chest was prompted with the building's line.</para>
     /// </summary>
     public enum LockContext {
-        /// <summary>A locked NPC (<c>wcursor</c> @607, which also passes the owning actor).</summary>
-        Person = 0,
+        /// <summary>A chest or other container — WCURSOR.C:607, the container handler's lock case,
+        /// which also passes the container's world actor.</summary>
+        Container = 0,
 
         /// <summary>A door (<c>wcursor_object_toggle_open_close</c>).</summary>
         Door = 1,
 
-        /// <summary>A container (<c>wcursor</c> @332).</summary>
-        Container = 2,
+        /// <summary>A locked building entrance — WCURSOR.C:332, keyed by the actor's door key.</summary>
+        Building = 2,
 
         /// <summary>A ladder or other fixed traversal object (<c>wcursor_click_fixedobj_picklock</c>).</summary>
         Traversal = 3,
