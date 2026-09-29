@@ -9,14 +9,14 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # The workspace layout the .csproj files expect, by relative path:
-      #   work/DotNetProjects   this repo                 (the Spice86 overrides)
-      #   work/Spice86          ..\..\Spice86\src\...     from BetrayalAtKrondor/
-      #   bakagain              ..\..\..\bakagain\src\... (GameData, ResourceExtraction; TASK-670)
+      # The workspace layout the .csproj files expect: three siblings, as in /home/jve/bak.
+      #   DotNetProjects   this repo (the Spice86 overrides)
+      #   Spice86          ..\..\Spice86\src\...   from BetrayalAtKrondor/
+      #   bakagain         ..\..\bakagain\src\...  (GameData, ResourceExtraction; TASK-670)
       - name: Checkout ReverseBak
         uses: actions/checkout@v4
         with:
-          path: work/DotNetProjects
+          path: DotNetProjects
 
       - name: Checkout the public monorepo (shared GameData / ResourceExtraction)
         uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
         with:
           repository: JorisVanEijden/Spice86
           ref: master
-          path: work/Spice86
+          path: Spice86
           token: ${{ secrets.CI_PAT || github.token }}
 
       - name: Setup .NET 10
@@ -41,11 +41,11 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore work/DotNetProjects/BetrayalAtKrondor.sln
+        run: dotnet restore DotNetProjects/BetrayalAtKrondor.sln
 
       - name: Build
-        run: dotnet build work/DotNetProjects/BetrayalAtKrondor.sln -c Release --no-restore
+        run: dotnet build DotNetProjects/BetrayalAtKrondor.sln -c Release --no-restore
 
       # Only the override tests live here now; the shared projects' tests run in the monorepo's CI.
       - name: Test
-        run: dotnet test work/DotNetProjects/BetrayalAtKrondor.sln -c Release --no-build --verbosity normal
+        run: dotnet test DotNetProjects/BetrayalAtKrondor.sln -c Release --no-build --verbosity normal

@@ -10,8 +10,8 @@
         <None Remove=".gitignore" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\..\bakagain\src\GameData\GameData.csproj" />
-        <ProjectReference Include="..\..\..\bakagain\src\ResourceExtraction\ResourceExtraction.csproj" />
+        <ProjectReference Include="..\..\bakagain\src\GameData\GameData.csproj" />
+        <ProjectReference Include="..\..\bakagain\src\ResourceExtraction\ResourceExtraction.csproj" />
         <ProjectReference Include="..\..\Spice86\src\Spice86.Core\Spice86.Core.csproj" />
         <ProjectReference Include="..\..\Spice86\src\Spice86.Shared\Spice86.Shared.csproj" />
         <ProjectReference Include="..\..\Spice86\src\Spice86\Spice86.csproj" />

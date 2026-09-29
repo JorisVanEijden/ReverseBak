@@ -7,9 +7,3 @@ riderModule.iml
 logs/
 BetrayalAtKrondor/[A-F0-9]*/
 
-# Symlinks into ~/bakagain/src, made by scripts/monorepo-link.sh (TASK-670)
-/GameData
-/ResourceExtraction
-/ResourceExtraction.Tests
-/ResourceExtractor
-/BetrayalAtKrondor.Tests
