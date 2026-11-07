@@ -530,6 +530,53 @@ public class BakOverrides : CSharpOverrideHelper {
         DefineCombatSpike();
         DefineTrapTriggerSpike();
         DefineTownTriggerSpike();
+        DefineAttackLog();
+    }
+
+    /// <summary>
+    /// Opt-in: <c>BAK_ATTACK_LOG=file</c> appends one line per AI-driven melee attack (auto-resolve
+    /// plays the party through the same path) and monster spell casts (C, R), so hit rates can be compared with the port's fight log.
+    /// </summary>
+    /// <remarks>
+    /// Hooks the RESIDENT thunks <c>j_resolveThrustAttack</c> (stub168:004D) and
+    /// <c>j_resolveMeleeAttack</c> (stub168:0052) — the functions themselves live in a combat overlay
+    /// that moves. Their only callers are the AI (<c>combatenc_ai_attempt_melee</c> and two monster
+    /// routines), so a player's own clicked attack is NOT logged. At the thunk, SS:SP holds the far
+    /// return and then (attacker, defender) as near pointers (DS == SS). The line carries every
+    /// combatant's hp/sta, so the outcome of attack k is the defender's drop by line k+1.
+    /// </remarks>
+    private void DefineAttackLog() {
+        string? path = Environment.GetEnvironmentVariable("BAK_ATTACK_LOG");
+        if (IsNullOrEmpty(path)) {
+            return;
+        }
+        void Log(char kind) {
+            uint stack = MemoryUtils.ToPhysicalAddress(State.SS, State.SP);
+            ushort attacker = Memory.UInt16[stack + 4], defender = Memory.UInt16[stack + 6];
+            ushort ds = State.DS;
+            // dseg 0x39dd0: pSevenActors? @0x3eeae, pNpcActors @0x3efa8, g_combat_actor_count @0x3eeb8
+            ushort party = Memory.UInt16[ds, 0x50DE], npcs = Memory.UInt16[ds, 0x51D8];
+            string Who(ushort p) =>
+                p >= party && p < party + 3 * 95 && (p - party) % 95 == 0 ? $"P{(p - party) / 95}"
+                : p >= npcs && p < npcs + 8 * 95 && (p - npcs) % 95 == 0 ? $"N{(p - npcs) / 95}"
+                : $"?{p:X4}";
+            // Combatant: stats[k] at +8+5k, byte 1 = current; inner (+93) -> flags at +8
+            string Pools(ushort b, int n) => Join(" ", Enumerable.Range(0, n).Select(i => {
+                ushort c = (ushort)(b + i * 95);
+                return $"{Memory.UInt8[ds, (ushort)(c + 9)]}/{Memory.UInt8[ds, (ushort)(c + 14)]}";
+            }));
+            ushort inner = Memory.UInt16[ds, (ushort)(defender + 93)];
+            string line = $"{Memory.UInt32[0x46C]} {State.SP:X4} {kind} {Who(attacker)}>{Who(defender)} acc={Memory.UInt8[ds, (ushort)(attacker + 39)]}"
+                + $" def={Memory.UInt8[ds, (ushort)(defender + 29)]} dflags=0x{Memory.UInt8[ds, (ushort)(inner + 8)]:X2}"
+                + $" | P {Pools(party, 3)} | N {Pools(npcs, 4)}";
+            File.AppendAllText(path, line + "\n");
+        }
+        DoOnTopOfInstructionIda(0x3907, 0x004D, () => Log('T'));
+        DoOnTopOfInstructionIda(0x3907, 0x0052, () => Log('S'));
+        // stub171: j_monster_castSpellAtTarget (+0x48) and ..WithToHitRoll (+0x4D), the monster spell path
+        DoOnTopOfInstructionIda(0x392A, 0x0048, () => Log('C'));
+        DoOnTopOfInstructionIda(0x392A, 0x004D, () => Log('R'));
+        _loggerService.LogInformation("Attack log: armed -> {Path}", path);
     }
 
     /// <summary>
