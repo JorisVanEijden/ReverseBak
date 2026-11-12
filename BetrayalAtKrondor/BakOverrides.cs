@@ -560,14 +560,14 @@ public class BakOverrides : CSharpOverrideHelper {
                 p >= party && p < party + 3 * 95 && (p - party) % 95 == 0 ? $"P{(p - party) / 95}"
                 : p >= npcs && p < npcs + 8 * 95 && (p - npcs) % 95 == 0 ? $"N{(p - npcs) / 95}"
                 : $"?{p:X4}";
-            // Combatant: stats[k] at +8+5k, byte 1 = current; inner (+93) -> flags at +8
+            // Combatant: stats[k] at +8+5k (max, base, cached effective, frac, perm_mod): acc = stat 6 base (+39), cacc its cached effective (+40, the last stat_actor_get result); def = stat 4 base (+29), cdef cached (+30); byte 1 = current; inner (+93) -> flags at +8
             string Pools(ushort b, int n) => Join(" ", Enumerable.Range(0, n).Select(i => {
                 ushort c = (ushort)(b + i * 95);
                 return $"{Memory.UInt8[ds, (ushort)(c + 9)]}/{Memory.UInt8[ds, (ushort)(c + 14)]}";
             }));
             ushort inner = Memory.UInt16[ds, (ushort)(defender + 93)];
             string line = $"{Memory.UInt32[0x46C]} {State.SP:X4} {kind} {Who(attacker)}>{Who(defender)} acc={Memory.UInt8[ds, (ushort)(attacker + 39)]}"
-                + $" def={Memory.UInt8[ds, (ushort)(defender + 29)]} dflags=0x{Memory.UInt8[ds, (ushort)(inner + 8)]:X2}"
+                + $" cacc={Memory.UInt8[ds, (ushort)(attacker + 40)]} def={Memory.UInt8[ds, (ushort)(defender + 29)]} cdef={Memory.UInt8[ds, (ushort)(defender + 30)]} dflags=0x{Memory.UInt8[ds, (ushort)(inner + 8)]:X2}"
                 + $" | P {Pools(party, 3)} | N {Pools(npcs, 4)}";
             File.AppendAllText(path, line + "\n");
         }
